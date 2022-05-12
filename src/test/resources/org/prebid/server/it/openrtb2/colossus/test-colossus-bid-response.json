@@ -10,7 +10,10 @@
           "crid": "crid001",
           "adm": "adm001",
           "h": 250,
-          "w": 300
+          "w": 300,
+          "ext": {
+            "mediaType" : "banner"
+          }
         }
       ]
     }

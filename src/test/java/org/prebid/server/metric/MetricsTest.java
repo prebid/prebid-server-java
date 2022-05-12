@@ -487,6 +487,38 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateFetchWithFetchResultShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.fetch.failure").getCount()).isOne();
+    }
+
+    @Test
+    public void updatePriceFloorGeneralErrorsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAlertsConfigMetricsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+        metrics.updateAlertsConfigFailed("anotherId", MetricName.failed);
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+
+        // then
+        assertThat(metricRegistry.counter("alerts.account_config.accountId.price-floors")
+                .getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("alerts.account_config.anotherId.failed")
+                .getCount()).isOne();
+    }
+
+    @Test
     public void updateAdapterResponseTimeShouldUpdateMetrics() {
         // when
         metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);

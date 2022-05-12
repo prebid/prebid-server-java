@@ -30,10 +30,7 @@
     "ip": "193.168.244.1"
   },
   "user": {
-    "buyeruid": "GUM-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid": "GUM-UID"
   },
   "at": 1,
   "tmax": 5000,
@@ -43,6 +40,18 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
     }
   }
 }

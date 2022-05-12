@@ -44,7 +44,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdkernelAdnBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://{{Host}}/test?account={{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test.com/test?account={{PublisherID}}";
 
     private AdkernelAdnBidder adkernelAdnBidder;
 
@@ -149,30 +149,13 @@ public class AdkernelAdnBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("http://tag.adkernel.com/test?account=50357", HttpRequest::getUri);
+                .returns("https://test.com/test?account=50357", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
-    }
-
-    @Test
-    public void makeHttpRequestShouldChangeDomainIfHostIsSpecified() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                extImpAdkernelAdnBuilder -> extImpAdkernelAdnBuilder.host("different.domanin.com"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsOnly("http://different.domanin.com/test?account=50357");
     }
 
     @Test

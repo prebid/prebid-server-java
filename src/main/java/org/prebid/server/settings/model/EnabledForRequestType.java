@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +11,8 @@ import org.prebid.server.metric.MetricName;
 @AllArgsConstructor(staticName = "of")
 public class EnabledForRequestType {
 
-    Boolean web;
+    @JsonAlias("web")
+    Boolean pbjs;
 
     Boolean amp;
 
@@ -28,7 +30,7 @@ public class EnabledForRequestType {
         }
         switch (requestType) {
             case openrtb2web:
-                return web;
+                return pbjs;
             case openrtb2app:
                 return app;
             case amp:

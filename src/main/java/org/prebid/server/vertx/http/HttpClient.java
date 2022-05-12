@@ -10,9 +10,25 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
  */
 public interface HttpClient {
 
-    Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs);
+    Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                       String body, long timeoutMs, long maxResponseSize);
 
-    Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body, long timeoutMs);
+    Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                       byte[] body, long timeoutMs, long maxResponseSize);
+
+    default Future<HttpClientResponse> request(HttpMethod method, String url,
+                                               MultiMap headers, String body, long timeoutMs) {
+        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE);
+    }
+
+    default Future<HttpClientResponse> request(HttpMethod method, String url,
+                                               MultiMap headers, byte[] body, long timeoutMs) {
+        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE);
+    }
+
+    default Future<HttpClientResponse> get(String url, long timeoutMs, long maxResponseSize) {
+        return request(HttpMethod.GET, url, null, (String) null, timeoutMs, maxResponseSize);
+    }
 
     default Future<HttpClientResponse> get(String url, MultiMap headers, long timeoutMs) {
         return request(HttpMethod.GET, url, headers, (String) null, timeoutMs);

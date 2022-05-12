@@ -37,8 +37,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -227,7 +227,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
-        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+        final ExtSourceSchain schain = getSchain(bidRequest);
 
         if (schain != null) {
             requestBuilder.schain(schain);
@@ -313,7 +313,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         return StringUtils.contains(page, "https") ? 1 : 0;
     }
 
-    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+    private static ExtSourceSchain getSchain(BidRequest bidRequest) {
         final Source source = bidRequest.getSource();
         final ExtSource extSource = source != null ? source.getExt() : null;
 
