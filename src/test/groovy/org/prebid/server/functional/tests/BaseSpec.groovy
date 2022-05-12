@@ -42,8 +42,8 @@ abstract class BaseSpec extends Specification {
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
 
-    private static final ContainerFactory containerFactory = new ContainerFactory(10)
-    private final ThreadLocal<Set<ContainerWrapper>> acquiredContainers = ThreadLocal.withInitial { [:] } as ThreadLocal<Set<ContainerWrapper>>
+    private static final ContainerFactory containerFactory = new ContainerFactory(2)
+    private static final ThreadLocal<Set<ContainerWrapper>> acquiredContainers = ThreadLocal.withInitial { [] } as ThreadLocal<Set<ContainerWrapper>>
 
     def setupSpec() {
         prebidCache.setResponse()
@@ -54,8 +54,6 @@ abstract class BaseSpec extends Specification {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
-
-        releaseContainers()
     }
 
     def cleanup() {
