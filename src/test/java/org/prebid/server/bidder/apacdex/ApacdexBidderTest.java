@@ -134,7 +134,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid".getBytes());
 
         // when
         final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
@@ -152,7 +152,7 @@ public class ApacdexBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall =
-                givenHttpCall(null, mapper.writeValueAsString(null));
+                givenHttpCall(null, mapper.writeValueAsBytes(null));
 
         // when
         final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
@@ -166,7 +166,7 @@ public class ApacdexBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+                mapper.writeValueAsBytes(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
@@ -206,7 +206,7 @@ public class ApacdexBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
-                mapper.writeValueAsString(BidResponse.builder()
+                mapper.writeValueAsBytes(BidResponse.builder()
                         .seatbid(List.of(SeatBid.builder()
                                 .bid(List.of(givenBid("124", null, bidBuilder -> bidBuilder.ext(null))))
                                 .build()))
@@ -228,7 +228,7 @@ public class ApacdexBidderTest extends VertxTest {
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
-                mapper.writeValueAsString(BidResponse.builder()
+                mapper.writeValueAsBytes(BidResponse.builder()
                         .seatbid(List.of(SeatBid.builder()
                                 .bid(List.of(
                                         givenBid("123", banner, identity()),
@@ -265,7 +265,7 @@ public class ApacdexBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, byte[] body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
@@ -275,7 +275,7 @@ public class ApacdexBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
         return HttpCall.success(
                 null,
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
+                HttpResponse.of(200, null, mapper.writeValueAsBytes(bidResponse)),
                 null);
     }
 

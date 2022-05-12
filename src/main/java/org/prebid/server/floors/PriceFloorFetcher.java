@@ -9,6 +9,7 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -162,9 +163,9 @@ public class PriceFloorFetcher {
             throw new PreBidException(String.format("Failed to request for account %s,"
                     + " provider respond with status %s", accountId, statusCode));
         }
-        final String body = httpClientResponse.getBody();
+        final byte[] body = httpClientResponse.getBody();
 
-        if (StringUtils.isBlank(body)) {
+        if (ArrayUtils.isEmpty(body)) {
             throw new PreBidException(String.format("Failed to parse price floor response for account %s, "
                     + "response body can not be empty", accountId));
         }
@@ -177,7 +178,7 @@ public class PriceFloorFetcher {
                 cacheTtlFromResponse(httpClientResponse, fetchConfig.getUrl()));
     }
 
-    private PriceFloorData parsePriceFloorData(String body, String accountId) {
+    private PriceFloorData parsePriceFloorData(byte[] body, String accountId) {
         final PriceFloorData priceFloorData;
         try {
             priceFloorData = mapper.decodeValue(body, PriceFloorData.class);

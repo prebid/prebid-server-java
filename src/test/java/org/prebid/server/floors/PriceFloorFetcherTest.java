@@ -90,7 +90,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         final Account givenAccount = givenAccount(identity());
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(givenPriceFloorData()))));
+                        jacksonMapper.encodeToBytes(givenPriceFloorData()))));
         // when
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount);
 
@@ -168,7 +168,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
-                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+                                jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -185,7 +185,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
-                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+                                jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -202,7 +202,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+                                jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -219,7 +219,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+                                jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -236,7 +236,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+                                jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -251,7 +251,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "invalid"),
-                        jacksonMapper.encodeToString(givenPriceFloorData()))));
+                        jacksonMapper.encodeToBytes(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -313,7 +313,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(400, MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(PriceFloorRules.builder().build()))));
+                        jacksonMapper.encodeToBytes(PriceFloorRules.builder().build()))));
 
         // when
         final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
@@ -335,7 +335,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
-                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "{")));
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "{".getBytes())));
 
         // when
         final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
@@ -416,7 +416,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         fetchPromise.tryComplete(
                 HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                 .add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
-                        jacksonMapper.encodeToString(givenPriceFloorData())));
+                        jacksonMapper.encodeToBytes(givenPriceFloorData())));
 
         final PriceFloorData thirdFetch = priceFloorFetcher.fetch(givenAccount(identity())).getRulesData();
         assertThat(thirdFetch).isEqualTo(givenPriceFloorData());
@@ -428,7 +428,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(PriceFloorData.builder()
+                        jacksonMapper.encodeToBytes(PriceFloorData.builder()
                                         .modelGroups(singletonList(PriceFloorModelGroup.builder()
                                                 .value("video", BigDecimal.ONE).value("banner", BigDecimal.TEN)
                                                 .build()))

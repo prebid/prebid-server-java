@@ -323,7 +323,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.id("123").banner(Banner.builder().build())));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsBytes(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
@@ -341,7 +341,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.id("123").video(Video.builder().build())));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsBytes(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
@@ -357,7 +357,7 @@ public class RichaudienceBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(Imp.builder().build());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsBytes(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
@@ -403,7 +403,7 @@ public class RichaudienceBidderTest extends VertxTest {
         return HttpCall.success(null, response, null);
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, byte[]body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),

@@ -238,7 +238,7 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid".getBytes());
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
@@ -256,7 +256,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsBytes(null));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
@@ -271,7 +271,7 @@ public class SharethroughBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+                mapper.writeValueAsBytes(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
@@ -287,7 +287,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
+                mapper.writeValueAsBytes(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -304,7 +304,7 @@ public class SharethroughBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(
+                mapper.writeValueAsBytes(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -322,7 +322,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
+                mapper.writeValueAsBytes(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -373,7 +373,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, byte[] body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),

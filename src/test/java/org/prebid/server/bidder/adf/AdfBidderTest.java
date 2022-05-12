@@ -128,7 +128,7 @@ public class AdfBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseInvalid() {
         // given
-        final HttpCall<BidRequest> response = givenHttpCall("invalid");
+        final HttpCall<BidRequest> response = givenHttpCall("invalid".getBytes());
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(response, null);
@@ -223,12 +223,12 @@ public class AdfBidderTest extends VertxTest {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpAdf))));
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
+    private static HttpCall<BidRequest> givenHttpCall(byte[] body) {
         return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidResponse response) throws JsonProcessingException {
-        return givenHttpCall(mapper.writeValueAsString(response));
+        return givenHttpCall(mapper.writeValueAsBytes(response));
     }
 
     private static BidResponse givenBidResponse(Bid... bids) {
