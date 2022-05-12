@@ -98,7 +98,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(httpClient).get("http://test.host.com", 1300, 10240);
 
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(httpClient);
 
@@ -120,7 +120,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
     }
 
     @Test
@@ -135,7 +135,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -154,7 +154,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -167,14 +167,46 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
-                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
+                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=1700"),
                                 jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(700000L), any());
+        verify(vertx).setTimer(eq(1700000L), any());
+    }
+
+    @Test
+    public void fetchShouldNotCacheResponseFoWithTimeFromResponseCacheControlHeaderIfLessThanMinValue() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=500"),
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(config -> config.periodSec(500L)));
+
+        // then
+        verify(vertx).setTimer(eq(1500000L), any());
+    }
+
+    @Test
+    public void fetchShouldNotCacheResponseFoWithTimeFromResponseCacheControlHeaderIfLessThanPeriodSec() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=900"),
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(vertx).setTimer(eq(1500000L), any());
     }
 
     @Test
@@ -184,14 +216,14 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL,
-                                                "no-cache, no-store, max-age=800, must-revalidate"),
+                                                "no-cache, no-store, max-age=1700, must-revalidate"),
                                 jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(800000L), any());
+        verify(vertx).setTimer(eq(1700000L), any());
     }
 
     @Test
@@ -209,7 +241,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(vertx).setTimer(eq(1000L), any());
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
     }
 
     @Test
@@ -339,7 +371,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -361,7 +393,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -383,7 +415,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -405,7 +437,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -446,10 +478,10 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(),
                         jacksonMapper.encodeToString(PriceFloorData.builder()
-                                        .modelGroups(singletonList(PriceFloorModelGroup.builder()
-                                                .value("video", BigDecimal.ONE).value("banner", BigDecimal.TEN)
-                                                .build()))
-                                        .build()))));
+                                .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                                        .value("video", BigDecimal.ONE).value("banner", BigDecimal.TEN)
+                                        .build()))
+                                .build()))));
 
         // when
         final FetchResult firstInvocationResult =
@@ -459,7 +491,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
@@ -489,7 +521,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                         .maxFileSize(10L)
                         .timeout(1300L)
                         .maxAgeSec(1500L)
-                        .periodSec(1700L))
+                        .periodSec(1200L))
                 .build();
     }
 

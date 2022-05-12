@@ -48,6 +48,8 @@ public class PriceFloorFetcher {
 
     private static final int ACCOUNT_FETCH_TIMEOUT_MS = 5000;
     private static final int MAXIMUM_CACHE_SIZE = 300;
+    private static final int MIN_MAX_AGE_SEC_VALUE = 600;
+    private static final int MAX_AGE_SEC_VALUE = Integer.MAX_VALUE;
     private static final Pattern CACHE_CONTROL_HEADER_PATTERN = Pattern.compile("^.*(max-age=\\d+).*$");
 
     private final ApplicationSettings applicationSettings;
@@ -239,9 +241,20 @@ public class PriceFloorFetcher {
     private static long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
         final Long headerCacheTtl = cacheInfo.getCacheTtl();
 
-        return headerCacheTtl != null && headerCacheTtl != 0L
-                ? headerCacheTtl
-                : fetchConfig.getMaxAgeSec();
+        return isValidMaxAge(headerCacheTtl, fetchConfig) ? headerCacheTtl : fetchConfig.getMaxAgeSec();
+    }
+
+    private static boolean isValidMaxAge(Long headerCacheTtl, AccountPriceFloorsFetchConfig fetchConfig) {
+        final Long periodSec = fetchConfig.getPeriodSec();
+        final long minMaxAgeValue = periodSec != null
+                ? Math.max(MIN_MAX_AGE_SEC_VALUE, periodSec)
+                : MIN_MAX_AGE_SEC_VALUE;
+
+        return headerCacheTtl != null && isInMaxAgeRange(headerCacheTtl, minMaxAgeValue);
+    }
+
+    private static boolean isInMaxAgeRange(long number, long min) {
+        return Math.max(min, number) == Math.min(number, MAX_AGE_SEC_VALUE);
     }
 
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {
