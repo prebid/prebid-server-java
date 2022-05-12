@@ -250,18 +250,18 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAccountRequestRejectedByInvalidAccountMetrics(String accountId) {
-        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_account);
+        updateAccountRequestsMetrics(accountId, MetricName.rejected_by_invalid_account);
     }
 
     public void updateAccountRequestRejectedByInvalidStoredImpMetrics(String accountId) {
-        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_stored_impr);
+        updateAccountRequestsMetrics(accountId, MetricName.rejected_by_invalid_stored_impr);
     }
 
     public void updateAccountRequestRejectedByInvalidStoredRequestMetrics(String accountId) {
-        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_stored_request);
+        updateAccountRequestsMetrics(accountId, MetricName.rejected_by_invalid_stored_request);
     }
 
-    private void updateAccountRequestRejectedMetrics(String accountId, MetricName metricName) {
+    private void updateAccountRequestsMetrics(String accountId, MetricName metricName) {
         forAccount(accountId).requests().incCounter(metricName);
     }
 
