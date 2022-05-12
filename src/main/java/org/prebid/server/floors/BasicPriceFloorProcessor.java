@@ -79,7 +79,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return auctionContext.with(updatedBidRequest);
     }
 
-    private boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
+    private static boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
         return isPriceFloorsDisabledForAccount(account) || isPriceFloorsDisabledForRequest(bidRequest);
     }
 
