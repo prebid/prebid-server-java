@@ -9,12 +9,12 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import java.util.List;
 import java.util.Objects;
 
-public class ImpMediaTypeConverter {
+public class ImpMediaTypeResolver {
 
-    private ImpMediaTypeConverter() {
+    private ImpMediaTypeResolver() {
     }
 
-    public static ImpMediaType toImpMediaType(String bidImpId, List<Imp> imps, BidType bidType) {
+    public static ImpMediaType resolve(String bidImpId, List<Imp> imps, BidType bidType) {
         switch (bidType) {
             case banner:
                 return ImpMediaType.banner;

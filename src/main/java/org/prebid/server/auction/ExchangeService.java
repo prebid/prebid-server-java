@@ -1469,7 +1469,7 @@ public class ExchangeService {
         if (adjustmentFactors == null) {
             return null;
         }
-        final ImpMediaType mediaType = ImpMediaTypeConverter.toImpMediaType(
+        final ImpMediaType mediaType = ImpMediaTypeResolver.resolve(
                 bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
         return adjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
