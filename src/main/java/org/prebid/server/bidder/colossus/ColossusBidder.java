@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.colossus;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -100,9 +102,7 @@ public class ColossusBidder implements Bidder<BidRequest> {
         return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               BidResponse bidResponse,
-                                               List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
@@ -119,22 +119,32 @@ public class ColossusBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
+            return BidderBid.of(bid, resolveBidType(bid.getExt(), bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private BidType resolveBidType(ObjectNode objectNode, String impId, List<Imp> imps) {
+        final JsonNode mediaType = objectNode != null ? objectNode.get("mediaType") : null;
+        final BidType bidType = mediaType != null ? BidType.fromString(mediaType.asText()) : null;
+
+        if (bidType != null) {
+            return bidType;
+        }
+
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                if (imp.getBanner() == null && imp.getVideo() != null) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
                     return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
                 }
-                return BidType.banner;
             }
         }
 
