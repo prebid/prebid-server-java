@@ -11,6 +11,9 @@ import java.util.Objects;
 
 public class ImpMediaTypeConverter {
 
+    private ImpMediaTypeConverter() {
+    }
+
     public static ImpMediaType toImpMediaType(String bidImpId, List<Imp> imps, BidType bidType) {
         switch (bidType) {
             case banner:

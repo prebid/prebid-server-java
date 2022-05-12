@@ -151,7 +151,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -174,7 +173,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -3723,13 +3721,13 @@ public class ExchangeServiceTest extends VertxTest {
                                 "success",
                                 singletonList(
                                         ExtModulesTraceAnalyticsResult.of(
-                                        "success",
-                                        mapper.createObjectNode(),
-                                        ExtModulesTraceAnalyticsAppliedTo.builder()
-                                                .impIds(asList("impId1", "impId2"))
-                                                .response(true)
-                                                .request(null)
-                                                .build())))));
+                                                "success",
+                                                mapper.createObjectNode(),
+                                                ExtModulesTraceAnalyticsAppliedTo.builder()
+                                                        .impIds(asList("impId1", "impId2"))
+                                                        .response(true)
+                                                        .request(null)
+                                                        .build())))));
 
         assertThat(result.getBidResponse().getExt().getPrebid().getModules().getTrace().getStages())
                 .flatExtracting(ExtModulesTraceStage::getOutcomes)

@@ -2,7 +2,6 @@ package org.prebid.server.floors;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.AdjustmentFactorResolver;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
@@ -19,13 +18,9 @@ import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 

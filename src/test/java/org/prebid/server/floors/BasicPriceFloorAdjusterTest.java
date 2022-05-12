@@ -1,10 +1,7 @@
 package org.prebid.server.floors;
 
-import com.iab.openrtb.request.Audio;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,7 +22,6 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
