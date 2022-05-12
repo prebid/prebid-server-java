@@ -58,6 +58,10 @@ abstract class BaseSpec extends Specification {
         releaseContainers()
     }
 
+    def cleanup() {
+        releaseContainers()
+    }
+
     protected static int getRandomTimeout() {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
@@ -81,9 +85,9 @@ abstract class BaseSpec extends Specification {
     }
 
     protected acquireContainer(Map<String, String> config) {
-        containerFactory.acquireContainer(config).tap {
-            acquiredContainers.get().add(it)
-        }
+        def container = containerFactory.acquireContainer(config)
+        acquiredContainers.get().add(container)
+        container
     }
 
     private void releaseContainers() {
