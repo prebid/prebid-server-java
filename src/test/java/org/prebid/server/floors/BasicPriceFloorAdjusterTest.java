@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class BasicPriceFloorAdjusterTest extends VertxTest {
 
@@ -56,13 +57,14 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldApplyFactorToBidFloorIfPresent() {
+    public void adjustForImpShouldCallAdjustmentFactorResolverAndApplyFactor() {
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
                 .adjustForImp(givenImp(identity()), RUBICON, givenBidRequest(identity()), null);
 
         // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(11.7647D));
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
+        verify(adjustmentFactorResolver).resolve(anySet(), any(), any());
     }
 
     @Test
@@ -104,50 +106,6 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
-    }
-
-    @Test
-    public void adjustForImpShouldChooseAdjustmentFactorFromAdjustments() {
-        // given
-
-        final ExtRequestBidAdjustmentFactors givenFactors = ExtRequestBidAdjustmentFactors.builder()
-                .mediatypes(givenMediaTypes(Collections.emptyMap()))
-                .build();
-        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(0.6D));
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(givenFactors).build())));
-        final Imp imp = givenImp(impBuilder ->
-                impBuilder);
-
-        // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
-
-        // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
-    }
-
-    @Test
-    public void adjustForImpShouldChooseAdjustmentFactorIfGreaterThanOne() {
-        // given
-
-        final ExtRequestBidAdjustmentFactors givenFactors = ExtRequestBidAdjustmentFactors.builder()
-                .mediatypes(givenMediaTypes(Map.of(
-                        ImpMediaType.video,
-                        Map.of(RUBICON, BigDecimal.valueOf(3D)))))
-                .build();
-        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(2D));
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(givenFactors).build())));
-        final Imp imp = givenImp(impBuilder ->
-                impBuilder);
-
-        // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
-
-        // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(5));
     }
 
     @Test
@@ -247,79 +205,6 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
-    }
-
-    @Test
-    public void adjustForImpShouldChooseMinimalFactorFromSeveralAvailable() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
-                                .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video_outstream,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)),
-                                        ImpMediaType.audio,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.75D), "bidder", BigDecimal.valueOf(0.6D)),
-                                        ImpMediaType.xNative,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.6D), "bidder", BigDecimal.valueOf(0.7D)))))
-                                .build())
-                        .build())));
-        final Imp imp = givenImp(impBuilder ->
-                impBuilder
-                        .banner(Banner.builder().build())
-                        .audio(Audio.builder().build())
-                        .xNative(Native.builder().build())
-                        .video(Video.builder().placement(0).build()));
-
-        // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
-
-        // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
-    }
-
-    @Test
-    public void adjustForImpShouldChooseVideoMediaTypeIfPlacementIsNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
-                                .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)))))
-                                .build())
-                        .build())));
-        final Imp imp = givenImp(impBuilder ->
-                impBuilder.video(Video.builder().placement(null).build()));
-
-        // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
-
-        // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(12.5D));
-    }
-
-    @Test
-    public void adjustForImpShouldChooseAdjustmentFactorIfLowerThenMediaType() {
-        // given
-
-        final ExtRequestBidAdjustmentFactors givenFactors = ExtRequestBidAdjustmentFactors.builder()
-                .mediatypes(givenMediaTypes(Map.of(
-                        ImpMediaType.video,
-                        Map.of(RUBICON, BigDecimal.valueOf(0.7D), "bidder", BigDecimal.valueOf(0.5D)))))
-                .build();
-        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(0.6D));
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(givenFactors).build())));
-        final Imp imp = givenImp(impBuilder ->
-                impBuilder);
-
-        // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
-
-        // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {

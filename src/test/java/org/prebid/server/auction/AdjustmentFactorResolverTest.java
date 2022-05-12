@@ -120,7 +120,7 @@ public class AdjustmentFactorResolverTest {
     }
 
     @Test
-    public void resolveShouldReturnOneWhenBidderAdjustmentAndMediaTypeAdjustmentAreAbsent() {
+    public void resolveShouldReturnOneWhenAppropriateBidderAdjustmentAndMediaTypeAdjustmentAreAbsent() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
                 ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234))));
