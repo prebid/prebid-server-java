@@ -3,6 +3,7 @@ package org.prebid.server.functional.testcontainers.scaffolding
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
+import org.mockserver.model.Header
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
@@ -10,7 +11,7 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
-import static org.mockserver.model.ClearType.EXPECTATIONS
+import static org.mockserver.model.ClearType.ALL
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -59,8 +60,16 @@ abstract class NetworkScaffolding {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, ResponseModel responseModel) {
+    void setResponse(String value, ResponseModel responseModel, Map<String, String> headers = [:]) {
+        def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = mapper.encode(responseModel)
+        mockServerClient.when(getRequest(value), Times.unlimited())
+                        .respond(response().withStatusCode(OK_200.code())
+                                           .withBody(mockResponse, APPLICATION_JSON)
+                                           .withHeaders(responseHeaders))
+    }
+
+    void setResponse(String value, String mockResponse) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
                         .respond(response().withStatusCode(OK_200.code())
                                            .withBody(mockResponse, APPLICATION_JSON))
@@ -73,20 +82,24 @@ abstract class NetworkScaffolding {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, int httpStatusCode) {
+    void setResponse(String value, HttpStatusCode httpStatusCode) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode))
+                        .respond(response().withStatusCode(httpStatusCode.code()))
     }
 
-    void setResponse(String value, int httpStatusCode, String errorText) {
+    void setResponse(String value, HttpStatusCode httpStatusCode, String errorText) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode)
+                        .respond(response().withStatusCode(httpStatusCode.code())
                                            .withBody(errorText, APPLICATION_JSON))
     }
 
-    void setResponseWithTimeout(String value) {
+    void setResponseWithTimeout(String value, int timeoutSec = 5) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withDelay(SECONDS, 5))
+                        .respond(response().withDelay(SECONDS, timeoutSec))
+    }
+
+    protected def getRequestAndResponse() {
+        mockServerClient.retrieveRecordedRequestsAndResponses(request())
     }
 
     List<String> getRecordedRequestsBody(HttpRequest httpRequest) {
@@ -104,28 +117,28 @@ abstract class NetworkScaffolding {
                         .collect { it.body.toString() }
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
         getRecordedRequestsHeaders(httpRequest).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(httpRequest) as List<HttpRequest>)
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(String value) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(String value) {
         getRecordedRequestsHeaders(value).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(String value) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(String value) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
-    void reset(String resetEndpoint = endpoint, ClearType clearType = EXPECTATIONS) {
+    void reset(String resetEndpoint = endpoint, ClearType clearType = ALL) {
         mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
 
-    private static List<Map<String, String>> getRequestsHeaders(List<HttpRequest> httpRequests) {
-        httpRequests*.headers*.entries*.collectEntries { header ->
+    private static List<Map<String, List<String>>> getRequestsHeaders(List<HttpRequest> httpRequests) {
+        httpRequests*.headerList*.collectEntries { header ->
             [header.name as String, header.values.collect { it as String }]
         }
     }

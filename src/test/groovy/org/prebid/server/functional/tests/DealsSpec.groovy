@@ -8,6 +8,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 @PBSTest
 class DealsSpec extends BaseSpec {
 
@@ -102,7 +104,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Set maxbids = 2 for default bidder"
         def maxBids = 2
-        def multiBid = new MultiBid(bidder: "generic", maxBids: maxBids)
+        def multiBid = new MultiBid(bidder: GENERIC, maxBids: maxBids)
         bidRequest.ext.prebid.multibid = [multiBid]
 
         and: "Bid response with 2 bids"

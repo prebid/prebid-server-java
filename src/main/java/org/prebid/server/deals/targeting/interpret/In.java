@@ -2,6 +2,7 @@ package org.prebid.server.deals.targeting.interpret;
 
 import lombok.EqualsAndHashCode;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import java.util.Collections;
@@ -22,8 +23,8 @@ public abstract class In<T> implements TerminalExpression {
 
     @Override
     public boolean matches(RequestContext context) {
-        return values.contains(lookupActualValue(context));
+        return lookupActualValue(context).anyMatch(values::contains);
     }
 
-    protected abstract T lookupActualValue(RequestContext context);
+    protected abstract LookupResult<T> lookupActualValue(RequestContext context);
 }

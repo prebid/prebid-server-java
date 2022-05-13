@@ -176,10 +176,13 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final String gdpr = getGdprParameter(request.getRegs());
+        if (StringUtils.isNotBlank(gdpr)) {
+            uriBuilder.addParameter("gdpr", gdpr);
+        }
+
         final String consent = getConsentParameter(request.getUser());
-        if (StringUtils.isNotBlank(gdpr) && StringUtils.isNotBlank(consent)) {
-            uriBuilder.addParameter("gdpr", gdpr)
-                    .addParameter("consent", consent);
+        if (StringUtils.isNotBlank(consent)) {
+            uriBuilder.addParameter("consent", consent);
         }
 
         return uriBuilder.toString();

@@ -51,5 +51,17 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "prebid": {
+      "bidderparams": {
+        "pubmatic": {
+          "acat": [
+            "testValue1",
+            "testValue2"
+          ]
+        }
+      }
+    }
   }
 }
