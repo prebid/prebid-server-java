@@ -50,7 +50,7 @@ public class PriceFloorFetcher {
     private static final int MAXIMUM_CACHE_SIZE = 300;
     private static final int MIN_MAX_AGE_SEC_VALUE = 600;
     private static final int MAX_AGE_SEC_VALUE = Integer.MAX_VALUE;
-    private static final Pattern CACHE_CONTROL_HEADER_PATTERN = Pattern.compile("^.*(max-age=\\d+).*$");
+    private static final Pattern CACHE_CONTROL_HEADER_PATTERN = Pattern.compile("^.*max-age=(\\d+).*$");
 
     private final ApplicationSettings applicationSettings;
     private final Metrics metrics;
@@ -201,21 +201,18 @@ public class PriceFloorFetcher {
     }
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {
-        final String cacheMaxAge = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
-        final Matcher cacheHeaderMatcher = StringUtils.isNotBlank(cacheMaxAge)
-                ? CACHE_CONTROL_HEADER_PATTERN.matcher(cacheMaxAge)
+        final String cacheControlValue = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+        final Matcher cacheHeaderMatcher = StringUtils.isNotBlank(cacheControlValue)
+                ? CACHE_CONTROL_HEADER_PATTERN.matcher(cacheControlValue)
                 : null;
 
         if (cacheHeaderMatcher != null && cacheHeaderMatcher.matches()) {
-            final String[] maxAgeRecord = cacheHeaderMatcher.group(1).split("=");
-            if (maxAgeRecord.length == 2) {
-                try {
-                    return Long.parseLong(maxAgeRecord[1]);
-                } catch (NumberFormatException e) {
-                    logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
-                            cacheMaxAge,
-                            fetchUrl));
-                }
+            try {
+                return Long.parseLong(cacheHeaderMatcher.group(1));
+            } catch (NumberFormatException e) {
+                logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
+                        cacheControlValue,
+                        fetchUrl));
             }
         }
 
