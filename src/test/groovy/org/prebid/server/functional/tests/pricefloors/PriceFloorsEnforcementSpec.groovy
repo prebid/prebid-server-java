@@ -229,7 +229,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.targeting = new Targeting(preferDeals: true)
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: true))
         }
 
@@ -278,7 +278,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.targeting = new Targeting(preferDeals: true)
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: floorDeals, enforcePbs: enforcePbs))
         }
 
