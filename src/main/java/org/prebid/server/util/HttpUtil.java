@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
@@ -31,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -76,8 +76,6 @@ public final class HttpUtil {
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
-
-    private static final Supplier<DataFormat> DEFAULT_DATA_FORMAT = () -> DataFormat.JSON;
 
     private HttpUtil() {
     }
@@ -131,18 +129,18 @@ public final class HttpUtil {
     }
 
     public static DataFormat resolveDataFormat(MultiMap headers) {
-        return ObjectUtil.firstNonNull(
+        return ObjectUtils.firstNonNull(
                 dataFormatIfHeaderPresentOrNull(headers, APPLICATION_X_PROTOBUF_CONTENT_TYPE, DataFormat.PROTOBUF),
-                DEFAULT_DATA_FORMAT);
+                DataFormat.JSON);
     }
 
-    private static Supplier<DataFormat> dataFormatIfHeaderPresentOrNull(MultiMap headers,
-                                                                        CharSequence headerValue,
-                                                                        DataFormat dataFormat) {
+    private static DataFormat dataFormatIfHeaderPresentOrNull(MultiMap headers,
+                                                              CharSequence headerValue,
+                                                              DataFormat dataFormat) {
 
         return headers != null && headers.contains(CONTENT_TYPE_HEADER, headerValue, true)
-                ? () -> dataFormat
-                : () -> null;
+                ? dataFormat
+                : null;
     }
 
     public static ZonedDateTime getDateFromHeader(MultiMap headers, String header) {
