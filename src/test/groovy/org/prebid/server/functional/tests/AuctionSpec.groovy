@@ -1,19 +1,17 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountMetricsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
-import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.*
+import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -195,5 +193,57 @@ class AuctionSpec extends BaseSpec {
         DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
         null            | DEFAULT_TIMEOUT    | getRandomTimeout()
         null            | null               | DEFAULT_TIMEOUT
+    }
+
+    def "PBS should update account.<account-id>.requests.rejected.invalid-account metric when account is inactive"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = new Account(uuid: accountId, status: INACTIVE)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 401
+        assert exception.responseBody == "Account ${accountId} is inactive"
+
+        and: "account.<account-id>.requests.rejected.invalid-account metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["account.${accountId}.requests.rejected.invalid-account" as String] == 1
+    }
+
+    def "PBS should update account.<account-id>.requests.rejected.#metricName metric when stored request is invalid"() {
+        given: "Bid request with no stored request id"
+        def noIdStoredRequest = new PrebidStoredRequest(id: null)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            updateBidRequestClosure(it, noIdStoredRequest)
+        }
+
+        and: "Initial metric count is taken"
+        def accountId = bidRequest.site.publisher.id
+        def fullMetricName = "account.${accountId}.requests.rejected.$metricName" as String
+        def initialMetricCount = getCurrentMetricValue(fullMetricName)
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request fails with an stored request id is not found error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody ==
+                "Invalid request format: Stored request processing failed: Id is not found in storedRequest"
+
+        and: "Metric count is updated"
+        assert getCurrentMetricValue(fullMetricName) == initialMetricCount + 1
+
+        where:
+        metricName               | updateBidRequestClosure
+        "invalid-stored-request" | { bidReq, storedReq -> bidReq.ext.prebid.storedRequest = storedReq }
+        "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
     }
 }
