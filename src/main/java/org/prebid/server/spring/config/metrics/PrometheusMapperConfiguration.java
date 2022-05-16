@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnProperty(value = "metrics.prometheus.custom-labels-enabled", havingValue = "true")
-@PropertySource(value = "classpath:/metrics-config/labels.yaml", factory = YamlPropertySourceFactory.class)
+@PropertySource(value = "classpath:/metrics-config/prometheus-labels.yaml", factory = YamlPropertySourceFactory.class)
 public class PrometheusMapperConfiguration {
 
     @Bean
