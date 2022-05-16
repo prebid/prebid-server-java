@@ -18,23 +18,23 @@ trait ObjectMapperWrapper {
         mapper.writeValueAsString(object)
     }
 
-    final <T> T decode(String jsonString, Class<T> clazz) {
+    final static <T> T decode(String jsonString, Class<T> clazz) {
         mapper.readValue(jsonString, clazz)
     }
 
-    final <T> T decode(String jsonString, TypeReference<T> typeReference) {
+    final static <T> T decode(String jsonString, TypeReference<T> typeReference) {
         mapper.readValue(jsonString, typeReference)
     }
 
-    final Map<String, String> toMap(Object object) {
+    final static Map<String, String> toMap(Object object) {
         mapper.convertValue(object, Map)
     }
 
-    final JsonNode toJsonNode(String jsonString) {
+    final static JsonNode toJsonNode(String jsonString) {
         mapper.readTree(jsonString)
     }
 
-    final String encodeXml(Object object) {
+    final static String encodeXml(Object object) {
         xmlMapper.writeValueAsString(object)
     }
 }
