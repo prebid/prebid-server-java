@@ -1,26 +1,26 @@
-package org.prebid.server.functional.testcontainerswip
+package org.prebid.server.functional.testcontainers
 
+import org.prebid.server.functional.util.SystemProperties
+import org.testcontainers.containers.GenericContainer
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
-class ContainerFactory {
+import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
 
-    private final int maxContainers
+class ContainerFactory<T extends GenericContainer> {
+
+    private final int maxContainers = maxContainerCount
     private final Lock registryLock = new ReentrantLock(true)
     private final Condition containerAddedOrReleasedOrStopped = registryLock.newCondition()
-    private final Set<ContainerWrapper> containers = []
-    private final Map<ContainerWrapper, AtomicInteger> containersInUse = [:]
-    private final Set<ContainerWrapper> stoppingContainers = []
+    private final Set<ContainerWrapper<T>> containers = []
+    private final Map<ContainerWrapper<T>, AtomicInteger> containersInUse = [:]
+    private final Set<ContainerWrapper<T>> stoppingContainers = []
 
-    ContainerFactory(int maxContainers = 2) {
-        this.maxContainers = maxContainers
-    }
-
-    ContainerWrapper acquireContainer(Map<String, String> config) {
-        return guardWithLock {
+    ContainerWrapper<T> acquireContainer(Map<String, String> config) {
+         guardWithLock {
             if (containers.find { it.configuration == config }) {
                 return getExistingContainer(config)
             } else if (containers.size() + stoppingContainers.size() < maxContainers) {
@@ -41,14 +41,14 @@ class ContainerFactory {
         }
     }
 
-    private ContainerWrapper getExistingContainer(Map<String, String> config) {
+    private ContainerWrapper<T> getExistingContainer(Map<String, String> config) {
         containers.find { it.configuration == config }.tap {
             registerAsActive(it)
         }
     }
 
-    private ContainerWrapper createContainer(Map<String, String> config) {
-        new ContainerWrapper(config).tap {
+    private ContainerWrapper<T> createContainer(Map<String, String> config) {
+        new ContainerWrapper<T>(config).tap {
             containers.add(it)
             containerAddedOrReleasedOrStopped.signalAll()
             registerAsActive(it)
@@ -69,7 +69,6 @@ class ContainerFactory {
     }
 
     private void stopAndRemoveRandomUnusedContainer() {
-        println("Entered stopper")
         def container = unusedContainers.min { it.creationTime }
         containers.remove(container)
         stoppingContainers.add(container)
@@ -113,4 +112,9 @@ class ContainerFactory {
         }
     }
 
+    private static int getMaxContainerCount() {
+        USE_FIXED_CONTAINER_PORTS
+            ? 1
+            : SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
+    }
 }

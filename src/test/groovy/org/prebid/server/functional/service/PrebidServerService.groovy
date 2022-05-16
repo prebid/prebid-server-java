@@ -28,6 +28,7 @@ import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
+import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.slf4j.Logger
@@ -65,7 +66,7 @@ class PrebidServerService {
 
     private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
-    PrebidServerService(PrebidServerContainer pbsContainer, ObjectMapperWrapper mapper) {
+    PrebidServerService(ContainerWrapper<PrebidServerContainer> pbsContainer, ObjectMapperWrapper mapper) {
         def authenticationScheme = new BasicAuthScheme()
         authenticationScheme.userName = pbsContainer.ADMIN_ENDPOINT_USERNAME
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD

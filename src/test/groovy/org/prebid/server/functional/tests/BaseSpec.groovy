@@ -7,13 +7,13 @@ import org.prebid.server.functional.repository.dao.StoredImpDao
 import org.prebid.server.functional.repository.dao.StoredRequestDao
 import org.prebid.server.functional.repository.dao.StoredResponseDao
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.ContainerFactory
+import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
-import org.prebid.server.functional.testcontainerswip.ContainerFactory
-import org.prebid.server.functional.testcontainerswip.ContainerWrapper
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
@@ -25,24 +25,24 @@ import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 abstract class BaseSpec extends Specification {
 
     protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
-
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
+
     protected static final AccountDao accountDao = repository.accountDao
     protected static final ConfigDao configDao = repository.configDao
     protected static final StoredImpDao storedImp = repository.storedImpDao
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
-
     protected static final int MAX_TIMEOUT = MIN_TIMEOUT + 1000
 
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
+
     private static final int DEFAULT_TARGETING_PRECISION = 1
 
     private static final ContainerFactory containerFactory = new ContainerFactory(2)
+    private static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
     private static final ThreadLocal<Set<ContainerWrapper>> acquiredContainers = ThreadLocal.withInitial { [] } as ThreadLocal<Set<ContainerWrapper>>
 
     def setupSpec() {
