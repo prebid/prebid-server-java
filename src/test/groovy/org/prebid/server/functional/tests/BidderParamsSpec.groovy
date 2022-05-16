@@ -82,7 +82,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber
 
         and: "Account in the DB"
@@ -110,7 +110,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber
 
         and: "Account in the DB"

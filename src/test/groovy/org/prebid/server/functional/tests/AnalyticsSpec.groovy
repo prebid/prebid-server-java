@@ -18,7 +18,7 @@ class AnalyticsSpec extends BaseSpec {
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
 
     @Shared
-    PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer, mapper).tap {
+    PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 

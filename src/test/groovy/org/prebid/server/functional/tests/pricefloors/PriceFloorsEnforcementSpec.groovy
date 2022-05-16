@@ -225,7 +225,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceDealFloors = false
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -274,7 +274,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -330,7 +330,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceRate
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -385,7 +385,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {

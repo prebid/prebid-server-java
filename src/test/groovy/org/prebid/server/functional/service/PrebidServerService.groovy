@@ -41,7 +41,7 @@ import java.time.format.DateTimeFormatter
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
 
-class PrebidServerService {
+class PrebidServerService implements ObjectMapperWrapper {
 
     static final String AUCTION_ENDPOINT = "/openrtb2/auction"
     static final String AMP_ENDPOINT = "/openrtb2/amp"
@@ -59,18 +59,16 @@ class PrebidServerService {
     static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
 
     private final PrebidServerContainer pbsContainer
-    private final ObjectMapperWrapper mapper
     private final RequestSpecification requestSpecification
     private final RequestSpecification adminRequestSpecification
 
     private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
-    PrebidServerService(PrebidServerContainer pbsContainer, ObjectMapperWrapper mapper) {
+    PrebidServerService(PrebidServerContainer pbsContainer) {
         def authenticationScheme = new BasicAuthScheme()
         authenticationScheme.userName = pbsContainer.ADMIN_ENDPOINT_USERNAME
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
         this.pbsContainer = pbsContainer
-        this.mapper = mapper
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
                                                        .build()
         adminRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.adminRootUri)
@@ -116,7 +114,7 @@ class PrebidServerService {
 
     @Step("[POST] /cookie_sync without cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request) {
-        def payload = mapper.encode(request)
+        def payload = encode(request)
         def response = given(requestSpecification).body(payload)
                                                   .post(COOKIE_SYNC_ENDPOINT)
 
@@ -126,10 +124,10 @@ class PrebidServerService {
 
     @Step("[POST] /cookie_sync with cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
-        def uidsCookieAsJson = mapper.encode(uidsCookie)
+        def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
-        def payload = mapper.encode(request)
+        def payload = encode(request)
         def response = given(requestSpecification).cookie("uids", uidsCookieAsEncodedJson)
                                                   .body(payload)
                                                   .post(COOKIE_SYNC_ENDPOINT)
@@ -140,10 +138,10 @@ class PrebidServerService {
 
     @Step("[GET] /setuid")
     SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie) {
-        def uidsCookieAsJson = mapper.encode(uidsCookie)
+        def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
         def response = given(requestSpecification).cookie("uids", uidsCookieAsEncodedJson)
-                                                  .queryParams(mapper.toMap(request))
+                                                  .queryParams(toMap(request))
                                                   .get(SET_UID_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -156,7 +154,7 @@ class PrebidServerService {
 
     @Step("[GET] /getuids")
     GetuidResponse sendGetUidRequest(UidsCookie uidsCookie) {
-        def uidsCookieAsJson = mapper.encode(uidsCookie)
+        def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
         def response = given(requestSpecification).cookie("uids", uidsCookieAsEncodedJson)
@@ -169,7 +167,7 @@ class PrebidServerService {
     @Step("[GET] /event")
     byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
         def response = given(requestSpecification).headers(headers)
-                                                  .queryParams(mapper.toMap(eventRequest))
+                                                  .queryParams(toMap(eventRequest))
                                                   .get(EVENT_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -200,7 +198,7 @@ class PrebidServerService {
                                                   .get(INFO_BIDDERS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        mapper.decode(response.asString(), new TypeReference<List<String>>() {})
+        decode(response.asString(), new TypeReference<List<String>>() {})
     }
 
     @Step("[GET] /info/bidders")
@@ -238,7 +236,7 @@ class PrebidServerService {
 
     @Step("[GET] /logging/httpinteraction")
     String sendLoggingHttpInteractionRequest(HttpInteractionRequest httpInteractionRequest) {
-        def response = given(adminRequestSpecification).queryParams(mapper.toMap(httpInteractionRequest))
+        def response = given(adminRequestSpecification).queryParams(toMap(httpInteractionRequest))
                                                        .get(HTTP_INTERACTION_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -250,19 +248,19 @@ class PrebidServerService {
         def response = given(adminRequestSpecification).get(COLLECTED_METRICS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
+        decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
     @Step("[GET] /pbs-admin/force-deals-update")
     void sendForceDealsUpdateRequest(ForceDealsUpdateRequest forceDealsUpdateRequest) {
-        def response = given(adminRequestSpecification).queryParams(mapper.toMap(forceDealsUpdateRequest))
+        def response = given(adminRequestSpecification).queryParams(toMap(forceDealsUpdateRequest))
                                                        .get(FORCE_DEALS_UPDATE_ENDPOINT)
 
         checkResponseStatusCode(response, 204)
     }
 
     private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
-        def payload = mapper.encode(bidRequest)
+        def payload = encode(bidRequest)
 
         given(requestSpecification).headers(headers)
                                    .body(payload)
@@ -271,7 +269,7 @@ class PrebidServerService {
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         given(requestSpecification).headers(headers)
-                                   .queryParams(mapper.toMap(ampRequest))
+                                   .queryParams(toMap(ampRequest))
                                    .get(AMP_ENDPOINT)
     }
 
@@ -291,7 +289,7 @@ class PrebidServerService {
     private UidsCookie getDecodedUidsCookie(Response response) {
         def uids = response.detailedCookie("uids")?.value
         if (uids) {
-            return mapper.decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
+            return decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
         } else {
             throw new IllegalStateException("uids cookie is missing in response")
         }
