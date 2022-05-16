@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import org.prebid.server.auction.AdjustmentFactorResolver;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -249,6 +250,7 @@ public class ServiceConfiguration {
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -267,6 +269,7 @@ public class ServiceConfiguration {
                 dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 
@@ -295,6 +298,11 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
+    }
+
+    @Bean
+    AdjustmentFactorResolver adjustmentFactorResolver() {
+        return new AdjustmentFactorResolver();
     }
 
     @Bean
@@ -609,6 +617,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            AdjustmentFactorResolver adjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -633,6 +642,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                adjustmentFactorResolver,
                 metrics,
                 clock,
                 mapper,

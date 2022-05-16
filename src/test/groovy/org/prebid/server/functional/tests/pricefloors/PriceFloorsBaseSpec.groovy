@@ -33,12 +33,12 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final float FLOOR_MIN = 0.5
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
-                                                            "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
+                                                            "settings.default-account-config": encode(defaultAccountConfigSettings)]
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
