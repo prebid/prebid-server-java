@@ -10,6 +10,7 @@ import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
+    public static final int PROMETHEUS_PORT = 8070
     private static final int DEFAULT_PORT = 8080
     private static final int DEFAULT_ADMIN_PORT = 8060
     private static final int DEFAULT_DEBUG_PORT = 8000
@@ -20,13 +21,11 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
     private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
 
-    PrebidServerContainer(Map<String, String> config) {
-        this("prebid/prebid-server:latest", config)
-    }
+    private static final String PBS_DOCKER_IMAGE_NAME = "prebid/prebid-server:latest"
 
-    PrebidServerContainer(String dockerImage, Map<String, String> customConfig) {
-        super(dockerImage)
-        withExposedPorts(PORT, ADMIN_PORT, DEBUG_PORT)
+    PrebidServerContainer(Map<String, String> customConfig) {
+        super(PBS_DOCKER_IMAGE_NAME)
+        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withFixedPorts()
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
@@ -68,12 +67,20 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         getMappedPort(ADMIN_PORT)
     }
 
+    int getPrometheusPort() {
+        getMappedPort(PROMETHEUS_PORT)
+    }
+
     String getRootUri() {
         return "http://$host:$port"
     }
 
     String getAdminRootUri() {
         return "http://$host:$adminPort"
+    }
+
+    String getPrometheusRootUri() {
+        return "http://$host:$prometheusPort"
     }
 
     private static Map<String, String> normalizeProperties(Map<String, String> properties) {
