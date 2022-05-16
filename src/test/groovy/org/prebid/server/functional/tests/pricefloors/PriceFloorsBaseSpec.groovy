@@ -18,7 +18,6 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -28,7 +27,6 @@ import java.math.RoundingMode
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 
-@PBSTest
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final float FLOOR_MIN = 0.5
