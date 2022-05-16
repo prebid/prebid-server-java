@@ -145,7 +145,7 @@ class SmokeSpec extends BaseSpec {
     def "PBS should return PBC response on vtrack request"() {
         given: "Default VtrackRequest"
         def payload = PBSUtils.randomNumber.toString()
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber.toString()
 
         when: "PBS processes vtrack request"

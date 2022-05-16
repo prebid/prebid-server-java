@@ -320,7 +320,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest with ext.prebid.floors"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
@@ -365,7 +365,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with floors"
         def bidRequest = bidRequestWithFloors
@@ -987,7 +987,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.fetch.maxAgeSec = 86400
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)

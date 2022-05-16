@@ -24,7 +24,7 @@ class SchainSpec extends BaseSpec {
     }
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": encode(GLOBAL_SCHAIN_NODE)])
 
     def "Global schain node should be appended when only ext.prebid.schains exists"() {
         given: "Basic bid request"

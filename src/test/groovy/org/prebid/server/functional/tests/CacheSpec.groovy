@@ -19,7 +19,7 @@ class CacheSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
-        def creative = mapper.encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
 
         when: "PBS processes vtrack request"

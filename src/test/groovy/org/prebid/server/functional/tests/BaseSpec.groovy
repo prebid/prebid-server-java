@@ -20,12 +20,11 @@ import static java.math.RoundingMode.DOWN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 @PBSTest
-abstract class BaseSpec extends Specification {
+abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
+    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
+    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
