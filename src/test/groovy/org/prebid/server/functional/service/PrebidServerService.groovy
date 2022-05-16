@@ -2,6 +2,7 @@ package org.prebid.server.functional.service
 
 import com.fasterxml.jackson.core.type.TypeReference
 import io.qameta.allure.Step
+import io.restassured.authentication.AuthenticationScheme
 import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
@@ -57,11 +58,13 @@ class PrebidServerService {
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
+    static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
 
     private final PrebidServerContainer pbsContainer
     private final ObjectMapperWrapper mapper
     private final RequestSpecification requestSpecification
     private final RequestSpecification adminRequestSpecification
+    private final RequestSpecification prometheusRequestSpecification
 
     private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
@@ -73,9 +76,8 @@ class PrebidServerService {
         this.mapper = mapper
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
                                                        .build()
-        adminRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.adminRootUri)
-                                                            .setAuth(authenticationScheme)
-                                                            .build()
+        adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
+        prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
     @Step("[POST] /openrtb2/auction")
@@ -261,6 +263,14 @@ class PrebidServerService {
         checkResponseStatusCode(response, 204)
     }
 
+    @Step("[GET] /metrics")
+    String sendPrometheusMetricsRequest() {
+        def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        response.body().asString()
+    }
+
     private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def payload = mapper.encode(bidRequest)
 
@@ -319,5 +329,11 @@ class PrebidServerService {
             }
         }
         filteredLogs
+    }
+
+    private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
+        new RequestSpecBuilder().setBaseUri(uri)
+                                .setAuth(authScheme)
+                                .build()
     }
 }
