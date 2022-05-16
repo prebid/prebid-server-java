@@ -256,7 +256,11 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     private static List<BidderBid> extractBidsFromResponse(CriteoResponse criteoResponse) {
-        return CollectionUtils.emptyIfNull(criteoResponse.getSlots()).stream()
+        if (criteoResponse == null || CollectionUtils.isEmpty(criteoResponse.getSlots())) {
+            return Collections.emptyList();
+        }
+
+        return criteoResponse.getSlots().stream()
                 .filter(Objects::nonNull)
                 .map(CriteoBidder::slotToBidderBid)
                 .collect(Collectors.toList());
