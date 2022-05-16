@@ -10,7 +10,7 @@ import static org.prebid.server.functional.testcontainers.container.PrebidServer
 
 class PrometheusSpec extends BaseSpec {
 
-    private static final String PROMETHEUS_METRIC_NAME_REGEX = "[a-zA-Z_:]?([a-zA-Z0-9_:])*"
+    private static final String PROMETHEUS_METRIC_NAME_REGEX = "[a-zA-Z_:]?[a-zA-Z0-9_:]*"
 
     def "PBS should add namespace and subsystem parts to Prometheus metric names when those are config provided"() {
         given: "PBS config with set up Prometheus"
@@ -57,7 +57,7 @@ class PrometheusSpec extends BaseSpec {
 
         then: "PBS is failed to start"
         def serviceFailedToStartTimeoutMs = 10_000
-        PBSUtils.waitUntil({ pbsContainer.logs.contains("Invalid prefix, namespace and subsystem should match regex: $PROMETHEUS_METRIC_NAME_REGEX") },
+        PBSUtils.waitUntil({ pbsContainer.logs.contains("Invalid prefix: ${namespace}_${subsystem}_, namespace and subsystem should match regex: $PROMETHEUS_METRIC_NAME_REGEX") },
                 serviceFailedToStartTimeoutMs)
     }
 
