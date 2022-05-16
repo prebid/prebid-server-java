@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -95,7 +94,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
@@ -127,6 +125,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -169,6 +168,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final AdjustmentFactorResolver adjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -192,6 +192,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           AdjustmentFactorResolver adjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -218,6 +219,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.adjustmentFactorResolver = Objects.requireNonNull(adjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -1127,10 +1129,9 @@ public class ExchangeService {
         final ObjectNode bidders = prebidParameters != null
                 ? mapper.mapper().valueToTree(ExtPrebidBidders.of(prebidParameters))
                 : null;
-
-        final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = extPrebid != null
-                ? extPrebid.toBuilder()
-                : ExtRequestPrebid.builder();
+        final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = Optional.ofNullable(extPrebid)
+                .map(ExtRequestPrebid::toBuilder)
+                .orElse(ExtRequestPrebid.builder());
 
         return ExtRequest.of(
                 extPrebidBuilder
@@ -1369,8 +1370,8 @@ public class ExchangeService {
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
         final String validationErrors = Stream.concat(
-                validationResult.getErrors().stream().map(message -> "Error: " + message),
-                validationResult.getWarnings().stream().map(message -> "Warning: " + message))
+                        validationResult.getErrors().stream().map(message -> "Error: " + message),
+                        validationResult.getWarnings().stream().map(message -> "Warning: " + message))
                 .collect(Collectors.joining(". "));
 
         final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
@@ -1463,70 +1464,20 @@ public class ExchangeService {
         return bidderBid.toBuilder().bid(bidBuilder.build()).build();
     }
 
-    private static ImpMediaType resolveBidAdjustmentMediaType(String bidImpId,
-                                                              List<Imp> imps,
-                                                              BidType bidType) {
-
-        switch (bidType) {
-            case banner:
-                return ImpMediaType.banner;
-            case xNative:
-                return ImpMediaType.xNative;
-            case audio:
-                return ImpMediaType.audio;
-            case video:
-                return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
-            default:
-                throw new PreBidException("BidType not present for bidderBid");
-        }
-    }
-
-    private static ImpMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
-        final Video bidImpVideo = imps.stream()
-                .filter(imp -> imp.getId().equals(bidImpId))
-                .map(Imp::getVideo)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
-
-        if (bidImpVideo == null) {
+    private BigDecimal bidAdjustmentForBidder(String bidder, BidRequest bidRequest, BidderBid bidderBid) {
+        final ExtRequestBidAdjustmentFactors adjustmentFactors = extBidAdjustmentFactors(bidRequest);
+        if (adjustmentFactors == null) {
             return null;
         }
+        final ImpMediaType mediaType = ImpMediaTypeResolver.resolve(
+                bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
-        final Integer placement = bidImpVideo.getPlacement();
-        return placement == null || Objects.equals(placement, 1)
-                ? ImpMediaType.video
-                : ImpMediaType.video_outstream;
+        return adjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
     }
 
-    private static BigDecimal bidAdjustmentForBidder(String bidder,
-                                                     BidRequest bidRequest,
-                                                     BidderBid bidderBid) {
+    private static ExtRequestBidAdjustmentFactors extBidAdjustmentFactors(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestBidAdjustmentFactors extBidAdjustmentFactors = prebid != null
-                ? prebid.getBidadjustmentfactors()
-                : null;
-        if (extBidAdjustmentFactors == null) {
-            return null;
-        }
-        final ImpMediaType mediaType =
-                resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
-
-        return resolveBidAdjustmentFactor(extBidAdjustmentFactors, mediaType, bidder);
-    }
-
-    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidAdjustmentFactors extBidAdjustmentFactors,
-                                                         ImpMediaType mediaType,
-                                                         String bidder) {
-        final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
-                extBidAdjustmentFactors.getMediatypes();
-        final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
-        final BigDecimal adjustmentFactorByMediaType =
-                adjustmentsByMediatypes != null ? adjustmentsByMediatypes.get(bidder) : null;
-        if (adjustmentFactorByMediaType != null) {
-            return adjustmentFactorByMediaType;
-        }
-        return extBidAdjustmentFactors.getAdjustments().get(bidder);
+        return prebid != null ? prebid.getBidadjustmentfactors() : null;
     }
 
     private static BigDecimal adjustPrice(BigDecimal priceAdjustmentFactor, BigDecimal price) {

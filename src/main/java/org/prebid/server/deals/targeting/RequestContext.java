@@ -173,8 +173,10 @@ public class RequestContext {
             case userSegment:
                 return lookupResult(getSegments(category));
             case userFirstPartyData:
+                final User user = bidRequest.getUser();
                 return lookupResult(
-                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfStrings));
+                        listOfNonNulls(userReader.readFromObject(user, path, String.class)),
+                        userReader.readFromExt(user, path, RequestContext::nodeToListOfStrings));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToListOfStrings);
             default:
@@ -191,8 +193,10 @@ public class RequestContext {
                 return lookupResult(
                         impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfIntegers));
             case userFirstPartyData:
+                final User user = bidRequest.getUser();
                 return lookupResult(
-                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfIntegers));
+                        listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
+                        userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToListOfIntegers);
             default:

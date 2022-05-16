@@ -1,0 +1,21 @@
+adapters:
+  aax:
+    endpoint: https://prebid.aaxads.com/rtb/pb/aax-prebid?src={{PREBID_SERVER_ENDPOINT}}
+    meta-info:
+      maintainer-email: product@aax.media
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 720
+    usersync:
+      url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect=
+      redirect-url: /setuid?bidder=aax&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=<vsid>
+      cookie-family-name: aax
+      type: redirect
+      support-cors: false

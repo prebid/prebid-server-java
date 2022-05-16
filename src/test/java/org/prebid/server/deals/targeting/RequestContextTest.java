@@ -786,16 +786,19 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "sport");
-        final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(asList("123", "456")))).build();
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "language");
+        final ExtUser extUser = ExtUser.builder()
+                .data(obj("language", mapper.valueToTree(asList("UA", "EN"))))
+                .build();
         final RequestContext context = new RequestContext(
-                request(r -> r.user(user(u -> u.ext(extUser)))),
+                request(r -> r.user(user(u -> u.language("DE").ext(extUser)))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("123", "456"));
+        assertThat(context.lookupStrings(category).getValues())
+                .containsExactly(singletonList("DE"), asList("UA", "EN"));
     }
 
     @Test
@@ -995,16 +998,16 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "sport");
-        final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(asList(123, 456)))).build();
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "yob");
+        final ExtUser extUser = ExtUser.builder().data(obj("yob", mapper.valueToTree(asList(123, 456)))).build();
         final RequestContext context = new RequestContext(
-                request(r -> r.user(user(u -> u.ext(extUser)))),
+                request(r -> r.user(user(u -> u.yob(789).ext(extUser)))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(123, 456));
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(singletonList(789), asList(123, 456));
     }
 
     @Test

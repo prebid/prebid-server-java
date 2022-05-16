@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import org.prebid.server.auction.AdjustmentFactorResolver;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -208,21 +209,25 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
+                cacheOnlyWinningBids,
                 adServerCurrency,
-                blacklistedApps,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
@@ -245,6 +250,7 @@ public class ServiceConfiguration {
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -263,6 +269,7 @@ public class ServiceConfiguration {
                 dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 
@@ -291,6 +298,11 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
+    }
+
+    @Bean
+    AdjustmentFactorResolver adjustmentFactorResolver() {
+        return new AdjustmentFactorResolver();
     }
 
     @Bean
@@ -439,7 +451,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
+            HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
@@ -605,6 +617,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            AdjustmentFactorResolver adjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -629,6 +642,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                adjustmentFactorResolver,
                 metrics,
                 clock,
                 mapper,
@@ -730,9 +744,10 @@ public class ServiceConfiguration {
     @Bean
     PriceFloorsConfigResolver accountValidator(
             @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            Metrics metrics) {
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
 
-        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics);
+        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
     }
 
     @Bean
