@@ -114,18 +114,34 @@ public class BidRequest {
     List<String> cur;
 
     /**
-     * White list of languages for creatives using ISO-639-1-alpha-2.
-     * Omission implies no specific restrictions, but buyers would be advised
-     * to consider language attribute in the Device and/or Content objects
-     * if available.
+     * Allowed list of languages for creatives using ISO-639-1-alpha-2.
+     * Omission implies no specific restrictions, but buyers would be
+     * advised to consider language attribute in the Device and/or
+     * Content objects if available. Only one of wlang or wlangb
+     * should be present.
      */
     List<String> wlang;
+
+    /**
+     * Allowed list of languages for creatives using IETF BCP 47I.
+     * Omission implies no specific restrictions, but buyers would be
+     * advised to consider language attribute in the Device and/or
+     * Content objects if available. Only one of wlang or wlangb
+     * should be present.
+     */
+    List<String> wlangb;
 
     /**
      * Blocked advertiser categories using the IAB content categories.
      * Refer to List 5.1.
      */
     List<String> bcat;
+
+    /**
+     * The taxonomy in use for bcat. Refer to the AdCOM
+     * 1.0 list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category Taxonomies</a> for values
+     */
+    Integer cattax;
 
     /**
      * Block list of advertisers by their domains (e.g., “ford.com”).
