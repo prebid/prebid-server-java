@@ -2,17 +2,17 @@ package org.prebid.server.functional.model.db.typeconverter
 
 import javax.persistence.AttributeConverter
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.ObjectMapperWrapper
 
-class StoredRequestConfigTypeConverter implements AttributeConverter<BidRequest, String> {
+class StoredRequestConfigTypeConverter implements AttributeConverter<BidRequest, String>, ObjectMapperWrapper {
 
     @Override
     String convertToDatabaseColumn(BidRequest bidRequest) {
-        bidRequest ? Dependencies.objectMapperWrapper.encode(bidRequest) : null
+        bidRequest ? encode(bidRequest) : null
     }
 
     @Override
     BidRequest convertToEntityAttribute(String value) {
-        value ? Dependencies.objectMapperWrapper.decode(value, BidRequest) : null
+        value ? decode(value, BidRequest) : null
     }
 }

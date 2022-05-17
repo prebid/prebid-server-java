@@ -8,6 +8,7 @@ import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import io.vertx.ext.dropwizard.MatchType;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.prebid.server.spring.config.metrics.MetricsConfiguration;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.LocalMessageCodec;
 import org.springframework.beans.factory.annotation.Value;
