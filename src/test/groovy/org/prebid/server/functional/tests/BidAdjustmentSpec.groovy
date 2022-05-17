@@ -31,7 +31,8 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
-        assert response?.seatbid[0]?.bid[0]?.price == bidResponse.seatbid[0].bid[0].price * bidAdjustmentFactor
+        assert response?.seatbid?.first()?.bid?.first()?.price == bidResponse.seatbid.first().bid.first().price *
+                bidAdjustmentFactor
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
@@ -39,7 +40,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should prefer bid price adjustment based on media type when request has per-media-type bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = PBSUtils.getFractionalRandomNumber() as BigDecimal
+        def bidAdjustment = PBSUtils.fractionalRandomNumber as BigDecimal
         def mediaTypeBidAdjustment = bidAdjustmentFactor
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
@@ -56,7 +57,8 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
-        assert response?.seatbid[0]?.bid[0]?.price == bidResponse.seatbid[0].bid[0].price * mediaTypeBidAdjustment
+        assert response?.seatbid?.first()?.bid?.first()?.price == bidResponse.seatbid.first().bid.first().price *
+                mediaTypeBidAdjustment
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
@@ -64,7 +66,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should adjust bid price for bidder only when request contains bid adjustment for corresponding bidder"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = PBSUtils.randomFractionalNumber as BigDecimal
+        def bidAdjustment = PBSUtils.fractionalRandomNumber as BigDecimal
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
                 adjustments = [(adjustmentBidder): bidAdjustment]
@@ -79,7 +81,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should not be adjusted"
-        assert response?.seatbid[0]?.bid[0]?.price == bidResponse.seatbid[0].bid[0].price
+        assert response?.seatbid?.first()?.bid?.first()?.price == bidResponse.seatbid.first().bid.first().price
 
         where:
         adjustmentBidder << [RUBICON, APPNEXUS]
@@ -103,7 +105,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should not be adjusted"
-        assert response?.seatbid[0]?.bid[0]?.price == bidResponse.seatbid[0].bid[0].price
+        assert response?.seatbid?.first()?.bid?.first()?.price == bidResponse.seatbid.first().bid.first().price
 
         where:
         adjustmentMediaType << [VIDEO, NATIVE]
