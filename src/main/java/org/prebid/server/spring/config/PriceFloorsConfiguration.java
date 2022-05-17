@@ -92,6 +92,11 @@ public class PriceFloorsConfiguration {
     }
 
     @Bean
+    FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
+        return new FloorAdjustmentFactorResolver();
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
         return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);

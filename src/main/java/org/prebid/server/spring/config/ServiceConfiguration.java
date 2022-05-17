@@ -25,7 +25,6 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
-import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
@@ -299,11 +298,6 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
-    }
-
-    @Bean
-    FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
-        return new FloorAdjustmentFactorResolver();
     }
 
     @Bean
