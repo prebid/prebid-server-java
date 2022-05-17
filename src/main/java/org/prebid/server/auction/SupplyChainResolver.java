@@ -2,6 +2,8 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -13,8 +15,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 
 import java.util.ArrayList;
@@ -22,28 +22,28 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class SchainResolver {
+public class SupplyChainResolver {
 
-    private static final Logger logger = LoggerFactory.getLogger(SchainResolver.class);
+    private static final Logger logger = LoggerFactory.getLogger(SupplyChainResolver.class);
 
-    private final ExtRequestPrebidSchainSchainNode globalNode;
+    private final SupplyChainNode globalNode;
 
-    private SchainResolver(ExtRequestPrebidSchainSchainNode globalNode) {
+    private SupplyChainResolver(SupplyChainNode globalNode) {
         this.globalNode = globalNode;
     }
 
-    public static SchainResolver create(String globalNodeString, JacksonMapper mapper) {
-        return new SchainResolver(globalNodeOrNull(globalNodeString, Objects.requireNonNull(mapper)));
+    public static SupplyChainResolver create(String globalNodeString, JacksonMapper mapper) {
+        return new SupplyChainResolver(globalNodeOrNull(globalNodeString, Objects.requireNonNull(mapper)));
     }
 
-    public ExtSourceSchain resolveForBidder(String bidder, BidRequest bidRequest) {
+    public SupplyChain resolveForBidder(String bidder, BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final List<ExtRequestPrebidSchain> schains = prebid == null ? null : prebid.getSchains();
 
-        ExtSourceSchain bidderSchain = null;
-        ExtSourceSchain catchAllSchain = null;
-        for (final ExtRequestPrebidSchain schain : ListUtils.emptyIfNull(schains)) {
+        SupplyChain bidderSchain = null;
+        SupplyChain catchAllSchain = null;
+        for (ExtRequestPrebidSchain schain : ListUtils.emptyIfNull(schains)) {
             catchAllSchain = existingSchainOrNull("*", catchAllSchain, schain);
             bidderSchain = existingSchainOrNull(bidder, bidderSchain, schain);
         }
@@ -51,21 +51,21 @@ public class SchainResolver {
         return enrich(ObjectUtils.defaultIfNull(bidderSchain, catchAllSchain), bidRequest);
     }
 
-    private static ExtRequestPrebidSchainSchainNode globalNodeOrNull(String globalNodeString, JacksonMapper mapper) {
+    private static SupplyChainNode globalNodeOrNull(String globalNodeString, JacksonMapper mapper) {
         if (StringUtils.isBlank(globalNodeString)) {
             return null;
         }
 
         try {
-            return mapper.decodeValue(globalNodeString, ExtRequestPrebidSchainSchainNode.class);
+            return mapper.decodeValue(globalNodeString, SupplyChainNode.class);
         } catch (DecodeException e) {
             throw new IllegalArgumentException("Exception occurred while parsing global schain node", e);
         }
     }
 
-    private ExtSourceSchain existingSchainOrNull(String bidder,
-                                                 ExtSourceSchain existingSchain,
-                                                 ExtRequestPrebidSchain schainEntry) {
+    private SupplyChain existingSchainOrNull(String bidder,
+                                             SupplyChain existingSchain,
+                                             ExtRequestPrebidSchain schainEntry) {
 
         if (schainEntry == null
                 || CollectionUtils.isEmpty(schainEntry.getBidders())
@@ -82,7 +82,7 @@ public class SchainResolver {
         return schainEntry.getSchain();
     }
 
-    private ExtSourceSchain enrich(ExtSourceSchain bidderSpecificSchain, BidRequest bidRequest) {
+    private SupplyChain enrich(SupplyChain bidderSpecificSchain, BidRequest bidRequest) {
 
         if (globalNode == null) {
             return bidderSpecificSchain;
@@ -92,7 +92,7 @@ public class SchainResolver {
             return enrichSchainWithGlobalNode(bidderSpecificSchain);
         }
 
-        final ExtSourceSchain requestSchain = requestSchain(bidRequest);
+        final SupplyChain requestSchain = requestSchain(bidRequest);
         if (requestSchain != null) {
             return enrichSchainWithGlobalNode(requestSchain);
         }
@@ -100,29 +100,29 @@ public class SchainResolver {
         return newSchainWithGlobalNode();
     }
 
-    private ExtSourceSchain requestSchain(BidRequest bidRequest) {
+    private SupplyChain requestSchain(BidRequest bidRequest) {
         final Source source = bidRequest.getSource();
         final ExtSource extSource = source != null ? source.getExt() : null;
 
         return extSource != null ? extSource.getSchain() : null;
     }
 
-    private ExtSourceSchain enrichSchainWithGlobalNode(ExtSourceSchain requestSchain) {
-        return ExtSourceSchain.of(
-                requestSchain.getVer(),
+    private SupplyChain enrichSchainWithGlobalNode(SupplyChain requestSchain) {
+        return SupplyChain.of(
                 requestSchain.getComplete(),
                 appendGlobalNode(requestSchain.getNodes()),
+                requestSchain.getVer(),
                 requestSchain.getExt());
     }
 
-    private List<ExtRequestPrebidSchainSchainNode> appendGlobalNode(List<ExtRequestPrebidSchainSchainNode> nodes) {
-        final ArrayList<ExtRequestPrebidSchainSchainNode> updatedNodes = new ArrayList<>(ListUtils.emptyIfNull(nodes));
+    private List<SupplyChainNode> appendGlobalNode(List<SupplyChainNode> nodes) {
+        final ArrayList<SupplyChainNode> updatedNodes = new ArrayList<>(ListUtils.emptyIfNull(nodes));
         updatedNodes.add(globalNode);
 
         return updatedNodes;
     }
 
-    private ExtSourceSchain newSchainWithGlobalNode() {
-        return ExtSourceSchain.of(null, null, Collections.singletonList(globalNode), null);
+    private SupplyChain newSchainWithGlobalNode() {
+        return SupplyChain.of(null, Collections.singletonList(globalNode), null, null);
     }
 }

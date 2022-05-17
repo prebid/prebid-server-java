@@ -39,6 +39,12 @@ public class Source {
     String pchain;
 
     /**
+     * This object represents both the links in the supply chain as
+     * well as an indicator whether or not the supply chain is complete.
+     */
+    SupplyChain schain;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ExtSource ext;

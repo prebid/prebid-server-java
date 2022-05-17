@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
@@ -50,7 +51,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -1294,7 +1294,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1311,7 +1311,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1320,7 +1320,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         assertThat(result.getSource())
                 .extracting(Source::getExt)
-                .isEqualTo(ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)));
+                .isEqualTo(ExtSource.of(SupplyChain.of(1, null, "ver", null)));
     }
 
     @Test
@@ -1331,7 +1331,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 mapper.createObjectNode().put("someField", "someValue"));
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder()
                 .source(Source.builder().ext(extSource).build())
                 .ext(extRequest)
@@ -1344,7 +1344,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSource())
                 .extracting(Source::getExt)
                 .isEqualTo(jacksonMapper.fillExtension(
-                        ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)),
+                        ExtSource.of(SupplyChain.of(1, null, "ver", null)),
                         mapper.createObjectNode().put("someField", "someValue")));
     }
 
