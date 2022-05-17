@@ -42,7 +42,8 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         }
 
         final Set<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
-        final BigDecimal factor = floorAdjustmentFactorResolver.resolve(impMediaTypes, extractBidAdjustmentFactors, bidder);
+        final BigDecimal factor = floorAdjustmentFactorResolver.resolve(
+                impMediaTypes, extractBidAdjustmentFactors, bidder);
 
         return factor != null
                 ? BidderUtil.roundFloor(impBidFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN))
