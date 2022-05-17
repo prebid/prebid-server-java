@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.adjustment;
 
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-public class AdjustmentFactorResolver {
+public class FloorAdjustmentFactorResolver {
 
     public BigDecimal resolve(ImpMediaType impMediaType,
                               ExtRequestBidAdjustmentFactors adjustmentFactors,

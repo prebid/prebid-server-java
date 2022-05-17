@@ -3,7 +3,7 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.auction.AdjustmentFactorResolver;
+import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -26,10 +26,10 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     private static final int ADJUSTMENT_SCALE = 4;
 
-    private final AdjustmentFactorResolver adjustmentFactorResolver;
+    private final FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
 
-    public BasicPriceFloorAdjuster(AdjustmentFactorResolver adjustmentFactorResolver) {
-        this.adjustmentFactorResolver = Objects.requireNonNull(adjustmentFactorResolver);
+    public BasicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+        this.floorAdjustmentFactorResolver = Objects.requireNonNull(floorAdjustmentFactorResolver);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         }
 
         final Set<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
-        final BigDecimal factor = adjustmentFactorResolver.resolve(impMediaTypes, extractBidAdjustmentFactors, bidder);
+        final BigDecimal factor = floorAdjustmentFactorResolver.resolve(impMediaTypes, extractBidAdjustmentFactors, bidder);
 
         return factor != null
                 ? BidderUtil.roundFloor(impBidFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN))

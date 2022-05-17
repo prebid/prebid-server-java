@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.adjustment;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -11,19 +11,19 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AdjustmentFactorResolverTest {
+public class FloorAdjustmentFactorResolverTest {
 
-    private AdjustmentFactorResolver adjustmentFactorResolver;
+    private FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
 
     @Before
     public void setUp() {
-        adjustmentFactorResolver = new AdjustmentFactorResolver();
+        floorAdjustmentFactorResolver = new FloorAdjustmentFactorResolver();
     }
 
     @Test
     public void resolveShouldReturnOneIfAdjustmentsByMediaTypeAndBidderAreAbsent() {
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(
                 ImpMediaType.video,
                 ExtRequestBidAdjustmentFactors.builder().build(),
                 "bidder");
@@ -40,7 +40,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(3.456));
@@ -60,7 +60,7 @@ public class AdjustmentFactorResolverTest {
                         .build();
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
@@ -78,7 +78,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(0.123));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(0.123));
@@ -95,7 +95,7 @@ public class AdjustmentFactorResolverTest {
                 .build();
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
@@ -113,7 +113,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(3.456));
@@ -131,7 +131,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder1", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
+        final BigDecimal result = floorAdjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.ONE);
