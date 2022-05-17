@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.AdjustmentFactorResolver;
+import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -41,15 +41,15 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private AdjustmentFactorResolver adjustmentFactorResolver;
+    private FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
 
     private BasicPriceFloorAdjuster basicPriceFloorAdjuster;
 
     @Before
     public void setUp() {
-        given(adjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(BigDecimal.ONE);
+        given(floorAdjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(BigDecimal.ONE);
 
-        basicPriceFloorAdjuster = new BasicPriceFloorAdjuster(adjustmentFactorResolver);
+        basicPriceFloorAdjuster = new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
     }
 
     @Test
@@ -60,7 +60,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
-        verify(adjustmentFactorResolver).resolve(anySet(), any(), any());
+        verify(floorAdjustmentFactorResolver).resolve(anySet(), any(), any());
     }
 
     @Test
