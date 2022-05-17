@@ -51,10 +51,14 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedAudioMediaType() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNoBannerMediaType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(Imp.builder().id("impId").audio(Audio.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .audio(Audio.builder().build())
+                        .video(Video.builder().build())
+                        .xNative(Native.builder().build())
                         .build()))
                 .build();
 
@@ -68,15 +72,25 @@ public class SovrnBidderTest extends VertxTest {
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
-                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
+                        "No banner object found in imp. Ignoring Imp ID=impId"));
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedVideoMediaType() {
+    public void makeHttpRequestsShouldDropNotSupportedAudioMediaType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(Imp.builder().id("impId").video(Video.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .audio(Audio.builder().build())
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(200).h(300).build()))
+                                .w(200)
+                                .h(300)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                         .build()))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -84,20 +98,43 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput(
-                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .containsExactly(BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
+                                .tagid("tagid")
+                                .bidfloor(null)
+                                .build()))
+                        .user(User.builder()
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build())
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
+                        .build());
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedNativeMediaType() {
+    public void makeHttpRequestsShouldDropNotSupportedNativeMediaType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(Imp.builder().id("23").xNative(Native.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(200).h(300).build()))
+                                .w(200)
+                                .h(300)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                        .xNative(Native.builder().build())
                         .build()))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -105,19 +142,83 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput(
-                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=23"));
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .containsExactly(BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
+                                .tagid("tagid")
+                                .bidfloor(null)
+                                .build()))
+                        .user(User.builder()
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build())
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldDropNotSupportedVideoMediaType() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(200).h(300).build()))
+                                .w(200)
+                                .h(300)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                        .video(Video.builder().build())
+                        .build()))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .containsExactly(BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
+                                .tagid("tagid")
+                                .bidfloor(null)
+                                .build()))
+                        .user(User.builder()
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build())
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
+                        .build());
     }
 
     @Test
     public void makeHttpRequestsShouldReturnResultWithErrorSayingAboutMissingSovrnParams() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(Imp.builder().build()))
+                .imp(Collections.singletonList(Imp.builder()
+                        .id("inpId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(200).h(300).build()))
+                                .w(200)
+                                .h(300)
+                                .build())
+                        .build()))
                 .build();
 
         // when
@@ -181,6 +282,11 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .bidfloor(BigDecimal.ZERO)
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
@@ -204,6 +310,11 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .bidfloor(null)
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
@@ -227,6 +338,11 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .bidfloor(BigDecimal.ONE)
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
@@ -257,7 +373,14 @@ public class SovrnBidderTest extends VertxTest {
                 .user(User.builder()
                         .buyeruid("701")
                         .build())
-                .imp(Collections.singletonList(Imp.builder().build()))
+                .imp(Collections.singletonList(Imp.builder()
+                        .id("inpId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(200).h(300).build()))
+                                .w(200)
+                                .h(300)
+                                .build())
+                        .build()))
                 .build();
 
         // when
@@ -283,6 +406,12 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder()
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
                                 .build()))
@@ -306,6 +435,12 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder()
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null))))
                                 .build()))
                 .build();
@@ -334,6 +469,12 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
