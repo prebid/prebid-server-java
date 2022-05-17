@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.bidder.CompressionType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -384,5 +385,37 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest?.ext?.prebid?.server?.externalUrl == serverExternalUrl
         assert bidderRequest.ext.prebid.server.datacenter == serverDataCenter
         assert bidderRequest.ext.prebid.server.gvlId == serverHostVendorId
+    }
+
+    def "PBS should send request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"               : "true",
+                                                        "adapters.generic.endpointCompression"   : CompressionType.GZIP.name()])
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain header Content-Encoding = gzip"
+        assert response.ext.debug.httpcalls[BidderName.GENERIC.value]
+                .requestheaders.first()
+                .get("Content-Encoding").first() == CompressionType.GZIP.value
+    }
+
+    def "PBS should send request to bidder without header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = NONE"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"               : "true",
+                                                       "adapters.generic.endpointCompression"   : CompressionType.NONE.name()])
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain header Content-Encoding"
+        assert !response.ext.debug.httpcalls[BidderName.GENERIC.value].requestheaders.first().get("Content-Encoding")
     }
 }
