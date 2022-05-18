@@ -404,7 +404,7 @@ class BidderParamsSpec extends BaseSpec {
                 .get("Content-Encoding").first() == CompressionType.GZIP.value
     }
 
-    def "PBS should send request to bidder without header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = NONE"() {
+    def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"               : "true",
                                                        "adapters.generic.endpointCompression"   : CompressionType.NONE.name()])
