@@ -31,6 +31,7 @@
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.9.10</vertx.version>
+        <netty.version>4.1.69.Final</netty.version>
         <lombok.version>1.18.22</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
@@ -163,6 +164,12 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-auth-common</artifactId>
             <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-epoll</artifactId>
+            <classifier>linux-x86_64</classifier>
+            <version>${netty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

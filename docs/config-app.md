@@ -17,12 +17,19 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
-## HTTP
-- `http.port` - the port to listen on.
-- `http.max-headers-size` - set the maximum length of all headers.
-- `http.ssl` - enable SSL/TLS support.
-- `http.jks-path` - path to the java keystore (if ssl is enabled).
-- `http.jks-password` - password for the keystore (if ssl is enabled).
+## Server
+- `server.max-headers-size` - set the maximum length of all headers.
+- `server.ssl` - enable SSL/TLS support.
+- `server.jks-path` - path to the java keystore (if ssl is enabled).
+- `server.jks-password` - password for the keystore (if ssl is enabled).
+
+## HTTP Server
+- `server.http.enabled` - if set to `true` enables http server
+- `server.http.port` - the port to listen on.
+
+## Unix Domain Socket Server
+- `server.unix-domain-socket.enabled` - if set to `true` enables unix socket server
+- `server.unix-domain-socket.enabled` - the path to unix socket to listen on.
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
