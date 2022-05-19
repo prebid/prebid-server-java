@@ -29,7 +29,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Unix Domain Socket Server
 - `server.unix-domain-socket.enabled` - if set to `true` enables unix socket server
-- `server.unix-domain-socket.enabled` - the path to unix socket to listen on.
+- `server.unix-domain-socket.path` - the path to unix socket to listen on.
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
