@@ -18,10 +18,7 @@ public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
     private final SampleBuilder delegate;
     private final String prefix;
 
-    public NamespaceSubsystemSampleBuilder(String namespace,
-                                           String subsystem,
-                                           List<MapperConfig> mapperConfigs) {
-
+    public NamespaceSubsystemSampleBuilder(String namespace, String subsystem, List<MapperConfig> mapperConfigs) {
         prefix = toPrefix(namespace) + toPrefix(subsystem);
 
         final Pattern prefixPattern = Pattern.compile(VALID_PREFIX_REGEX);
