@@ -320,7 +320,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = createHttpCall("{}");
+        final HttpCall<BidRequest> httpCall = createHttpCall("[]");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
