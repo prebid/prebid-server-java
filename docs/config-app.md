@@ -12,8 +12,6 @@ This section can be extended against standard [Spring configuration](https://doc
 - `vertx.worker-pool-size` - set the maximum number of worker threads to be used by the Vert.x instance.
 - `vertx.uploads-dir` - directory that Vert.x [BodyHandler](http://vertx.io/docs/apidocs/io/vertx/ext/web/handler/BodyHandler.html) will use to store multi-part file uploads. 
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
-- `vertx.http-server-instances` - how many http server instances should be created. 
-This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
@@ -24,10 +22,13 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
+- `server.http.server-instances` - how many http server instances should be created.
+  This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
 - `server.http.port` - the port to listen on.
 
 ## Unix Domain Socket Server
+- `server.unix-domain-socket.server-instances` - how many http server instances should be created.
 - `server.unix-domain-socket.enabled` - if set to `true` enables unix socket server
 - `server.unix-domain-socket.path` - the path to unix socket to listen on.
 

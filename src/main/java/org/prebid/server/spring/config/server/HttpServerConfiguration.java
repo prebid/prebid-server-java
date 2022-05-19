@@ -25,9 +25,6 @@ public class HttpServerConfiguration {
     @Autowired
     private ContextRunner contextRunner;
 
-    @Value("${vertx.http-server-instances}")
-    private int httpServerNum;
-
     @Autowired
     private Vertx vertx;
 
@@ -43,6 +40,9 @@ public class HttpServerConfiguration {
 
     @Value("${server.http.port}")
     private Integer httpPort;
+
+    @Value("${server.http.server-instances}")
+    private Integer httpServerNum;
 
     @PostConstruct
     public void startHttpServer() {

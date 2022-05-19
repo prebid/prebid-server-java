@@ -5,7 +5,6 @@ vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
   init-timeout-ms: 5000
-  http-server-instances: 1
   enable-per-client-endpoint-metrics: false
 server:
   max-headers-size: 16384
@@ -15,9 +14,11 @@ server:
   unix-domain-socket:
     enabled: false
     path:
+    server-instances: 1
   http:
     enabled: true
     port: 8080
+    server-instances: 1
 admin:
   port: 8060
 admin-endpoints:
