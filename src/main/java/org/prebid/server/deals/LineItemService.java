@@ -141,7 +141,7 @@ public class LineItemService {
         final BidderAliases aliases = aliases(auctionContext.getBidRequest());
         final List<LineItem> matchedLineItems =
                 getPreMatchedLineItems(auctionContext.getAccount().getId(), imp, aliases).stream()
-                        .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext))
+                        .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext, aliases))
                         .collect(Collectors.toList());
 
         return MatchLineItemsResult.of(postProcessMatchedLineItems(matchedLineItems, auctionContext, imp, now));
@@ -333,7 +333,11 @@ public class LineItemService {
      * <p>
      * Updates deep debug log with matching information.
      */
-    private boolean isTargetingMatched(LineItem lineItem, Imp imp, AuctionContext auctionContext) {
+    private boolean isTargetingMatched(LineItem lineItem,
+                                       Imp imp,
+                                       AuctionContext auctionContext,
+                                       BidderAliases aliases) {
+
         final TargetingDefinition targetingDefinition = lineItem.getTargetingDefinition();
         final String accountId = auctionContext.getAccount().getId();
         final String source = lineItem.getSource();
@@ -345,8 +349,8 @@ public class LineItemService {
             return false;
         }
 
-        final boolean matched = targetingService.matchesTargeting(auctionContext, imp,
-                lineItem.getTargetingDefinition());
+        final boolean matched = targetingService.matchesTargeting(
+                auctionContext, imp, lineItem.getTargetingDefinition(), lineItem.getSource(), aliases);
         if (matched) {
             deepDebug(auctionContext, Category.targeting,
                     String.format("Line Item %s targeting matched imp with id %s", lineItemId, imp.getId()),
