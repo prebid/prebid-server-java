@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.bidder.CompressionType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -21,7 +20,11 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
+import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 @PBSTest
@@ -387,10 +390,10 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.server.gvlId == serverHostVendorId
     }
 
-    def "PBS should send request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
+    def "PBS should return bid response with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"               : "true",
-                                                        "adapters.generic.endpointCompression"   : CompressionType.GZIP.name()])
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"  : "true",
+                                                        "adapters.generic.endpointCompression"      : GZIP.name()])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -399,15 +402,15 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain header Content-Encoding = gzip"
-        assert response.ext.debug.httpcalls[BidderName.GENERIC.value]
-                .requestheaders.first()
-                .get("Content-Encoding").first() == CompressionType.GZIP.value
+        assert response?.ext?.debug?.httpcalls[GENERIC.value]
+                       ?.requestheaders?.first()
+                       ?.get(CONTENT_ENCODING_HEADER)?.first() == GZIP.value
     }
 
-    def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
+    def "PBS should return bid response without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"               : "true",
-                                                       "adapters.generic.endpointCompression"   : CompressionType.NONE.name()])
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"   : "true",
+                                                       "adapters.generic.endpointCompression"        :  NONE.name()])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -416,6 +419,6 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain header Content-Encoding"
-        assert !response.ext.debug.httpcalls[BidderName.GENERIC.value].requestheaders.first().get("Content-Encoding")
+        assert !response?.ext?.debug?.httpcalls[GENERIC.value]?.requestheaders?.first()?.get(CONTENT_ENCODING_HEADER)
     }
 }

@@ -11,6 +11,7 @@ class HttpUtil {
     public static final String ACCEPT_HEADER = "Authorization"
     public static final String CONTENT_TYPE_HEADER = "Content-Type"
     public static final String COOKIE_HEADER = "cookie"
+    public static final String CONTENT_ENCODING_HEADER = "Content-Encoding"
 
     public static final String CONTENT_TYPE_HEADER_VALUE = "application/json"
     public static final String CHARSET_HEADER_VALUE = "charset=utf-8"
