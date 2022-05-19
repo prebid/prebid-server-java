@@ -2,26 +2,28 @@ package org.prebid.server.bidder.stroeercore.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Getter
+@Value
 @Builder
-public class StroeercoreBid {
+public class StroeerCoreBid {
 
-    @JsonProperty("id")
     String id;
+
     @JsonProperty("bidId")
     String bidId;
-    @JsonProperty("cpm")
+
     BigDecimal cpm;
-    @JsonProperty("width")
-    int width;
-    @JsonProperty("height")
-    int height;
+
+    Integer width;
+
+    Integer height;
+
     @JsonProperty("ad")
     String adMarkup;
+
     @JsonProperty("crid")
     String creativeId;
 }

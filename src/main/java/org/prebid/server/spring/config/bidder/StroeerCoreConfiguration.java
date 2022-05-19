@@ -29,10 +29,10 @@ public class StroeerCoreConfiguration {
     }
 
     @Bean
-    BidderDeps stroeercoreBidderDeps(final BidderConfigurationProperties stroeercoreConfigurationProperties,
-                                     @NotBlank @Value("${external-url}") final String externalUrl,
-                                     final CurrencyConversionService currencyConversionService,
-                                     final JacksonMapper mapper) {
+    BidderDeps stroeercoreBidderDeps(BidderConfigurationProperties stroeercoreConfigurationProperties,
+                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                     CurrencyConversionService currencyConversionService,
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(stroeercoreConfigurationProperties)

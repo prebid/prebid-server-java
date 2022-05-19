@@ -8,8 +8,8 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class StroeercoreBidResponse {
+public class StroeerCoreBidResponse {
 
-    @JsonProperty(value = "bids", required = true)
-    List<StroeercoreBid> bids;
+    @JsonProperty(required = true)
+    List<StroeerCoreBid> bids;
 }

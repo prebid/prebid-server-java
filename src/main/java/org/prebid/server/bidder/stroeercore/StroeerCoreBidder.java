@@ -1,23 +1,27 @@
 package org.prebid.server.bidder.stroeercore;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.stroeercore.model.StroeercoreBid;
-import org.prebid.server.bidder.stroeercore.model.StroeercoreBidResponse;
+import org.prebid.server.bidder.stroeercore.model.StroeerCoreBid;
+import org.prebid.server.bidder.stroeercore.model.StroeerCoreBidResponse;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.stroeercore.ExtImpStroeerCore;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -27,46 +31,50 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class StroeerCoreBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "EUR";
+    private static final TypeReference<ExtPrebid<?, ExtImpStroeerCore>> STROEER_CORE_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
 
-    public StroeerCoreBidder(final String endpointUrl, final JacksonMapper mapper,
-                             final CurrencyConversionService currencyConversionService) {
-        this.endpointUrl = endpointUrl;
-        this.mapper = mapper;
-        this.currencyConversionService = currencyConversionService;
+    public StroeerCoreBidder(String endpointUrl,
+                             JacksonMapper mapper,
+                             CurrencyConversionService currencyConversionService) {
+        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(final BidRequest bidRequest) {
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        for (final Imp imp: bidRequest.getImp()) {
+        for (Imp imp : bidRequest.getImp()) {
             final ExtImpStroeerCore impExt;
+            final Price price;
+
             try {
+                validateImp(imp);
+
                 impExt = parseImpExt(imp);
-                validate(imp, impExt);
+                validateImpExt(impExt);
 
-                final ImpBuilder impBuilder = imp.toBuilder();
-
-                if (shouldConvertBidFloor(imp)) {
-                    convertBidFloor(bidRequest, imp, impBuilder);
-                }
-
-                impBuilder.tagid(impExt.getSlotId());
-
-                modifiedImps.add(impBuilder.build());
-            } catch (Exception e) {
-                final String message = String.format("%s. Ignore imp id = %s.", e.getMessage(), imp.getId());
-                errors.add(BidderError.badInput(message));
+                price = convertBidFloor(bidRequest, imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(String.format("%s. Ignore imp id = %s.", e.getMessage(), imp.getId())));
+                continue;
             }
+
+            modifiedImps.add(modifyImp(imp, impExt, price));
         }
 
         if (modifiedImps.isEmpty()) {
@@ -75,68 +83,100 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
 
-        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .headers(HttpUtil.headers())
-                .build()), errors);
+        return createHttpRequests(errors, outgoingRequest);
     }
 
-    private void validate(final Imp imp, final ExtImpStroeerCore impExt) {
-        if (StringUtils.isBlank(impExt.getSlotId())) {
-            throw new PreBidException("Custom param slot id (sid) is empty");
-        }
+    private static void validateImp(Imp imp) {
         if (imp.getBanner() == null) {
             throw new PreBidException("Expected banner impression");
         }
     }
 
-    private void convertBidFloor(final BidRequest bidRequest, final Imp imp, final ImpBuilder impBuilder) {
-        final BigDecimal convertedBidFloor = currencyConversionService
-                .convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
-        impBuilder.bidfloorcur(BIDDER_CURRENCY);
-        impBuilder.bidfloor(convertedBidFloor);
+    private ExtImpStroeerCore parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), STROEER_CORE_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
-    private static boolean shouldConvertBidFloor(final Imp imp) {
-        return BidderUtil.isValidPrice(imp.getBidfloor())
-                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY);
+    private static void validateImpExt(ExtImpStroeerCore impExt) {
+        if (StringUtils.isBlank(impExt.getSlotId())) {
+            throw new PreBidException("Custom param slot id (sid) is empty");
+        }
+    }
+
+    private Price convertBidFloor(BidRequest bidRequest, Imp imp) {
+        final BigDecimal bidFloor = imp.getBidfloor();
+        final String bidFloorCurrency = imp.getBidfloorcur();
+
+        if (!shouldConvertBidFloor(bidFloor, bidFloorCurrency)) {
+            return Price.of(bidFloorCurrency, bidFloor);
+        }
+
+        final BigDecimal convertedBidFloor = currencyConversionService.convertCurrency(
+                bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
+
+        return Price.of(BIDDER_CURRENCY, convertedBidFloor);
+    }
+
+    private Result<List<HttpRequest<BidRequest>>> createHttpRequests(List<BidderError> errors, BidRequest bidRequest) {
+        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .headers(HttpUtil.headers())
+                .build()), errors);
+    }
+
+    private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCurrency) {
+        return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY);
+    }
+
+    private static Imp modifyImp(Imp imp, ExtImpStroeerCore impExt, Price price) {
+        final ImpBuilder impBuilder = imp.toBuilder();
+        impBuilder.bidfloorcur(price.getCurrency());
+        impBuilder.bidfloor(price.getValue());
+        impBuilder.tagid(impExt.getSlotId());
+        return impBuilder.build();
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(final HttpCall<BidRequest> httpCall, final BidRequest bidRequest) {
-        final String body = httpCall.getResponse().getBody();
-
-        final StroeercoreBidResponse response;
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            response = mapper.decodeValue(body, StroeercoreBidResponse.class);
-        } catch (Exception e) {
+            final String body = httpCall.getResponse().getBody();
+            final StroeerCoreBidResponse response = mapper.decodeValue(body, StroeerCoreBidResponse.class);
+            return Result.withValues(extractBids(response));
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-
-        final List<BidderBid> bidderBids = new ArrayList<>();
-
-        for (final StroeercoreBid stroeerBid : response.getBids()) {
-            final Bid bid = Bid.builder()
-                    .id(stroeerBid.getId())
-                    .impid(stroeerBid.getBidId())
-                    .w(stroeerBid.getWidth())
-                    .h(stroeerBid.getHeight())
-                    .price(stroeerBid.getCpm())
-                    .adm(stroeerBid.getAdMarkup())
-                    .crid(stroeerBid.getCreativeId())
-                    .build();
-
-            bidderBids.add(BidderBid.of(bid, BidType.banner, BIDDER_CURRENCY));
-        }
-
-        return Result.withValues(bidderBids);
     }
 
-    private ExtImpStroeerCore parseImpExt(final Imp imp) {
-        final JsonNode extImpNode = imp.getExt().get("bidder");
-        return mapper.mapper().convertValue(extImpNode, ExtImpStroeerCore.class);
+    private static List<BidderBid> extractBids(StroeerCoreBidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
+            return Collections.emptyList();
+        }
+
+        return bidResponse.getBids().stream()
+                .filter(Objects::nonNull)
+                .map(StroeerCoreBidder::toBidderBid)
+                .collect(Collectors.toList());
+    }
+
+    private static BidderBid toBidderBid(StroeerCoreBid stroeercoreBid) {
+        return BidderBid.of(
+                Bid.builder()
+                        .id(stroeercoreBid.getId())
+                        .impid(stroeercoreBid.getBidId())
+                        .w(stroeercoreBid.getWidth())
+                        .h(stroeercoreBid.getHeight())
+                        .price(stroeercoreBid.getCpm())
+                        .adm(stroeercoreBid.getAdMarkup())
+                        .crid(stroeercoreBid.getCreativeId())
+                        .build(),
+                BidType.banner,
+                BIDDER_CURRENCY);
+
     }
 }

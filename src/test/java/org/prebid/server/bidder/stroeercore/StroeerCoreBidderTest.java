@@ -22,15 +22,15 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.stroeercore.model.StroeercoreBid;
-import org.prebid.server.bidder.stroeercore.model.StroeercoreBidResponse;
+import org.prebid.server.bidder.stroeercore.model.StroeerCoreBid;
+import org.prebid.server.bidder.stroeercore.model.StroeerCoreBidResponse;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.stroeercore.ExtImpStroeerCore;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +63,50 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnExpectedRequest() {
+    public void makeHttpRequestsShouldReturnExpectedMethod() {
+        // given
+        final BidRequest bidRequest = createBidRequest("192848");
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).element(0).isNotNull()
+                .returns(HttpMethod.POST, HttpRequest::getMethod);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = createBidRequest("192848");
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedURL() {
+        // given
+        final BidRequest bidRequest = createBidRequest("192848");
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+                .returns(HttpMethod.POST, HttpRequest::getMethod)
+                .returns(ENDPOINT_URL, HttpRequest::getUri);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedBody() {
         // given
         final BidRequest bidRequest = createBidRequest("192848", "abc");
 
@@ -73,17 +115,12 @@ public class StroeerCoreBidderTest extends VertxTest {
 
         // then
         final List<Imp> imps = bidRequest.getImp();
-        final BidRequest expectedBidRequest = bidRequest.toBuilder()
-                .imp(
-                        List.of(imps.get(0).toBuilder().tagid("192848").build(),
-                                imps.get(1).toBuilder().tagid("abc").build()))
-                .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .hasSize(1)
-                .first()
-                .satisfies(httpRequest -> assertHttpRequest(expectedBidRequest, httpRequest));
-        verifyNoInteractions(currencyConversionService);
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("192848", "abc");
     }
 
     @Test
@@ -166,15 +203,12 @@ public class StroeerCoreBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        final BidRequest expectedBidRequest = bidRequest.toBuilder()
-                .imp(List.of(createImp("11", "b").toBuilder().tagid("b").build(),
-                        createImp("15", "f").toBuilder().tagid("f").build())).build();
-
         assertThat(result.getErrors()).hasSize(4);
         assertThat(result.getValue())
-                .hasSize(1)
-                .first()
-                .satisfies(httpRequest -> assertHttpRequest(expectedBidRequest, httpRequest));
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("b", "f");
     }
 
     @Test
@@ -229,10 +263,9 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnExpectedBidderBid() throws JsonProcessingException {
-
+    public void makeBidsShouldReturnExpectedBidderBids() throws JsonProcessingException {
         // given
-        final StroeercoreBid bid1 = StroeercoreBid.builder()
+        final StroeerCoreBid bid1 = StroeerCoreBid.builder()
                 .id("1")
                 .bidId("1929")
                 .adMarkup("<div></div>")
@@ -242,7 +275,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .height(600)
                 .build();
 
-        final StroeercoreBid bid2 = StroeercoreBid.builder()
+        final StroeerCoreBid bid2 = StroeerCoreBid.builder()
                 .id("27")
                 .bidId("2010")
                 .adMarkup("<span></span>")
@@ -252,7 +285,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .height(250)
                 .build();
 
-        final StroeercoreBidResponse response = StroeercoreBidResponse.of(List.of(bid1, bid2));
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bid1, bid2));
         final HttpCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
@@ -304,7 +337,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfZeroBids() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = createHttpCall(StroeercoreBidResponse.of(emptyList()));
+        final HttpCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -312,19 +345,6 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    private void assertHttpRequest(final BidRequest expectedBidRequest, final HttpRequest<BidRequest> httpRequest)
-            throws IOException {
-        assertThat(mapper.readValue(httpRequest.getBody(), BidRequest.class)).isEqualTo(expectedBidRequest);
-        assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
-        assertThat(httpRequest.getPayload()).isEqualTo(expectedBidRequest);
-        assertThat(httpRequest.getHeaders())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"));
     }
 
     private BidRequest createBidRequest(final String... slotIds) {
@@ -370,7 +390,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         return imp.toBuilder().bidfloorcur(bidFloorCurrency).bidfloor(bidFloor).build();
     }
 
-    private HttpCall<BidRequest> createHttpCall(final StroeercoreBidResponse response) throws JsonProcessingException {
+    private HttpCall<BidRequest> createHttpCall(final StroeerCoreBidResponse response) throws JsonProcessingException {
         return createHttpCall(mapper.writeValueAsString(response));
     }
 
