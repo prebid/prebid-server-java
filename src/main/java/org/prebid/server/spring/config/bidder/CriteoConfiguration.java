@@ -5,6 +5,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.criteo.CriteoBidder;
+import org.prebid.server.identity.NoneIdGenerator;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -43,8 +45,10 @@ public class CriteoConfiguration {
                 .bidderCreator(config ->
                         new CriteoBidder(
                                 config.getEndpoint(),
-                                mapper,
-                                criteoConfigurationProperties.getGenerateSlotId()))
+                                criteoConfigurationProperties.getGenerateSlotId()
+                                        ? new UUIDIdGenerator()
+                                        : new NoneIdGenerator(),
+                                mapper))
                 .assemble();
     }
 

@@ -18,7 +18,6 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -28,17 +27,16 @@ import java.math.RoundingMode
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 
-@PBSTest
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final float FLOOR_MIN = 0.5
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
-                                                            "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
+                                                            "settings.default-account-config": encode(defaultAccountConfigSettings)]
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1

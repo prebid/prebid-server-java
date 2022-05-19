@@ -5,18 +5,16 @@ import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@PBSTest
-class DealsSpec extends BaseSpec {
+class TargetingPreferDealsSpec extends BaseSpec {
 
     def "PBS should choose bid with deal when preferdeals flag equal true"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
+        bidRequest.ext.prebid.targeting = new Targeting(preferDeals: true)
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -49,7 +47,7 @@ class DealsSpec extends BaseSpec {
     def "PBS should choose higher bid from two bids with deals"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
+        bidRequest.ext.prebid.targeting = new Targeting(preferDeals: true)
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -76,7 +74,7 @@ class DealsSpec extends BaseSpec {
     def "PBS should choose higher bid from two without deals"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
+        bidRequest.ext.prebid.targeting = new Targeting(preferDeals: true)
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -100,7 +98,7 @@ class DealsSpec extends BaseSpec {
     def "PBS should prefer bids with dealid when multibid is enabled"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
+        bidRequest.ext.prebid.targeting = new Targeting(preferDeals: true)
 
         and: "Set maxbids = 2 for default bidder"
         def maxBids = 2
@@ -132,7 +130,7 @@ class DealsSpec extends BaseSpec {
     def "PBS should not choose lower deal price with preferdeals equal #preferdeals flag"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.targeting = new Targeting(preferdeals: preferdeals)
+        bidRequest.ext.prebid.targeting = new Targeting(preferDeals: preferdeals)
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)

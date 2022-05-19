@@ -1,0 +1,19 @@
+adapters:
+  alkimi:
+    endpoint: https://exchange.alkimi-onboarding.com/server/bid
+    meta-info:
+      maintainer-email: kalidas@alkimiexchange.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://localhost:8000/getuid?
+      redirect-url: /setuid?bidder=alkimi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: alkimi
+      type: redirect
+      support-cors: false

@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config;
+package org.prebid.server.spring.config.metrics;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -11,15 +11,7 @@ import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.dropwizard.DropwizardExports;
-import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
-import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -27,14 +19,15 @@ import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.CloseableAdapter;
-import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -49,9 +42,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@PropertySource(value = "classpath:/metrics-config/metrics.yaml", factory = YamlPropertySourceFactory.class)
 public class MetricsConfiguration {
 
-    static final String METRIC_REGISTRY_NAME = "metric-registry";
+    public static final String METRIC_REGISTRY_NAME = "metric-registry";
 
     @Autowired(required = false)
     private List<ScheduledReporter> reporters = Collections.emptyList();
@@ -216,40 +210,5 @@ public class MetricsConfiguration {
         private AccountMetricsVerbosityLevel defaultVerbosity;
         private List<String> basicVerbosity = new ArrayList<>();
         private List<String> detailedVerbosity = new ArrayList<>();
-    }
-
-    @Configuration
-    @ConditionalOnProperty(prefix = "metrics.prometheus", name = "port")
-    static class PrometheusServerConfiguration {
-        private static final Logger logger = LoggerFactory.getLogger(PrometheusServerConfiguration.class);
-
-        @Autowired
-        private ContextRunner contextRunner;
-
-        @Autowired
-        private Vertx vertx;
-
-        @Autowired
-        private MetricRegistry metricRegistry;
-
-        @Autowired
-        private SampleBuilder sampleBuilder;
-
-        @Value("${metrics.prometheus.port}")
-        private int prometheusPort;
-
-        @PostConstruct
-        public void startPrometheusServer() {
-            logger.info("Starting Prometheus Server on port {0,number,#}", prometheusPort);
-            final Router router = Router.router(vertx);
-            router.route("/metrics").handler(new MetricsHandler());
-
-            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry, sampleBuilder));
-
-            contextRunner.<HttpServer>runOnServiceContext(promise ->
-                    vertx.createHttpServer().requestHandler(router).listen(prometheusPort, promise));
-
-            logger.info("Successfully started Prometheus Server");
-        }
     }
 }

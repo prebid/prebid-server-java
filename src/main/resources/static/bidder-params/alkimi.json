@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Alkimi Adapter Params",
+  "description": "A schema which validates params accepted by the Alkimi adapter",
+  "type": "object",
+
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Publisher Token provided by Alkimi"
+    },
+    "bidFloor": {
+      "type": "number",
+      "description": "The minimum CPM price in USD",
+      "minimum": 0
+    },
+    "pos": {
+      "type": "number",
+      "description": "Specify the position of the ad as a relative measure of visibility or prominence. Allowed values: Above the fold: `1`; Below the fold: `3`; Middle of the fold: `7`;"
+    }
+  },
+
+  "required": ["token", "bidFloor"]
+}

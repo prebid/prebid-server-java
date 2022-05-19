@@ -70,6 +70,25 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldReturnNullWhenRulesDisabledInRequest() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .enabled(false)
+                                .build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
+                        .value("siteDomain", BigDecimal.TEN)
+                        .build()), givenImp(identity()), null)).isNull();
+    }
+
+    @Test
     public void resolveShouldReturnNullWhenModelGroupIsNotPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
