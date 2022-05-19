@@ -5,7 +5,6 @@ import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -16,8 +15,8 @@ class FloorsProvider extends NetworkScaffolding {
 
     public static final String FLOORS_ENDPOINT = "/floors-provider/"
 
-    FloorsProvider(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, FLOORS_ENDPOINT, mapper)
+    FloorsProvider(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, FLOORS_ENDPOINT)
     }
 
     @Override
@@ -39,6 +38,6 @@ class FloorsProvider extends NetworkScaffolding {
     }
 
     private String getDefaultResponse() {
-        mapper.encode(PriceFloorData.priceFloorData)
+        encode(PriceFloorData.priceFloorData)
     }
 }

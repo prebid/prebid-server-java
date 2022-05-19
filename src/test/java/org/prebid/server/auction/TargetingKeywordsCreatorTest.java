@@ -40,6 +40,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -67,6 +68,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
+                false,
                 false,
                 false,
                 0,
@@ -100,6 +102,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
+                false,
                 true,
                 false,
                 0,
@@ -141,6 +144,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
+                false,
                 true,
                 false,
                 0,
@@ -167,6 +171,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -190,6 +195,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
+                false,
                 false,
                 true,
                 0,
@@ -218,6 +224,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -242,6 +249,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -262,6 +270,7 @@ public class TargetingKeywordsCreatorTest {
                 ExtPriceGranularity.of(
                         2,
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                false,
                 false,
                 false,
                 false,
@@ -290,6 +299,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -312,6 +322,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 false,
                 true,
+                false,
                 false,
                 false,
                 20,
@@ -339,6 +350,7 @@ public class TargetingKeywordsCreatorTest {
                 false,
                 false,
                 false,
+                false,
                 7,
                 null,
                 null,
@@ -362,6 +374,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
+                false,
                 true,
                 true,
                 6,
@@ -388,6 +401,7 @@ public class TargetingKeywordsCreatorTest {
                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 false,
                 true,
+                false,
                 false,
                 false,
                 0,
@@ -421,6 +435,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 20,
                 null,
                 null,
@@ -451,6 +466,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 false,
                 false,
+                false,
                 0,
                 null,
                 null,
@@ -459,5 +475,55 @@ public class TargetingKeywordsCreatorTest {
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));
+    }
+
+    @Test
+    public void shouldIncludeDealBidTargetingIfAlwaysIncludeDealsFlagIsTrue() {
+        // given
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).dealid("dealId").build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                false,
+                false,
+                true,
+                false,
+                false,
+                0,
+                null,
+                null,
+                null)
+                .makeFor(bid, "bidder1", false, null, null, null, null);
+
+        // then
+        assertThat(keywords).containsOnlyKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
+    }
+
+    @Test
+    public void shouldNotIncludeDealBidTargetingIfAlwaysIncludeDealsFlagIsFalse() {
+        // given
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).dealid("dealId").build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                false,
+                false,
+                false,
+                false,
+                false,
+                0,
+                null,
+                null,
+                null)
+                .makeFor(bid, "bidder1", false, null, null, null, null);
+
+        // then
+        assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
     }
 }

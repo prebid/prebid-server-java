@@ -28,6 +28,7 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.util.IntegrationTestsUtil;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
@@ -112,6 +113,12 @@ public abstract class IntegrationTest extends VertxTest {
     protected static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
+    }
+
+    protected static String jsonFrom(String file, PrebidVersionProvider prebidVersionProvider) throws IOException {
+        // workaround to clear formatting
+        return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)))
+                .replace("{{ pbs.java.version }}", prebidVersionProvider.getNameVersionRecord());
     }
 
     protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)

@@ -2,7 +2,6 @@ package org.prebid.server.functional.util
 
 import org.apache.commons.lang3.RandomStringUtils
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.testcontainers.Dependencies
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -17,7 +16,7 @@ import static org.awaitility.Awaitility.with
 import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
-class PBSUtils {
+class PBSUtils implements ObjectMapperWrapper {
 
     static int getRandomNumber(int min = 0, int max = MAX_VALUE) {
         new Random().nextInt(max - min) + min
@@ -43,7 +42,7 @@ class PBSUtils {
     }
 
     static Path createJsonFile(BidRequest bidRequest) {
-        def data = Dependencies.objectMapperWrapper.encode(bidRequest)
+        def data = encode(bidRequest)
         createTempFile(data, ".json")
     }
 

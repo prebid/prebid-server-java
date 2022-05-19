@@ -325,7 +325,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with bidAdjustment"
         def floorsProviderFloorValue = PBSUtils.randomFloorValue
@@ -371,7 +371,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def floorsProviderFloorValue = 0.8

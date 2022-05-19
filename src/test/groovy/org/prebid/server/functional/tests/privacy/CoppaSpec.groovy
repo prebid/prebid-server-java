@@ -2,12 +2,10 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@PBSTest
 class CoppaSpec extends PrivacyBaseSpec {
 
     @PendingFeature
