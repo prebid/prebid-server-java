@@ -35,7 +35,7 @@ import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 @RunWith(SpringRunner.class)
 @TestPropertySource(
         value = {"test-application.properties"},
-        properties = {"price-floors.enabled=true", "http.port=8050", "admin.port=0"}
+        properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"}
 )
 public class PriceFloorsTest extends VertxTest {
 
