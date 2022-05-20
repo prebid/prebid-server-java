@@ -1297,7 +1297,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(1, null)));
+                .isEqualTo(Regs.builder().ext(ExtRegs.of(1, null)).build());
     }
 
     @Test
@@ -1369,7 +1369,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(0, null)));
+                .isEqualTo(Regs.builder().ext(ExtRegs.of(0, null)).build());
     }
 
     @Test
@@ -1384,7 +1384,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1N--")));
+                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1N--")).build());
     }
 
     @Test
@@ -1399,7 +1399,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1Y-N")).build());
     }
 
     @Test
@@ -1416,7 +1416,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1Y-N")).build());
     }
 
     @Test

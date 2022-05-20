@@ -37,7 +37,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -60,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -1397,7 +1397,7 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
                 .containsOnly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
-                        + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                                + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -1421,7 +1421,7 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getWarnings()).hasSize(2)
                 .containsExactlyInAnyOrder(
                         "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
-                        + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                                + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -1450,7 +1450,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, ExtRegs.of(null, null)))
+                .regs(Regs.builder().ext(ExtRegs.of(null, null)).build())
                 .build();
 
         // when
@@ -2183,7 +2183,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, ExtRegs.of(2, null)))
+                .regs(Regs.builder().ext(ExtRegs.of(2, null)).build())
                 .build();
 
         // when

@@ -817,7 +817,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
-                        .regs(Regs.of(null, ExtRegs.of(1, null))));
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build()));
 
         // when
         final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1688,7 +1688,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
 
-        final Regs regs = Regs.of(null, null);
+        final Regs regs = Regs.builder().build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder().build())
                         .device(Device.builder().lmt(1).build())

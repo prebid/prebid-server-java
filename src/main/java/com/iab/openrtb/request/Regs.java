@@ -1,6 +1,6 @@
 package com.iab.openrtb.request;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
@@ -10,7 +10,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
  * request falls under the United States Federal Trade Commission’s regulations
  * for the United States Children’s Online Privacy Protection Act (“COPPA”).
  */
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class Regs {
 
@@ -21,6 +21,19 @@ public class Regs {
      */
     Integer coppa;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Flag that indicates whether or not the request is subject to
+     * GDPR regulations 0 = No, 1 = Yes, omission indicates Unknown.
+     */
+    Integer gdpr;
+
+    /**
+     * Communicates signals regarding consumer privacy under US privacy regulation.
+     */
+    String usPrivacy;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ExtRegs ext;
 }

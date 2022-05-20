@@ -258,7 +258,7 @@ public class AmpRequestFactory {
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         return gdpr != null || usPrivacy != null
-                ? Regs.of(null, ExtRegs.of(gdpr, usPrivacy))
+                ? Regs.builder().ext(ExtRegs.of(gdpr, usPrivacy)).build()
                 : null;
     }
 

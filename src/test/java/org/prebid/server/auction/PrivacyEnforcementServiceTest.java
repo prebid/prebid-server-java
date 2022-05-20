@@ -138,7 +138,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void contextFromBidRequestShouldReturnTcfContextForCoppa() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(1, null))
+                .regs(Regs.builder().coppa(1).build())
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
@@ -170,7 +170,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         final String referer = "Referer";
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .regs(Regs.builder().ext(ExtRegs.of(1, "1YYY")).build())
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .consent("consent")
@@ -216,7 +216,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void contextFromBidRequestShouldReturnTcfContextWithIpMasked() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .regs(Regs.builder().ext(ExtRegs.of(1, "1YYY")).build())
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .consent("consent")
@@ -757,7 +757,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final Regs regs = Regs.of(0, null);
+        final Regs regs = Regs.builder().coppa(0).build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(

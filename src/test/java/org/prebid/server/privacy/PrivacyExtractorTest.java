@@ -49,7 +49,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegsExtIsNull() {
         // given and when
         final String gdpr = privacyExtractor.validPrivacyFrom(
-                BidRequest.builder().regs(Regs.of(null, null)).build(), new ArrayList<>())
+                        BidRequest.builder().regs(Regs.builder().build()).build(), new ArrayList<>())
                 .getGdpr();
 
         // then
@@ -59,7 +59,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given
-        final Regs regs = Regs.of(null, ExtRegs.of(2, null));
+        final Regs regs = Regs.builder().ext(ExtRegs.of(2, null)).build();
 
         // when
         final String gdpr =
@@ -72,7 +72,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
         // given
-        final Regs regs = Regs.of(null, ExtRegs.of(1, null));
+        final Regs regs = Regs.builder().ext(ExtRegs.of(1, null)).build();
 
         // when
         final String gdpr =
@@ -85,7 +85,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
         // given
-        final Regs regs = Regs.of(null, ExtRegs.of(0, null));
+        final Regs regs = Regs.builder().ext(ExtRegs.of(0, null)).build();
 
         // when
         final String gdpr =
@@ -136,7 +136,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnDefaultCcpaWhenNotValidAndAddError() {
         // given
-        final Regs regs = Regs.of(null, ExtRegs.of(null, "invalid"));
+        final Regs regs = Regs.builder().ext(ExtRegs.of(null, "invalid")).build();
         final ArrayList<String> errors = new ArrayList<>();
 
         // when
@@ -152,7 +152,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnDefaultCoppaIfNull() {
         // given
-        final Regs regs = Regs.of(null, null);
+        final Regs regs = Regs.builder().build();
 
         // when
         final Integer coppa =
@@ -166,7 +166,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnCoppaIfNotNull() {
         // given
-        final Regs regs = Regs.of(42, null);
+        final Regs regs = Regs.builder().coppa(42).build();
 
         // when
         final Integer coppa =
@@ -180,7 +180,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnPrivacyWithParametersExtractedFromBidRequest() {
         // given
-        final Regs regs = Regs.of(null, ExtRegs.of(0, "1Yn-"));
+        final Regs regs = Regs.builder().ext(ExtRegs.of(0, "1Yn-")).build();
         final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
 
         // when
