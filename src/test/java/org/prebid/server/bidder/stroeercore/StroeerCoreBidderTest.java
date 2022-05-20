@@ -32,12 +32,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,20 +66,21 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedMethod() {
         // given
-        final BidRequest bidRequest = createBidRequest("192848");
+        final BidRequest bidRequest = createBidRequest(createBannerImp("192848"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).element(0).isNotNull()
-                .returns(HttpMethod.POST, HttpRequest::getMethod);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getMethod)
+                .containsExactly(HttpMethod.POST);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnExpectedHeaders() {
         // given
-        final BidRequest bidRequest = createBidRequest("192848");
+        final BidRequest bidRequest = createBidRequest(createBannerImp("981287"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -86,7 +88,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
     }
@@ -94,63 +96,56 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedURL() {
         // given
-        final BidRequest bidRequest = createBidRequest("192848");
+        final BidRequest bidRequest = createBidRequest(createBannerImp("726292"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
-                .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(ENDPOINT_URL, HttpRequest::getUri);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnExpectedBody() {
+    public void makeHttpRequestsShouldReturnImpsWithExpectedTagIds() {
         // given
-        final BidRequest bidRequest = createBidRequest("192848", "abc");
+        final BidRequest bidRequest = createBidRequest(createBannerImp("827194"), createBannerImp("abc"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        final List<Imp> imps = bidRequest.getImp();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsExactly("192848", "abc");
+                .containsExactly("827194", "abc");
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest validBidRequest = createBidRequest("123");
-        final Imp validImp = validBidRequest.getImp().stream().findFirst().orElseThrow();
-        final Imp invalidImp = createNonParsableImpFrom(validImp);
-        final BidRequest invalidBidRequest = validBidRequest.toBuilder().imp(singletonList(invalidImp)).build();
+        final BidRequest invalidBidRequest = createBidRequest(createImpWithNonParsableImpExt("3"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .first()
-                .satisfies(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input))
-                .satisfies(bidderError -> assertThat(bidderError.getMessage())
-                        .startsWith("Cannot deserialize").endsWith(". Ignore imp id = 1."));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage())
+                    .startsWith("Cannot deserialize")
+                    .endsWith(". Ignore imp id = 3.");
+        });
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpHasNoBanner() {
         // given
-        final BidRequest validBidRequest = createBidRequest("123");
-        final Imp validImp = validBidRequest.getImp().stream().findFirst().orElseThrow();
-        final Imp invalidImp = createNullBannerImpFrom(validImp);
-        final BidRequest invalidBidRequest = validBidRequest.toBuilder().imp(singletonList(invalidImp)).build();
+        final BidRequest invalidBidRequest = createBidRequest(createVideoImp("123", imp -> imp.id("2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
@@ -158,17 +153,13 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .hasSize(1)
-                .first()
-                .satisfies(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input))
-                .satisfies(bidderError -> assertThat(bidderError.getMessage())
-                        .isEqualTo("Expected banner impression. Ignore imp id = 1."));
+                .containsExactly(BidderError.badInput("Expected banner impression. Ignore imp id = 2."));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfSlotIdIsEmpty() {
         // given
-        final BidRequest invalidBidRequest = createBidRequest(" ");
+        final BidRequest invalidBidRequest = createBidRequest(createBannerImp(" ", imp -> imp.id("1")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
@@ -176,24 +167,21 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .hasSize(1)
-                .first()
-                .satisfies(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input))
-                .satisfies(bidderError -> assertThat(bidderError.getMessage())
-                        .isEqualTo("Custom param slot id (sid) is empty. Ignore imp id = 1."));
+                .containsExactly(BidderError.badInput("Custom param slot id (sid) is empty. Ignore imp id = 1."));
     }
 
     @Test
     public void makeHttpRequestsShouldIgnoreInvalidImpressions() {
         // given
         final List<Imp> imps = List.of(
-                createNonParsableImpFrom(createImp("10", "a")),
-                createImp("11", "b"),
-                createEmptySlotIdImpFrom(createImp("12", "c")),
-                createNullBannerImpFrom(createImp("13", "d")),
-                createImpWithFloorFrom(createImp("14", "e"), "GPB", BigDecimal.ONE),
-                createImp("15", "f")
-        );
+                createImpWithNonParsableImpExt("2"),
+                createBannerImp("   "),
+                createBannerImp("a"),
+                createBannerImp("b", imp -> imp.banner(null)),
+                createVideoImp("c", identity()),
+                createBannerImp("d"),
+                createBannerImp("e", imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("GPB")));
+
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenThrow(new PreBidException("no"));
 
@@ -203,23 +191,23 @@ public class StroeerCoreBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(4);
+        assertThat(result.getErrors()).hasSize(5);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsExactly("b", "f");
+                .containsExactly("a", "d");
     }
 
     @Test
     public void makeHttpRequestsShouldConvertCurrencyToEuro() {
         // given
-        final BigDecimal usdBidFloor = new BigDecimal("0.5");
-        final Imp imp = createImp("1", "200");
-        final Imp usdImp = createImpWithFloorFrom(imp, "USD", new BigDecimal("0.5"));
+        final BigDecimal usdBidFloor = BigDecimal.valueOf(0.5);
+        final Imp usdImp = createBannerImp("200", imp -> imp.bidfloorcur("USD").bidfloor(usdBidFloor));
         final BidRequest bidRequest = createBidRequest(usdImp);
 
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(new BigDecimal("1.82"));
+        final BigDecimal eurBidFloor = BigDecimal.valueOf(1.82);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(eurBidFloor);
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -233,15 +221,14 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(tuple(new BigDecimal("1.82"), "EUR"));
+                .containsOnly(tuple(eurBidFloor, "EUR"));
     }
 
     @Test
     public void makeHttpRequestsShouldIgnoreBidIfCurrencyIfCurrencyServiceThrowsException() {
         // given
-        final BigDecimal usdBidFloor = new BigDecimal("0.5");
-        final Imp imp = createImp("1282", "200");
-        final Imp usdImp = createImpWithFloorFrom(imp, "USD", new BigDecimal("0.5"));
+        final BigDecimal usdBidFloor = BigDecimal.valueOf(0.5);
+        final Imp usdImp = createBannerImp("10", imp -> imp.id("1282").bidfloorcur("USD").bidfloor(usdBidFloor));
         final BidRequest bidRequest = createBidRequest(usdImp);
 
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
@@ -254,11 +241,10 @@ public class StroeerCoreBidderTest extends VertxTest {
         verify(currencyConversionService).convertCurrency(usdBidFloor, bidRequest, "USD", "EUR");
         verifyNoMoreInteractions(currencyConversionService);
 
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .first()
-                .satisfies(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input))
-                .satisfies(bidderError -> assertThat(bidderError.getMessage()).isEqualTo("no. Ignore imp id = 1282."));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("no. Ignore imp id = 1282.");
+        });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -269,7 +255,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .id("1")
                 .bidId("1929")
                 .adMarkup("<div></div>")
-                .cpm(new BigDecimal("0.30"))
+                .cpm(BigDecimal.valueOf(0.3))
                 .creativeId("foo")
                 .width(300)
                 .height(600)
@@ -279,7 +265,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .id("27")
                 .bidId("2010")
                 .adMarkup("<span></span>")
-                .cpm(new BigDecimal("1.58"))
+                .cpm(BigDecimal.valueOf(1.58))
                 .creativeId("bar")
                 .width(800)
                 .height(250)
@@ -289,14 +275,14 @@ public class StroeerCoreBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
         final Bid expectedBid1 = Bid.builder()
                 .id("1")
                 .impid("1929")
                 .adm("<div></div>")
-                .price(new BigDecimal("0.30"))
+                .price(BigDecimal.valueOf(0.3))
                 .crid("foo")
                 .w(300)
                 .h(600)
@@ -306,7 +292,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .id("27")
                 .impid("2010")
                 .adm("<span></span>")
-                .price(new BigDecimal("1.58"))
+                .price(BigDecimal.valueOf(1.58))
                 .crid("bar")
                 .w(800)
                 .h(250)
@@ -327,11 +313,10 @@ public class StroeerCoreBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .first()
-                .satisfies(error -> assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response))
-                .satisfies(error -> assertThat(error.getMessage()).startsWith("Failed to decode"));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode");
+        });
     }
 
     @Test
@@ -347,54 +332,45 @@ public class StroeerCoreBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    private BidRequest createBidRequest(final String... slotIds) {
-        final ArrayList<Imp> imps = new ArrayList<>();
-
-        long impId = 1;
-        for (String slotId : slotIds) {
-            imps.add(createImp(String.valueOf(impId++), slotId));
-        }
-
-        return createBidRequest(imps.toArray(new Imp[]{}));
+    private BidRequest createBidRequest(Imp... imps) {
+        return BidRequest.builder()
+                .imp(List.of(imps))
+                .build();
     }
 
-    private BidRequest createBidRequest(final Imp... imps) {
-        return BidRequest.builder().imp(List.of(imps)).build();
+    private Imp createImpWithNonParsableImpExt(String impId) {
+        final ObjectNode impExt = mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()));
+        return createBannerImp("1", imp -> imp.id(impId).ext(impExt));
     }
 
-    private Imp createImp(final String id, final String slotId) {
+    private Imp createBannerImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        final UnaryOperator<ImpBuilder> addBanner = imp -> imp.banner(Banner.builder().build());
+        return createImp(slotId, addBanner.andThen(impCustomizer));
+    }
+
+    private Imp createBannerImp(String slotId) {
+        return createBannerImp(slotId, identity());
+    }
+
+    private Imp createVideoImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        final UnaryOperator<ImpBuilder> addVideo = imp -> imp.video(Video.builder().build());
+        return createImp(slotId, addVideo.andThen(impCustomizer));
+    }
+
+    private Imp createImp(String slotId, Function<ImpBuilder, ImpBuilder> impCustomizer) {
         final ObjectNode impExtNode = mapper.valueToTree(ExtPrebid.of(null, ExtImpStroeerCore.of(slotId)));
-        ImpBuilder impBuilder = Imp.builder();
-        impBuilder.id(String.valueOf(id));
-        impBuilder.banner(Banner.builder().build());
-        impBuilder.ext(impExtNode);
-        return impBuilder.build();
+
+        final UnaryOperator<Imp.ImpBuilder> addImpExt = imp -> imp.ext(impExtNode);
+        final ImpBuilder impBuilder = Imp.builder();
+
+        return addImpExt.andThen(impCustomizer).apply(impBuilder).build();
     }
 
-    private Imp createNonParsableImpFrom(final Imp validImp) {
-        return validImp.toBuilder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build();
-    }
-
-    private Imp createNullBannerImpFrom(final Imp validImp) {
-        return validImp.toBuilder()
-                .banner(null).video(Video.builder().build()).build();
-    }
-
-    private Imp createEmptySlotIdImpFrom(final Imp validImp) {
-        return validImp.toBuilder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpStroeerCore.of(" ")))).build();
-    }
-
-    private Imp createImpWithFloorFrom(final Imp imp, final String bidFloorCurrency, final BigDecimal bidFloor) {
-        return imp.toBuilder().bidfloorcur(bidFloorCurrency).bidfloor(bidFloor).build();
-    }
-
-    private HttpCall<BidRequest> createHttpCall(final StroeerCoreBidResponse response) throws JsonProcessingException {
+    private HttpCall<BidRequest> createHttpCall(StroeerCoreBidResponse response) throws JsonProcessingException {
         return createHttpCall(mapper.writeValueAsString(response));
     }
 
-    private HttpCall<BidRequest> createHttpCall(final String body) {
+    private HttpCall<BidRequest> createHttpCall(String body) {
         return HttpCall.success(HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, body), null);
     }

@@ -3,7 +3,6 @@ package org.prebid.server.bidder.stroeercore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -135,11 +134,11 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, ExtImpStroeerCore impExt, Price price) {
-        final ImpBuilder impBuilder = imp.toBuilder();
-        impBuilder.bidfloorcur(price.getCurrency());
-        impBuilder.bidfloor(price.getValue());
-        impBuilder.tagid(impExt.getSlotId());
-        return impBuilder.build();
+        return imp.toBuilder()
+                .bidfloorcur(price.getCurrency())
+                .bidfloor(price.getValue())
+                .tagid(impExt.getSlotId())
+                .build();
     }
 
     @Override
@@ -177,6 +176,5 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .build(),
                 BidType.banner,
                 BIDDER_CURRENCY);
-
     }
 }
