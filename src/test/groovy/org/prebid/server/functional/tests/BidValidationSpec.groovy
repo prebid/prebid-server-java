@@ -216,7 +216,7 @@ class BidValidationSpec extends BaseSpec {
     def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {
         given: "Default basic BidRequest with aliasgvlids and aliases"
         def bidderName = PBSUtils.randomString
-        def validId = PBSUtils.getRandomNumber(1)
+        def validId = 1
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.aliasgvlids = [(bidderName): validId]
         bidRequest.ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
