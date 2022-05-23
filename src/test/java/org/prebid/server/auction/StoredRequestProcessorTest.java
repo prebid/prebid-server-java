@@ -117,7 +117,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 singletonMap("imp", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -157,7 +157,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -208,7 +208,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -252,7 +252,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -281,7 +281,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -415,13 +415,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't parse Json for stored request with id 123");
+                .hasMessage("Stored request processing failed: Can't parse Json for stored request with id 123");
     }
 
     @Test
@@ -438,13 +438,14 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -456,13 +457,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .build())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -486,7 +487,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -507,13 +508,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -530,13 +531,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123"))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("No config found for id: 123");
+                .hasMessage("Stored request processing failed: No config found for id: 123");
     }
 
     @Test
@@ -547,7 +548,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(builder -> builder.imp(singletonList(imp)));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         verifyNoInteractions(applicationSettings, metrics);
@@ -575,7 +576,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -601,13 +602,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -620,13 +621,14 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         .set("id", mapper.createObjectNode().putArray("id")
                                                 .add("id"))))).id("imp-test")))));
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // when
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
     }
 
     @Test
@@ -642,13 +644,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture(new Exception("Error during file fetching")));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Stored request fetching failed: Error during file fetching");
+                .hasMessage("Stored request processing failed: Error during file fetching");
     }
 
     @Test
@@ -665,13 +667,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", "{{}"), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't parse Json for stored request with id 123");
+                .hasMessage("Stored request processing failed: Can't parse Json for stored request with id 123");
     }
 
     @Test
@@ -689,13 +691,14 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedImpFetchResult, emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -705,7 +708,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture((String) null));
 
         // when
-        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
+        storedRequestProcessor.processAuctionRequest(null, givenBidRequest(builder -> builder
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build()))
                 .tmax(1000L)));
 
@@ -720,7 +723,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture((String) null));
 
         // when
-        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
+        storedRequestProcessor.processAuctionRequest(null, givenBidRequest(builder -> builder
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .storedrequest(ExtStoredRequest.of("bidRequest"))
                         .build()))));
@@ -736,7 +739,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture("failed"));
 
         // when
-        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
+        storedRequestProcessor.processAuctionRequest(null, givenBidRequest(builder -> builder
                 .ext(ExtRequest.of(
                         ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build()))));
 
@@ -776,7 +779,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         singletonMap("123", "stored_request"), singletonMap("321", "stored_imp"), emptyList())));
 
         // when
-        storedRequestProcessor.processStoredRequests(null, bidRequest);
+        storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         verify(metrics).updateStoredRequestMetric(eq(true));
@@ -796,7 +799,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processStoredRequests(null, bidRequest);
+        storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         verify(metrics).updateStoredRequestMetric(eq(false));
@@ -828,6 +831,64 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         // then
         verify(metrics).updateStoredRequestMetric(false);
+    }
+
+    @Test
+    public void processStoredRequestsShouldUpdateAccountRequestRejectedByInvalidStoredRequestMetrics() {
+        // when
+        storedRequestProcessor.processAuctionRequest("accountId", givenBidRequest(request -> request.ext(
+                ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredRequestMetrics("accountId");
+    }
+
+    @Test
+    public void processStoredRequestsShouldUpdateAccountRequestRejectedByInvalidStoredImpMetrics() {
+        // when
+        storedRequestProcessor.processAuctionRequest("accountId", givenBidRequest(request -> request.imp(
+                singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtImp.of(
+                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build(),
+                                        null)))
+                                .build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredImpMetrics("accountId");
+    }
+
+    @Test
+    public void processAmpRequestsShouldUpdateAccountRequestRejectedByInvalidStoredRequestMetrics() {
+        // given
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("Error."))));
+
+        // when
+        storedRequestProcessor.processAmpRequest("accountId", "123", givenBidRequest(request -> request.ext(
+                ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredRequestMetrics("accountId");
+    }
+
+    @Test
+    public void videoStoredDataResultShouldUpdateAccountRequestRejectedByInvalidStoredImpMetrics() {
+        // when
+        storedRequestProcessor.videoStoredDataResult(
+                "accountId",
+                singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtImp.of(
+                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build(),
+                                        null)))
+                                .build()),
+                emptyList(),
+                null);
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredImpMetrics("accountId");
     }
 
     @Test

@@ -3,10 +3,10 @@ package org.prebid.server.functional.model.request.auction
 import com.fasterxml.jackson.annotation.JsonGetter
 import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.ObjectMapperWrapper
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Native {
+class Native implements ObjectMapperWrapper {
 
     NativeRequest request
     String ver
@@ -19,12 +19,12 @@ class Native {
 
     @JsonGetter("request")
     String getRequest() {
-        Dependencies.objectMapperWrapper.encode(request)
+        encode(request)
     }
 
     @JsonSetter("request")
     void getRequest(String request) {
-        this.request = Dependencies.objectMapperWrapper.decode(request, NativeRequest)
+        this.request = decode(request, NativeRequest)
     }
 
 }

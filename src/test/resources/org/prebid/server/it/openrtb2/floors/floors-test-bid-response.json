@@ -1,0 +1,19 @@
+{
+  "id": "tid",
+  "cur": "GBP",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "crid": "24080",
+          "adid": "2068416",
+          "price": 13,
+          "id": "bid_id",
+          "impid": "imp_id",
+          "cid": "8048"
+        }
+      ],
+      "type": "banner"
+    }
+  ]
+}

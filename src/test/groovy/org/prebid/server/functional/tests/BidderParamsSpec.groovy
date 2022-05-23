@@ -20,7 +20,6 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
@@ -30,7 +29,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
-@PBSTest
 class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
@@ -89,7 +87,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber
 
         and: "Account in the DB"
@@ -117,7 +115,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber
 
         and: "Account in the DB"
@@ -536,5 +534,28 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
+    }
+
+    def "PBS should send server specific info to bidder when such is set in PBS config"() {
+        given: "PBS with server info configuration"
+        def serverDataCenter = PBSUtils.randomString
+        def serverExternalUrl = "https://${PBSUtils.randomString}.com/"
+        def serverHostVendorId = PBSUtils.randomNumber
+        def pbsService = pbsServiceFactory.getService(["datacenter-region"  : serverDataCenter,
+                                                       "external-url"       : serverExternalUrl as String,
+                                                       "gdpr.host-vendor-id": serverHostVendorId as String])
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS auction is requested"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS has sent server info to bidder during auction"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert bidderRequest?.ext?.prebid?.server?.externalUrl == serverExternalUrl
+        assert bidderRequest.ext.prebid.server.datacenter == serverDataCenter
+        assert bidderRequest.ext.prebid.server.gvlId == serverHostVendorId
     }
 }

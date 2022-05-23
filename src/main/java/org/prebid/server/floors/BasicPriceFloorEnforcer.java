@@ -153,7 +153,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
-                warnings.add(BidderError.generic(
+                warnings.add(BidderError.rejectedIpf(
                         String.format("Bid with id '%s' was rejected by floor enforcement: "
                                 + "price %s is below the floor %s", bid.getId(), price, floor)));
 

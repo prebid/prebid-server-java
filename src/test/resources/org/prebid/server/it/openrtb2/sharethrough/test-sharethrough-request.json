@@ -1,5 +1,0 @@
-{
-  "tmax" : 5000,
-  "deadline": "${json-unit.any-string}",
-  "bidfloor": 3.5
-}

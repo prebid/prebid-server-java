@@ -15,6 +15,7 @@
             "prebid": {
               "type": "banner"
             },
+            "mediaType" : "banner",
             "origbidcpm": 1.25
           }
         }

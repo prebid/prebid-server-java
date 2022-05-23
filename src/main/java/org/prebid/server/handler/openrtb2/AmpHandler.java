@@ -295,8 +295,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
-                String accountId = ((UnauthorizedAccountException) exception).getAccountId();
-                metrics.updateAccountRequestRejectedMetrics(accountId);
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
