@@ -1,8 +1,13 @@
 package com.iab.openrtb.response;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.json.deserializer.BidTypeOrdinalDeserializer;
+import org.prebid.server.json.serializer.BidTypeOrdinalSerializer;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -109,6 +114,20 @@ public class Bid {
     String crid;
 
     /**
+     * Tactic ID to enable buyers to label bids for reporting to the
+     * exchange the tactic through which their bid was submitted.
+     * The specific usage and meaning of the tactic ID should be
+     * communicated between buyer and exchanges a priori.
+     */
+    String tactic;
+
+    /**
+     * The taxonomy in use. Refer to the AdCOM 1.0 list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
+
+    /**
      * IAB content categories of the creative. Refer to List 5.1.
      */
     List<String> cat;
@@ -117,6 +136,13 @@ public class Bid {
      * Set of attributes describing the creative. Refer to List 5.3.
      */
     List<Integer> attr;
+
+    /**
+     * List of supported APIs for the markup. If an API is not explicitly
+     * listed, it is assumed to be unsupported. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--api-frameworks-">List: API
+     * Frameworks</a> in AdCOM 1.0.
+     */
+    List<Integer> apis;
 
     /**
      * API required by the markup if applicable. Refer to List 5.6.
@@ -134,11 +160,17 @@ public class Bid {
     Integer qagmediarating;
 
     /**
-     * Language of the creative using ISO-639-1-alpha-2. The non- standard code
-     * “xx” may also be used if the creative has no linguistic content (e.g., a
-     * banner with just a company logo).
+     * Language of the creative using ISO-639-1-alpha-2. The non-
+     * standard code “xx” may also be used if the creative has no
+     * linguistic content (e.g., a banner with just a company logo).
+     * Only one of language or langb should be present.
      */
     String language;
+
+    /**
+     * Language of the creative using IETF BCP 47. Only one of language or langb should be present.
+     */
+    String langb;
 
     /**
      * Reference to the deal.id from the bid request if this bid pertains to a
@@ -173,6 +205,32 @@ public class Bid {
      * between the auction and the actual impression.
      */
     Integer exp;
+
+    /**
+     * Duration of the video or audio creative in seconds.
+     */
+    Integer dur;
+
+    /**
+     * Type of the creative markup so that it can properly be
+     * associated with the right sub-object of the BidRequest.Imp.
+     * Values:
+     * 1 = Banner,
+     * 2 = Video,
+     * 3 = Audio,
+     * 4 = Native
+     */
+    @JsonSerialize(using = BidTypeOrdinalSerializer.class)
+    @JsonDeserialize(using = BidTypeOrdinalDeserializer.class)
+    BidType mtype;
+
+    /**
+     * Indicates that the bid response is only eligible for a specific
+     * position within a video or audio ad pod (e.g. first position,
+     * last position, or any). Refer to List: Slot Position in
+     * Pod in AdCOM 1.0 for guidance on the use of this field.
+     */
+    int slotinpod;
 
     /**
      * Placeholder for bidder-specific extensions to OpenRTB.
