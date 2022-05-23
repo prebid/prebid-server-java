@@ -11,7 +11,7 @@ server:
   ssl: false
   jks-path:
   jks-password:
-  unix-domain-socket:
+  unix-socket:
     enabled: false
     path:
     server-instances: 1

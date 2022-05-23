@@ -41,7 +41,8 @@ public class HttpServerConfiguration {
     @Value("${server.http.port}")
     private Integer httpPort;
 
-    @Value("${server.http.server-instances}")
+    //TODO: remove support for properties with http prefix after transition period
+    @Value("#{'${http.server-instances: ${server.http.server-instances}}'}")
     private Integer httpServerNum;
 
     @PostConstruct

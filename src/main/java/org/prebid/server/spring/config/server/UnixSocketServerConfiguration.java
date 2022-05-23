@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.annotation.PostConstruct;
 
 @Configuration
-@ConditionalOnProperty(name = "server.unix-domain-socket.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "server.unix-socket.enabled", havingValue = "true")
 public class UnixSocketServerConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(UnixSocketServerConfiguration.class);
@@ -39,10 +39,10 @@ public class UnixSocketServerConfiguration {
     @Qualifier("router")
     private Router router;
 
-    @Value("${server.unix-domain-socket.path}")
+    @Value("${server.unix-socket.path}")
     private String socketPath;
 
-    @Value("${server.unix-domain-socket.server-instances}")
+    @Value("${server.unix-socket.server-instances}")
     private Integer serverNum;
 
     @PostConstruct

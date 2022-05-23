@@ -22,15 +22,19 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
+- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
 - `server.http.port` - the port to listen on.
 
 ## Unix Domain Socket Server
-- `server.unix-domain-socket.server-instances` - how many http server instances should be created.
-- `server.unix-domain-socket.enabled` - if set to `true` enables unix socket server
-- `server.unix-domain-socket.path` - the path to unix socket to listen on.
+- `server.unix-socket.server-instances` - how many http server instances should be created.
+- `server.unix-socket.enabled` - if set to `true` enables unix socket server
+- `server.unix-socket.path` - the path to unix socket to listen on.
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).

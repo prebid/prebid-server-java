@@ -72,10 +72,12 @@ public class WebConfiguration {
     private Vertx vertx;
 
     @Bean
-    HttpServerOptions httpServerOptions(@Value("${server.max-headers-size}") int maxHeaderSize,
-                                        @Value("${server.ssl}") boolean ssl,
-                                        @Value("${server.jks-path}") String jksPath,
-                                        @Value("${server.jks-password}") String jksPassword) {
+    //TODO: remove support for properties with http prefix after transition period
+    HttpServerOptions httpServerOptions(
+            @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
+            @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
+            @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
+            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
