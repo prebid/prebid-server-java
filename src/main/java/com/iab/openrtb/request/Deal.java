@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public class Deal {
     /**
      * Minimum bid for this impression expressed in CPM.
      */
-    float bidfloor;
+    BigDecimal bidfloor;
 
     /**
      * Currency specified using ISO-4217 alpha codes. This may be different from
