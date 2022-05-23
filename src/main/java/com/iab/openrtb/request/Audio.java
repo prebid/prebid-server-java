@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -24,16 +25,34 @@ import java.util.List;
 @Value
 public class Audio {
 
-    /** Content MIME types supported (e.g., “audio/mp4”). (required) */
+    /**
+     * Content MIME types supported (e.g., “audio/mp4”). (required)
+     */
     List<String> mimes;
 
-    /** Minimum audio ad duration in seconds. (recommended) */
+    /**
+     * Minimum audio ad duration in seconds. (recommended)
+     */
     Integer minduration;
 
-    /** Maximum audio ad duration in seconds. (recommended) */
+    /**
+     * Maximum audio ad duration in seconds. (recommended)
+     */
     Integer maxduration;
 
-    /** Array of supported audio protocols. Refer to List 5.8. (recommended) */
+    /**
+     * Indicates the total amount of time that advertisers may fill for a
+     * “dynamic” audio ad pod, or the dynamic portion of a “hybrid”
+     * ad pod. This field is required only for the dynamic portion(s) of
+     * audio ad pods. This field refers to the length of the entire ad
+     * break, whereas minduration/maxduration/rqddurs are
+     * constraints relating to the slots that make up the pod.
+     */
+    Integer poddur;
+
+    /**
+     * Array of supported audio protocols. Refer to List 5.8. (recommended)
+     */
     List<Integer> protocols;
 
     /**
@@ -44,13 +63,56 @@ public class Audio {
     Integer startdelay;
 
     /**
+     * Precise acceptable durations for audio creatives in seconds. This
+     * field specifically targets the live audio/radio use case where
+     * non-exact ad durations would result in undesirable ‘dead air’.
+     * This field is mutually exclusive with minduration and
+     * maxduration; if rqddurs is specified, minduration and
+     * maxduration must not be specified and vice versa.
+     */
+    List<Integer> rqddurs;
+
+    /**
+     * Unique identifier indicating that an impression opportunity
+     * belongs to an audioad pod. If multiple impression opportunities
+     * within a bid request share the same podid, this indicates that
+     * those impression opportunities belong to the same audio ad pod.
+     */
+    Integer podid;
+
+    /**
+     * The sequence (position) of the audio ad pod within a
+     * content stream. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_podsequence">List: Pod Sequence</a> in AdCOM 1.0
+     * for guidance on the use of this field.
+     */
+    Integer podseq;
+
+    /**
      * If multiple ad impressions are offered in the same bid request, the
      * sequence number will allow for the coordinated delivery of multiple
      * creatives.
      */
     Integer sequence;
 
-    /** Blocked creative attributes. Refer to List 5.3. */
+    /**
+     * For audio ad pods, this value indicates that the seller can
+     * guarantee delivery against the indicated sequence. Refer to
+     * <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--pod-sequence-">List: Slot Position</a> in Pod in AdCOM 1.0 for guidance on the
+     * use of this field.
+     *
+     */
+    Integer slotinpod;
+
+    /**
+     * Minimum CPM per second. This is a price floor for the
+     * “dynamic” portion of an audio ad pod, relative to the duration
+     * of bids an advertiser may submit.
+     */
+    BigDecimal mincpmpersec;
+
+    /**
+     * Blocked creative attributes. Refer to List 5.3.
+     */
     List<Integer> battr;
 
     /**
@@ -62,10 +124,14 @@ public class Audio {
      */
     Integer maxextended;
 
-    /** Minimum bit rate in Kbps. */
+    /**
+     * Minimum bit rate in Kbps.
+     */
     Integer minbitrate;
 
-    /** Maximum bit rate in Kbps. */
+    /**
+     * Maximum bit rate in Kbps.
+     */
     Integer maxbitrate;
 
     /**
@@ -91,10 +157,14 @@ public class Audio {
      */
     List<Integer> companiontype;
 
-    /** The maximum number of ads that can be played in an ad pod. */
+    /**
+     * The maximum number of ads that can be played in an ad pod.
+     */
     Integer maxseq;
 
-    /** Type of audio feed. Refer to List 5.16. */
+    /**
+     * Type of audio feed. Refer to List 5.16.
+     */
     Integer feed;
 
     /**
@@ -103,9 +173,13 @@ public class Audio {
      */
     Integer stitched;
 
-    /** Volume normalization mode. Refer to List 5.17. */
+    /**
+     * Volume normalization mode. Refer to List 5.17.
+     */
     Integer nvol;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }
