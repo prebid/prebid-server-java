@@ -390,35 +390,35 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.server.gvlId == serverHostVendorId
     }
 
-    def "PBS should return bid response with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
+    def "PBS should request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"  : "true",
                                                         "adapters.generic.endpointCompression"      : GZIP.name()])
 
-        and: "Default basic generic BidRequest"
+        and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain header Content-Encoding = gzip"
-        assert response?.ext?.debug?.httpcalls[GENERIC.value]
-                       ?.requestheaders?.first()
+        then: "Bidder request should contain header Content-Encoding = gzip"
+        assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestheaders?.first()
                        ?.get(CONTENT_ENCODING_HEADER)?.first() == GZIP.value
     }
 
-    def "PBS should return bid response without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
+    def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"   : "true",
-                                                       "adapters.generic.endpointCompression"        :  NONE.name()])
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"            : "true",
+                                                       "adapters.generic.endpointCompression": NONE.name()])
 
-        and: "Default basic generic BidRequest"
+        and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should not contain header Content-Encoding"
-        assert !response?.ext?.debug?.httpcalls[GENERIC.value]?.requestheaders?.first()?.get(CONTENT_ENCODING_HEADER)
+        then: "Bidder request should not contain header Content-Encoding"
+        assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestheaders?.first()
+                        ?.get(CONTENT_ENCODING_HEADER)
     }
 }
