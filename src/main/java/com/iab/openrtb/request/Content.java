@@ -22,10 +22,14 @@ public class Content {
 
     private static final Content EMPTY = Content.builder().build();
 
-    /** ID uniquely identifying the content. */
+    /**
+     * ID uniquely identifying the content.
+     */
     String id;
 
-    /** Episode number. */
+    /**
+     * Episode number.
+     */
     Integer episode;
 
     /**
@@ -45,27 +49,46 @@ public class Content {
      */
     String series;
 
-    /** Content season (e.g., “Season 3”). */
+    /**
+     * Content season (e.g., “Season 3”).
+     */
     String season;
 
-    /** Artist credited with the content. */
-
+    /**
+     * Artist credited with the content.
+     */
     String artist;
 
-    /** Genre that best describes the content (e.g., rock, pop, etc). */
+    /**
+     * Genre that best describes the content (e.g., rock, pop, etc).
+     */
     String genre;
 
-    /** Album to which the content belongs; typically for audio. */
+    /**
+     * Album to which the content belongs; typically for audio.
+     */
     String album;
 
-    /** International Standard Recording Code conforming to ISO- 3901. */
+    /**
+     * International Standard Recording Code conforming to ISO- 3901.
+     */
     String isrc;
 
-    /** Details about the content Producer (Section 3.2.17). */
+    /**
+     * Details about the content Producer (Section 3.2.17).
+     */
     Producer producer;
 
-    /** URL of the content, for buy-side contextualization or review. */
+    /**
+     * URL of the content, for buy-side contextualization or review.
+     */
     String url;
+
+    /**
+     * The taxonomy in use. Refer to the AdCOM list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
 
     /**
      * Array of IAB content categories that describe the content producer.
@@ -73,35 +96,65 @@ public class Content {
      */
     List<String> cat;
 
-    /** Production quality. Refer to List 5.13. */
+    /**
+     * Production quality. Refer to List 5.13.
+     */
     Integer prodq;
 
-    /** Type of content (game, video, text, etc.). Refer to List 5.18. */
+    /**
+     * Type of content (game, video, text, etc.). Refer to List 5.18.
+     */
     Integer context;
 
-    /** Content rating (e.g., MPAA). */
+    /**
+     * Content rating (e.g., MPAA).
+     */
     String contentrating;
 
-    /** User rating of the content (e.g., number of stars, likes, etc.). */
+    /**
+     * User rating of the content (e.g., number of stars, likes, etc.).
+     */
     String userrating;
 
-    /** Media rating per IQG guidelines. Refer to List 5.19. */
+    /**
+     * Media rating per IQG guidelines. Refer to List 5.19.
+     */
     Integer qagmediarating;
 
-    /** Comma separated list of keywords describing the content. */
+    /**
+     * Comma separated list of keywords describing the content. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
     String keywords;
 
-    /** 0 = not live, 1 = content is live (e.g., stream, live blog). */
+    /**
+     * Array of keywords about the site. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
+    List<String> kwarray;
+
+    /**
+     * 0 = not live, 1 = content is live (e.g., stream, live blog).
+     */
     Integer livestream;
 
-    /** 0 = indirect, 1 = direct. */
+    /**
+     * 0 = indirect, 1 = direct.
+     */
     Integer sourcerelationship;
 
-    /** Length of content in seconds; appropriate for video or audio. */
+    /**
+     * Length of content in seconds; appropriate for video or audio.
+     */
     Integer len;
 
-    /** Content language using ISO-639-1-alpha-2. */
+    /**
+     * Content language using ISO-639-1-alpha-2. Only one of language or langb should be present.
+     */
     String language;
+
+    /**
+     * Content language using IETF BCP 47. Only one of language or langb should be present.
+     */
+    String langb;
 
     /**
      * Indicator of whether or not the content is embeddable (e.g., an
@@ -115,7 +168,13 @@ public class Content {
      */
     List<Data> data;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    Network network;
+
+    Channel channel;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 
     @JsonIgnore
