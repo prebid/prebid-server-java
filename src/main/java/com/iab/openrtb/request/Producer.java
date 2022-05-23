@@ -24,6 +24,12 @@ public class Producer {
     String name;
 
     /**
+     * The taxonomy in use. Refer to the AdCOM list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
+
+    /**
      * Array of IAB content categories that describe the content producer.
      * Refer to List 5.1.
      */
