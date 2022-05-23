@@ -28,9 +28,6 @@ import java.math.BigDecimal;
 @Value
 public class Device {
 
-    /** Browser user agent string. (recommended) */
-    String ua;
-
     /**
      * Location of the device assumed to be the user’s current location defined
      * by a Geo object (Section 3.2.19).
@@ -54,45 +51,83 @@ public class Device {
     Integer lmt;
 
     /**
+     * Browser user agent string. (recommended)
+     */
+    String ua;
+
+    /**
+     * Structured user agent information defined by a {@link UserAgent}
+     * object. If both ‘ua’ and ‘sua’ are present in the bid request,
+     * ‘sua’ should be considered the more accurate representation of
+     * the device attributes. This is because the ‘ua’ may contain a
+     * frozen or reduced user agent string.
+     */
+    UserAgent sua;
+
+    /**
      * IPv4 address closest to device.
      * (recommended)
      */
     String ip;
 
-    /** IP address closest to device as IPv6. */
+    /**
+     * IP address closest to device as IPv6.
+     */
     String ipv6;
 
-    /** The general type of device. Refer to List 5.21. */
+    /**
+     * The general type of device. Refer to List 5.21.
+     */
     Integer devicetype;
 
-    /** Device make (e.g., “Apple”). */
+    /**
+     * Device make (e.g., “Apple”).
+     */
     String make;
 
-    /** Device model (e.g., “iPhone”). */
+    /**
+     * Device model (e.g., “iPhone”).
+     */
     String model;
 
-    /** Device operating system (e.g., “iOS”). */
+    /**
+     * Device operating system (e.g., “iOS”).
+     */
     String os;
 
-    /** Device operating system version (e.g., “3.1.2”). */
+    /**
+     * Device operating system version (e.g., “3.1.2”).
+     */
     String osv;
 
-    /** Hardware version of the device (e.g., “5S” for iPhone 5S). */
+    /**
+     * Hardware version of the device (e.g., “5S” for iPhone 5S).
+     */
     String hwv;
 
-    /** Physical height of the screen in pixels. */
+    /**
+     * Physical height of the screen in pixels.
+     */
     Integer h;
 
-    /** Physical width of the screen in pixels. */
+    /**
+     * Physical width of the screen in pixels.
+     */
     Integer w;
 
-    /** Screen size as pixels per linear inch. */
+    /**
+     * Screen size as pixels per linear inch.
+     */
     Integer ppi;
 
-    /** The ratio of physical pixels to device independent pixels. */
+    /**
+     * The ratio of physical pixels to device independent pixels.
+     */
     BigDecimal pxratio;
 
-    /** Support for JavaScript, where 0 = no, 1 = yes. */
+    /**
+     * Support for JavaScript, where 0 = no, 1 = yes.
+     */
     Integer js;
 
     /**
@@ -101,11 +136,20 @@ public class Device {
      */
     Integer geofetch;
 
-    /** Version of Flash supported by the browser. */
+    /**
+     * Version of Flash supported by the browser.
+     */
     String flashver;
 
-    /** Browser language using ISO-639-1-alpha-2. */
+    /**
+     * Browser language using ISO-639-1-alpha-2. Only one of language or langb should be present.
+     */
     String language;
+
+    /**
+     * Browser language using IETF BCP 47. Only one of language or langb should be present.
+     */
+    String langb;
 
     /**
      * Carrier or ISP (e.g., “VERIZON”) using exchange curated string names
@@ -122,30 +166,48 @@ public class Device {
      */
     String mccmnc;
 
-    /** Network connection type. Refer to List 5.22. */
+    /**
+     * Network connection type. Refer to List 5.22.
+     */
     Integer connectiontype;
 
-    /** ID sanctioned for advertiser use in the clear (i.e., not hashed). */
+    /**
+     * ID sanctioned for advertiser use in the clear (i.e., not hashed).
+     */
     String ifa;
 
-    /** Hardware device ID (e.g., IMEI); hashed via SHA1. */
+    /**
+     * Hardware device ID (e.g., IMEI); hashed via SHA1.
+     */
     String didsha1;
 
-    /** Hardware device ID (e.g., IMEI); hashed via MD5. */
+    /**
+     * Hardware device ID (e.g., IMEI); hashed via MD5.
+     */
     String didmd5;
 
-    /** Platform device ID (e.g., Android ID); hashed via SHA1. */
+    /**
+     * Platform device ID (e.g., Android ID); hashed via SHA1.
+     */
     String dpidsha1;
 
-    /** Platform device ID (e.g., Android ID); hashed via MD5. */
+    /**
+     * Platform device ID (e.g., Android ID); hashed via MD5.
+     */
     String dpidmd5;
 
-    /** MAC address of the device; hashed via SHA1. */
+    /**
+     * MAC address of the device; hashed via SHA1.
+     */
     String macsha1;
 
-    /** MAC address of the device; hashed via MD5. */
+    /**
+     * MAC address of the device; hashed via MD5.
+     */
     String macmd5;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ExtDevice ext;
 }
