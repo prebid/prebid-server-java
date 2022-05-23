@@ -16,10 +16,14 @@ import java.util.List;
 @Value
 public class App {
 
-    /** Exchange-specific app ID. (recommended) */
+    /**
+     * Exchange-specific app ID. (recommended)
+     */
     String id;
 
-    /** Application name (may be aliased at the publisher’s request). */
+    /**
+     * Application name (may be aliased at the publisher’s request).
+     */
     String name;
 
     /**
@@ -30,13 +34,25 @@ public class App {
      */
     String bundle;
 
-    /** Domain of the app (e.g., “mygame.foo.com”). */
+    /**
+     * Domain of the app (e.g., “mygame.foo.com”).
+     */
     String domain;
 
-    /** Application store URL for an installed app; for IQG 2.1 compliance. */
+    /**
+     * Application store URL for an installed app; for IQG 2.1 compliance.
+     */
     String storeurl;
 
-    /** Array of IAB content categories of the app. Refer to List 5.1. */
+    /**
+     * The taxonomy in use. Refer to the AdCOM list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
+
+    /**
+     * Array of IAB content categories of the app. Refer to List 5.1.
+     */
     List<String> cat;
 
     /**
@@ -51,24 +67,43 @@ public class App {
      */
     List<String> pagecat;
 
-    /** Application version. */
+    /**
+     * Application version.
+     */
     String ver;
 
-    /** Indicates if the app has a privacy policy, where 0 = no, 1 = yes. */
+    /**
+     * Indicates if the app has a privacy policy, where 0 = no, 1 = yes.
+     */
     Integer privacypolicy;
 
-    /** 0 = app is free, 1 = the app is a paid version. */
+    /**
+     * 0 = app is free, 1 = the app is a paid version.
+     */
     Integer paid;
 
-    /** Details about the Publisher (Section 3.2.15) of the app. */
+    /**
+     * Details about the Publisher (Section 3.2.15) of the app.
+     */
     Publisher publisher;
 
-    /** Details about the Content (Section 3.2.16) within the app. */
+    /**
+     * Details about the Content (Section 3.2.16) within the app.
+     */
     Content content;
 
-    /** Comma separated list of keywords about the app. */
+    /**
+     * Comma separated list of keywords about the app. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
     String keywords;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Array of keywords about the site. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
+    List<String> kwarray;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ExtApp ext;
 }
