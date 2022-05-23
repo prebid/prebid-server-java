@@ -34,13 +34,15 @@ public class Imp {
     String id;
 
     /**
+     * An array of Metric object (Section 3.2.5).
+     */
+    List<Metric> metric;
+
+    /**
      * A Banner object (Section 3.2.6); required if this impression is offered
      * as a banner ad opportunity.
      */
     Banner banner;
-
-    /** An array of Metric object (Section 3.2.5). */
-    List<Metric> metric;
 
     /**
      * A Video object (Section 3.2.7); required if this impression is offered as
@@ -82,7 +84,9 @@ public class Imp {
      */
     String displaymanagerver;
 
-    /** 1 = the ad is interstitial or full screen, 0 = not interstitial. */
+    /**
+     * 1 = the ad is interstitial or full screen, 0 = not interstitial.
+     */
     Integer instl;
 
     /**
@@ -92,7 +96,9 @@ public class Imp {
      */
     String tagid;
 
-    /** Minimum bid for this impression expressed in CPM. */
+    /**
+     * Minimum bid for this impression expressed in CPM.
+     */
     BigDecimal bidfloor;
 
     /**
@@ -116,8 +122,28 @@ public class Imp {
      */
     Integer secure;
 
-    /** Array of exchange-specific names of supported iframe busters. */
+    /**
+     * Array of exchange-specific names of supported iframe busters.
+     */
     List<String> iframebuster;
+
+    /**
+     * Indicates whether the user receives a reward for viewing the
+     * ad, where 0 = no, 1 = yes. Typically video ad implementations
+     * allow users to read an additional news article for free, receive
+     * an extra life in a game, or get a sponsored ad-free music session.
+     * The reward is typically distributed after the video ad is completed.
+     */
+    Integer rwdd;
+
+    /**
+     * Indicates if server-side ad insertion (e.g., stitching an ad into an
+     * audio or video stream) is in use and the impact of this on asset
+     * and tracker retrieval, where 0 = status unknown, 1 = all client-
+     * side (i.e., not server-side), 2 = assets stitched server-side but
+     * tracking pixels fired client-side, 3 = all server-side.
+     */
+    Integer ssai;
 
     /**
      * Advisory as to the number of seconds that may elapse between the auction
@@ -125,6 +151,8 @@ public class Imp {
      */
     Integer exp;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }
