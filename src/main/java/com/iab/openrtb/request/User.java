@@ -29,7 +29,9 @@ public class User {
      */
     String buyeruid;
 
-    /** Year of birth as a 4-digit integer. */
+    /**
+     * Year of birth as a 4-digit integer.
+     */
     Integer yob;
 
     /**
@@ -38,10 +40,15 @@ public class User {
      */
     String gender;
 
-    String language;
-
-    /** Comma separated list of keywords, interests, or intent. */
+    /**
+     * Comma separated list of keywords, interests, or intent. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
     String keywords;
+
+    /**
+     * Array of keywords about the user. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
+    List<String> kwarray;
 
     /**
      * Optional feature to pass bidder data that was set in the exchange’s
@@ -63,6 +70,20 @@ public class User {
      */
     List<Data> data;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * When GDPR regulations are in effect this attribute contains
+     * the Transparency and Consent Framework’s <a href="https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20Consent%20string%20and%20vendor%20list%20formats%20v2.md">Consent String</a>
+     * data structure.
+     */
+    String consent;
+
+    /**
+     * Details for support of a standard protocol for multiple third party identity providers.
+     */
+    List<Eid> eids;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ExtUser ext;
 }
