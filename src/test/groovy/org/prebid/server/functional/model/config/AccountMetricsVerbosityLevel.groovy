@@ -1,6 +1,13 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonValue
+
 enum AccountMetricsVerbosityLevel {
 
-    none, basic, detailed
+    NONE, BASIC, DETAILED
+
+    @JsonValue
+    String getValue() {
+        name().toLowerCase()
+    }
 }
