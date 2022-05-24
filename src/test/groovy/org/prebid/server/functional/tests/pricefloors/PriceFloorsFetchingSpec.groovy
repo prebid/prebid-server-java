@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import org.testcontainers.shaded.org.apache.commons.lang3.BooleanUtils
 
 import java.time.Instant
 
@@ -1701,7 +1702,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == FETCH
     }
 
-    def "PBS should set floors skipped flag = false when account with enabled fetch"() {
+    def "PBS should always populate floors skipped flag when floors are enabled for account"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -1726,10 +1727,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request skipped flag should be false"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll {
-            !bidderRequest.ext?.prebid?.floors?.skipped
+            BooleanUtils.isFalse(bidderRequest.ext?.prebid?.floors?.skipped)
 
-            bidderRequest.ext?.prebid?.floors?.fetchStatus == SUCCESS
-            bidderRequest.ext?.prebid?.floors?.location == FETCH
+            bidderRequest.ext.prebid.floors?.fetchStatus == SUCCESS
+            bidderRequest.ext.prebid.floors?.location == FETCH
         }
     }
 
