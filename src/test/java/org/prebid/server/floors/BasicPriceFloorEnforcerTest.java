@@ -186,6 +186,25 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
+    public void shouldTolerateMissingBidderRequestCase() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(givenImps(identity())));
+
+        final AuctionParticipation auctionParticipation = AuctionParticipation.builder()
+                .bidderRequest(null)
+                .bidderResponse(BidderResponse.of("bidder", givenBidderSeatBid(identity()), 0))
+                .build();
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
     public void shouldNotEnforceIfRequestEnforceFloorsRateIsZero() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
