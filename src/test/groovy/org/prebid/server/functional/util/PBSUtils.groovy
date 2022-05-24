@@ -17,6 +17,8 @@ import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 class PBSUtils implements ObjectMapperWrapper {
 
+    private static final int DEFAULT_NUMBER_PRECISION = 6
+
     static int getRandomNumber(int min = 0, int max = MAX_VALUE) {
         new Random().nextInt(max - min) + min
     }
@@ -26,7 +28,8 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static BigDecimal getRandomDecimal(float min = 0, float max = MAX_VALUE) {
-        new Random().nextFloat() * (max - min) + min
+        def number = new Random().nextFloat() * (max - min) + min
+        roundDecimal(BigDecimal.valueOf(number), DEFAULT_NUMBER_PRECISION)
     }
 
     static BigDecimal roundDecimal(BigDecimal number, int decimalPlaces) {
