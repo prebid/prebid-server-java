@@ -21,6 +21,9 @@ class MetricsSpec extends BaseSpec {
         def account = new Account(uuid:  bidRequest.site.publisher.id, config: accountMetricsConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics()
+
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
@@ -38,6 +41,9 @@ class MetricsSpec extends BaseSpec {
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -67,6 +73,9 @@ class MetricsSpec extends BaseSpec {
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
