@@ -22,7 +22,6 @@ class MetricsSpec extends BaseSpec {
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
 
-
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
