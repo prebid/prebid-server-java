@@ -18,18 +18,17 @@ class MetricsSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: NONE))
-        def account = new Account(uuid:  bidRequest.site.publisher.id, config: accountMetricsConfig)
+        def accountId = bidRequest.site.publisher.id
+        def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
 
-        and: "Flush metrics"
-        flushMetrics()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "account.<account-id>.* metric shouldn't be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics.find { it.key.startsWith("account") }
+        assert !metrics.find { it.key.startsWith("account.${accountId}") }
     }
 
     def "PBS should update account.<account-id>.requests metric when verbosity level is basic"() {
@@ -41,9 +40,6 @@ class MetricsSpec extends BaseSpec {
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -73,9 +69,6 @@ class MetricsSpec extends BaseSpec {
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
