@@ -1701,6 +1701,38 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == FETCH
     }
 
+    def "PBS should set floors skipped flag = false when account with enabled fetch"() {
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(bidRequest, floorValue)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request skipped flag should be false"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        verifyAll {
+            !bidderRequest.ext?.prebid?.floors?.skipped
+
+            bidderRequest.ext?.prebid?.floors?.fetchStatus == SUCCESS
+            bidderRequest.ext?.prebid?.floors?.location == FETCH
+        }
+    }
+
     static int convertKilobyteSizeToByte(int kilobyteSize) {
         kilobyteSize * 1024
     }
