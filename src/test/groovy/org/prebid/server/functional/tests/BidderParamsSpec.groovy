@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.bidder.CompressionType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -392,8 +393,9 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpointCompression = GZIP"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"  : "true",
-                                                        "adapters.generic.endpointCompression"      : GZIP.name()])
+        def compressionType = GZIP.value
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"            : "true",
+                                                       "adapters.generic.endpointCompression": compressionType])
 
         and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -403,13 +405,13 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestheaders?.first()
-                       ?.get(CONTENT_ENCODING_HEADER)?.first() == GZIP.value
+                       ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
     def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpointCompression = NONE"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"            : "true",
-                                                       "adapters.generic.endpointCompression": NONE.name()])
+                                                       "adapters.generic.endpointCompression": NONE.value])
 
         and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
