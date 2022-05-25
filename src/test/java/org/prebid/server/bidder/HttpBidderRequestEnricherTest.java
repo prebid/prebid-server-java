@@ -123,7 +123,7 @@ public class HttpBidderRequestEnricherTest {
     }
 
     @Test
-    public void shouldAddContentEncodingHeader() {
+    public void shouldAddContentEncodingHeaderIfRequiredByBidderConfig() {
         // given
         when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
                 true,
