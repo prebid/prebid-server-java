@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
@@ -10,10 +11,13 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.MultiBid
+import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.model.response.auction.SeatBid
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
@@ -472,5 +476,29 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         then: "PBS should suppress bid lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.first().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
+    }
+
+    def "PBS shouldn't return error when price floor enforcement service enforce bid request"() {
+        given: "BidRequestWithFloors with Stored Action Response and Floor enabled = false"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = getBidRequestWithFloors().tap {
+            ext.prebid.floors.enabled = false
+            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
+        }
+
+        and: "Stored response in DB"
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request shouldn't fail with an error"
+        noExceptionThrown()
     }
 }
