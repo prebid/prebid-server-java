@@ -78,7 +78,7 @@ class BidderParamsSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
                                                        "adapters.generic.modifying-vast-xml-allowed": generic])
 
-        and: "Default VtrackRequest"
+        and: "Default vtrack request"
         String payload = PBSUtils.randomString
         def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber
@@ -138,8 +138,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
+        def lat = PBSUtils.getRandomDecimal(0, 90)
+        def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
 
         when: "PBS processes auction request"
@@ -147,8 +147,8 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundedFractionalNumber(lat, 2)
-        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundedFractionalNumber(lon, 2)
+        assert bidderRequests.device?.geo?.lat as BigDecimal == PBSUtils.roundDecimal(lat, 2)
+        assert bidderRequests.device?.geo?.lon as BigDecimal == PBSUtils.roundDecimal(lon, 2)
 
         where:
         adapterDefault | generic
@@ -165,8 +165,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
+        def lat = PBSUtils.getRandomDecimal(0, 90) as float
+        def lon = PBSUtils.getRandomDecimal(0, 90) as float
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
 
         when: "PBS processes auction request"
@@ -249,7 +249,7 @@ class BidderParamsSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response shouldn't contain bidder param from another biddder"
+        then: "Response shouldn't contain bidder param from another bidder"
         bidder.getBidderRequest(bidRequest.id)
     }
 
