@@ -12,6 +12,10 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 
 class MetricsSpec extends BaseSpec {
 
+    def setup() {
+        flushMetrics()
+    }
+
     def "PBS should not populate account metric when verbosity level is none"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
