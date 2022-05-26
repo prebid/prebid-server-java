@@ -4061,7 +4061,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final Deal expectedDeal = Deal.builder()
                 .id("dealId1")
-                .bidfloor(BigDecimal.valueOf(0.0))
                 .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, null, null, null))))
                 .build();
         final BidRequest capturedBidRequest = captureBidRequest();

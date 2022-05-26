@@ -133,7 +133,8 @@ public class BidRequest {
 
     /**
      * Blocked advertiser categories using the specified category taxonomy. <p/>
-     * The taxonomy to be used is defined by the cattax field. If no cattax field is supplied IAB Content Category Taxonomy 1.0 is assumed.
+     * The taxonomy to be used is defined by the cattax field. If no cattax
+     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
      */
     List<String> bcat;
 

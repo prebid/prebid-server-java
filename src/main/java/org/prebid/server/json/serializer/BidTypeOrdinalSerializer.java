@@ -15,8 +15,6 @@ public class BidTypeOrdinalSerializer extends StdSerializer<BidType> {
 
     @Override
     public void serialize(BidType value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        if (value != null) {
-            gen.writeObject(value.ordinal() + 1);
-        }
+        gen.writeObject(value.ordinal() + 1);
     }
 }

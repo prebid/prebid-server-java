@@ -2877,7 +2877,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
-                        .metric(singletonList(Metric.builder().type("viewability").value(2).build())).build()))
+                        .metric(singletonList(Metric.builder().type("viewability").value(2.0f).build())).build()))
                 .build();
 
         // when

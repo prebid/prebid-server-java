@@ -36,7 +36,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -59,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
@@ -1135,11 +1135,14 @@ public class RequestValidator {
 
     private void validateMetrics(List<Metric> metrics, int impIndex) throws ValidationException {
         for (int i = 0; i < metrics.size(); i++) {
-            if (metrics.get(i).getType() == null || metrics.get(i).getType().isEmpty()) {
+            final Metric metric = metrics.get(i);
+
+            if (StringUtils.isEmpty(metric.getType())) {
                 throw new ValidationException("Missing request.imp[%d].metric[%d].type", impIndex, i);
             }
 
-            if (metrics.get(i).getValue() < 0.0 || metrics.get(i).getValue() > 1.0) {
+            final Float value = metric.getValue();
+            if (value == null || value < 0.0 || value > 1.0) {
                 throw new ValidationException("request.imp[%d].metric[%d].value must be in the range [0.0, 1.0]",
                         impIndex, i);
             }
