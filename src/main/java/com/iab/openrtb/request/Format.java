@@ -15,16 +15,24 @@ import lombok.Value;
 @Value
 public class Format {
 
-    /** Width in device independent pixels (DIPS). */
+    /**
+     * Width in device independent pixels (DIPS).
+     */
     Integer w;
 
-    /** Height in device independent pixels (DIPS). */
+    /**
+     * Height in device independent pixels (DIPS).
+     */
     Integer h;
 
-    /** Relative width when expressing size as a ratio. */
+    /**
+     * Relative width when expressing size as a ratio.
+     */
     Integer wratio;
 
-    /** Relative height when expressing size as a ratio. */
+    /**
+     * Relative height when expressing size as a ratio.
+     */
     Integer hratio;
 
     /**
@@ -33,6 +41,8 @@ public class Format {
      */
     Integer wmin;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

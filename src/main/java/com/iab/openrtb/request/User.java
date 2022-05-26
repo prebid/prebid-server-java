@@ -18,14 +18,12 @@ import java.util.List;
 public class User {
 
     /**
-     * Exchange-specific ID for the user. At least one of id or buyeruid is
-     * recommended.
+     * Exchange-specific ID for the user.
      */
     String id;
 
     /**
      * Buyer-specific ID for the user as mapped by the exchange for the buyer.
-     * At least one of buyeruid or id is recommended.
      */
     String buyeruid;
 
@@ -59,13 +57,13 @@ public class User {
     String customdata;
 
     /**
-     * Location of the user’s home base defined by a Geo object (Section
+     * Location of the user’s home base defined by a {@link Geo} object (Section
      * 3.2.19). This is not necessarily their current location.
      */
     Geo geo;
 
     /**
-     * Additional user data. Each Data object (Section 3.2.21) represents a
+     * Additional user data. Each {@link Data} object (Section 3.2.21) represents a
      * different data source.
      */
     List<Data> data;
@@ -78,7 +76,7 @@ public class User {
     String consent;
 
     /**
-     * Details for support of a standard protocol for multiple third party identity providers.
+     * Details for support of a standard protocol for multiple third party identity providers (Section 3.2.27).
      */
     List<Eid> eids;
 

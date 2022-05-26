@@ -17,7 +17,7 @@ import java.util.List;
 public class App {
 
     /**
-     * Exchange-specific app ID. (recommended)
+     * Exchange-specific app ID.
      */
     String id;
 
@@ -27,10 +27,11 @@ public class App {
     String name;
 
     /**
-     * A platform-specific application identifier intended to be unique to the
-     * app and independent of the exchange. On Android, this should be a bundle
-     * or package name (e.g., com.foo.mygame). On iOS, it is typically a numeric
-     * ID.
+     * The store ID of the app in an app store. See <a href="https://iabtechlab.com/wp-content/uploads/2020/08/IAB-Tech-Lab-OTT-store-assigned-App-Identification-Guidelines-2020.pdf">
+     * OTT/CTV Store Assigned App Identification Guidelines</a> for more details about
+     * expected strings for CTV app stores. For mobile apps in Google Play Store,
+     * these should be bundle or package names (e.g. com.foo.mygame). For apps in
+     * Apple App Store, these should be a numeric ID.
      */
     String bundle;
 
@@ -51,19 +52,21 @@ public class App {
     Integer cattax;
 
     /**
-     * Array of IAB content categories of the app. Refer to List 5.1.
+     * Array of IAB content categories of the app. The taxonomy to be used
+     * is defined by the cattax field. If no cattax field is supplied IAB
+     * Content Category Taxonomy 1.0 is assumed.
      */
     List<String> cat;
 
     /**
      * Array of IAB content categories that describe the current section of
-     * the app. Refer to List 5.1.
+     * the app. The taxonomy to be used is defined by the cattax field.
      */
     List<String> sectioncat;
 
     /**
      * Array of IAB content categories that describe the current page or view of
-     * the app. Refer to List 5.1.
+     * the app. The taxonomy to be used is defined by the cattax field.
      */
     List<String> pagecat;
 
@@ -83,12 +86,12 @@ public class App {
     Integer paid;
 
     /**
-     * Details about the Publisher (Section 3.2.15) of the app.
+     * Details about the {@link Publisher} (Section 3.2.15) of the app.
      */
     Publisher publisher;
 
     /**
-     * Details about the Content (Section 3.2.16) within the app.
+     * Details about the {@link Content} (Section 3.2.16) within the app.
      */
     Content content;
 

@@ -5,6 +5,12 @@ import lombok.Value;
 
 import java.util.List;
 
+/**
+ * Further identification based on <a href="https://wicg.github.io/ua-client-hints/">
+ * User-Agent Client Hints</a> , the {@link BrandVersion} object is used to identify
+ * a device’s browser or similar software component, and the user agent’s execution
+ * platform or operating system.
+ */
 @Value
 public class BrandVersion {
 
@@ -13,6 +19,7 @@ public class BrandVersion {
      * sourced from the User-Agent Client Hints headers, representing either the
      * user agent brand (from the Sec-CH-UA-Full-Version header) or the platform
      * brand (from the Sec-CH-UA-Platform header).
+     * <p/>(required)
      */
     String brand;
 

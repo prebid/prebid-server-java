@@ -17,7 +17,7 @@ import java.util.List;
 public class Site {
 
     /**
-     * Exchange-specific site ID. (recommended)
+     * Exchange-specific site ID.
      */
     String id;
 
@@ -39,19 +39,20 @@ public class Site {
     Integer cattax;
 
     /**
-     * Array of IAB content categories of the site. Refer to List 5.1.
+     * Array of IABTL content categories of the site.
+     * The taxonomy to be used is defined by the cattax field.
      */
     List<String> cat;
 
     /**
-     * Array of IAB content categories that describe the current section of the
-     * site. Refer to List 5.1.
+     * Array of IABTL content categories that describe the current section of the
+     * site. The taxonomy to be used is defined by the cattax field.
      */
     List<String> sectioncat;
 
     /**
-     * Array of IAB content categories that describe the current page or view of
-     * the site. Refer to List 5.1.
+     * Array of IABTL content categories that describe the current page or view of
+     * the site. The taxonomy to be used is defined by the cattax field
      */
     List<String> pagecat;
 
@@ -82,12 +83,12 @@ public class Site {
     Integer privacypolicy;
 
     /**
-     * Details about the Publisher (Section 3.2.15) of the site.
+     * Details about the {@link Publisher} (Section 3.2.15) of the site.
      */
     Publisher publisher;
 
     /**
-     * Details about the Content (Section 3.2.16) within the site.
+     * Details about the {@link Content} (Section 3.2.16) within the site.
      */
     Content content;
 

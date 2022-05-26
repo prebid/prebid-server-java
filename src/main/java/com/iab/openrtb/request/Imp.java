@@ -17,7 +17,7 @@ import java.util.List;
  * individually.
  * <p>The presence of {@link Banner} (Section 3.2.6),
  * {@link Video} (Section 3.2.7), and/or {@link Native} (Section 3.2.9) objects
- * subordinate to the Imp object indicates the type of impression being offered.
+ * subordinate to the {@link Imp} object indicates the type of impression being offered.
  * The publisher can choose one such type which is the typical case or mix them
  * at their discretion. However, any given bid for the impression must conform
  * to one of the offered types.
@@ -29,35 +29,35 @@ public class Imp {
     /**
      * A unique identifier for this impression within the context of the bid
      * request (typically, starts with 1 and increments.
-     * (required)
+     * <p/> (required)
      */
     String id;
 
     /**
-     * An array of Metric object (Section 3.2.5).
+     * An array of {@link Metric} object (Section 3.2.5).
      */
     List<Metric> metric;
 
     /**
-     * A Banner object (Section 3.2.6); required if this impression is offered
+     * A {@link Banner} object (Section 3.2.6); required if this impression is offered
      * as a banner ad opportunity.
      */
     Banner banner;
 
     /**
-     * A Video object (Section 3.2.7); required if this impression is offered as
+     * A {@link Video} object (Section 3.2.7); required if this impression is offered as
      * a video ad opportunity.
      */
     Video video;
 
     /**
-     * An Audio object (Section 3.2.8); required if this impression is offered
+     * An {@link Audio} object (Section 3.2.8); required if this impression is offered
      * as an audio ad opportunity.
      */
     Audio audio;
 
     /**
-     * A Native object (Section 3.2.9); required if this impression is offered
+     * A {@link Native} object (Section 3.2.9); required if this impression is offered
      * as a native ad opportunity.
      */
     @JsonProperty("native")
@@ -65,7 +65,7 @@ public class Imp {
     Native xNative;
 
     /**
-     * A Pmp object (Section 3.2.11) containing any private marketplace deals in
+     * A {@link Pmp} object (Section 3.2.11) containing any private marketplace deals in
      * effect for this impression.
      */
     Pmp pmp;
@@ -73,14 +73,14 @@ public class Imp {
     /**
      * Name of ad mediation partner, SDK technology, or player responsible for
      * rendering ad (typically video or mobile). Used by some ad servers to
-     * customize ad code by partner. Recommended for video and/or apps.
+     * customize ad code by partner. <p/> Recommended for video and/or apps.
      */
     String displaymanager;
 
     /**
      * Version of ad mediation partner, SDK technology, or player responsible
      * for rendering ad (typically video or mobile). Used by some ad servers to
-     * customize ad code by partner. Recommended for video and/or apps.
+     * customize ad code by partner. <p/> Recommended for video and/or apps.
      */
     String displaymanagerver;
 
@@ -139,8 +139,8 @@ public class Imp {
     /**
      * Indicates if server-side ad insertion (e.g., stitching an ad into an
      * audio or video stream) is in use and the impact of this on asset
-     * and tracker retrieval, where 0 = status unknown, 1 = all client-
-     * side (i.e., not server-side), 2 = assets stitched server-side but
+     * and tracker retrieval, where 0 = status unknown, 1 = all client-side
+     * (i.e., not server-side), 2 = assets stitched server-side but
      * tracking pixels fired client-side, 3 = all server-side.
      */
     Integer ssai;

@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * This object represents an audio type impression. Many of the fields are
  * non-essential for minimally viable transactions, but are included to offer
- * fine control when needed. Audio in OpenRTB generally assumes compliance with
+ * fine control when needed. {@link Audio} in OpenRTB generally assumes compliance with
  * the DAAST standard. As such, the notion of companion ads is supported by
  * optionally including an array of {@link Banner} objects (refer to the
  * {@link Banner} object in Section 3.2.6) that define these companion ads.
@@ -26,17 +26,19 @@ import java.util.List;
 public class Audio {
 
     /**
-     * Content MIME types supported (e.g., “audio/mp4”). (required)
+     * Content MIME types supported (e.g., “audio/mp4”). <p/> (required)
      */
     List<String> mimes;
 
     /**
-     * Minimum audio ad duration in seconds. (recommended)
+     * Minimum audio ad duration in seconds. This field is mutually exclusive
+     * with rqddurs; only one of minduration and rqddurs may be in a bid request.
      */
     Integer minduration;
 
     /**
-     * Maximum audio ad duration in seconds. (recommended)
+     * Maximum audio ad duration in seconds. This field is mutually exclusive
+     * with rqddurs; only one of maxduration and rqddurs may be in a bid request.
      */
     Integer maxduration;
 
@@ -51,14 +53,15 @@ public class Audio {
     Integer poddur;
 
     /**
-     * Array of supported audio protocols. Refer to List 5.8. (recommended)
+     * Array of supported audio protocols. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--creative-subtypes---audiovideo-">
+     * List: Creative Subtypes - Audio/Video</a> in AdCOM 1.0.
      */
     List<Integer> protocols;
 
     /**
      * Indicates the start delay in seconds for pre-roll, mid-roll, or post-roll
-     * ad placements. Refer to List 5.12.
-     * (recommended)
+     * ad placements. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--start-delay-modes-">
+     * List: Start Delay Modes</a> in AdCOM 1.0.
      */
     Integer startdelay;
 
@@ -99,7 +102,6 @@ public class Audio {
      * guarantee delivery against the indicated sequence. Refer to
      * <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--pod-sequence-">List: Slot Position</a> in Pod in AdCOM 1.0 for guidance on the
      * use of this field.
-     *
      */
     Integer slotinpod;
 
@@ -111,7 +113,8 @@ public class Audio {
     BigDecimal mincpmpersec;
 
     /**
-     * Blocked creative attributes. Refer to List 5.3.
+     * Blocked creative attributes. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--creative-attributes-">
+     * List: Creative Attributes</a> in AdCOM 1.0.
      */
     List<Integer> battr;
 
@@ -136,24 +139,27 @@ public class Audio {
 
     /**
      * Supported delivery methods (e.g., streaming, progressive). If none
-     * specified, assume all are supported. Refer to List 5.15.
+     * specified, assume all are supported. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--delivery-methods-">
+     * List: Delivery Methods</a> in AdCOM 1.0.
      */
     List<Integer> delivery;
 
     /**
-     * Array of Banner objects (Section 3.2.6) if companion ads are available.
+     * Array of {@link Banner} objects (Section 3.2.6) if companion ads are available.
      */
     List<Banner> companionad;
 
     /**
-     * List of supported API frameworks for this impression. Refer to List 5.6.
-     * If an API is not explicitly listed, it is assumed not to be supported.
+     * List of supported API frameworks for this impression. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--api-frameworks-">
+     * List: API Frameworks</a> in AdCOM 1.0. If an API is not explicitly listed,
+     * it is assumed not to be supported.
      */
     List<Integer> api;
 
     /**
-     * Supported DAAST companion ad types. Refer to List 5.14. Recommended if
-     * companion Banner objects are included via the companionad array.
+     * Supported DAAST companion ad types. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--companion-types-">
+     * List: Companion Types</a> in AdCOM 1.0. Recommended if
+     * companion {@link Banner} objects are included via the companionad array.
      */
     List<Integer> companiontype;
 
@@ -163,7 +169,8 @@ public class Audio {
     Integer maxseq;
 
     /**
-     * Type of audio feed. Refer to List 5.16.
+     * Type of audio feed. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--feed-types-">
+     * List: Feed Types</a> in AdCOM 1.0.
      */
     Integer feed;
 
@@ -174,7 +181,8 @@ public class Audio {
     Integer stitched;
 
     /**
-     * Volume normalization mode. Refer to List 5.17.
+     * Volume normalization mode. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--volume-normalization-modes-">
+     * List: Volume Normalization Modes</a> in AdCOM 1.0.
      */
     Integer nvol;
 

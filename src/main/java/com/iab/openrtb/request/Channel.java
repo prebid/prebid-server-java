@@ -3,6 +3,16 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
+/**
+ * This object describes the channel an ad will be displayed on. A
+ * {@link Channel} is defined as the entity that curates a content
+ * library, or stream within a brand name for viewers. Examples are
+ * specific view selectable ‘channels’ within linear and streaming
+ * television (MTV, HGTV, CNN, BBC One, etc) or a specific stream of
+ * audio content commonly called ‘stations.’ Name is a human-readable
+ * field while domain and id can be used for reporting and targeting
+ * purposes. See 7.6 for further examples.
+ */
 @Value
 public class Channel {
 

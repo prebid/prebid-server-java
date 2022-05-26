@@ -5,6 +5,14 @@ import lombok.Value;
 
 import java.util.List;
 
+/**
+ * Structured user agent information, which can be used when a client supports
+ * <a href="https://wicg.github.io/ua-client-hints/">User-Agent Client Hints</a>.
+ * If both device.ua and device.sua are present in the bid request, device.sua
+ * should be considered the more accurate representation of the device attributes.
+ * This is because the device.ua may contain a frozen or reduced user agent string
+ * due to deprecation of user agent strings by browsers.
+ */
 @Value
 public class UserAgent {
 

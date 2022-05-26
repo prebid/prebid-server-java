@@ -18,7 +18,7 @@ import java.util.List;
 public class Deal {
 
     /**
-     * A unique identifier for the direct deal. (required)
+     * A unique identifier for the direct deal. <p/> (required)
      */
     String id;
 
@@ -44,7 +44,7 @@ public class Deal {
     /**
      * Whitelist of buyer seats (e.g., advertisers, agencies) allowed to bid on
      * this deal. IDs of seats and the buyer’s customers to which they refer
-     * must be coordinated between bidders and the exchange a priori.
+     * must be coordinated between bidders and the exchange <em>a priori</em>.
      * Omission implies no seat restrictions.
      */
     List<String> wseat;

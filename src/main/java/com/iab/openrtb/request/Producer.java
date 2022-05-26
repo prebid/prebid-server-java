@@ -31,7 +31,8 @@ public class Producer {
 
     /**
      * Array of IAB content categories that describe the content producer.
-     * Refer to List 5.1.
+     * The taxonomy to be used is defined by the cattax field. If no cattax
+     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
      */
     List<String> cat;
 

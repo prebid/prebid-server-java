@@ -5,6 +5,13 @@ import lombok.Value;
 
 import java.util.List;
 
+/**
+ * Extended identifiers support in the OpenRTB specification allows buyers
+ * to use audience data in real-time bidding. This object can contain one
+ * or more {@link Uid}s from a single source or a technology provider. The
+ * exchange should ensure that business agreements allow for the sending
+ * of this data.
+ */
 @Value
 public class Eid {
 
@@ -15,6 +22,7 @@ public class Eid {
 
     /**
      * Array of extended ID {@link Uid} objects from the given source.
+     * Refer to 3.2.28 Extended Identifier UIDs
      */
     List<Uid> uids;
 

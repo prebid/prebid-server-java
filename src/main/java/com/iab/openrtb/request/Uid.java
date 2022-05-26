@@ -3,6 +3,11 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
+/**
+ * This object contains a single user identifier provided as part of
+ * extended identifiers. The exchange should ensure that business
+ * agreements allow for the sending of this data.
+ */
 @Value
 public class Uid {
 

@@ -3,6 +3,16 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
+/**
+ * This object describes the network an ad will be displayed on.A
+ * {@link Network} is defined as the parent entity of the {@link Channel}
+ * object’s entity for the purposes of organizing Channels. Examples are
+ * companies that own and/or license a collection of content channels
+ * (Viacom, Discovery, CBS, WarnerMedia, Turner and others), or studio
+ * that creates such content and self-distributes content. Name is a
+ * human-readable field while domain and id can be used for reporting
+ * and targeting purposes. See 7.6 for further examples.
+ */
 @Value
 public class Network {
 

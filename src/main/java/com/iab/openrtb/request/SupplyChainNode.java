@@ -3,6 +3,12 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
+/**
+ * This object is associated with a SupplyChain object as an array of nodes.
+ * These nodes define the identity of an entity participating in the supply
+ * chain of a bid request. Detailed implementation examples can be found
+ * <a href="https://github.com/InteractiveAdvertisingBureau/openrtb/blob/master/supplychainobject.md">here</a>.
+ */
 @Value(staticConstructor = "of")
 public class SupplyChainNode {
 
@@ -14,6 +20,7 @@ public class SupplyChainNode {
      * reverse IP lookups to establish clear ownership of the
      * delegate system. This should be the same value as used to
      * identify sellers in an ads.txt file if one exists.
+     * <p/> (required)
      */
     String asi;
 
@@ -24,6 +31,7 @@ public class SupplyChainNode {
      * specified by the SSP/exchange. Typically, in OpenRTB, this is
      * publisher.id. For OpenDirect it is typically the publisher’s
      * organization ID.Should be limited to 64 characters in length.
+     * <p/> (required)
      */
     String sid;
 

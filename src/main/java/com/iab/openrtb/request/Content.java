@@ -12,8 +12,8 @@ import java.util.List;
  * may be syndicated or non- syndicated content. This object may be useful when
  * syndicated content contains impressions and does not necessarily match the
  * publisher’s general content. The exchange might or might not have knowledge
- * of the page where the content is running, as a result of the syndication
- * method. For example might be a video impression embedded in an iframe on an
+ * of the page where the content is running, because of the syndication
+ * method. For example, might be a video impression embedded in an iframe on an
  * unknown web property or device.
  */
 @Builder(toBuilder = true)
@@ -75,7 +75,7 @@ public class Content {
     String isrc;
 
     /**
-     * Details about the content Producer (Section 3.2.17).
+     * Details about the content {@link Producer} (Section 3.2.17).
      */
     Producer producer;
 
@@ -91,18 +91,21 @@ public class Content {
     Integer cattax;
 
     /**
-     * Array of IAB content categories that describe the content producer.
-     * Refer to List 5.1.
+     * Array of IAB content categories that describe the content.
+     * The taxonomy to be used is defined by the cattax field.If no cattax
+     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
      */
     List<String> cat;
 
     /**
-     * Production quality. Refer to List 5.13.
+     * Production quality. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--production-qualities-">
+     * List: Production Qualities</a> in AdCOM 1.0 .
      */
     Integer prodq;
 
     /**
-     * Type of content (game, video, text, etc.). Refer to List 5.18.
+     * Type of content (game, video, text, etc.). Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--content-contexts-">
+     * List: Content Contexts</a> in AdCOM 1.0.
      */
     Integer context;
 
@@ -117,7 +120,8 @@ public class Content {
     String userrating;
 
     /**
-     * Media rating per IQG guidelines. Refer to List 5.19.
+     * Media rating per IQG guidelines. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--media-ratings-">
+     * List: Media Ratings</a> in AdCOM 1.0.
      */
     Integer qagmediarating;
 
@@ -163,13 +167,19 @@ public class Content {
     Integer embeddable;
 
     /**
-     * Additional content data. Each Data object (Section 3.2.21) represents a
+     * Additional content data. Each {@link Data} object (Section 3.2.21) represents a
      * different data source.
      */
     List<Data> data;
 
+    /**
+     * Details about the {@link Network} (Section 3.2.23) the content is on.
+     */
     Network network;
 
+    /**
+     * Details about the {@link Channel} (Section 3.2.24) the content is on.
+     */
     Channel channel;
 
     /**
