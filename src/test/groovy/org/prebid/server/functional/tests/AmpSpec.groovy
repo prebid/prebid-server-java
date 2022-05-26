@@ -266,4 +266,33 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
+
+    def "PBS should take parameters from the stored request when it's"() {
+        given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.generate-storedrequest-bidrequest-id": (genarateBidRequest)]);
+
+        and: "Default AMP request with custom Id"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            tagId = bidRequestId
+        }
+
+        and: "Default BidRequest"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = pbsService.sendAmpRequest(ampRequest)
+
+        then: "AmpResponse and BidRequest shouldn't equals id"
+        assert ampResponse.ext?.debug?.resolvedRequest?.getId() != bidRequestId
+
+        where:
+        bidRequestId          | genarateBidRequest
+        PBSUtils.randomString | "true"
+        "{{UUID}}"            | "false"
+    }
 }
