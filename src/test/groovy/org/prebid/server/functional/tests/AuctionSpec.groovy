@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -12,6 +13,7 @@ import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -245,5 +247,44 @@ class AuctionSpec extends BaseSpec {
         metricName               | updateBidRequestClosure
         "invalid-stored-request" | { bidReq, storedReq -> bidReq.ext.prebid.storedRequest = storedReq }
         "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
+    }
+
+    def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = true or id = {{UUID}} "() {
+        given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.generate-storedrequest-bidrequest-id" : (genarateBidRequest)]);
+
+        and:"Flush metric"
+        flushMetrics()
+
+        and: "Default bid request with stored request and id"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            id = bidRquestId
+            ext.prebid.storedRequest =  new PrebidStoredRequest(id:  PBSUtils.randomNumber)
+        }
+
+        and: "Save storedRequest into DB with cur and id"
+        def currencies = [Currency.BOGUS]
+        def storedBidRequest = new BidRequest(id: "stored-request-id", cur: currencies)
+        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedBidRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "Requesting PBS auction"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Metric stored_requests_found should be updated"
+        def metrics = pbsService.sendCollectedMetricsRequest()
+        assert metrics["stored_requests_found"] == 1
+
+        and: "BidResponse should merged with stored request"
+        assert response.cur == currencies[0]
+
+        and: "BidResponse and BidRequest shouldn't equals id"
+        assert response.id != bidRquestId
+
+        where:
+        bidRquestId              |  genarateBidRequest
+        PBSUtils.randomString    |  "true"
+        "{{UUID}}"               |  "false"
     }
 }
