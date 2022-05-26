@@ -269,8 +269,7 @@ class AmpSpec extends BaseSpec {
 
     def "PBS should take parameters from the stored request when it's"() {
         given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.generate-storedrequest-bidrequest-id": (genarateBidRequest)]);
+        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (genarateBidRequest)]);
 
         and: "Default AMP request with custom Id"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
