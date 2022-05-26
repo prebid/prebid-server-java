@@ -1,0 +1,37 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 7.713,
+          "adm": "<div>foo</div>",
+          "crid":"creative_id",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 6.77,
+            "origbidcur": "EUR",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "stroeerCore",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "stroeerCore": "{{ stroeerCore.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

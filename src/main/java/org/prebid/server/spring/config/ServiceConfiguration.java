@@ -564,8 +564,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
-        return new HttpBidderRequestEnricher(prebidVersionProvider);
+    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider,
+                                                        BidderCatalog bidderCatalog) {
+
+        return new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
     }
 
     @Bean

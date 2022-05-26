@@ -1,11 +1,11 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Metric {
+class ExtPrebidBidderConfig {
 
-    String type
-    BigDecimal value
-    String vendor
+    List<BidderName> bidders
+    BidderConfig config
 }

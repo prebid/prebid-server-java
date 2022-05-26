@@ -97,7 +97,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any()))
+                .willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -307,7 +308,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
         givenHttpClientResponse(200, "responseBody");
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
@@ -482,7 +483,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
 
         givenHttpClientReturnsResponses(
                 HttpClientResponse.of(200, null, "responseBody1"),
@@ -523,7 +524,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .headers(headers)
                                 .build()),
                 emptyList()));
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
 
         givenHttpClientReturnsResponses(
                 HttpClientResponse.of(200, null, "responseBody1"));
@@ -558,7 +559,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
@@ -589,7 +590,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
 
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
@@ -623,7 +624,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any())).willReturn(headers);
 
         givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
 
@@ -742,7 +743,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
-        when(requestEnricher.enrichHeaders(any(), any(), any()))
+        when(requestEnricher.enrichHeaders(anyString(), any(), any(), any()))
                 .thenAnswer(invocation -> MultiMap.caseInsensitiveMultiMap());
         given(httpClient.request(any(), anyString(), any(), any(byte[].class), anyLong()))
                 // simulate response error for the first request

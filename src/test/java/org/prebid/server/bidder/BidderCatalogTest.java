@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import static java.util.Collections.emptyList;
@@ -95,7 +96,8 @@ public class BidderCatalogTest {
                 null,
                 99,
                 true,
-                false);
+                false,
+                CompressionType.NONE);
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
@@ -170,7 +172,8 @@ public class BidderCatalogTest {
                 null,
                 99,
                 true,
-                false);
+                false,
+                CompressionType.NONE);
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)

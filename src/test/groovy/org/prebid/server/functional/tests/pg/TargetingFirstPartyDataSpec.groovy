@@ -7,9 +7,14 @@ import org.prebid.server.functional.model.request.auction.AppExt
 import org.prebid.server.functional.model.request.auction.AppExtData
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.BidRequestExt
+import org.prebid.server.functional.model.request.auction.BidderConfig
+import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
+import org.prebid.server.functional.model.request.auction.ExtPrebidBidderConfig
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
+import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.SiteExt
 import org.prebid.server.functional.model.request.auction.SiteExtData
@@ -21,6 +26,8 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.IN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.INTERSECTS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.MATCHES
@@ -107,7 +114,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         UFPD_BUYER_IDS    | new UserExtData(buyerids: [integerTargetingValue])
     }
 
-    def "PBS should support taking Site First Party Data from 3 different sources"() {
+    def "PBS should support taking Site First Party Data from different sources"() {
         given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
@@ -425,6 +432,222 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         then: "PBS had PG auction"
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
+    }
+
+    def "PBS should support targeting by SITE First Party Data when request ext prebid bidder config is given"() {
+        given: "Bid request with set Site specific bidder config"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def site = new Site().tap {
+                ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
+            }
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(site: site)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(SFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
+    }
+
+    def "PBS should support targeting by USER First Party Data when request ext prebid bidder config is given"() {
+        given: "Bid request with set User specific bidder config"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def user = new User().tap {
+                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+            }
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: user)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
+    }
+
+    def "PBS shouldn't target by SITE First Party Data when request ext prebid bidder config with not matched bidder is given"() {
+        given: "Bid request with request not matched bidder"
+        def notMatchedBidder = APPNEXUS
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def site = new Site().tap {
+                ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
+            }
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [notMatchedBidder],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(site: site)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(SFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS hasn't had PG auction"
+        assert !auctionResponse.ext?.debug?.pgmetrics
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
+    }
+
+    def "PBS shouldn't target by USER First Party Data when request ext prebid bidder config with not matched bidder is given"() {
+        given: "Bid request with request not matched bidder"
+        def notMatchedBidder = APPNEXUS
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def user = new User().tap {
+                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+            }
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [notMatchedBidder],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: user)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS hasn't had PG auction"
+        assert !auctionResponse.ext?.debug?.pgmetrics
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
+    }
+
+    def "PBS should support targeting by SITE First Party Data when a couple of request ext prebid bidder configs are given"() {
+        given: "Bid request with 1 not matched Site specific bidder config and 1 matched"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def firstBidderConfigSite = new Site().tap {
+                ext = new SiteExt(data: new SiteExtData(language: PBSUtils.randomString))
+            }
+            def firstBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(site: firstBidderConfigSite)))
+            def secondBidderConfigSite = new Site().tap {
+                ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
+            }
+            def secondBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(site: secondBidderConfigSite)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [firstBidderConfig, secondBidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(SFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
+    }
+
+    def "PBS should support targeting by USER First Party Data when a couple of request ext prebid bidder configs are given"() {
+        given: "Bid request with 1 not matched User specific bidder config and 1 matched"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def firstBidderConfigUser = new User().tap {
+                ext = new UserExt(data: new UserExtData(language: PBSUtils.randomString))
+            }
+            def firstBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: firstBidderConfigUser)))
+            def secondBidderConfigUser = new User().tap {
+                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+            }
+            def secondBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: secondBidderConfigUser)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [firstBidderConfig, secondBidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        matchingFunction | matchingValue
+        INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
+        MATCHES          | stringTargetingValue
     }
 
     private BidRequest getSiteFpdBidRequest(String siteLanguage, String appLanguage, String impLanguage) {

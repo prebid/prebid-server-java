@@ -93,10 +93,23 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp) {
-        if (imp.getXNative() != null || imp.getAudio() != null || imp.getVideo() != null) {
+        // Just supporting banner until new video support comes along - already merged in Go prebid server
+        if (imp.getBanner() == null) {
             throw new PreBidException(
-                    String.format("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=%s",
-                            imp.getId()));
+                    String.format("No banner object found in imp. Ignoring Imp ID=%s", imp.getId()));
+        }
+
+        // Remove unsupported media types
+        if (imp.getAudio() != null) {
+            imp = imp.toBuilder().audio(null).build();
+        }
+
+        if (imp.getVideo() != null) {
+            imp = imp.toBuilder().video(null).build();
+        }
+
+        if (imp.getXNative() != null) {
+            imp = imp.toBuilder().xNative(null).build();
         }
 
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);

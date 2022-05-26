@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.deals.targeting.RequestContext;
 import org.prebid.server.deals.targeting.TargetingDefinition;
@@ -63,9 +64,14 @@ public class TargetingService {
      * Accepts OpenRTB2 request and particular Imp object to evaluate Line Item targeting
      * definition against and returns whether it is matched or not.
      */
-    public boolean matchesTargeting(AuctionContext auctionContext, Imp imp, TargetingDefinition targetingDefinition) {
+    public boolean matchesTargeting(AuctionContext auctionContext,
+                                    Imp imp,
+                                    TargetingDefinition targetingDefinition,
+                                    String source,
+                                    BidderAliases aliases) {
+
         final RequestContext requestContext = new RequestContext(
-                auctionContext.getBidRequest(), imp, auctionContext.getTxnLog(), mapper);
+                auctionContext.getBidRequest(), imp, source, aliases, auctionContext.getTxnLog(), mapper);
 
         return targetingDefinition.getRootExpression().matches(requestContext);
     }

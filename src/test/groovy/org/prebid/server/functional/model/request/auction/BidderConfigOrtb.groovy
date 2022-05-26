@@ -3,9 +3,8 @@ package org.prebid.server.functional.model.request.auction
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Metric {
+class BidderConfigOrtb {
 
-    String type
-    BigDecimal value
-    String vendor
+    Site site
+    User user
 }

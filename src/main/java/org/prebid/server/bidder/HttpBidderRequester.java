@@ -87,15 +87,16 @@ public class HttpBidderRequester {
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests =
-                enrichRequests(httpRequestsWithErrors.getValue(), requestHeaders, bidRequest);
+
+        final String bidderName = bidderRequest.getBidder();
+        final List<HttpRequest<T>> httpRequests = enrichRequests(
+                bidderName, httpRequestsWithErrors.getValue(), requestHeaders, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
         }
 
         final String storedResponse = bidderRequest.getStoredResponse();
-        final String bidderName = bidderRequest.getBidder();
 
         // stored response available only for single request interaction for the moment.
         final Stream<Future<HttpCall<T>>> httpCalls = isStoredResponse(httpRequests, storedResponse, bidderName)
@@ -118,13 +119,14 @@ public class HttpBidderRequester {
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
-    private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+    private <T> List<HttpRequest<T>> enrichRequests(String bidderName,
+                                                    List<HttpRequest<T>> httpRequests,
                                                     CaseInsensitiveMultiMap requestHeaders,
                                                     BidRequest bidRequest) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
                         .headers(requestEnricher.enrichHeaders(
-                                httpRequest.getHeaders(), requestHeaders, bidRequest))
+                                bidderName, httpRequest.getHeaders(), requestHeaders, bidRequest))
                         .build())
                 .collect(Collectors.toList());
     }

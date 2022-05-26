@@ -3,6 +3,7 @@ package org.prebid.server.bidder;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
@@ -30,6 +31,8 @@ public class BidderInfo {
 
     boolean modifyingVastXmlAllowed;
 
+    CompressionType compressionType;
+
     public static BidderInfo create(boolean enabled,
                                     boolean debugAllowed,
                                     String endpoint,
@@ -40,7 +43,8 @@ public class BidderInfo {
                                     List<String> supportedVendors,
                                     int vendorId,
                                     boolean ccpaEnforced,
-                                    boolean modifyingVastXmlAllowed) {
+                                    boolean modifyingVastXmlAllowed,
+                                    CompressionType compressionType) {
 
         return of(
                 enabled,
@@ -52,7 +56,8 @@ public class BidderInfo {
                 supportedVendors,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
-                modifyingVastXmlAllowed);
+                modifyingVastXmlAllowed,
+                compressionType);
     }
 
     private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {

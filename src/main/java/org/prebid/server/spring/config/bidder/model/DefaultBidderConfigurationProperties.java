@@ -29,4 +29,6 @@ public class DefaultBidderConfigurationProperties {
     private final List<String> deprecatedNames = Collections.emptyList();
 
     private final Map<String, String> extraInfo = Collections.emptyMap();
+
+    private CompressionType endpointCompression = CompressionType.NONE;
 }
