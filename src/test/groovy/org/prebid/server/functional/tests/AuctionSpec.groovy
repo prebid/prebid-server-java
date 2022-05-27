@@ -296,9 +296,6 @@ class AuctionSpec extends BaseSpec {
             ext.prebid.storedRequest =  new PrebidStoredRequest(id:  PBSUtils.randomNumber)
         }
 
-        and:"Flush metric"
-        flushMetrics()
-
         and: "Save storedRequest into DB with cur and id"
         def currencies = [Currency.BOGUS]
         def storedBidRequest = new BidRequest(id: "stored-request-id", cur: currencies)
@@ -308,11 +305,7 @@ class AuctionSpec extends BaseSpec {
         when: "Requesting PBS auction"
         def response = prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Metric stored_requests_found should be updated"
-        def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics["stored_requests_found"] == 1
-
-        and: "BidResponse should merged with stored request"
+        then: "BidResponse should merged with stored request"
         assert response.cur == currencies[0]
 
         and: "BidResponse and BidRequest should equals Id"
