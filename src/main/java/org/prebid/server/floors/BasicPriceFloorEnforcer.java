@@ -66,13 +66,14 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     private static boolean shouldApplyEnforcement(AuctionParticipation auctionParticipation, Account account) {
         final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
                 AccountAuctionConfig::getPriceFloors);
-        if (accountPriceFloorsConfig == null || BooleanUtils.isNotTrue(accountPriceFloorsConfig.getEnabled())) {
+        if (accountPriceFloorsConfig == null || BooleanUtils.isFalse(accountPriceFloorsConfig.getEnabled())) {
             return false;
         }
 
         final PriceFloorRules floors = extractFloors(auctionParticipation);
+        final Boolean enabled = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnabled);
         final Boolean skipped = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getSkipped);
-        if (BooleanUtils.isTrue(skipped)) {
+        if (BooleanUtils.isFalse(enabled) || BooleanUtils.isTrue(skipped)) {
             return false;
         }
 
@@ -156,8 +157,6 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 warnings.add(BidderError.rejectedIpf(
                         String.format("Bid with id '%s' was rejected by floor enforcement: "
                                 + "price %s is below the floor %s", bid.getId(), price, floor)));
-
-                // TODO: create a record for analytics adapters to be aware of this rejection and reason
 
                 updatedBidderBids.remove(bidderBid);
             }

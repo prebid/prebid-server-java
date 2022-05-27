@@ -80,6 +80,25 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
+    public void shouldNotEnforceIfRequestFloorsDisabled() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder().enabled(false).build())
+                        .build())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
     public void shouldNotEnforceIfRequestFloorsSkipped() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
