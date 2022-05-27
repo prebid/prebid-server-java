@@ -267,7 +267,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
-    def "PBS should take parameters from the stored request when it's"() {
+    def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = true or id = {{UUID}}"() {
         given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (genarateBidRequest)]);
 
