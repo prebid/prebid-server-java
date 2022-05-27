@@ -473,4 +473,32 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.first().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
     }
+
+     def "PBS floors shouldn't enforce when ext.prebid.floors = false or config.auction.priceFloors.enabled = false"() {
+        given: "BidRequestWithFloors with enabled floors"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: bidRequestFloorsEnabled)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = configAccountPriceFloorsEnabled
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should no enforcing"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.imp[0].bidFloor
+
+        and: "PBS should not fetch rules from floors provider"
+        assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 0
+
+        where:
+        bidRequestFloorsEnabled     | configAccountPriceFloorsEnabled
+        false                       | true
+        true                        | false
+    }
 }
