@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
-    private static final String VALID_PREFIX_REGEX = "[a-zA-Z_:]?[a-zA-Z0-9_:]*";
+    private static final String VALID_PREFIX_REGEX = "[a-zA-Z_]?[a-zA-Z0-9_]*";
 
     private final SampleBuilder delegate;
     private final String prefix;
