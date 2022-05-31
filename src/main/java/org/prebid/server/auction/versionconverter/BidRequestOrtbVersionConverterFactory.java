@@ -40,8 +40,8 @@ public class BidRequestOrtbVersionConverterFactory {
         for (int i = 0; i < converters.length - 1; i++) {
             if (converters[i].outVersion() != converters[i + 1].inVersion()) {
                 throw new IllegalArgumentException(String.format(
-                        "Can not create chain of OpenRTB version converters while " +
-                                "`converters[%d].outVersion` and `converters[%d].inVersion` are different.",
+                        "Can not create chain of OpenRTB version converters while "
+                                + "`converters[%d].outVersion` and `converters[%d].inVersion` are different.",
                         i, i + 1));
             }
         }

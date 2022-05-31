@@ -632,7 +632,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder().build());
 
-
         given(ortbVersionConverterFactory.getConverterForInternalUse())
                 .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
                         OrtbVersion.ORTB_2_5,
