@@ -17,7 +17,6 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
@@ -478,8 +477,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
     }
 
-    def "PBS floor enforcement shouldn't fail when bidder request is null"() {
-        given: "BidRequestWithFloors with Stored Action Response and Floor enabled = true"
+    def "PBS floor enforcement shouldn't fail when bidder request was not made"() {
+        given: "BidRequestWithFloors with Stored Auction Response and Floor enabled = true"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = getBidRequestWithFloors().tap {
             ext.prebid.floors.enabled = true
@@ -496,10 +495,13 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Request shouldn't fail with an error"
         def thrown = noExceptionThrown()
         assert !thrown
+
+        and: "Response shouldn't return error"
+        assert response
     }
 }
