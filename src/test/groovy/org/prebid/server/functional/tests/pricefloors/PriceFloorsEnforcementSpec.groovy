@@ -478,10 +478,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS floor enforcement shouldn't fail when bidder request was not made"() {
-        given: "BidRequestWithFloors with Stored Auction Response and Floor enabled = true"
+        given: "BidRequestWithFloors with Stored Auction Response and Floors enabled = #bidRequestFloors"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = getBidRequestWithFloors().tap {
-            ext.prebid.floors.enabled = true
+            ext.prebid.floors.enabled = bidRequestFloors
             imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
         }
 
@@ -501,7 +501,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def thrown = noExceptionThrown()
         assert !thrown
 
-        and: "Response shouldn't return error"
-        assert response
+        and: "PBS shouldn't log errors"
+        assert !response.ext.errors
+
+        where: bidRequestFloors << [true, false]
     }
 }
