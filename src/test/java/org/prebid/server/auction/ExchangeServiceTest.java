@@ -46,9 +46,11 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -280,6 +282,18 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", null, null));
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.of(
+                true,
+                null,
+                false,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
@@ -335,6 +349,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
+
+        given(ortbVersionConverterFactory.getConverter(any()))
+                .willReturn(BidRequestOrtbIdentityConverter.instance());
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
