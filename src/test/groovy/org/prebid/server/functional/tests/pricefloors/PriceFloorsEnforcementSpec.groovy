@@ -513,5 +513,6 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         bidRequestFloors     | accountConfigFloors
         false                | true
         true                 | false
+        false                | false
     }
 }
