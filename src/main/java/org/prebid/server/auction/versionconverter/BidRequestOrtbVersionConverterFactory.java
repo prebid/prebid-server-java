@@ -10,7 +10,7 @@ import java.util.function.UnaryOperator;
 
 public class BidRequestOrtbVersionConverterFactory {
 
-    private static final OrtbVersion LATEST_SUPPORTED_ORTB_VERSION = OrtbVersion.ORTB_2_6;
+    static final OrtbVersion LATEST_SUPPORTED_ORTB_VERSION = OrtbVersion.ORTB_2_6;
 
     private final Map<OrtbVersion, BidRequestOrtbVersionConverter> bidRequestOrtbConverters;
 
@@ -20,7 +20,7 @@ public class BidRequestOrtbVersionConverterFactory {
                 OrtbVersion.ORTB_2_6, createChain(new BidRequestOrtb25To26Converter()));
     }
 
-    private static BidRequestOrtbVersionConverter createChain(BidRequestOrtbVersionConverter... converters) {
+    static BidRequestOrtbVersionConverter createChain(BidRequestOrtbVersionConverter... converters) {
         validateChain(converters);
 
         return BidRequestOrtbCustomConverter.of(
@@ -39,7 +39,10 @@ public class BidRequestOrtbVersionConverterFactory {
     private static void validateChain(BidRequestOrtbVersionConverter... converters) {
         for (int i = 0; i < converters.length - 1; i++) {
             if (converters[i].outVersion() != converters[i + 1].inVersion()) {
-                throw new IllegalArgumentException("Chain of OpenRTB version converters must be monotonic.");
+                throw new IllegalArgumentException(String.format(
+                        "Can not create chain of OpenRTB version converters while " +
+                                "`converters[%d].outVersion` and `converters[%d].inVersion` are different.",
+                        i, i + 1));
             }
         }
     }
@@ -58,7 +61,7 @@ public class BidRequestOrtbVersionConverterFactory {
     }
 
     @AllArgsConstructor(staticName = "of")
-    private static class BidRequestOrtbCustomConverter implements BidRequestOrtbVersionConverter {
+    public static class BidRequestOrtbCustomConverter implements BidRequestOrtbVersionConverter {
 
         private final OrtbVersion inVersion;
 

@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -34,6 +35,7 @@ import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -1546,6 +1548,28 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future).succeededWith(auctionContext);
+    }
+
+    @Test
+    public void shouldConvertBidRequestToInternalOpenRTBVersion() {
+        // given
+        givenBidRequest();
+
+        given(ortbVersionConverterFactory.getConverterForInternalUse())
+                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
+                        OrtbVersion.ORTB_2_5,
+                        OrtbVersion.ORTB_2_6,
+                        bidRequest -> bidRequest.toBuilder().source(Source.builder().tid("uniqTid").build()).build()));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isEqualTo(Source.builder().tid("uniqTid").build());
     }
 
     private void givenBidRequest(

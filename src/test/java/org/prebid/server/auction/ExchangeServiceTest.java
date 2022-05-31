@@ -48,6 +48,7 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -282,16 +283,17 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", null, null));
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.of(
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,
                 false,
-                true,
                 null,
                 null,
                 null,
                 null,
                 null,
+                null,
+                0,
                 false,
                 false));
 
@@ -4302,6 +4304,46 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).isEmpty();
+    }
+
+    @Test
+    public void shouldConvertBidRequestOpenRTBVersionToConfiguredByBidder() {
+        // given
+        given(bidderCatalog.bidderInfoByName(eq("bidderName"))).willReturn(BidderInfo.create(
+                true,
+                OrtbVersion.ORTB_2_5,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false));
+        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_5)))
+                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
+                        OrtbVersion.ORTB_2_6,
+                        OrtbVersion.ORTB_2_5,
+                        bidRequest -> bidRequest.toBuilder().source(null).build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidderName", 1)),
+                request -> request.source(Source.builder().tid("uniqTid").build()));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+
+        // when
+        exchangeService.holdAuction(auctionContext);
+
+        // then
+        final ArgumentCaptor<BidderRequest> argumentCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester).requestBids(any(), argumentCaptor.capture(), any(), any(), anyBoolean());
+
+        assertThat(argumentCaptor.getValue())
+                .extracting(BidderRequest::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isNull();
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {

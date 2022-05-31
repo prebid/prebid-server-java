@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
@@ -33,6 +34,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -57,6 +59,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -622,6 +625,29 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
         assertThat(result.getGeoInfo()).isEqualTo(geoInfo);
+    }
+
+    @Test
+    public void shouldConvertBidRequestToInternalOpenRTBVersion() {
+        // given
+        givenBidRequest(BidRequest.builder().build());
+
+
+        given(ortbVersionConverterFactory.getConverterForInternalUse())
+                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
+                        OrtbVersion.ORTB_2_5,
+                        OrtbVersion.ORTB_2_6,
+                        bidRequest -> bidRequest.toBuilder().source(Source.builder().tid("uniqTid").build()).build()));
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        verify(ortb2RequestFactory).enrichAuctionContext(
+                any(),
+                any(),
+                argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
+                anyLong());
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
