@@ -34,6 +34,7 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -236,6 +237,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory() {
+        return new BidRequestOrtbVersionConverterFactory();
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
@@ -276,6 +282,7 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
@@ -288,6 +295,7 @@ public class ServiceConfiguration {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
+                bidRequestOrtbVersionConverterFactory,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 implicitParametersExtractor,
@@ -320,7 +328,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
+    AmpRequestFactory ampRequestFactory(BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory,
+                                        StoredRequestProcessor storedRequestProcessor,
                                         Ortb2RequestFactory ortb2RequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
@@ -332,6 +341,7 @@ public class ServiceConfiguration {
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
+                bidRequestOrtbVersionConverterFactory,
                 storedRequestProcessor,
                 ortb2RequestFactory,
                 ortbTypesResolver,
@@ -607,6 +617,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
             DebugResolver debugResolver,
+            BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -632,6 +643,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                bidRequestOrtbVersionConverterFactory,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,

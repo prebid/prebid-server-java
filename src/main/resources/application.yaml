@@ -102,6 +102,7 @@ data-center: dataCenter
 profile: profile
 adapter-defaults:
   enabled: false
+  ortb-version: "2.5"
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:

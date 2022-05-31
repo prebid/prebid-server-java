@@ -27,6 +27,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -81,9 +82,9 @@ public class AmpRequestFactory {
     private static final String ADDTL_CONSENT_PARAM = "addtl_consent";
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
-    private static final String AMP_CHANNEL = "amp";
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
+    private final BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -95,7 +96,8 @@ public class AmpRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
-    public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
+    public AmpRequestFactory(BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory,
+                             StoredRequestProcessor storedRequestProcessor,
                              Ortb2RequestFactory ortb2RequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
@@ -106,6 +108,7 @@ public class AmpRequestFactory {
                              DebugResolver debugResolver,
                              JacksonMapper mapper) {
 
+        this.ortbVersionConverterFactory = Objects.requireNonNull(ortbVersionConverterFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -129,6 +132,8 @@ public class AmpRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(initialAuctionContext, httpRequest)
+                        .map(ortbVersionConverterFactory.getConverterForInternalUse()::convert)
+
                         .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequest, startTime)))
 

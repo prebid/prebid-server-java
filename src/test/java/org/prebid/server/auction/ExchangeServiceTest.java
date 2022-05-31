@@ -46,6 +46,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -219,6 +220,9 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock
+    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+
+    @Mock
     private HttpBidderRequester httpBidderRequester;
 
     @Mock
@@ -345,6 +349,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                ortbVersionConverterFactory,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -374,6 +379,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         schainResolver,
                         debugResolver,
+                        ortbVersionConverterFactory,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -650,6 +656,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                ortbVersionConverterFactory,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -2638,6 +2645,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                ortbVersionConverterFactory,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,

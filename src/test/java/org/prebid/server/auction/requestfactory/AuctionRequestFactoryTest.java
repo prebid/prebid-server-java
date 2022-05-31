@@ -31,6 +31,8 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -69,6 +71,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
     @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
@@ -117,6 +121,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .debugContext(DebugContext.of(true, null))
                 .build();
 
+        given(ortbVersionConverterFactory.getConverterForInternalUse())
+                .willReturn(BidRequestOrtbIdentityConverter.instance());
+
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -158,6 +165,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
+                ortbVersionConverterFactory,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -190,6 +198,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         target = new AuctionRequestFactory(
                 1,
+                ortbVersionConverterFactory,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 paramsExtractor,

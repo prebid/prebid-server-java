@@ -32,6 +32,8 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -94,6 +96,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
@@ -124,6 +128,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
+
+        given(ortbVersionConverterFactory.getConverterForInternalUse())
+                .willReturn(BidRequestOrtbIdentityConverter.instance());
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -164,6 +171,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new AmpRequestFactory(
+                ortbVersionConverterFactory,
                 storedRequestProcessor,
                 ortb2RequestFactory,
                 ortbTypesResolver,
