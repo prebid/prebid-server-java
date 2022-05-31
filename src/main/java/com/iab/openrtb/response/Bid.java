@@ -1,13 +1,8 @@
 package com.iab.openrtb.response;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.json.deserializer.BidTypeOrdinalDeserializer;
-import org.prebid.server.json.serializer.BidTypeOrdinalSerializer;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -225,9 +220,7 @@ public class Bid {
      * <p/> 3 = Audio,
      * <p/> 4 = Native
      */
-    @JsonSerialize(using = BidTypeOrdinalSerializer.class)
-    @JsonDeserialize(using = BidTypeOrdinalDeserializer.class)
-    BidType mtype;
+    Integer mtype;
 
     /**
      * Indicates that the bid response is only eligible for a specific
