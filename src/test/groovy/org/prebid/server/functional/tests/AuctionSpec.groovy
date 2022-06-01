@@ -250,9 +250,9 @@ class AuctionSpec extends BaseSpec {
         "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
     }
 
-    def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = true or id = {{UUID}}"() {
-        given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id" : (genarateBidRequest)]);
+    def 'PBS should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId'() {
+        given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
+        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id" : (generateBidRequestId)]);
 
         and:"Flush metric"
         flushMetrics()
@@ -270,25 +270,26 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "Requesting PBS auction"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Metric stored_requests_found should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics["stored_requests_found"] == 1
 
         and: "BidResponse should merged with stored request"
-        assert response.cur == currencies[0]
+        def bidderRequest = bidder.getBidderRequest(bidResponse.id)
+        assert bidderRequest.cur.first() == currencies[0]
 
-        and: "BidResponse and BidRequest shouldn't equals id"
-        assert response.id != bidRequestId
+        and: "Actual bid request ID should be different from incoming bid request id"
+        assert bidderRequest.id != bidRequestId
 
         where:
-        bidRequestId             |  genarateBidRequest
-        PBSUtils.randomString    |  "true"
+        bidRequestId             |  generateBidRequestId
         "{{UUID}}"               |  "false"
+        PBSUtils.randomString    |  "true"
     }
 
-    def "PBS shouldn't generate UUID for BidRequest id when BidRequest doesn't have App"() {
+    def "PBS shouldn't generate UUID for BidRequest id when BidRequest doesn't have APP"() {
         given: "Default bid request with stored request and id"
         def bidRequestId = PBSUtils.randomString;
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
@@ -303,12 +304,13 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "Requesting PBS auction"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should merged with stored request"
-        assert response.cur == currencies[0]
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur.first() == currencies[0]
 
-        and: "BidResponse and BidRequest should equals Id"
-        assert response.id == bidRequestId
+        and: "BidderRequest and bidRequest should equals Id"
+        assert bidderRequest.id == bidRequestId
     }
 }

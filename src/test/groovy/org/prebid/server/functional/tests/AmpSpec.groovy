@@ -17,10 +17,11 @@ class AmpSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
+    private static final Map<String,String> PROPERTY = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+                                                        "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PROPERTY)
 
     def "PBS should apply timeout from stored request when it's not specified in the request"() {
         given: "Default AMP request without timeout"
@@ -267,9 +268,9 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
-    def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = true or id = {{UUID}}"() {
-        given: "Pbs config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (genarateBidRequest)]);
+    def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
+        given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
+        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
 
         and: "Default AMP request with custom Id"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -286,11 +287,12 @@ class AmpSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = pbsService.sendAmpRequest(ampRequest)
 
-        then: "AmpResponse and BidRequest shouldn't equals id"
-        assert ampResponse.ext?.debug?.resolvedRequest?.getId() != bidRequestId
+        then: "Actual bid request ID should be different from incoming bid request id"
+        def bidderRequest = bidder.getBidderRequest(ampResponse.ext?.debug?.resolvedRequest?.id)
+        assert bidderRequest.id != bidRequestId
 
         where:
-        bidRequestId          | genarateBidRequest
+        bidRequestId          | generateBidRequestId
         PBSUtils.randomString | "true"
         "{{UUID}}"            | "false"
     }
