@@ -250,17 +250,17 @@ class AuctionSpec extends BaseSpec {
         "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
     }
 
-    def 'PBS should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId'() {
+    def "PBS should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id" : (generateBidRequestId)]);
+        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
 
-        and:"Flush metric"
+        and: "Flush metrics"
         flushMetrics()
 
         and: "Default bid request with stored request and id"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             id = bidRequestId
-            ext.prebid.storedRequest =  new PrebidStoredRequest(id:  PBSUtils.randomNumber)
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
         }
 
         and: "Save storedRequest into DB with cur and id"
@@ -276,7 +276,7 @@ class AuctionSpec extends BaseSpec {
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics["stored_requests_found"] == 1
 
-        and: "BidResponse should merged with stored request"
+        and: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
         assert bidderRequest.cur.first() == currencies[0]
 
@@ -291,7 +291,7 @@ class AuctionSpec extends BaseSpec {
 
     def "PBS shouldn't generate UUID for BidRequest id when BidRequest doesn't have APP"() {
         given: "Default bid request with stored request and id"
-        def bidRequestId = PBSUtils.randomString;
+        def bidRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             id = bidRequestId
             ext.prebid.storedRequest =  new PrebidStoredRequest(id:  PBSUtils.randomNumber)
@@ -306,11 +306,11 @@ class AuctionSpec extends BaseSpec {
         when: "Requesting PBS auction"
         prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should merged with stored request"
+        then: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur.first() == currencies[0]
 
-        and: "BidderRequest and bidRequest should equals Id"
+        and: "BidderRequest and bidRequest ids should be equal"
         assert bidderRequest.id == bidRequestId
     }
 }

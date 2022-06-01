@@ -17,11 +17,11 @@ class AmpSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
-    private static final Map<String,String> PROPERTY = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                        "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
+    private static final Map<String, String> PBS_PROPERTIES = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+                                                               "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(PROPERTY)
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_PROPERTIES)
 
     def "PBS should apply timeout from stored request when it's not specified in the request"() {
         given: "Default AMP request without timeout"
