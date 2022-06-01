@@ -6,6 +6,8 @@ import com.iab.openrtb.request.Source;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 
+import java.util.Objects;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BidRequestOrtbVersionConverterFactoryTest extends VertxTest {
@@ -15,10 +17,16 @@ public class BidRequestOrtbVersionConverterFactoryTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final BidRequestOrtbVersionConverter converter1 =
-                request -> request.toBuilder().app(App.builder().id("appId").build()).build();
-        final BidRequestOrtbVersionConverter converter2 =
-                request -> request.toBuilder().source(Source.builder().tid("sourceId").build()).build();
+        final BidRequestOrtbVersionConverter converter1 = request -> request.toBuilder()
+                .app(App.builder().id("appId").build())
+                .build();
+        final BidRequestOrtbVersionConverter converter2 = request -> {
+            if (!Objects.equals(request.getApp(), App.builder().id("appId").build())) {
+                throw new AssertionError("Invalid converters order.");
+            }
+
+            return request.toBuilder().source(Source.builder().tid("sourceId").build()).build();
+        };
 
         // when
         final BidRequestOrtbVersionConverter converter = BidRequestOrtbVersionConverterFactory
