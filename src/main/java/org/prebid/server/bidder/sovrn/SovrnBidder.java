@@ -155,6 +155,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
             final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final BidRequest request = httpCall.getRequest().getPayload();
+
             return Result.of(extractBids(bidResponse, request, bidderErrors), bidderErrors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -172,31 +173,41 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
                                                     BidRequest bidRequest,
                                                     List<BidderError> bidderErrors) {
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(updateBid(bid),
-                        resolvedBidType(bid.getImpid(), bidRequest.getImp(), bidderErrors),
+                .map(bid -> makeBidderBid(
+                        bid,
+                        resolveBidType(bid.getImpid(), bidRequest.getImp(), bidderErrors),
                         bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static Bid updateBid(Bid bid) {
-        return bid.toBuilder()
-                .adm(HttpUtil.decodeUrl(bid.getAdm()))
-                .build();
+    private static BidderBid makeBidderBid(Bid bid, BidType bidType, String cur) {
+        if (bidType == null) {
+            return null;
+        }
+
+        final Bid updatedBid = bid.toBuilder().adm(HttpUtil.decodeUrl(bid.getAdm())).build();
+        return BidderBid.of(updatedBid, bidType, cur);
     }
 
-    private static BidType resolvedBidType(String impId, List<Imp> imps, List<BidderError> bidderErrors) {
+    private static BidType resolveBidType(String impId, List<Imp> imps, List<BidderError> bidderErrors) {
         for (Imp imp : imps) {
-            if (impId.equals(imp.getId()) && imp.getVideo() != null) {
+            final boolean matchedImpId = impId.equals(imp.getId());
+            if (matchedImpId && imp.getVideo() != null) {
                 return BidType.video;
+            } else if (matchedImpId) {
+                return BidType.banner;
             }
-            bidderErrors.add(BidderError.badInput(String.format(
-                    "Imp ID %s in bid didn't match with any imp in the original request", impId)));
         }
-        return BidType.banner;
+
+        bidderErrors.add(
+                BidderError.badInput("Imp ID " + impId + " in bid didn't match with any imp in the original request"));
+        return null;
     }
 }

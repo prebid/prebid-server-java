@@ -313,7 +313,7 @@ public class SovrnBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.id("impid")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
-                        .impid("unknownId")
+                        .impid("impid")
                         .w(200)
                         .h(150)
                         .adm("<div>This is an Ad</div>")
@@ -326,18 +326,17 @@ public class SovrnBidderTest extends VertxTest {
         // then
         final BidderBid expectedBidderBid = BidderBid.of(
                 Bid.builder()
-                        .impid("unknownId")
+                        .impid("impid")
                         .w(200)
                         .h(150)
                         .adm("<div>This is an Ad</div>")
                         .dealid("dealid")
                         .price(BigDecimal.ONE)
                         .build(),
-                banner, "EUR");
+                video, "EUR");
 
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getValue())
-                .containsExactly(expectedBidderBid);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(expectedBidderBid);
     }
 
     @Test
@@ -379,7 +378,7 @@ public class SovrnBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).isNotEmpty();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
