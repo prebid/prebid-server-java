@@ -530,7 +530,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(bidRequest)
 
         and: "Bid response with bid price"
-        def bidPrice = floorValue - 1
+        def bidPrice = floorValue - 0.1
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first().bid.first().price = bidPrice
         }
