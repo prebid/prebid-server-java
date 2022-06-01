@@ -33,9 +33,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
-import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -98,7 +96,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
@@ -131,8 +129,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        given(ortbVersionConverterFactory.getConverterForInternalUse())
-                .willReturn(BidRequestOrtbIdentityConverter.instance());
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -173,7 +171,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new AmpRequestFactory(
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 storedRequestProcessor,
                 ortb2RequestFactory,
                 ortbTypesResolver,
@@ -1555,11 +1553,11 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest();
 
-        given(ortbVersionConverterFactory.getConverterForInternalUse())
-                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
-                        OrtbVersion.ORTB_2_5,
-                        OrtbVersion.ORTB_2_6,
-                        bidRequest -> bidRequest.toBuilder().source(Source.builder().tid("uniqTid").build()).build()));
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build());
 
         // when
         final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);

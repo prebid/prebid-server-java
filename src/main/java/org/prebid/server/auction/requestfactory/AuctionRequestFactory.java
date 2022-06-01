@@ -13,7 +13,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -31,7 +31,7 @@ import java.util.Objects;
 public class AuctionRequestFactory {
 
     private final long maxRequestSize;
-    private final BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
@@ -46,7 +46,7 @@ public class AuctionRequestFactory {
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
     public AuctionRequestFactory(long maxRequestSize,
-                                 BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory,
+                                 BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
@@ -59,7 +59,7 @@ public class AuctionRequestFactory {
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
-        this.ortbVersionConverterFactory = Objects.requireNonNull(ortbVersionConverterFactory);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
@@ -88,7 +88,7 @@ public class AuctionRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
-                        .map(ortbVersionConverterFactory.getConverterForInternalUse()::convert)
+                        .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
 
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)

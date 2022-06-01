@@ -32,9 +32,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
-import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -75,7 +73,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
@@ -124,8 +122,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .debugContext(DebugContext.of(true, null))
                 .build();
 
-        given(ortbVersionConverterFactory.getConverterForInternalUse())
-                .willReturn(BidRequestOrtbIdentityConverter.instance());
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -168,7 +166,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -201,7 +199,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         target = new AuctionRequestFactory(
                 1,
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -632,11 +630,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder().build());
 
-        given(ortbVersionConverterFactory.getConverterForInternalUse())
-                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
-                        OrtbVersion.ORTB_2_5,
-                        OrtbVersion.ORTB_2_6,
-                        bidRequest -> bidRequest.toBuilder().source(Source.builder().tid("uniqTid").build()).build()));
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build());
 
         // when
         target.fromRequest(routingContext, 0L);

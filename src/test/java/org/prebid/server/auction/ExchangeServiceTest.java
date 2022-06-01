@@ -46,8 +46,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbIdentityConverter;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -223,7 +222,7 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock
-    private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
 
     @Mock
     private HttpBidderRequester httpBidderRequester;
@@ -352,8 +351,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
-        given(ortbVersionConverterFactory.getConverter(any()))
-                .willReturn(BidRequestOrtbIdentityConverter.instance());
+        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
@@ -368,7 +367,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -398,7 +397,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         schainResolver,
                         debugResolver,
-                        ortbVersionConverterFactory,
+                        ortbVersionConversionManager,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -675,7 +674,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -2664,7 +2663,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                ortbVersionConverterFactory,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -4309,24 +4308,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldConvertBidRequestOpenRTBVersionToConfiguredByBidder() {
         // given
-        given(bidderCatalog.bidderInfoByName(eq("bidderName"))).willReturn(BidderInfo.create(
-                true,
-                OrtbVersion.ORTB_2_5,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                0,
-                false,
-                false));
-        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_5)))
-                .willReturn(BidRequestOrtbVersionConverterFactory.BidRequestOrtbCustomConverter.of(
-                        OrtbVersion.ORTB_2_6,
-                        OrtbVersion.ORTB_2_5,
-                        bidRequest -> bidRequest.toBuilder().source(null).build()));
+        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(null)
+                        .build());
 
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("bidderName", 1)),

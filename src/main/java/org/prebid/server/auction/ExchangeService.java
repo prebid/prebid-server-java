@@ -33,7 +33,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -159,7 +159,7 @@ public class ExchangeService {
     private final FpdResolver fpdResolver;
     private final SchainResolver schainResolver;
     private final DebugResolver debugResolver;
-    private final BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -184,7 +184,7 @@ public class ExchangeService {
                            FpdResolver fpdResolver,
                            SchainResolver schainResolver,
                            DebugResolver debugResolver,
-                           BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory,
+                           BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -212,7 +212,7 @@ public class ExchangeService {
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.schainResolver = Objects.requireNonNull(schainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
-        this.ortbVersionConverterFactory = Objects.requireNonNull(ortbVersionConverterFactory);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -1247,9 +1247,8 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        final BidRequest convertedBidRequest = ortbVersionConverterFactory.getConverter(
-                        bidderCatalog.bidderInfoByName(resolvedBidderName).getOrtbVersion())
-                .convert(bidderRequest.getBidRequest());
+        final BidRequest convertedBidRequest = ortbVersionConversionManager.convertToBidderSupportedVersion(
+                bidderRequest.getBidRequest(), resolvedBidderName);
 
         final BidderRequest modifiedBidderRequest = bidderRequest.with(convertedBidRequest);
 
