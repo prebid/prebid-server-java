@@ -20,7 +20,7 @@ public class SpringConfiguration {
     }
 
     @Bean
-    public CustomScopeConfigurer customScopeConfigurer() {
+    CustomScopeConfigurer customScopeConfigurer() {
         final CustomScopeConfigurer configurer = new CustomScopeConfigurer();
         configurer.setScopes(Collections.singletonMap(VertxContextScope.NAME, new VertxContextScope()));
         return configurer;

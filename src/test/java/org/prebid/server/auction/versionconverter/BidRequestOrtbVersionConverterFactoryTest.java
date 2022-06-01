@@ -2,11 +2,8 @@ package org.prebid.server.auction.versionconverter;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Source;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-
-import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,23 +18,30 @@ public class BidRequestOrtbVersionConverterFactoryTest extends VertxTest {
                 .app(App.builder().id("appId").build())
                 .build();
         final BidRequestOrtbVersionConverter converter2 = request -> {
-            if (!Objects.equals(request.getApp(), App.builder().id("appId").build())) {
-                throw new AssertionError("Invalid converters order.");
-            }
+            assertThat(request.getApp()).isEqualTo(App.builder().id("appId").build());
 
-            return request.toBuilder().source(Source.builder().tid("sourceId").build()).build();
+            return request.toBuilder()
+                    .app(request.getApp().toBuilder().domain("domain").build())
+                    .build();
+        };
+        final BidRequestOrtbVersionConverter converter3 = request -> {
+            assertThat(request.getApp()).isEqualTo(App.builder().id("appId").domain("domain").build());
+
+            return request.toBuilder()
+                    .app(request.getApp().toBuilder().bundle("bundle").build())
+                    .build();
         };
 
         // when
         final BidRequestOrtbVersionConverter converter = BidRequestOrtbVersionConverterFactory
-                .createChain(converter1, converter2);
+                .createChain(converter1, converter2, converter3);
 
         // and
         final BidRequest convertedBidRequest = converter.convert(bidRequest);
 
         // then
         assertThat(convertedBidRequest)
-                .extracting(BidRequest::getApp, BidRequest::getSource)
-                .containsExactly(App.builder().id("appId").build(), Source.builder().tid("sourceId").build());
+                .extracting(BidRequest::getApp)
+                .isEqualTo(App.builder().id("appId").domain("domain").bundle("bundle").build());
     }
 }
