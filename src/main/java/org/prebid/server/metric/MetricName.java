@@ -113,7 +113,9 @@ public enum MetricName {
     XML,
 
     // account.*.requests.
-    REJECTED,
+    rejected_by_invalid_account("rejected.invalid-account"),
+    rejected_by_invalid_stored_impr("rejected.invalid-stored-impr"),
+    rejected_by_invalid_stored_request("rejected.invalid-stored-request"),
 
     // currency rates
     STALE,

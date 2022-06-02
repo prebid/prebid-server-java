@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonGetter
 import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Imp
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Bid {
+class Bid implements ObjectMapperWrapper {
 
     String id
     String impid
@@ -54,11 +54,11 @@ class Bid {
 
     @JsonGetter("adm")
     String getAdm() {
-        Dependencies.objectMapperWrapper.encode(adm)
+        encode(adm)
     }
 
     @JsonSetter("adm")
     void getAdm(String adm) {
-        this.adm = Dependencies.objectMapperWrapper.decode(adm, Adm)
+        this.adm = decode(adm, Adm)
     }
 }

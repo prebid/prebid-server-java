@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.88.0-SNAPSHOT</version>
+        <version>1.90.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -68,6 +68,7 @@
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.1.210</h2.version>
         <spock.version>2.1-groovy-3.0</spock.version>
+        <groovy.version>3.0.9</groovy.version>
         <testcontainers.version>1.17.1</testcontainers.version>
         <mockserver-client.version>5.11.2</mockserver-client.version>
         <allure.version>2.17.2</allure.version>
@@ -85,7 +86,7 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
-        <gmavenplus-plugin.version>1.13.0</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
@@ -488,6 +489,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-yaml</artifactId>
+            <version>${groovy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <scope>test</scope>
@@ -737,6 +750,9 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
+                <configuration>
+                    <parallelParsing>true</parallelParsing>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

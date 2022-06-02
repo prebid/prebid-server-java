@@ -333,7 +333,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -365,7 +365,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)

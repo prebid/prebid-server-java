@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.criteo;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -13,6 +14,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.criteo.model.CriteoGdprConsent;
@@ -28,82 +30,96 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpCriteo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class CriteoBidder implements Bidder<CriteoRequest> {
 
-    private final String endpointUrl;
-    private final JacksonMapper jsonMapper;
-    private final boolean generateSlotId;
+    private static final TypeReference<ExtPrebid<?, ExtImpCriteo>> CRITEO_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
-    public CriteoBidder(String endpointUrl, JacksonMapper jsonMapper, boolean generateSlotId) {
+    private final String endpointUrl;
+    private final IdGenerator idGenerator;
+    private final JacksonMapper mapper;
+
+    public CriteoBidder(String endpointUrl,
+                        IdGenerator idGenerator,
+                        JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.jsonMapper = Objects.requireNonNull(jsonMapper);
-        this.generateSlotId = generateSlotId;
+        this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<CriteoRequest>>> makeHttpRequests(BidRequest bidRequest) {
-
-        final List<Imp> imps = bidRequest.getImp();
         final List<CriteoRequestSlot> requestSlots = new ArrayList<>();
         Integer networkId = null;
-        for (Imp imp : imps) {
-            final ExtImpCriteo extImpCriteo;
-            try {
-                extImpCriteo = parseImpExt(imp);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
 
-            final Integer impExtNetworkId = extImpCriteo.getNetworkId();
-            if (networkId == null && isPositiveInteger(impExtNetworkId)) {
-                networkId = impExtNetworkId;
-            } else if (networkId != null && !networkId.equals(impExtNetworkId)) {
-                return Result.withError(BidderError.badInput("Bid request has slots coming with several network "
-                        + "IDs which is not allowed"));
+        try {
+            for (Imp imp : bidRequest.getImp()) {
+                final ExtImpCriteo extImpCriteo = parseImpExt(imp);
+                final Integer impExtNetworkId = extImpCriteo.getNetworkId();
+
+                networkId = ObjectUtils.firstNonNull(
+                        networkId,
+                        stripNonPositiveToNull(impExtNetworkId));
+
+                validateNetworkIds(networkId, impExtNetworkId);
+
+                requestSlots.add(resolveSlot(imp, extImpCriteo));
             }
-            requestSlots.add(resolveSlot(imp, extImpCriteo));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final CriteoRequest outgoingRequest = createRequest(bidRequest, requestSlots, networkId);
-
-        return Result.withValue(HttpRequest.<CriteoRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(jsonMapper.encodeToBytes(outgoingRequest))
-                .headers(resolveHeaders(outgoingRequest))
-                .payload(outgoingRequest)
-                .build());
+        return Result.withValue(createHttpRequest(createCriterioRequest(bidRequest, requestSlots, networkId)));
     }
 
     private ExtImpCriteo parseImpExt(Imp imp) {
         try {
-            return jsonMapper.mapper().convertValue(imp.getExt().get("bidder"), ExtImpCriteo.class);
+            return mapper.mapper().convertValue(imp.getExt(), CRITEO_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static Integer stripNonPositiveToNull(Integer value) {
+        return isPositive(value) ? value : null;
+    }
+
+    private static boolean isPositive(Integer value) {
+        return value != null && value > 0;
+    }
+
+    private static void validateNetworkIds(Integer globalNetworkId, Integer currentNetworkId) {
+        if (globalNetworkId != null && !globalNetworkId.equals(currentNetworkId)) {
+            throw new PreBidException("Bid request has slots coming with several network IDs which is not allowed");
         }
     }
 
     private CriteoRequestSlot resolveSlot(Imp imp, ExtImpCriteo extImpCriteo) {
         return CriteoRequestSlot.builder()
                 .impId(imp.getId())
-                .slotId(generateSlotId ? UUID.randomUUID().toString() : null)
+                .slotId(idGenerator.generateId())
                 .sizes(resolveSlotSizes(imp.getBanner()))
-                .zoneId(getIfValid(extImpCriteo.getZoneId()))
-                .networkId(getIfValid(extImpCriteo.getNetworkId()))
+                .zoneId(stripNonPositiveToNull(extImpCriteo.getZoneId()))
+                .networkId(stripNonPositiveToNull(extImpCriteo.getNetworkId()))
                 .build();
     }
 
@@ -111,66 +127,54 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         if (banner == null) {
             return null;
         }
-        final List<String> sizes = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(banner.getFormat())) {
-            for (Format format : banner.getFormat()) {
-                sizes.add(formatSizesAsString(format.getW(), format.getH()));
-            }
-        } else if (isPositiveInteger(banner.getW()) && isPositiveInteger(banner.getH())) {
-            sizes.add(formatSizesAsString(banner.getW(), banner.getH()));
-        }
-        return sizes;
-    }
 
-    private static CriteoRequest createRequest(BidRequest bidRequest,
-                                               List<CriteoRequestSlot> requestSlots,
-                                               Integer networkId) {
-        final CriteoRequest.CriteoRequestBuilder criteoRequestBuilder = CriteoRequest.builder()
-                .id(bidRequest.getId())
-                .slots(requestSlots);
-
-        final Regs regs = bidRequest.getRegs();
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-
-        final User user = bidRequest.getUser();
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final Device device = bidRequest.getDevice();
-
-        criteoRequestBuilder
-                .publisher(resolvePublisher(bidRequest, networkId))
-                .user(resolveUser(user, device, extRegs))
-                .gdprConsent(resolveGdprConsent(extUser, extRegs));
-
-        if (extUser != null) {
-            criteoRequestBuilder.eids(extUser.getEids());
+        final List<Format> formats = banner.getFormat();
+        if (CollectionUtils.isNotEmpty(formats)) {
+            return formats.stream()
+                    .map(format -> formatSizesAsString(format.getW(), format.getH()))
+                    .collect(Collectors.toList());
         }
 
-        return criteoRequestBuilder.build();
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
+        if (isPositive(width) && isPositive(height)) {
+            return Collections.singletonList(formatSizesAsString(width, height));
+        }
+
+        return Collections.emptyList();
     }
 
     private static String formatSizesAsString(Integer w, Integer h) {
         return String.format("%sx%s", w, h);
     }
 
-    private static Integer getIfValid(Integer number) {
-        return isPositiveInteger(number) ? number : null;
-    }
+    private static CriteoRequest createCriterioRequest(BidRequest bidRequest,
+                                                       List<CriteoRequestSlot> requestSlots,
+                                                       Integer networkId) {
 
-    private static boolean isPositiveInteger(Integer integer) {
-        return integer != null && integer > 0;
+        final User user = bidRequest.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final Device device = bidRequest.getDevice();
+        final ExtRegs extRegs = ObjectUtil.getIfNotNull(bidRequest.getRegs(), Regs::getExt);
+
+        return CriteoRequest.builder()
+                .id(bidRequest.getId())
+                .slots(requestSlots)
+                .publisher(resolvePublisher(bidRequest, networkId))
+                .user(resolveUser(user, device, extRegs))
+                .gdprConsent(resolveGdprConsent(extUser, extRegs))
+                .eids(extUser != null ? extUser.getEids() : null)
+                .build();
     }
 
     private static CriteoPublisher resolvePublisher(BidRequest bidRequest, Integer networkId) {
-        final App app = bidRequest.getApp();
-        final String appBundle = app != null ? app.getBundle() : null;
         final Site site = bidRequest.getSite();
-        final String siteId = site != null ? site.getId() : null;
-        final String page = site != null ? site.getPage() : null;
+
         return CriteoPublisher.builder()
                 .networkId(networkId)
-                .bundleId(appBundle)
-                .siteId(siteId)
-                .url(page)
+                .bundleId(ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle))
+                .siteId(site != null ? site.getId() : null)
+                .url(site != null ? site.getPage() : null)
                 .build();
     }
 
@@ -179,23 +183,16 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
             return null;
         }
 
-        final String userCookieId = user != null ? user.getBuyeruid() : null;
-        final CriteoUser.CriteoUserBuilder userBuilder = CriteoUser.builder().cookieId(userCookieId);
-
-        if (device != null) {
-            userBuilder.deviceIdType(resolveDeviceType(device.getOs()))
-                    .deviceOs(device.getOs())
-                    .deviceId(device.getIfa())
-                    .ip(device.getIp())
-                    .ipV6(device.getIpv6())
-                    .userAgent(device.getUa());
-        }
-
-        if (extRegs != null) {
-            userBuilder.uspIab(extRegs.getUsPrivacy());
-        }
-
-        return userBuilder.build();
+        return CriteoUser.builder()
+                .cookieId(user != null ? user.getBuyeruid() : null)
+                .deviceIdType(device != null ? resolveDeviceType(device.getOs()) : null)
+                .deviceOs(device != null ? device.getOs() : null)
+                .deviceId(device != null ? device.getIfa() : null)
+                .ip(device != null ? device.getIp() : null)
+                .ipV6(device != null ? device.getIpv6() : null)
+                .userAgent(device != null ? device.getUa() : null)
+                .uspIab(extRegs != null ? extRegs.getUsPrivacy() : null)
+                .build();
     }
 
     private static String resolveDeviceType(String deviceOs) {
@@ -210,37 +207,48 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         }
     }
 
-    private static CriteoGdprConsent resolveGdprConsent(final ExtUser extUser, ExtRegs extRegs) {
-        final String consentData = extUser != null ? extUser.getConsent() : null;
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+    private static CriteoGdprConsent resolveGdprConsent(ExtUser extUser, ExtRegs extRegs) {
         return CriteoGdprConsent.builder()
-                .consentData(consentData)
-                .gdprApplies(Objects.equals(gdpr, 1))
+                .consentData(extUser != null ? extUser.getConsent() : null)
+                .gdprApplies(Objects.equals(extRegs != null ? extRegs.getGdpr() : null, 1))
+                .build();
+    }
+
+    private HttpRequest<CriteoRequest> createHttpRequest(CriteoRequest request) {
+        return HttpRequest.<CriteoRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(resolveHeaders(request))
+                .body(mapper.encodeToBytes(request))
+                .payload(request)
                 .build();
     }
 
     private static MultiMap resolveHeaders(CriteoRequest criteoRequest) {
         final MultiMap headers = HttpUtil.headers();
         final CriteoUser criteoUser = criteoRequest.getUser();
-
         if (criteoUser == null) {
             return headers;
         }
+
         final String cookieId = criteoUser.getCookieId();
-        if (StringUtils.isNotEmpty(cookieId)) {
-            headers.add(HttpUtil.COOKIE_HEADER, String.format("uid=%s", cookieId));
-        }
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                headers,
+                HttpUtil.COOKIE_HEADER,
+                StringUtils.isNotEmpty(cookieId) ? String.format("uid=%s", cookieId) : null);
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, criteoUser.getIp());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, criteoUser.getIpV6());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, criteoUser.getUserAgent());
+
         return headers;
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<CriteoRequest> httpCall, BidRequest bidRequest) {
         try {
-            final CriteoResponse criteoResponse
-                    = jsonMapper.decodeValue(httpCall.getResponse().getBody(), CriteoResponse.class);
+            final CriteoResponse criteoResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), CriteoResponse.class);
+
             return Result.withValues(extractBidsFromResponse(criteoResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -248,6 +256,10 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     private static List<BidderBid> extractBidsFromResponse(CriteoResponse criteoResponse) {
+        if (criteoResponse == null || CollectionUtils.isEmpty(criteoResponse.getSlots())) {
+            return Collections.emptyList();
+        }
+
         return criteoResponse.getSlots().stream()
                 .filter(Objects::nonNull)
                 .map(CriteoBidder::slotToBidderBid)
@@ -259,7 +271,6 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     private static Bid slotToBid(CriteoResponseSlot slot) {
-
         return Bid.builder()
                 .id(slot.getArbitrageId())
                 .impid(slot.getImpId())

@@ -6,7 +6,6 @@ import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.mock.services.prebidcache.response.CacheObject
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import java.util.stream.Collectors
@@ -21,8 +20,8 @@ class PrebidCache extends NetworkScaffolding {
 
     private static final String CACHE_ENDPOINT = "/cache"
 
-    PrebidCache(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, CACHE_ENDPOINT, mapper)
+    PrebidCache(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, CACHE_ENDPOINT)
     }
 
     void setXmlCacheResponse(String payload, PrebidCacheResponse prebidCacheResponse) {
@@ -70,11 +69,11 @@ class PrebidCache extends NetworkScaffolding {
 
     private String getBodyByRequest(HttpRequest request) {
         def requestString = request.bodyAsString
-        def jsonNode = mapper.toJsonNode(requestString)
+        def jsonNode = toJsonNode(requestString)
         def putsSize = jsonNode.get("puts").size()
         def cacheObjects = Stream.generate(CacheObject::getDefaultCacheObject)
                 .limit(putsSize)
                 .collect(Collectors.toList())
-        mapper.encode(new PrebidCacheResponse(responses: cacheObjects))
+        encode(new PrebidCacheResponse(responses: cacheObjects))
     }
 }

@@ -80,6 +80,25 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
+    public void shouldNotEnforceIfRequestFloorsDisabled() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder().enabled(false).build())
+                        .build())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
     public void shouldNotEnforceIfRequestFloorsSkipped() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
@@ -175,6 +194,25 @@ public class BasicPriceFloorEnforcerTest {
                 identity(),
                 identity(),
                 givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
+    public void shouldTolerateMissingBidderRequestCase() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(givenImps(identity())));
+
+        final AuctionParticipation auctionParticipation = AuctionParticipation.builder()
+                .bidderRequest(null)
+                .bidderResponse(BidderResponse.of("bidder", givenBidderSeatBid(identity()), 0))
+                .build();
 
         final Account account = givenAccount(identity());
 

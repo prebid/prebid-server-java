@@ -7,10 +7,8 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
-@PBSTest
 class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
@@ -19,7 +17,7 @@ class CacheSpec extends BaseSpec {
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
-        def creative = mapper.encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
 
         when: "PBS processes vtrack request"

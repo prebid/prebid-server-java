@@ -312,7 +312,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(storedRequestProcessor).processStoredRequests(any(), captor.capture());
+        verify(storedRequestProcessor).processAuctionRequest(any(), captor.capture());
 
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getSite()).isNull();
@@ -533,14 +533,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(storedRequestProcessor).processStoredRequests(eq(ACCOUNT_ID), any());
+        verify(storedRequestProcessor).processAuctionRequest(eq(ACCOUNT_ID), any());
     }
 
     @Test
     public void shouldReturnFailedFutureIfProcessStoredRequestsFailed() {
         // given
         givenValidBidRequest();
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -632,7 +632,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenProcessStoredRequest(BidRequest bidRequest) {
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(bidRequest));
     }
 

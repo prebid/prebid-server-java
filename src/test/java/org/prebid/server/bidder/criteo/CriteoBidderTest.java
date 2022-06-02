@@ -31,6 +31,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.identity.NoneIdGenerator;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpCriteo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -42,18 +44,18 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.tuple;
 
 public class CriteoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-    private static final String UUID_REGEX = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
-            + "-[0-9a-fA-F]{12}";
 
     private CriteoBidder criteoBidder;
 
@@ -62,13 +64,13 @@ public class CriteoBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, false);
+        criteoBidder = new CriteoBidder(ENDPOINT_URL, new NoneIdGenerator(), jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         Assertions.assertThatIllegalArgumentException().isThrownBy(() ->
-                new CriteoBidder("invalid_url", jacksonMapper, false));
+                new CriteoBidder("invalid_url", new NoneIdGenerator(), jacksonMapper));
     }
 
     @Test
@@ -118,9 +120,9 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder().format(singletonList(Format.builder()
-                        .w(222)
-                        .h(333)
-                        .build()))
+                                .w(222)
+                                .h(333)
+                                .build()))
                         .build()));
 
         // when
@@ -138,7 +140,7 @@ public class CriteoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldGenerateSlotIdIfGenerateIdPropertyIsTrue() {
         // given
-        criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, true);
+        criteoBidder = new CriteoBidder(ENDPOINT_URL, new UUIDIdGenerator(), jacksonMapper);
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
@@ -150,7 +152,7 @@ public class CriteoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(CriteoRequest::getSlots)
                 .extracting(CriteoRequestSlot::getSlotId)
-                .allSatisfy(slotId -> assertThat(slotId).matches(UUID_REGEX));
+                .allSatisfy(slotId -> assertThatNoException().isThrownBy(() -> UUID.fromString(slotId)));
     }
 
     @Test
@@ -341,8 +343,8 @@ public class CriteoBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .id("bid-request-id")
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .id("bid-request-id")
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .user(User.builder().buyeruid("buyerid").ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().os("ios").ifa("ifa").ip("255.255.255.255").ua("userAgent").build())
                 .site(Site.builder().id("siteId").page("www.criteo.com").build())
@@ -352,14 +354,14 @@ public class CriteoBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("imp_id")
-                .banner(Banner.builder()
-                        .id("banner_id")
-                        .h(300)
-                        .w(300)
-                        .build()
-                )
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1)))))
+                        .id("imp_id")
+                        .banner(Banner.builder()
+                                .id("banner_id")
+                                .h(300)
+                                .w(300)
+                                .build()
+                        )
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1)))))
                 .build();
     }
 

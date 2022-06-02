@@ -9,7 +9,7 @@ import groovy.transform.ToString
 class Deal {
 
     String id
-    Float bidFloor
+    BigDecimal bidFloor
     String bidFloorCur
     Integer at
     List<String> wseat
