@@ -13,6 +13,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -90,7 +91,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
@@ -157,7 +157,7 @@ public class ExchangeService {
     private final DealsProcessor dealsProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
-    private final SchainResolver schainResolver;
+    private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final HttpBidderRequester httpBidderRequester;
@@ -182,7 +182,7 @@ public class ExchangeService {
                            DealsProcessor dealsProcessor,
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
-                           SchainResolver schainResolver,
+                           SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
                            BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                            HttpBidderRequester httpBidderRequester,
@@ -210,7 +210,7 @@ public class ExchangeService {
         this.dealsProcessor = Objects.requireNonNull(dealsProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
-        this.schainResolver = Objects.requireNonNull(schainResolver);
+        this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
@@ -1085,7 +1085,7 @@ public class ExchangeService {
     private Source prepareSource(String bidder, BidRequest bidRequest) {
         final Source receivedSource = bidRequest.getSource();
 
-        final ExtSourceSchain bidderSchain = schainResolver.resolveForBidder(bidder, bidRequest);
+        final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null) {
             return receivedSource;

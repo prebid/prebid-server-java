@@ -10,6 +10,8 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -36,9 +38,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -387,10 +387,9 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedBannerRequestWithSchain() {
         // given
-        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+        final SupplyChainNode globalNode = SupplyChainNode.of(
                 "pbshostcompany.com", "00001", null, null, null, null, null);
-        final ExtSourceSchain expectedSchain = ExtSourceSchain.of(
-                null, null, singletonList(globalNode), null);
+        final SupplyChain expectedSchain = SupplyChain.of(null, singletonList(globalNode), null, null);
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder

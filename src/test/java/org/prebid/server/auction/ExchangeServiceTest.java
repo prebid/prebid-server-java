@@ -21,6 +21,8 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -111,11 +113,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -214,7 +214,7 @@ public class ExchangeServiceTest extends VertxTest {
     private FpdResolver fpdResolver;
 
     @Mock
-    private SchainResolver schainResolver;
+    private SupplyChainResolver supplyChainResolver;
 
     @Mock
     private DebugResolver debugResolver;
@@ -299,7 +299,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
+        given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
         given(hookStageExecutor.executeBidderRequestStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -350,7 +350,7 @@ public class ExchangeServiceTest extends VertxTest {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 ortbVersionConversionManager,
                 httpBidderRequester,
@@ -380,7 +380,7 @@ public class ExchangeServiceTest extends VertxTest {
                         dealsProcessor,
                         privacyEnforcementService,
                         fpdResolver,
-                        schainResolver,
+                        supplyChainResolver,
                         debugResolver,
                         ortbVersionConversionManager,
                         httpBidderRequester,
@@ -657,7 +657,7 @@ public class ExchangeServiceTest extends VertxTest {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 ortbVersionConversionManager,
                 httpBidderRequester,
@@ -762,17 +762,13 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
         givenBidder(bidder3Name, bidder3, givenEmptySeatBid());
 
-        final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
-                "asi", "sid", 1, "rid", "name", "domain", null);
-        final ExtSourceSchain specificSchain = ExtSourceSchain.of(
-                "ver", 1, singletonList(specificNodes), null);
+        final SupplyChainNode specificNodes = SupplyChainNode.of("asi", "sid", "rid", "name", "domain", 1, null);
+        final SupplyChain specificSchain = SupplyChain.of(1, singletonList(specificNodes), "ver", null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
                 asList(bidder1Name, bidder2Name), specificSchain);
 
-        final ExtRequestPrebidSchainSchainNode generalNodes = ExtRequestPrebidSchainSchainNode.of(
-                "t", null, 0, "a", null, "ads", null);
-        final ExtSourceSchain generalSchain = ExtSourceSchain.of(
-                "t", 123, singletonList(generalNodes), null);
+        final SupplyChainNode generalNodes = SupplyChainNode.of("t", null, "a", null, "ads", 0, null);
+        final SupplyChain generalSchain = SupplyChain.of(123, singletonList(generalNodes), "t", null);
         final ExtRequestPrebidSchain allSchain = ExtRequestPrebidSchain.of(singletonList("*"), generalSchain);
 
         final ExtRequest extRequest = ExtRequest.of(
@@ -787,9 +783,9 @@ public class ExchangeServiceTest extends VertxTest {
                         givenImp(singletonMap(bidder3Name, 3), identity())),
                 builder -> builder.ext(extRequest));
 
-        given(schainResolver.resolveForBidder(eq("bidder1"), same(bidRequest))).willReturn(specificSchain);
-        given(schainResolver.resolveForBidder(eq("bidder2"), same(bidRequest))).willReturn(specificSchain);
-        given(schainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder1"), same(bidRequest))).willReturn(specificSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder2"), same(bidRequest))).willReturn(specificSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -798,7 +794,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue().getBidRequest();
-        final ExtSourceSchain requestSchain1 = capturedBidRequest1.getSource().getExt().getSchain();
+        final SupplyChain requestSchain1 = capturedBidRequest1.getSource().getExt().getSchain();
         assertThat(requestSchain1).isNotNull();
         assertThat(requestSchain1).isEqualTo(specificSchain);
         assertThat(capturedBidRequest1.getExt().getPrebid().getSchains()).isNull();
@@ -806,7 +802,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue().getBidRequest();
-        final ExtSourceSchain requestSchain2 = capturedBidRequest2.getSource().getExt().getSchain();
+        final SupplyChain requestSchain2 = capturedBidRequest2.getSource().getExt().getSchain();
         assertThat(requestSchain2).isNotNull();
         assertThat(requestSchain2).isEqualTo(specificSchain);
         assertThat(capturedBidRequest2.getExt().getPrebid().getSchains()).isNull();
@@ -814,7 +810,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest3Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder3), bidRequest3Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest3 = bidRequest3Captor.getValue().getBidRequest();
-        final ExtSourceSchain requestSchain3 = capturedBidRequest3.getSource().getExt().getSchain();
+        final SupplyChain requestSchain3 = capturedBidRequest3.getSource().getExt().getSchain();
         assertThat(requestSchain3).isNotNull();
         assertThat(requestSchain3).isEqualTo(generalSchain);
         assertThat(capturedBidRequest3.getExt().getPrebid().getSchains()).isNull();
@@ -831,7 +827,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
-                        .regs(Regs.of(null, ExtRegs.of(1, null))));
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build()));
 
         // when
         final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1702,7 +1698,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
 
-        final Regs regs = Regs.of(null, null);
+        final Regs regs = Regs.builder().build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder().build())
                         .device(Device.builder().lmt(1).build())
@@ -2646,7 +2642,7 @@ public class ExchangeServiceTest extends VertxTest {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 ortbVersionConversionManager,
                 httpBidderRequester,
@@ -4076,7 +4072,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final Deal expectedDeal = Deal.builder()
                 .id("dealId1")
-                .bidfloor(0.0f)
                 .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, null, null, null))))
                 .build();
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -4182,8 +4177,8 @@ public class ExchangeServiceTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.source(Source.builder().build()));
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        final ExtSourceSchain givenExtSourceSchain = ExtSourceSchain.of("", 1, singletonList(null), null);
-        given(schainResolver.resolveForBidder(any(), any()))
+        final SupplyChain givenExtSourceSchain = SupplyChain.of(1, singletonList(null), "", null);
+        given(supplyChainResolver.resolveForBidder(any(), any()))
                 .willReturn(givenExtSourceSchain);
 
         given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))

@@ -18,11 +18,9 @@
         }
       },
       "pmp": {
-        "private_auction": 0,
         "deals": [
           {
             "id": "dealId1",
-            "bidfloor": 0.0,
             "ext": {
               "line": {
                 "lineitemid": "lineItem1",
@@ -38,7 +36,6 @@
           },
           {
             "id": "dealId3",
-            "bidfloor": 0.0,
             "ext": {
               "line": {
                 "lineitemid": "lineItem3",
