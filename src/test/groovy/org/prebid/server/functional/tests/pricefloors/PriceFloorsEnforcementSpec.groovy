@@ -506,4 +506,46 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         where: bidRequestFloors << [true, false]
     }
+
+     def "PBS floors shouldn't enforce when floors property disabled"() {
+        given: "BidRequestWithFloors with floors"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: bidRequestFloors)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = accountConfigFloors
+        }
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(bidRequest)
+
+        and: "Bid response with bid price"
+        def bidPrice = floorValue - 0.1
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.first().price = bidPrice
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't suppress bid lower than floorRuleValue"
+        assert response.seatbid.first().bid.collect { it.price } == [bidPrice]
+
+        where:
+        bidRequestFloors     | accountConfigFloors
+        false                | true
+        true                 | false
+        false                | false
+    }
 }
