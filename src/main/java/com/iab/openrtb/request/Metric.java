@@ -18,15 +18,16 @@ public class Metric {
     /**
      * Type of metric being presented using exchange curated string names which
      * should be published to bidders <em>a priori</em>.
-     * (required)
+     * <p/> (required)
      */
     String type;
 
     /**
      * Number representing the value of the metric. Probabilities must be
      * in the range 0.0 – 1.0.
+     * <p/> (required)
      */
-    float value;
+    Float value;
 
     /**
      * Source of the value using exchange curated string names which should be
@@ -35,6 +36,8 @@ public class Metric {
      */
     String vendor;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

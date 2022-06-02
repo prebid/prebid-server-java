@@ -1650,7 +1650,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFillRegsIfRegsAndGdprArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.regs(Regs.of(null, ExtRegs.of(50, null))),
+                builder -> builder.regs(Regs.builder().ext(ExtRegs.of(50, null)).build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -1662,7 +1662,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
-                .containsOnly(Regs.of(null, ExtRegs.of(50, null)));
+                .containsOnly(Regs.builder().ext(ExtRegs.of(50, null)).build());
     }
 
     @Test
@@ -2701,7 +2701,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsExactly(
-                        BidderError.badInput("Ipf for imp `123` provided floor with no currency, assuming USD"));
+                BidderError.badInput("Ipf for imp `123` provided floor with no currency, assuming USD"));
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()

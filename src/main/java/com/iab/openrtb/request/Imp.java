@@ -17,7 +17,7 @@ import java.util.List;
  * individually.
  * <p>The presence of {@link Banner} (Section 3.2.6),
  * {@link Video} (Section 3.2.7), and/or {@link Native} (Section 3.2.9) objects
- * subordinate to the Imp object indicates the type of impression being offered.
+ * subordinate to the {@link Imp} object indicates the type of impression being offered.
  * The publisher can choose one such type which is the typical case or mix them
  * at their discretion. However, any given bid for the impression must conform
  * to one of the offered types.
@@ -29,33 +29,35 @@ public class Imp {
     /**
      * A unique identifier for this impression within the context of the bid
      * request (typically, starts with 1 and increments.
-     * (required)
+     * <p/> (required)
      */
     String id;
 
     /**
-     * A Banner object (Section 3.2.6); required if this impression is offered
+     * An array of {@link Metric} object (Section 3.2.5).
+     */
+    List<Metric> metric;
+
+    /**
+     * A {@link Banner} object (Section 3.2.6); required if this impression is offered
      * as a banner ad opportunity.
      */
     Banner banner;
 
-    /** An array of Metric object (Section 3.2.5). */
-    List<Metric> metric;
-
     /**
-     * A Video object (Section 3.2.7); required if this impression is offered as
+     * A {@link Video} object (Section 3.2.7); required if this impression is offered as
      * a video ad opportunity.
      */
     Video video;
 
     /**
-     * An Audio object (Section 3.2.8); required if this impression is offered
+     * An {@link Audio} object (Section 3.2.8); required if this impression is offered
      * as an audio ad opportunity.
      */
     Audio audio;
 
     /**
-     * A Native object (Section 3.2.9); required if this impression is offered
+     * A {@link Native} object (Section 3.2.9); required if this impression is offered
      * as a native ad opportunity.
      */
     @JsonProperty("native")
@@ -63,7 +65,7 @@ public class Imp {
     Native xNative;
 
     /**
-     * A Pmp object (Section 3.2.11) containing any private marketplace deals in
+     * A {@link Pmp} object (Section 3.2.11) containing any private marketplace deals in
      * effect for this impression.
      */
     Pmp pmp;
@@ -71,18 +73,20 @@ public class Imp {
     /**
      * Name of ad mediation partner, SDK technology, or player responsible for
      * rendering ad (typically video or mobile). Used by some ad servers to
-     * customize ad code by partner. Recommended for video and/or apps.
+     * customize ad code by partner. <p/> Recommended for video and/or apps.
      */
     String displaymanager;
 
     /**
      * Version of ad mediation partner, SDK technology, or player responsible
      * for rendering ad (typically video or mobile). Used by some ad servers to
-     * customize ad code by partner. Recommended for video and/or apps.
+     * customize ad code by partner. <p/> Recommended for video and/or apps.
      */
     String displaymanagerver;
 
-    /** 1 = the ad is interstitial or full screen, 0 = not interstitial. */
+    /**
+     * 1 = the ad is interstitial or full screen, 0 = not interstitial.
+     */
     Integer instl;
 
     /**
@@ -92,7 +96,9 @@ public class Imp {
      */
     String tagid;
 
-    /** Minimum bid for this impression expressed in CPM. */
+    /**
+     * Minimum bid for this impression expressed in CPM.
+     */
     BigDecimal bidfloor;
 
     /**
@@ -116,8 +122,28 @@ public class Imp {
      */
     Integer secure;
 
-    /** Array of exchange-specific names of supported iframe busters. */
+    /**
+     * Array of exchange-specific names of supported iframe busters.
+     */
     List<String> iframebuster;
+
+    /**
+     * Indicates whether the user receives a reward for viewing the
+     * ad, where 0 = no, 1 = yes. Typically video ad implementations
+     * allow users to read an additional news article for free, receive
+     * an extra life in a game, or get a sponsored ad-free music session.
+     * The reward is typically distributed after the video ad is completed.
+     */
+    Integer rwdd;
+
+    /**
+     * Indicates if server-side ad insertion (e.g., stitching an ad into an
+     * audio or video stream) is in use and the impact of this on asset
+     * and tracker retrieval, where 0 = status unknown, 1 = all client-side
+     * (i.e., not server-side), 2 = assets stitched server-side but
+     * tracking pixels fired client-side, 3 = all server-side.
+     */
+    Integer ssai;
 
     /**
      * Advisory as to the number of seconds that may elapse between the auction
@@ -125,6 +151,8 @@ public class Imp {
      */
     Integer exp;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

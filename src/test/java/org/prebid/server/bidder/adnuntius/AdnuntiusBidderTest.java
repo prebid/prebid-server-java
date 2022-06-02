@@ -190,7 +190,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     private void makeHttpRequestsShouldReturnRequestsWithCorrectUri(Integer gdpr, String consent) {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.of(null, ExtRegs.of(gdpr, null)))
+                        .regs(Regs.builder().ext(ExtRegs.of(gdpr, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(consent).build()).build()),
                 givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network"), identity()));
 

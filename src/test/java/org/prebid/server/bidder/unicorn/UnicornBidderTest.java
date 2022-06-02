@@ -99,7 +99,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfCoppaIsOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(1, null)), identity());
+                bidRequestBuilder -> bidRequestBuilder.regs(Regs.builder().coppa(1).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
@@ -110,8 +110,8 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfGdprIsOne() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(0, ExtRegs.of(1, null))), identity());
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
@@ -122,8 +122,8 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfUsPrivacyIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(0, ExtRegs.of(0, "privacy"))), identity());
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy")).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
@@ -310,7 +310,7 @@ public class UnicornBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -319,9 +319,11 @@ public class UnicornBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("123")
+                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                        null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
                 .build();
     }
 

@@ -18,7 +18,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.SchainResolver;
+import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -185,11 +185,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SchainResolver schainResolver(
+    SupplyChainResolver schainResolver(
             @Value("${auction.host-schain-node}") String globalSchainNode,
             JacksonMapper mapper) {
 
-        return SchainResolver.create(globalSchainNode, mapper);
+        return SupplyChainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
@@ -605,7 +605,7 @@ public class ServiceConfiguration {
             DealsProcessor dealsProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
-            SchainResolver schainResolver,
+            SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
@@ -630,7 +630,7 @@ public class ServiceConfiguration {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 httpBidderRequester,
                 responseBidValidator,

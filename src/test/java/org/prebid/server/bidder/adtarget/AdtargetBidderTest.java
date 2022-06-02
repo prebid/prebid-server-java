@@ -398,11 +398,11 @@ public class AdtargetBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.of(0, ExtRegs.of(1, null)))
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                 .build();
     }
 
@@ -412,10 +412,10 @@ public class AdtargetBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("impId")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))))))
+                        .id("impId")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))))))
                 .build();
     }
 
