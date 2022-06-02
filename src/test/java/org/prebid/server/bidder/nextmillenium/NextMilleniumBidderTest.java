@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -112,7 +112,7 @@ public class NextMilleniumBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -128,7 +128,7 @@ public class NextMilleniumBidderTest extends VertxTest {
     public void makeBidsWithZeroSeatBidsShouldReturnNoErrorsAndNoValues() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(Collections.emptyList())
                         .build()));
@@ -145,7 +145,7 @@ public class NextMilleniumBidderTest extends VertxTest {
     public void makeBidsWithUnparsableBidResponseShouldReturnError() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.createArrayNode().toString());
 
         // when
@@ -192,8 +192,8 @@ public class NextMilleniumBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

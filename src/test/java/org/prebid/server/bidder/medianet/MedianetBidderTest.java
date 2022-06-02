@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -61,7 +61,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = sampleHttpCall(givenBidRequest(), "invalid response");
+        final BidderHttpCall<BidRequest> httpCall = sampleHttpCall(givenBidRequest(), "invalid response");
 
         // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
@@ -75,7 +75,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall;
+        final BidderHttpCall<BidRequest> httpCall;
         httpCall = sampleHttpCall(givenBidRequest(), mapper.writeValueAsString(null));
 
         // when
@@ -89,7 +89,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall;
+        final BidderHttpCall<BidRequest> httpCall;
         httpCall = sampleHttpCall(null, mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -103,7 +103,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = sampleHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = sampleHttpCall(
                 givenBidRequest(),
                 mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -126,8 +126,8 @@ public class MedianetBidderTest extends VertxTest {
             .build();
     }
 
-    private static HttpCall<BidRequest> sampleHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> sampleHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
             HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
             HttpResponse.of(200, null, body),
             null);

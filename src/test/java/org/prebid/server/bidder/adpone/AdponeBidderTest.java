@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -101,7 +101,7 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
@@ -117,7 +117,7 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
@@ -130,7 +130,7 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
@@ -144,7 +144,7 @@ public class AdponeBidderTest extends VertxTest {
     public void makeBidsShouldReturnReturnBannerBid() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().id("bidId").build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
@@ -169,8 +169,8 @@ public class AdponeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);

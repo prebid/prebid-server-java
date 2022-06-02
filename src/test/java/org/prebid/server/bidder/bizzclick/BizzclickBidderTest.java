@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -237,7 +237,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -250,7 +250,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("null", null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -263,7 +263,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(identity()), null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(identity()), null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -276,7 +276,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(emptyList())), null);
 
         // when
@@ -290,7 +290,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldRelyOnlyOnFirstSeatBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(List.of(
                         SeatBid.builder().bid(singletonList(Bid.builder().id("1").build())).build(),
                         SeatBid.builder().bid(singletonList(Bid.builder().id("2").build())).build()))),
@@ -310,7 +310,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(null))), null);
 
         // when
@@ -324,7 +324,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(SeatBid.builder().build()))), null);
 
         // when
@@ -338,7 +338,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithBannerMediaTypeByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(singletonList(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1"))));
@@ -356,7 +356,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithVideoMediaTypeIfImpVideoPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1").video(Video.builder().build()))));
@@ -376,7 +376,7 @@ public class BizzclickBidderTest extends VertxTest {
             throws JsonProcessingException {
 
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1").xNative(Native.builder().build()))));
@@ -394,7 +394,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(singletonList(Bid.builder().build())).build()))),
                 givenBidRequest(givenImp(identity())));
@@ -432,10 +432,10 @@ public class BizzclickBidderTest extends VertxTest {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
 
-    private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
+    private BidderHttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderHttpCall.succeededHttp(request, response, null);
     }
 
     private String givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> responseCustomizer)

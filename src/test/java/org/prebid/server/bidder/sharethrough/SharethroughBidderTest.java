@@ -23,7 +23,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -238,7 +238,7 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
@@ -256,7 +256,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
@@ -270,7 +270,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -285,7 +285,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -303,7 +303,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -320,7 +320,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -373,8 +373,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

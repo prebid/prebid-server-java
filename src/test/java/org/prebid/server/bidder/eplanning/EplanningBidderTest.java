@@ -21,7 +21,7 @@ import org.prebid.server.bidder.eplanning.model.HbResponseAd;
 import org.prebid.server.bidder.eplanning.model.HbResponseSpace;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -422,7 +422,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+        final BidderHttpCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, null);
@@ -437,7 +437,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderHttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(HbResponse.of(
                         singletonList(HbResponseSpace.of("testadun_itco_de",
                                 singletonList(HbResponseAd.builder()
@@ -475,7 +475,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfMissingAdunitCode() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderHttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(HbResponse.of(
                         singletonList(HbResponseSpace.of("1x1",
                                 singletonList(HbResponseAd.builder()
@@ -514,7 +514,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotCrashIfThereAreNoSpaces() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderHttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(HbResponse.of(null)));
 
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -530,7 +530,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotCrashIfThereAreNoAds() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderHttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(HbResponse.of(
                         singletonList(HbResponseSpace.of("adless", null)))));
 
@@ -565,7 +565,7 @@ public class EplanningBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+    private static BidderHttpCall<Void> givenHttpCall(String body) {
+        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

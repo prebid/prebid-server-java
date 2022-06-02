@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -68,7 +68,7 @@ public class EvolutionBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = evolutionBidder.makeBids(httpCall, null);
@@ -85,7 +85,7 @@ public class EvolutionBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = evolutionBidder.makeBids(httpCall, null);
@@ -98,7 +98,7 @@ public class EvolutionBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -112,7 +112,7 @@ public class EvolutionBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
@@ -126,7 +126,7 @@ public class EvolutionBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithValidTypes() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(
@@ -165,8 +165,8 @@ public class EvolutionBidderTest extends VertxTest {
         return Bid.builder().impid(impid).ext(mapper.createObjectNode().put("mediaType", bidType)).build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

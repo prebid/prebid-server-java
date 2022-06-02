@@ -24,9 +24,10 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -176,7 +177,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        final ArgumentCaptor<HttpCall<BidRequest>> httpCallArgumentCaptor = ArgumentCaptor.forClass(HttpCall.class);
+        final ArgumentCaptor<BidderHttpCall<BidRequest>> httpCallArgumentCaptor = ArgumentCaptor.forClass(BidderHttpCall.class);
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
@@ -499,15 +500,23 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody(mapper.writeValueAsString(firstBidRequest))
+        assertThat(bidderSeatBid.getHttpCalls()).containsExactlyInAnyOrder(
+                ExtHttpCall.builder()
+                        .uri("uri1")
+                        .requestbody(mapper.writeValueAsString(firstBidRequest))
                         .responsebody("responseBody1")
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
-                        .status(200).build(),
-                ExtHttpCall.builder().uri("uri2").requestbody(mapper.writeValueAsString(secondBidRequest))
+                        .calltype(BidderCallType.HTTP)
+                        .status(200)
+                        .build(),
+                ExtHttpCall.builder()
+                        .uri("uri2")
+                        .requestbody(mapper.writeValueAsString(secondBidRequest))
                         .responsebody("responseBody2")
+                        .calltype(BidderCallType.HTTP)
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
-                        .status(200).build());
+                        .status(200)
+                        .build());
     }
 
     @Test
@@ -569,8 +578,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                         true).result();
 
         // then
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody(mapper.writeValueAsString(givenBidRequest))
+        assertThat(bidderSeatBid.getHttpCalls()).containsExactly(
+                ExtHttpCall.builder()
+                        .uri("uri1")
+                        .requestbody(mapper.writeValueAsString(givenBidRequest))
+                        .calltype(BidderCallType.HTTP)
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .build());
     }
@@ -602,8 +614,10 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1")
+        assertThat(bidderSeatBid.getHttpCalls()).containsExactly(
+                ExtHttpCall.builder()
+                        .uri("uri1")
+                        .calltype(BidderCallType.HTTP)
                         .requestbody(mapper.writeValueAsString(givenBidRequest))
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .build());
@@ -636,14 +650,18 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody(mapper.writeValueAsString(givenBidRequest))
+        assertThat(bidderSeatBid.getHttpCalls()).containsExactly(
+                ExtHttpCall.builder()
+                        .uri("uri1")
+                        .requestbody(mapper.writeValueAsString(givenBidRequest))
                         .responsebody("responseBody1")
+                        .calltype(BidderCallType.HTTP)
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(500).build());
-        assertThat(bidderSeatBid.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage).containsOnly(
-                        "Unexpected status code: 500. Run with request.test = 1 for more info");
+
+        assertThat(bidderSeatBid.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("Unexpected status code: 500. Run with request.test = 1 for more info");
     }
 
     @Test

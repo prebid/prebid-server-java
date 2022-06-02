@@ -12,7 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -97,7 +97,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
@@ -119,7 +119,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderHttpCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

@@ -24,7 +24,7 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
 import org.prebid.server.bidder.adnuntius.model.util.AdsUnitWithImpId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -189,7 +189,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<AdnuntiusRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<AdnuntiusRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
             final AdnuntiusResponse bidResponse = mapper.decodeValue(body, AdnuntiusResponse.class);

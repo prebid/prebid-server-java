@@ -26,7 +26,7 @@ import org.prebid.server.bidder.adhese.model.CpmValues;
 import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -169,7 +169,7 @@ public class AdheseBidder implements Bidder<AdheseRequestBody> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
 
         final JsonNode bodyNode;

@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -174,7 +174,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -191,7 +191,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("null", null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -204,7 +204,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("{}", null);
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("{}", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -217,7 +217,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithCorrectMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse("id1", "id2"),
                 givenBidRequest(givenImp(imp -> imp.id("id2")),
                         givenImp(imp -> imp.id("id1").banner(Banner.builder().build()))));
@@ -234,7 +234,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
                 givenBidRequest(givenImp(identity()), givenImp(identity())));
 
         // when
@@ -271,10 +271,10 @@ public class VideobyteBidderTest extends VertxTest {
         return givenImp(identity(), impCustomizer);
     }
 
-    private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
+    private BidderHttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderHttpCall.succeededHttp(request, response, null);
     }
 
     private String givenBidResponse(String... impIds) throws JsonProcessingException {

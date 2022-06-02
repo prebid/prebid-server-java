@@ -19,7 +19,7 @@ import org.prebid.server.bidder.gamma.model.GammaBidResponse;
 import org.prebid.server.bidder.gamma.model.GammaSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -194,7 +194,7 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<Void> httpCall, BidRequest bidRequest) {
         final String body = httpCall.getResponse().getBody();
         if (body == null) {
             return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));

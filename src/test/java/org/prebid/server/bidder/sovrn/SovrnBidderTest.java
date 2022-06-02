@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -504,7 +504,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -519,7 +519,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
@@ -554,7 +554,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -575,7 +575,7 @@ public class SovrnBidderTest extends VertxTest {
                 .returns("encoded url test", bidderBid -> bidderBid.getBid().getAdm());
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
+        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

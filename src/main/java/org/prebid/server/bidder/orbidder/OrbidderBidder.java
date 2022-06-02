@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -104,7 +104,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
@@ -122,7 +122,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         return Result.of(bidderBids, Collections.emptyList());
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderHttpCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

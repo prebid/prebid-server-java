@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -107,7 +107,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = colossusBidder.makeBids(httpCall, null);
@@ -122,7 +122,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = colossusBidder.makeBids(httpCall, null);
@@ -135,7 +135,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -149,7 +149,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -164,7 +164,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnxNativerBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(null).video(null).xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -180,7 +180,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.banner(null)),
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.banner(null)),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -195,7 +195,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfDoesHaveAnyBidType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(null).video(null).id("0")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -237,8 +237,8 @@ public class ColossusBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
 }

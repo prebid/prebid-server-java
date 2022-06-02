@@ -16,7 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -203,7 +203,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.withValues(extractBids(httpCall));
         } catch (PreBidException e) {
@@ -211,7 +211,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+    private List<BidderBid> extractBids(BidderHttpCall<BidRequest> httpCall) {
         final BidResponse bidResponse;
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);

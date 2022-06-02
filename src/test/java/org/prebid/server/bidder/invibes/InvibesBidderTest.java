@@ -21,7 +21,7 @@ import org.prebid.server.bidder.invibes.model.InvibesPlacementProperty;
 import org.prebid.server.bidder.invibes.model.InvibesTypedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -297,7 +297,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderHttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
@@ -312,7 +312,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderHttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
@@ -325,7 +325,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<InvibesBidRequest> httpCall = givenHttpCall(
                 InvibesBidRequest.builder().build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
@@ -341,7 +341,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIdBidResponseContainsError() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<InvibesBidRequest> httpCall = givenHttpCall(
                 InvibesBidRequest.builder().build(),
                 mapper.writeValueAsString(InvibesBidderResponse.builder().error("someError").build()));
 
@@ -365,8 +365,8 @@ public class InvibesBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<InvibesBidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

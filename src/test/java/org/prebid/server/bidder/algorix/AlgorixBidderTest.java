@@ -16,7 +16,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderHttpCall;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderBid;
@@ -172,7 +172,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -189,7 +189,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -202,7 +202,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -216,7 +216,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -235,7 +235,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -254,7 +254,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
@@ -273,7 +273,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
@@ -292,7 +292,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfAlgorixBidExtOfBannerMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
@@ -313,7 +313,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfAlgorixBidExtOfVideoMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
@@ -334,7 +334,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfAlgorixBidExtOfNativeMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
@@ -389,8 +389,8 @@ public class AlgorixBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderHttpCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
