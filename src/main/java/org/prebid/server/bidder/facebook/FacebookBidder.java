@@ -24,7 +24,7 @@ import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -267,7 +267,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);

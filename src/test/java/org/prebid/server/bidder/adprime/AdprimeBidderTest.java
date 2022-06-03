@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -211,7 +211,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = adprimeBidder.makeBids(httpCall, null);
@@ -226,7 +226,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = adprimeBidder.makeBids(httpCall, null);
@@ -239,7 +239,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -253,7 +253,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfNoBidTypeIsPresent() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequestWithDefaultBidRequest(impCustomizer -> impCustomizer.id("123")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -268,7 +268,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfNoBannerAndHasVideo() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequestWithDefaultBidRequest(impCustomizer -> impCustomizer
                         .id("123").video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -286,7 +286,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfHasNativeInImpression() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequestWithDefaultBidRequest(impCustomizer -> impCustomizer
                         .id("123").xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -304,7 +304,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfHasBothBannerAndVideo() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity(),
                         singletonList(impCustomizer -> impCustomizer
                                 .banner(Banner.builder().build())
@@ -324,7 +324,7 @@ public class AdprimeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldThrowExcceptionIsNoImpressionWithIdFound() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequestWithDefaultBidRequest(identity(), identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
@@ -373,8 +373,8 @@ public class AdprimeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
 

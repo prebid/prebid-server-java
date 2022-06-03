@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -295,7 +295,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
@@ -310,7 +310,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.id("impid")),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.id("impid")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
                         .impid("impid")
                         .w(200)
@@ -341,7 +341,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
         //given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                         .adm("encoded+url+test"))));
 
@@ -356,7 +356,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidderBid() throws JsonProcessingException {
         //given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -370,7 +370,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidImpIdAndBidRequestImpIdDoesntMatch() throws JsonProcessingException {
         //given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("unknownId"))));
 
         // when
@@ -389,7 +389,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -441,8 +441,8 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

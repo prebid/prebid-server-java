@@ -28,7 +28,7 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -829,7 +829,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -845,7 +845,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -864,7 +864,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest =
                 givenBidRequest(impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -883,7 +883,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -902,7 +902,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -921,7 +921,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldSetBidCatWhenBrandCategoryIdIsMatch() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidExtCustomizer -> bidExtCustomizer.brandCategoryId(10).bidAdType(1)));
 
         // when
@@ -940,7 +940,7 @@ public class AppnexusBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
                 bidBuilder -> bidBuilder.cat(singletonList("CLEAR")),
                 bidExtCustomizer -> bidExtCustomizer.brandCategoryId(350).bidAdType(1)));
 
@@ -960,7 +960,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(builder -> builder.cur("JPY"), identity(), identity()));
 
         // when
@@ -977,7 +977,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidTypeValueFromResponseIsNotValid() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(42));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(42));
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
@@ -992,7 +992,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -1014,7 +1014,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -1035,7 +1035,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusBidTypeNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -1081,8 +1081,8 @@ public class AppnexusBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
-        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 
     private static String givenBidResponse(Integer bidType) throws JsonProcessingException {

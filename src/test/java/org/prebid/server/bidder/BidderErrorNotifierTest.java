@@ -12,7 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
@@ -60,7 +60,7 @@ public class BidderErrorNotifierTest extends VertxTest {
 
         // when
         bidderErrorNotifier.processTimeout(
-                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+                BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
@@ -71,7 +71,7 @@ public class BidderErrorNotifierTest extends VertxTest {
     public void shouldSendTimeoutNotificationAndUpdateSuccessMetric() {
         // given
         final HttpRequest<BidRequest> bidderRequest = HttpRequest.<BidRequest>builder().build();
-        final BidderHttpCall<BidRequest> bidderHttpCall = BidderHttpCall.failedHttp(
+        final BidderCall<BidRequest> bidderCall = BidderCall.failedHttp(
                 bidderRequest, BidderError.timeout("Timeout"));
 
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
@@ -84,10 +84,10 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         // when
-        final BidderHttpCall<BidRequest> result = bidderErrorNotifier.processTimeout(bidderHttpCall, bidder);
+        final BidderCall<BidRequest> result = bidderErrorNotifier.processTimeout(bidderCall, bidder);
 
         // then
-        Assertions.assertThat(result).isSameAs(bidderHttpCall);
+        Assertions.assertThat(result).isSameAs(bidderCall);
 
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
         verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq(EMPTY_BODY), eq(200L));
@@ -110,7 +110,7 @@ public class BidderErrorNotifierTest extends VertxTest {
 
         // when
         bidderErrorNotifier.processTimeout(
-                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+                BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
@@ -134,7 +134,7 @@ public class BidderErrorNotifierTest extends VertxTest {
 
         // when
         bidderErrorNotifier.processTimeout(
-                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+                BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));

@@ -23,7 +23,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.dmx.model.DmxPublisherExtId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -274,7 +274,7 @@ public class DmxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
@@ -301,7 +301,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         return Result.of(bidderBids, errors);
     }
 
-    private BidResponse decodeBodyToBidResponse(BidderHttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

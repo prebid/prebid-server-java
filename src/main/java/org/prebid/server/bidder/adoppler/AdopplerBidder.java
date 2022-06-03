@@ -17,7 +17,7 @@ import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -114,7 +114,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final Map<String, BidType> impTypes = getImpTypes(bidRequest);
@@ -131,7 +131,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidResponse decodeBodyToBidResponse(BidderHttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

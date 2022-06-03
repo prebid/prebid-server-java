@@ -13,7 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -65,7 +65,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -81,7 +81,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfNoBannerAndHasVideo() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
@@ -99,7 +99,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfHasBothBannerAndVideo() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(givenImp(identity())))
                         .build(),
@@ -117,7 +117,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
@@ -136,7 +136,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = loopmeBidder.makeBids(httpCall, null);
@@ -149,7 +149,7 @@ public class LoopmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -186,8 +186,8 @@ public class LoopmeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
 }

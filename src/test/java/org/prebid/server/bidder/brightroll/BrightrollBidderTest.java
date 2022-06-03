@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -414,7 +414,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId")
                 .banner(Banner.builder().build()).build())).build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -436,7 +436,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId1").build()))
                 .build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -459,7 +459,7 @@ public class BrightrollBidderTest extends VertxTest {
                 Imp.builder().banner(Banner.builder().build()).video(Video.builder().build()).id("impId1").build()))
                 .build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -483,7 +483,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
                 Imp.builder().id("impId1").build(), Imp.builder().id("impId2").build())).build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -509,7 +509,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
                 Imp.builder().id("impId1").build(), Imp.builder().id("impId2").build())).build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -533,7 +533,7 @@ public class BrightrollBidderTest extends VertxTest {
                 Imp.builder().id("impId1").build()))
                 .build();
 
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, bidRequest);
@@ -549,7 +549,7 @@ public class BrightrollBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -562,7 +562,7 @@ public class BrightrollBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("{");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = brightrollBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -575,7 +575,7 @@ public class BrightrollBidderTest extends VertxTest {
                                 + "column: 2]"));
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
-        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

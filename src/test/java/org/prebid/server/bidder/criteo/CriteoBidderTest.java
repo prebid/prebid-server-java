@@ -27,7 +27,7 @@ import org.prebid.server.bidder.criteo.model.CriteoResponseSlot;
 import org.prebid.server.bidder.criteo.model.CriteoUser;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -295,7 +295,7 @@ public class CriteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<CriteoRequest> httpCall = BidderHttpCall.succeededHttp(
+        final BidderCall<CriteoRequest> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<CriteoRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, "invalid"),
                 null);
@@ -315,7 +315,7 @@ public class CriteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnCorrectBidderBids() throws JsonProcessingException {
         // given
-        final BidderHttpCall<CriteoRequest> httpCall = givenHttpCall(identity());
+        final BidderCall<CriteoRequest> httpCall = givenHttpCall(identity());
 
         // when
         final Result<List<BidderBid>> result = criteoBidder.makeBids(httpCall, givenBidRequest(identity()));
@@ -365,7 +365,7 @@ public class CriteoBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<CriteoRequest> givenHttpCall(
+    private static BidderCall<CriteoRequest> givenHttpCall(
             Function<CriteoResponse.CriteoResponseBuilder,
                     CriteoResponse.CriteoResponseBuilder> responseCustomizer) throws JsonProcessingException {
         final CriteoResponse.CriteoResponseBuilder responseBuilder =
@@ -388,7 +388,7 @@ public class CriteoBidderTest extends VertxTest {
         final String body = mapper.writeValueAsString(
                 responseCustomizer.apply(responseBuilder).build());
 
-        return BidderHttpCall.succeededHttp(
+        return BidderCall.succeededHttp(
                 HttpRequest.<CriteoRequest>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

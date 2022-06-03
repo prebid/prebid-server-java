@@ -17,7 +17,7 @@ import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -121,7 +121,7 @@ public class AdopplerBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest, mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid(null))));
 
@@ -140,7 +140,7 @@ public class AdopplerBidderTest extends VertxTest {
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).build();
         final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(AdopplerResponseAdsExt.of(null)));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .id("321")
                         .impid("impId")
@@ -185,8 +185,8 @@ public class AdopplerBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

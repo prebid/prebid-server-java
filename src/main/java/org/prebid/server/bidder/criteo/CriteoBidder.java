@@ -26,7 +26,7 @@ import org.prebid.server.bidder.criteo.model.CriteoResponseSlot;
 import org.prebid.server.bidder.criteo.model.CriteoUser;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -244,7 +244,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderHttpCall<CriteoRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<CriteoRequest> httpCall, BidRequest bidRequest) {
         try {
             final CriteoResponse criteoResponse = mapper.decodeValue(
                     httpCall.getResponse().getBody(), CriteoResponse.class);

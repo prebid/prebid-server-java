@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -199,7 +199,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
@@ -216,7 +216,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -230,7 +230,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -247,7 +247,7 @@ public class OpenWebBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentAndVideoIsAbsentInRequestImp()
             throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -264,7 +264,7 @@ public class OpenWebBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfNativeAndVideoAreAbsentInRequestImp()
             throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.xNative(null).video(null)),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("345"))));
 
@@ -281,7 +281,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldProceedWithErrorsAndValues() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("123").banner(Banner.builder().build())),
                 mapper.writeValueAsString(
                         givenBidResponse(
@@ -349,8 +349,8 @@ public class OpenWebBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

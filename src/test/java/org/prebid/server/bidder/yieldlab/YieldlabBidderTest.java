@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -192,7 +192,7 @@ public class YieldlabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<Void> httpCall = givenHttpCall("invalid");
+        final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
@@ -228,7 +228,7 @@ public class YieldlabBidderTest extends VertxTest {
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
-        final BidderHttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
@@ -275,7 +275,7 @@ public class YieldlabBidderTest extends VertxTest {
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
-        final BidderHttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
@@ -297,8 +297,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .containsExactly(expectedAdm);
     }
 
-    private static BidderHttpCall<Void> givenHttpCall(String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

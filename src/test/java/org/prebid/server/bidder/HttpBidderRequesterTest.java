@@ -27,7 +27,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -177,8 +177,8 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        final ArgumentCaptor<BidderHttpCall<BidRequest>> httpCallArgumentCaptor =
-                ArgumentCaptor.forClass(BidderHttpCall.class);
+        final ArgumentCaptor<BidderCall<BidRequest>> httpCallArgumentCaptor =
+                ArgumentCaptor.forClass(BidderCall.class);
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)

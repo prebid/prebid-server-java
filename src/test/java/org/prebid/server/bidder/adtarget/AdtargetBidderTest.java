@@ -18,7 +18,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -380,7 +380,7 @@ public class AdtargetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("{");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = adtargetBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -428,7 +428,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
-        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

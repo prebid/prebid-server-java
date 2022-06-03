@@ -12,7 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -119,7 +119,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderHttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.of(extractBids(httpCall), Collections.emptyList());
         } catch (PreBidException e) {
@@ -127,7 +127,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidderHttpCall<BidRequest> httpCall) {
+    private List<BidderBid> extractBids(BidderCall<BidRequest> httpCall) {
         final BidResponse bidResponse;
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);

@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -275,7 +275,7 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body");
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
@@ -293,7 +293,7 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("null");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("null");
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
@@ -306,7 +306,7 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("{}");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{}");
 
         // when
         final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
@@ -321,7 +321,7 @@ public class RichaudienceBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(impBuilder -> impBuilder.id("123").banner(Banner.builder().build())));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -339,7 +339,7 @@ public class RichaudienceBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(impBuilder -> impBuilder.id("123").video(Video.builder().build())));
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -356,7 +356,7 @@ public class RichaudienceBidderTest extends VertxTest {
     public void makeBidsShouldReturnDefaultBannerTypeIfNotPresentAnyTypeInImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(Imp.builder().build());
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -398,13 +398,13 @@ public class RichaudienceBidderTest extends VertxTest {
         return givenImp(identity(), impCustomizer);
     }
 
-    private BidderHttpCall<BidRequest> givenHttpCall(String body) {
+    private BidderCall<BidRequest> givenHttpCall(String body) {
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return BidderHttpCall.succeededHttp(null, response, null);
+        return BidderCall.succeededHttp(null, response, null);
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

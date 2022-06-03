@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -73,7 +73,7 @@ public class ConnectadBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = connectadBidder.makeBids(httpCall, null);
@@ -88,7 +88,7 @@ public class ConnectadBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = connectadBidder.makeBids(httpCall, null);
@@ -101,7 +101,7 @@ public class ConnectadBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -115,7 +115,7 @@ public class ConnectadBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -217,8 +217,8 @@ public class ConnectadBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderHttpCall.succeededHttp(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

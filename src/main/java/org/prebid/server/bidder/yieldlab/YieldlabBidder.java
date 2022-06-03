@@ -20,7 +20,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
@@ -248,7 +248,7 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderHttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final List<YieldlabResponse> yieldlabResponses;
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
@@ -305,7 +305,7 @@ public class YieldlabBidder implements Bidder<Void> {
         return BidderBid.of(updatedBid.build(), bidType, BID_CURRENCY);
     }
 
-    private List<YieldlabResponse> decodeBodyToBidList(BidderHttpCall<Void> httpCall) {
+    private List<YieldlabResponse> decodeBodyToBidList(BidderCall<Void> httpCall) {
         try {
             return mapper.mapper().readValue(
                     httpCall.getResponse().getBody(),

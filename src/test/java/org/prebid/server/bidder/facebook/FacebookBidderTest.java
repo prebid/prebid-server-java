@@ -22,7 +22,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderHttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -489,7 +489,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall("invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -504,7 +504,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -517,7 +517,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -531,7 +531,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidHasNullOrBlankAdm() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().id("bid1").adm(null).build(),
                 Bid.builder().id("bid2").adm(" ").build());
 
@@ -548,7 +548,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidAdmCouldNotBeParsed() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().id("bid1").adm("invalid").build());
 
         // when
@@ -563,7 +563,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidAdmHasNullOrBlankBidId() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().id("bid1").adm("{\"type\":\"0\"}").build(),
                 Bid.builder().id("bid2").adm("{\"bid_id\":\" \"}").build());
 
@@ -580,7 +580,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenCannotDetermineBidType() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().id("bid2").impid("imp1").adm("{\"bid_id\":\"10\"}").build());
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null), identity());
@@ -597,7 +597,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenNoMatchingImpFoundByBidImpId() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().id("bid2").impid("imp2").adm("{\"bid_id\":\"10\"}").build());
 
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
@@ -615,7 +615,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipInvalidBidAndAddErrorAndReturnExpectedBannerBid() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().impid("imp1").adm("{\"bid_id\":\"10\"}").build(),
                 Bid.builder().id("bid2").adm("{\"bid_id\":\" \"}").build());
 
@@ -636,7 +636,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().impid("imp1").adm("{\"bid_id\":\"10\"}").build());
 
         final BidRequest bidRequest = givenBidRequest(
@@ -655,7 +655,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().impid("imp1").adm("{\"bid_id\":\"10\"}").build());
 
         final BidRequest bidRequest = givenBidRequest(
@@ -674,7 +674,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 Bid.builder().impid("imp1").adm("{\"bid_id\":\"10\"}").build());
 
         final BidRequest bidRequest = givenBidRequest(
@@ -734,11 +734,11 @@ public class FacebookBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(String body) {
-        return BidderHttpCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 
-    private static BidderHttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
+    private static BidderCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
