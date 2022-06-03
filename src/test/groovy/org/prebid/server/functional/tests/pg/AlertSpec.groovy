@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -24,6 +25,7 @@ import static org.prebid.server.functional.util.HttpUtil.CONTENT_TYPE_HEADER_VAL
 import static org.prebid.server.functional.util.HttpUtil.PG_TRX_ID_HEADER
 import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 
+@Retry
 class AlertSpec extends BasePgSpec {
 
     private static final String PBS_REGISTER_CLIENT_ERROR = "pbs-register-client-error"
