@@ -12,10 +12,12 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatis
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 import spock.lang.Shared
 import spock.lang.Specification
 
 // TODO migrate this to extend BaseSpec
+@Retry
 abstract class BasePgSpec extends Specification {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
