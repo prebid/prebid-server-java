@@ -237,7 +237,8 @@ public class IqzoneBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenMissingType() throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.id("someId")),
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("someId")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when

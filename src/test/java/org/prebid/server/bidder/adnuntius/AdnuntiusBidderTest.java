@@ -435,7 +435,8 @@ public class AdnuntiusBidderTest extends VertxTest {
         return BidderHttpCall.succeededHttp(request, response, null);
     }
 
-    private BidderHttpCall<AdnuntiusRequest> givenHttpCall(AdnuntiusAdsUnit... adsUnits) throws JsonProcessingException {
+    private BidderHttpCall<AdnuntiusRequest> givenHttpCall(AdnuntiusAdsUnit... adsUnits)
+            throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(AdnuntiusResponse.of(List.of(adsUnits))));
     }
 

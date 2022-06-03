@@ -495,7 +495,8 @@ public class OpenxBidderTest extends VertxTest {
     public void makeBidsShouldReturnResultContainingEmptyValueAndErrorsWhenSeatBidEmpty()
             throws JsonProcessingException {
         // given
-        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderHttpCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());

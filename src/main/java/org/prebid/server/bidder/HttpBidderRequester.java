@@ -201,7 +201,7 @@ public class HttpBidderRequester {
 
     private static byte[] gzip(byte[] value) {
         try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
-             GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
+                GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value);
             gzip.finish();
@@ -234,7 +234,9 @@ public class HttpBidderRequester {
      * Produces {@link Future} with {@link BidderHttpCall} containing request, response and possible error description
      * (if status code indicates an error).
      */
-    private static <T> Future<BidderHttpCall<T>> processResponse(HttpClientResponse response, HttpRequest<T> httpRequest) {
+    private static <T> Future<BidderHttpCall<T>> processResponse(HttpClientResponse response,
+                                                                 HttpRequest<T> httpRequest) {
+
         final int statusCode = response.getStatusCode();
         final HttpResponse httpResponse = HttpResponse.of(statusCode, response.getHeaders(), response.getBody());
         return Future.succeededFuture(BidderHttpCall.succeededHttp(httpRequest, httpResponse, errorOrNull(statusCode)));

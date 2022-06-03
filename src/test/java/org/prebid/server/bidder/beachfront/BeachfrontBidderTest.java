@@ -609,7 +609,8 @@ public class BeachfrontBidderTest extends VertxTest {
                 .h(450)
                 .build();
 
-        final BidderHttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(singletonList(responseSlot)));
+        final BidderHttpCall<Void> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(singletonList(responseSlot)));
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);

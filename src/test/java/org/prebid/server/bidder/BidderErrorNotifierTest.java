@@ -59,7 +59,8 @@ public class BidderErrorNotifierTest extends VertxTest {
         given(bidder.makeTimeoutNotification(any())).willReturn(null);
 
         // when
-        bidderErrorNotifier.processTimeout(BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+        bidderErrorNotifier.processTimeout(
+                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
@@ -70,7 +71,8 @@ public class BidderErrorNotifierTest extends VertxTest {
     public void shouldSendTimeoutNotificationAndUpdateSuccessMetric() {
         // given
         final HttpRequest<BidRequest> bidderRequest = HttpRequest.<BidRequest>builder().build();
-        final BidderHttpCall<BidRequest> bidderHttpCall = BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout"));
+        final BidderHttpCall<BidRequest> bidderHttpCall = BidderHttpCall.failedHttp(
+                bidderRequest, BidderError.timeout("Timeout"));
 
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
@@ -107,7 +109,8 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
 
         // when
-        bidderErrorNotifier.processTimeout(BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+        bidderErrorNotifier.processTimeout(
+                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
@@ -130,7 +133,8 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
         // when
-        bidderErrorNotifier.processTimeout(BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
+        bidderErrorNotifier.processTimeout(
+                BidderHttpCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));

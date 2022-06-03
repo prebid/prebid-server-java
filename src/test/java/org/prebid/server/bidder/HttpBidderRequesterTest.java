@@ -177,7 +177,8 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        final ArgumentCaptor<BidderHttpCall<BidRequest>> httpCallArgumentCaptor = ArgumentCaptor.forClass(BidderHttpCall.class);
+        final ArgumentCaptor<BidderHttpCall<BidRequest>> httpCallArgumentCaptor =
+                ArgumentCaptor.forClass(BidderHttpCall.class);
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
