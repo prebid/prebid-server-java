@@ -24,7 +24,7 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnOneIfAdjustmentsByMediaTypeAndBidderAreAbsent() {
         // when
         final BigDecimal result = adjustmentFactorResolver.resolve(
-                ImpMediaType.video,
+                ImpMediaType.VIDEO,
                 ExtRequestBidAdjustmentFactors.builder().build(),
                 "bidder");
 
@@ -40,7 +40,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.VIDEO, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(3.456));
@@ -50,9 +50,9 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnSmallestAdjustmentByMediaTypeIfPresent() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
-                ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234)),
-                ImpMediaType.video_outstream, Map.of("bidder", BigDecimal.valueOf(2.345)),
-                ImpMediaType.banner, Map.of("bidder", BigDecimal.valueOf(3.456))));
+                ImpMediaType.VIDEO, Map.of("bidder", BigDecimal.valueOf(1.234)),
+                ImpMediaType.VIDEO_OUTSTREAM, Map.of("bidder", BigDecimal.valueOf(2.345)),
+                ImpMediaType.BANNER, Map.of("bidder", BigDecimal.valueOf(3.456))));
 
         final ExtRequestBidAdjustmentFactors adjustmentFactors =
                 ExtRequestBidAdjustmentFactors.builder()
@@ -60,7 +60,7 @@ public class AdjustmentFactorResolverTest {
                         .build();
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.VIDEO, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
@@ -70,7 +70,7 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnSmallestAdjustmentBetweenMediaTypeAndBidderChosen() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
-                ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234))));
+                ImpMediaType.VIDEO, Map.of("bidder", BigDecimal.valueOf(1.234))));
 
         final ExtRequestBidAdjustmentFactors adjustmentFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(adjustmentFactorsByMediaType)
@@ -78,7 +78,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(0.123));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.VIDEO, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(0.123));
@@ -88,14 +88,14 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnMediaTypeAdjustmentWhenBidderAdjustmentIsAbsent() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
-                ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234))));
+                ImpMediaType.VIDEO, Map.of("bidder", BigDecimal.valueOf(1.234))));
 
         final ExtRequestBidAdjustmentFactors adjustmentFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(adjustmentFactorsByMediaType)
                 .build();
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.VIDEO, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
@@ -105,7 +105,7 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnBidderAdjustmentWhenMediaTypeAdjustmentIsAbsent() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
-                ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234))));
+                ImpMediaType.VIDEO, Map.of("bidder", BigDecimal.valueOf(1.234))));
 
         final ExtRequestBidAdjustmentFactors adjustmentFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(adjustmentFactorsByMediaType)
@@ -113,7 +113,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.BANNER, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(3.456));
@@ -123,7 +123,7 @@ public class AdjustmentFactorResolverTest {
     public void resolveShouldReturnOneWhenAppropriateBidderAdjustmentAndMediaTypeAdjustmentAreAbsent() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
-                ImpMediaType.video, Map.of("bidder", BigDecimal.valueOf(1.234))));
+                ImpMediaType.VIDEO, Map.of("bidder", BigDecimal.valueOf(1.234))));
 
         final ExtRequestBidAdjustmentFactors adjustmentFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(adjustmentFactorsByMediaType)
@@ -131,7 +131,7 @@ public class AdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("bidder1", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.banner, adjustmentFactors, "bidder");
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.BANNER, adjustmentFactors, "bidder");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.ONE);

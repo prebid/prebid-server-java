@@ -148,17 +148,17 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
+        BidType bidType = BidType.BANNER;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return bidType;
                 } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
+                    bidType = BidType.VIDEO;
                 } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
+                    bidType = BidType.X_NATIVE;
                 } else if (imp.getAudio() != null) {
-                    bidType = BidType.audio;
+                    bidType = BidType.AUDIO;
                 }
             }
         }

@@ -174,7 +174,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
                         .build(),
-                BidType.banner,
+                BidType.BANNER,
                 BIDDER_CURRENCY);
     }
 }

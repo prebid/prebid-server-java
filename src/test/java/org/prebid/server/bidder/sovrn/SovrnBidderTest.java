@@ -37,7 +37,7 @@ import static java.util.Map.Entry;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class SovrnBidderTest extends VertxTest {
 
@@ -257,7 +257,7 @@ public class SovrnBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
@@ -332,7 +332,7 @@ public class SovrnBidderTest extends VertxTest {
                         .dealid("dealid")
                         .price(BigDecimal.ONE)
                         .build(),
-                video, "EUR");
+                VIDEO, "EUR");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expectedBidderBid);
@@ -364,7 +364,7 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "EUR"));
     }
 
     @Test
@@ -380,7 +380,7 @@ public class SovrnBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith("Imp ID unknownId in bid didn't match with "
                             + "any imp in the original request");
                 });

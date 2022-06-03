@@ -28,7 +28,7 @@ public class StroeerCoreTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/stroeercore/test-auction-stroeercore-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/stroeercore/test-auction-stroeercore-response.json", response,

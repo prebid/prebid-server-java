@@ -28,7 +28,7 @@ public class AlkimiTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/alkimi/test-auction-alkimi-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/alkimi/test-auction-alkimi-response.json", response, singletonList("alkimi"));

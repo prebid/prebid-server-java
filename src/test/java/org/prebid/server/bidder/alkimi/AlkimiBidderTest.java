@@ -31,8 +31,8 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class AlkimiBidderTest extends VertxTest {
 
@@ -146,7 +146,7 @@ public class AlkimiBidderTest extends VertxTest {
 
         assertThat(result.getErrors())
                 .hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                .allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -179,8 +179,8 @@ public class AlkimiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).contains(BidderBid.of(givenBannerBid(identity()), banner, null));
-        assertThat(result.getValue()).contains(BidderBid.of(givenVideoBid(identity()), video, null));
+        assertThat(result.getValue()).contains(BidderBid.of(givenBannerBid(identity()), BANNER, null));
+        assertThat(result.getValue()).contains(BidderBid.of(givenVideoBid(identity()), VIDEO, null));
     }
 
     private static BidRequest givenBidRequest() {

@@ -83,7 +83,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.SITE_DOMAIN)))
                         .value("siteDomain", BigDecimal.TEN)
                         .build()), givenImp(identity()), null)).isNull();
     }

@@ -135,7 +135,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(error.getMessage())
                     .startsWith("Cannot deserialize")
                     .endsWith(". Ignore imp id = 3.");
@@ -242,7 +242,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         verifyNoMoreInteractions(currencyConversionService);
 
         assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(error.getMessage()).startsWith("no. Ignore imp id = 1282.");
         });
         assertThat(result.getValue()).isEmpty();
@@ -299,8 +299,8 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid1, BidType.banner, "EUR"),
-                BidderBid.of(expectedBid2, BidType.banner, "EUR"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid1, BidType.BANNER, "EUR"),
+                BidderBid.of(expectedBid2, BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -314,7 +314,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
             assertThat(error.getMessage()).startsWith("Failed to decode");
         });
     }

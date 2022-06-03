@@ -615,7 +615,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnUserFirstPartyDataFromExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
@@ -640,7 +640,7 @@ public class RequestContextTest extends VertxTest {
         when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
 
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidderAlias"),
@@ -665,7 +665,7 @@ public class RequestContextTest extends VertxTest {
         when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
 
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
@@ -741,7 +741,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSiteFirstPartyDataFromExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
@@ -766,7 +766,7 @@ public class RequestContextTest extends VertxTest {
         when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
 
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidderAlias"),
@@ -791,7 +791,7 @@ public class RequestContextTest extends VertxTest {
         when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
 
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),

@@ -16,13 +16,13 @@ public class ImpMediaTypeResolver {
 
     public static ImpMediaType resolve(String bidImpId, List<Imp> imps, BidType bidType) {
         switch (bidType) {
-            case banner:
-                return ImpMediaType.banner;
-            case xNative:
-                return ImpMediaType.xNative;
-            case audio:
-                return ImpMediaType.audio;
-            case video:
+            case BANNER:
+                return ImpMediaType.BANNER;
+            case X_NATIVE:
+                return ImpMediaType.X_NATIVE;
+            case AUDIO:
+                return ImpMediaType.AUDIO;
+            case VIDEO:
                 return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
             default:
                 throw new PreBidException("BidType not present for bidderBid");
@@ -43,7 +43,7 @@ public class ImpMediaTypeResolver {
 
         final Integer placement = bidImpVideo.getPlacement();
         return placement == null || Objects.equals(placement, 1)
-                ? ImpMediaType.video
-                : ImpMediaType.video_outstream;
+                ? ImpMediaType.VIDEO
+                : ImpMediaType.VIDEO_OUTSTREAM;
     }
 }

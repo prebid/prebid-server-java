@@ -200,9 +200,9 @@ public class SovrnBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             final boolean matchedImpId = impId.equals(imp.getId());
             if (matchedImpId && imp.getVideo() != null) {
-                return BidType.video;
+                return BidType.VIDEO;
             } else if (matchedImpId) {
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
 

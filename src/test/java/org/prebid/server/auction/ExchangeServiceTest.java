@@ -2789,7 +2789,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", TEN);
 
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.BANNER, givenAdjustments, "bidder"))
                 .willReturn(TEN);
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3151,7 +3151,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.BANNER, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(2.468));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3186,7 +3186,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.VIDEO,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.VIDEO, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3222,7 +3222,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.VIDEO,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.VIDEO, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3328,7 +3328,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.BANNER,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.BANNER, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3364,7 +3364,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.BANNER, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
