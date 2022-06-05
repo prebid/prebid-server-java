@@ -396,7 +396,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static PriceFloorRules skippedFloors(PriceFloorRules floors, Integer skipRate) {
         return floors.toBuilder()
                 .skipRate(skipRate)
-                .enabled(false)
+                .enabled(true)
                 .skipped(true)
                 .build();
     }
