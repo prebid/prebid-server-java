@@ -19,7 +19,7 @@ public class BidRequestOrtbVersionConverterFactory {
     static BidRequestOrtbVersionConverter createChain(BidRequestOrtbVersionConverter... converters) {
         return Arrays.stream(converters).reduce(
                 BidRequestOrtbVersionConverter.identity(),
-                BidRequestOrtbVersionConverter::andThan);
+                BidRequestOrtbVersionConverter::andThen);
     }
 
     public BidRequestOrtbVersionConverter getConverter(OrtbVersion targetVersion) {

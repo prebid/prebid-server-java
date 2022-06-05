@@ -8,7 +8,7 @@ public interface BidRequestOrtbVersionConverter {
 
     BidRequest convert(BidRequest bidRequest);
 
-    default BidRequestOrtbVersionConverter andThan(BidRequestOrtbVersionConverter after) {
+    default BidRequestOrtbVersionConverter andThen(BidRequestOrtbVersionConverter after) {
         Objects.requireNonNull(after);
         return bidRequest -> after.convert(this.convert(bidRequest));
     }
