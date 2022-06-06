@@ -32,6 +32,10 @@ class AlertSpec extends BasePgSpec {
     private static final String PBS_DELIVERY_CLIENT_ERROR = "pbs-delivery-stats-client-error"
     private static final Integer DEFAULT_ALERT_PERIOD = 15
 
+    def setup() {
+        alert.reset()
+    }
+
     def "PBS should send alert request when the threshold is reached"() {
         given: "Changed Planner Register endpoint response to return bad status code"
         generalPlanner.initRegisterResponse(NOT_FOUND_404)
