@@ -1300,7 +1300,9 @@ public class ExchangeService {
     private List<AuctionParticipation> validateAndAdjustBids(List<AuctionParticipation> auctionParticipations,
                                                              AuctionContext auctionContext,
                                                              BidderAliases aliases) {
+
         return auctionParticipations.stream()
+                .map(storedResponseProcessor::applyStoredBidResponseAdjustments)
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> applyBidPriceChanges(auctionParticipation, auctionContext.getBidRequest()))
                 .map(auctionParticipation -> priceFloorEnforcer.enforce(

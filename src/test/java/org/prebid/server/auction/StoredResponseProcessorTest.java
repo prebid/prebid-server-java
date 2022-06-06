@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
@@ -15,6 +16,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.model.BidderBid;
@@ -78,8 +80,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("1",
-                        mapper.writeValueAsString(singletonList(SeatBid.builder().seat("rubicon")
-                                .bid(singletonList(Bid.builder().id("id").build())).build()))),
+                                mapper.writeValueAsString(singletonList(SeatBid.builder().seat("rubicon")
+                                        .bid(singletonList(Bid.builder().id("id").build())).build()))),
                         emptyList())));
 
         // when
@@ -354,6 +356,70 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void applyStoredBidResponseAdjustmentsShouldNotModifyParticipationWithMoreThanOneImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(Imp.builder().build(), Imp.builder().build()))
+                .build();
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+
+        final BidderResponse bidderResponse = BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100);
+
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderRequest(bidderRequest)
+                .bidderResponse(bidderResponse)
+                .build();
+
+        // when
+        final AuctionParticipation result = storedResponseProcessor
+                .applyStoredBidResponseAdjustments(requestAuctionParticipation);
+
+        // then
+        assertThat(result).isEqualTo(requestAuctionParticipation);
+    }
+
+    @Test
+    public void applyStoredBidResponseAdjustmentsShouldReplaceAllBidImpIdMacrosForStoredResponseParticipation() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("impId").build()))
+                .build();
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+
+        final List<BidderBid> bids = List.of(
+                BidderBid.of(Bid.builder().impid("##PBSIMPID##").build(), BidType.banner, "USD"),
+                BidderBid.of(Bid.builder().impid("##PBSIMPID##").build(), BidType.video, "USD"));
+        final BidderResponse bidderResponse = BidderResponse.of(
+                "rubicon", BidderSeatBid.of(bids, emptyList(), emptyList()), 100);
+
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderRequest(bidderRequest)
+                .bidderResponse(bidderResponse)
+                .build();
+
+        // when
+        final AuctionParticipation result = storedResponseProcessor
+                .applyStoredBidResponseAdjustments(requestAuctionParticipation);
+
+        // then
+        final List<BidderBid> expectedBids = List.of(
+                BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "USD"),
+                BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, "USD"));
+        final BidderResponse expectedBidderResponse = BidderResponse.of(
+                "rubicon", BidderSeatBid.of(expectedBids, emptyList(), emptyList()), 100);
+
+        assertThat(result).isEqualTo(requestAuctionParticipation.with(expectedBidderResponse));
+    }
+
+    @Test
     public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponseWithoutBlocked() {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
@@ -465,15 +531,15 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
                 .contains(BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(
-                        singletonList(BidderBid.of(
-                                Bid.builder().id("bid2").impid("storedImp").build(),
-                                BidType.banner,
-                                "USD")),
-                        emptyList(),
-                        emptyList()),
-                0));
+                        "rubicon",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(
+                                        Bid.builder().id("bid2").impid("storedImp").build(),
+                                        BidType.banner,
+                                        "USD")),
+                                emptyList(),
+                                emptyList()),
+                        0));
     }
 
     @Test
@@ -507,20 +573,20 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
                 .contains(BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(
-                        asList(
-                                BidderBid.of(
-                                        Bid.builder().id("bid2").impid("storedImp").build(),
-                                        BidType.banner,
-                                        "EUR"),
-                                BidderBid.of(
-                                        Bid.builder().id("bid1").build(),
-                                        BidType.banner,
-                                        "EUR")),
-                        emptyList(),
-                        emptyList()),
-                100));
+                        "rubicon",
+                        BidderSeatBid.of(
+                                asList(
+                                        BidderBid.of(
+                                                Bid.builder().id("bid2").impid("storedImp").build(),
+                                                BidType.banner,
+                                                "EUR"),
+                                        BidderBid.of(
+                                                Bid.builder().id("bid1").build(),
+                                                BidType.banner,
+                                                "EUR")),
+                                emptyList(),
+                                emptyList()),
+                        100));
     }
 
     @Test
@@ -561,12 +627,12 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .contains(BidderResponse.of("rubicon", BidderSeatBid.of(
                         asList(BidderBid.of(
-                                Bid.builder()
-                                        .id("bid2")
-                                        .impid("storedImp")
-                                        .ext(mapper.createObjectNode()
-                                                .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
-                                BidType.video, "USD"),
+                                        Bid.builder()
+                                                .id("bid2")
+                                                .impid("storedImp")
+                                                .ext(mapper.createObjectNode()
+                                                        .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
+                                        BidType.video, "USD"),
                                 BidderBid.of(
                                         Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                         emptyList()), 100));
@@ -617,8 +683,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         assertThat(result)
-                        .extracting(AuctionParticipation::getBidderResponse)
-                        .containsOnly(bidderResponse);
+                .extracting(AuctionParticipation::getBidderResponse)
+                .containsOnly(bidderResponse);
     }
 
     private <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {

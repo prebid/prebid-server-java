@@ -2702,6 +2702,26 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldApplyStoredBidResponseAdjustments() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                givenBid(Bid.builder().impid("impId").price(BigDecimal.ONE).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("bidder", 2), identity())), identity());
+
+        given(currencyService.convertCurrency(any(), any(), any(), any()))
+                .willReturn(TEN);
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(storedResponseProcessor).applyStoredBidResponseAdjustments(any());
+    }
+
+    @Test
     public void shouldReturnSameBidPriceIfNoChangesAppliedToBidPrice() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
