@@ -21,11 +21,9 @@ import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
-import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
-import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -1764,7 +1762,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where: floorsSkipped << [false, true]
     }
-
 
     static int convertKilobyteSizeToByte(int kilobyteSize) {
         kilobyteSize * 1024
