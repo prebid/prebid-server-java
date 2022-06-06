@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.90.0-SNAPSHOT</version>
+        <version>1.91.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -68,6 +68,7 @@
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.1.210</h2.version>
         <spock.version>2.1-groovy-3.0</spock.version>
+        <groovy.version>3.0.9</groovy.version>
         <testcontainers.version>1.17.1</testcontainers.version>
         <mockserver-client.version>5.11.2</mockserver-client.version>
         <allure.version>2.17.2</allure.version>
@@ -485,6 +486,18 @@
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
             <version>${spock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-yaml</artifactId>
+            <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

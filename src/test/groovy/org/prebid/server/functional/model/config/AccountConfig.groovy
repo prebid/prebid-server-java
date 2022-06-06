@@ -16,6 +16,7 @@ class AccountConfig {
     AccountAuctionConfig auction
     AccountPrivacyConfig privacy
     AccountAnalyticsConfig analytics
+    AccountMetricsConfig metrics
     AccountCookieSyncConfig cookieSync
     AccountHooksConfiguration hooks
 

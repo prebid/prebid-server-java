@@ -389,6 +389,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return floors.toBuilder()
                 .skipRate(skipRate)
                 .enabled(true)
+                .skipped(false)
                 .build();
     }
 
