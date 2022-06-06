@@ -21,9 +21,11 @@ import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
+import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -1478,7 +1480,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             modelGroups << ModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = 0
-            skipRate = invalidSkipRate
+            this.skipRate = invalidSkipRate
             modelGroups.last().values = [(rule): floorValue]
             modelGroups.last().skipRate = 0
         }
@@ -1537,7 +1539,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             modelGroups << ModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = invalidSkipRate
-            skipRate = 0
+            this.skipRate = 0
             modelGroups.last().values = [(rule): floorValue]
             modelGroups.last().skipRate = 0
         }
@@ -1733,11 +1735,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
     }
 
-    def "PBS should reject price floor for bid request where floors skipped #floorsSkipped"() {
+    def "PBS should populate floors enabled = true when floors skip rate 100"() {
         given: "Default BidRequest with #floorsEnabled and #floorsSkipped"
-        def floorsEnabled = false
+        def skipRate = 100
+        def floorsEnabled = true
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.floors = new ExtPrebidFloors(enabled: floorsEnabled, skipped: floorsSkipped)
+            ext.prebid.floors = new ExtPrebidFloors(enabled: floorsEnabled, skipped: true, skipRate: skipRate)
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -1751,16 +1754,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll {
             bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
-            bidderRequest.ext.prebid.floors?.skipped == floorsSkipped
+            bidderRequest.ext?.prebid?.floors?.skipRate == skipRate
+            bidderRequest.ext?.prebid?.floors?.skipped == false
 
-            !bidderRequest.ext.prebid.floors?.fetchStatus
-            !bidderRequest.ext.prebid.floors?.location
-
-            !bidderRequest?.imp[0].bidFloor
-            !bidderRequest.imp[0].bidFloorCur
+            bidderRequest.ext.prebid.floors?.fetchStatus == INPROGRESS
+            bidderRequest.ext.prebid.floors?.location == NO_DATA
         }
-
-        where: floorsSkipped << [false, true]
     }
 
     static int convertKilobyteSizeToByte(int kilobyteSize) {
