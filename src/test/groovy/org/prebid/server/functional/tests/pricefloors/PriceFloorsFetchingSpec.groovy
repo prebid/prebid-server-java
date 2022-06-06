@@ -21,9 +21,11 @@ import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
+import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -1732,6 +1734,37 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             bidderRequest.ext.prebid.floors?.location == FETCH
         }
     }
+
+    def "PBS should reject price floor for bid request where floors skipped #floorsSkipped"() {
+        given: "Default BidRequest with #floorsEnabled and #floorsSkipped"
+        def floorsEnabled = false
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: floorsEnabled, skipped: floorsSkipped)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain floors data"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        verifyAll {
+            bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
+            bidderRequest.ext.prebid.floors?.skipped == floorsSkipped
+
+            !bidderRequest.ext.prebid.floors?.fetchStatus
+            !bidderRequest.ext.prebid.floors?.location
+
+            !bidderRequest?.imp[0].bidFloor
+            !bidderRequest.imp[0].bidFloorCur
+        }
+
+        where: floorsSkipped << [false, true]
+    }
+
 
     static int convertKilobyteSizeToByte(int kilobyteSize) {
         kilobyteSize * 1024
