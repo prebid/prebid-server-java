@@ -322,6 +322,8 @@ public class ExchangeServiceTest extends VertxTest {
                         emptyMap())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
+        given(storedResponseProcessor.applyStoredBidResponseAdjustments(any()))
+                .willAnswer(inv -> inv.getArgument(0));
 
         given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
