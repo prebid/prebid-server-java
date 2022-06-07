@@ -1764,7 +1764,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         verifyAll {
             bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
             bidderRequest.ext.prebid.floors?.skipRate == floorsSkipRate
-            bidderRequest.ext.prebid.floors?.skipped
+            bidderRequest.ext.prebid.floors?.skipped == true
 
             bidderRequest.ext.prebid.floors?.fetchStatus == SUCCESS
             bidderRequest.ext.prebid.floors?.location == FETCH
