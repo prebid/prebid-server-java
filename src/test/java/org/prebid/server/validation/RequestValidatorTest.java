@@ -13,6 +13,7 @@ import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Deal.DealBuilder;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Format.FormatBuilder;
@@ -26,6 +27,7 @@ import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
 import com.iab.openrtb.request.TitleObject;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
@@ -56,8 +58,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.validation.model.ValidationResult;
@@ -2020,7 +2020,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of(null, null, null, null)))
+                                .eids(singletonList(Eid.of(null, null, null)))
                                 .build())
                         .build())
                 .build();
@@ -2034,12 +2034,12 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidHasNoIdOrUids() {
+    public void validateShouldReturnValidationMessageWhenEidHasNoUids() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, null, null)))
+                                .eids(singletonList(Eid.of("source", null, null)))
                                 .build())
                         .build())
                 .build();
@@ -2049,7 +2049,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0] must contain either \"id\" or \"uids\" field");
+                .containsOnly("request.user.ext.eids[0].uids must contain at least one element");
     }
 
     @Test
@@ -2058,7 +2058,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null)))
+                                .eids(singletonList(Eid.of("source", emptyList(), null)))
                                 .build())
                         .build())
                 .build();
@@ -2068,7 +2068,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].uids must contain at least one element or be undefined");
+                .containsOnly("request.user.ext.eids[0].uids must contain at least one element");
     }
 
     @Test
@@ -2077,8 +2077,10 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null,
-                                        singletonList(ExtUserEidUid.of(null, null, null)), null)))
+                                .eids(singletonList(Eid.of(
+                                        "source",
+                                        singletonList(Uid.of(null, null, null)),
+                                        null)))
                                 .build())
                         .build())
                 .build();
@@ -2098,10 +2100,8 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .eids(asList(
-                                        ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id1", null, null)), null),
-                                        ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id2", null, null)), null)))
+                                        Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
+                                        Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
                                 .build())
                         .build())
                 .build();

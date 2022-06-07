@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
@@ -117,7 +118,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -1958,7 +1958,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
-        final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
+        final List<Eid> eids = singletonList(Eid.of("eId", emptyList(), null));
         final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
         final List<Data> data = singletonList(Data.builder().build());
 
@@ -2001,12 +2001,12 @@ public class ExchangeServiceTest extends VertxTest {
         testUserEidsPermissionFiltering(
                 // given
                 asList(
-                        ExtUserEid.of("source1", null, null, null),
-                        ExtUserEid.of("source2", null, null, null)),
+                        Eid.of("source1", null, null),
+                        Eid.of("source2", null, null)),
                 singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("otherBidder"))),
                 emptyMap(),
                 // expected
-                singletonList(ExtUserEid.of("source2", null, null, null))
+                singletonList(Eid.of("source2", null, null))
         );
     }
 
@@ -2014,11 +2014,11 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldNotFilterUserExtEidsWhenEidsPermissionDoesNotContainSource() {
         testUserEidsPermissionFiltering(
                 // given
-                singletonList(ExtUserEid.of("source1", null, null, null)),
+                singletonList(Eid.of("source1", null, null)),
                 singletonList(ExtRequestPrebidDataEidPermissions.of("source2", singletonList("otherBidder"))),
                 emptyMap(),
                 // expected
-                singletonList(ExtUserEid.of("source1", null, null, null))
+                singletonList(Eid.of("source1", null, null))
         );
     }
 
@@ -2026,11 +2026,11 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldNotFilterUserExtEidsWhenSourceAllowedForAllBidders() {
         testUserEidsPermissionFiltering(
                 // given
-                singletonList(ExtUserEid.of("source1", null, null, null)),
+                singletonList(Eid.of("source1", null, null)),
                 singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("*"))),
                 emptyMap(),
                 // expected
-                singletonList(ExtUserEid.of("source1", null, null, null))
+                singletonList(Eid.of("source1", null, null))
         );
     }
 
@@ -2038,11 +2038,11 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldNotFilterUserExtEidsWhenSourceAllowedForBidder() {
         testUserEidsPermissionFiltering(
                 // given
-                singletonList(ExtUserEid.of("source1", null, null, null)),
+                singletonList(Eid.of("source1", null, null)),
                 singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("someBidder"))),
                 emptyMap(),
                 // expected
-                singletonList(ExtUserEid.of("source1", null, null, null))
+                singletonList(Eid.of("source1", null, null))
         );
     }
 
@@ -2053,7 +2053,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
         final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(ExtUserEid.of("source1", null, null, null))).build();
+                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2089,7 +2089,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
         final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(ExtUserEid.of("source1", null, null, null))).build();
+                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2126,7 +2126,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidderAlias", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidderAlias", 1);
         final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(ExtUserEid.of("source1", null, null, null))).build();
+                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2199,7 +2199,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
-        final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
+        final List<Eid> eids = singletonList(Eid.of("eId", emptyList(), null));
         final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
@@ -4468,10 +4468,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
     }
 
-    private void testUserEidsPermissionFiltering(List<ExtUserEid> givenExtUserEids,
+    private void testUserEidsPermissionFiltering(List<Eid> givenExtUserEids,
                                                  List<ExtRequestPrebidDataEidPermissions> givenEidPermissions,
                                                  Map<String, String> givenAlises,
-                                                 List<ExtUserEid> expectedExtUserEids) {
+                                                 List<Eid> expectedExtUserEids) {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());

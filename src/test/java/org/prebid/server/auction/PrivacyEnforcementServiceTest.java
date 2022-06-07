@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
@@ -46,7 +47,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
@@ -877,7 +877,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
         final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
         final User user = User.builder()
                 .buyeruid(BUYER_UID)
@@ -1274,7 +1274,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldNotReturnUserIfMaskingAppliedAndUserBecameEmptyObject() {
         // given
         final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
         final User user = User.builder()
                 .buyeruid("buyeruid")
@@ -1667,7 +1667,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static ExtUser notMaskedExtUser() {
         return ExtUser.builder()
                 .digitrust(mapper.createObjectNode())
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
     }

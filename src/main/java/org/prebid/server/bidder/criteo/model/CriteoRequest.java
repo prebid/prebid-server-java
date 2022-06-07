@@ -1,9 +1,9 @@
 package org.prebid.server.bidder.criteo.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Eid;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 
 import java.util.List;
 
@@ -22,5 +22,5 @@ public class CriteoRequest {
 
     List<CriteoRequestSlot> slots;
 
-    List<ExtUserEid> eids;
+    List<Eid> eids;
 }

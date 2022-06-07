@@ -12,7 +12,7 @@ import java.util.List;
  * exchange should ensure that business agreements allow for the sending
  * of this data.
  */
-@Value
+@Value(staticConstructor = "of")
 public class Eid {
 
     /**

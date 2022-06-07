@@ -8,7 +8,7 @@ import lombok.Value;
  * extended identifiers. The exchange should ensure that business
  * agreements allow for the sending of this data.
  */
-@Value
+@Value(staticConstructor = "of")
 public class Uid {
 
     /**

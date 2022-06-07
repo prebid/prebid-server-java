@@ -9,6 +9,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
@@ -92,7 +93,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -652,8 +652,8 @@ public class ExchangeService {
                              Map<String, List<String>> eidPermissions) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-        final List<ExtUserEid> userEids = extractUserEids(user);
-        final List<ExtUserEid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
+        final List<Eid> userEids = extractUserEids(user);
+        final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
         final boolean shouldUpdateUserEids = extUser != null
                 && allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
@@ -703,19 +703,19 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts {@link List<ExtUserEid>} from {@link User}.
+     * Extracts {@link List<Eid>} from {@link User}.
      * Returns null if user or its extension is null.
      */
-    private List<ExtUserEid> extractUserEids(User user) {
+    private List<Eid> extractUserEids(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         return extUser != null ? extUser.getEids() : null;
     }
 
     /**
-     * Returns {@link List<ExtUserEid>} allowed by {@param eidPermissions} per source per bidder.
+     * Returns {@link List<Eid>} allowed by {@param eidPermissions} per source per bidder.
      */
-    private List<ExtUserEid> resolveAllowedEids(List<ExtUserEid> userEids, String bidder,
-                                                Map<String, List<String>> eidPermissions) {
+    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder,
+                                         Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
                 .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder))

@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.ImageObject;
@@ -20,6 +21,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.TitleObject;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
@@ -55,8 +57,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -552,42 +552,34 @@ public class RequestValidator {
                 }
             }
 
-            final List<ExtUserEid> eids = extUser.getEids();
+            final List<Eid> eids = extUser.getEids();
             if (eids != null) {
                 if (eids.isEmpty()) {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
                 for (int index = 0; index < eids.size(); index++) {
-                    final ExtUserEid eid = eids.get(index);
+                    final Eid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
                         throw new ValidationException(
                                 "request.user.ext.eids[%d] missing required field: \"source\"", index);
                     }
-                    final String eidId = eid.getId();
-                    final List<ExtUserEidUid> eidUids = eid.getUids();
-                    if (eidId == null && eidUids == null) {
+                    final List<Uid> eidUids = eid.getUids();
+                    if (CollectionUtils.isEmpty(eidUids)) {
                         throw new ValidationException(
-                                "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
+                                "request.user.ext.eids[%d].uids must contain at least one element", index);
                     }
-                    if (eidId == null) {
-                        if (eidUids.isEmpty()) {
+                    for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                        final Uid uid = eidUids.get(uidsIndex);
+                        if (StringUtils.isBlank(uid.getId())) {
                             throw new ValidationException(
-                                    "request.user.ext.eids[%d].uids must contain at least one element "
-                                            + "or be undefined", index);
-                        }
-                        for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                            final ExtUserEidUid uid = eidUids.get(uidsIndex);
-                            if (StringUtils.isBlank(uid.getId())) {
-                                throw new ValidationException(
-                                        "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                        uidsIndex);
-                            }
+                                    "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                    uidsIndex);
                         }
                     }
                 }
                 final Set<String> uniqueSources = eids.stream()
-                        .map(ExtUserEid::getSource)
+                        .map(Eid::getSource)
                         .collect(Collectors.toSet());
                 if (eids.size() != uniqueSources.size()) {
                     throw new ValidationException("request.user.ext.eids must contain unique sources");
