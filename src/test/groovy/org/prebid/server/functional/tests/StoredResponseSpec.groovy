@@ -90,16 +90,16 @@ class StoredResponseSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 0
     }
 
-    def "PBS should change bid id on imp id when bid id has macro ##PBSIMPID##"() {
+    def "PBS should replace bid impId on imp id when bid impId has macro ##PBSIMPID##"() {
         given: "Default basic BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
 
-        and: "Stored bid response in DB"
+        and: "Stored bid response in DB with marco id"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].id = "##PBSIMPID##"
+           seatbid[0].bid[0].impid = "##PBSIMPID##"
         }
         def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -107,7 +107,7 @@ class StoredResponseSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain information from stored bid response"
+        then: "Response should contain information from stored bid response and change bid.impId on imp.id"
         assert response.id == bidRequest.id
         assert response.seatbid[0]?.seat == storedBidResponse.seatbid[0].seat
         assert response.seatbid[0]?.bid?.size() == storedBidResponse.seatbid[0].bid.size()
