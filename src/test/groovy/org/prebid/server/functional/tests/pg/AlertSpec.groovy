@@ -5,7 +5,7 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Retry
+import spock.lang.Ignore
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -25,7 +25,6 @@ import static org.prebid.server.functional.util.HttpUtil.CONTENT_TYPE_HEADER_VAL
 import static org.prebid.server.functional.util.HttpUtil.PG_TRX_ID_HEADER
 import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 
-@Retry
 class AlertSpec extends BasePgSpec {
 
     private static final String PBS_REGISTER_CLIENT_ERROR = "pbs-register-client-error"
@@ -34,6 +33,7 @@ class AlertSpec extends BasePgSpec {
     private static final String PBS_DELIVERY_CLIENT_ERROR = "pbs-delivery-stats-client-error"
     private static final Integer DEFAULT_ALERT_PERIOD = 15
 
+    @Ignore
     def "PBS should send alert request when the threshold is reached"() {
         given: "Changed Planner Register endpoint response to return bad status code"
         generalPlanner.initRegisterResponse(NOT_FOUND_404)
