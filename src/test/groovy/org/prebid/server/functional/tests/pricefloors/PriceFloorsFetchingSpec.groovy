@@ -1746,7 +1746,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(accountId)
         accountDao.save(account)
 
-        and: "Set Floors Provider response with floorsSkipRate"
+        and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].values = [(rule): floorValue]
@@ -1763,8 +1763,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll {
             bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
-            bidderRequest.ext?.prebid?.floors?.skipRate == floorsSkipRate
-            bidderRequest.ext?.prebid?.floors?.skipped
+            bidderRequest.ext.prebid.floors?.skipRate == floorsSkipRate
+            bidderRequest.ext.prebid.floors?.skipped
 
             bidderRequest.ext.prebid.floors?.fetchStatus == SUCCESS
             bidderRequest.ext.prebid.floors?.location == FETCH
@@ -1784,7 +1784,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(accountId)
         accountDao.save(account)
 
-        and: "Set Floors Provider response with floorsSkipRate"
+        and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].values = [(rule): floorValue]
@@ -1797,12 +1797,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request shouldn't contain floors data except initial field"
+        then: "Bidder request shouldn't contain floors data, except initial field"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll {
             bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
-            bidderRequest.ext?.prebid?.floors?.skipRate == floorsSkipRate
-            bidderRequest.ext?.prebid?.floors?.skipped == null
+            bidderRequest.ext.prebid.floors?.skipRate == floorsSkipRate
+            bidderRequest.ext.prebid.floors?.skipped == null
 
             !bidderRequest.ext.prebid.floors?.fetchStatus
             !bidderRequest.ext.prebid.floors?.location
