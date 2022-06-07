@@ -84,7 +84,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [6]
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
-                         "price $lowerPrice is below the floor $floorValue" as String]
+                         "price $lowerPrice is below the floor ${floorValue.stripTrailingZeros()}" as String]
 
         where:
         descriprion       | floors
@@ -133,9 +133,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC]*.code == [6, 6]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Bid with id '${bidResponse.seatbid[0].bid[1].id}' was rejected by floor enforcement: " +
-                         "price ${bidResponse.seatbid[0].bid[1].price} is below the floor $floorValue" as String,
+                         "price ${bidResponse.seatbid[0].bid[1].price} is below the floor ${floorValue.stripTrailingZeros()}" as String,
                  "Bid with id '${bidResponse.seatbid[0].bid[2].id}' was rejected by floor enforcement: " +
-                         "price ${bidResponse.seatbid[0].bid[2].price} is below the floor $floorValue" as String]
+                         "price ${bidResponse.seatbid[0].bid[2].price} is below the floor ${floorValue.stripTrailingZeros()}" as String]
 
         where:
         enforcePbs << [true, null]
