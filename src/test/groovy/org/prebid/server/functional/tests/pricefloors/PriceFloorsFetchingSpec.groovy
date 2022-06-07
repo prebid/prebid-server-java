@@ -700,7 +700,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with maxFileSizeKb in the DB"
         def accountId = bidRequest.app.publisher.id
-        def maxSize = PBSUtils.getRandomNumber(1, 10)
+        def maxSize = PBSUtils.getRandomNumber(1, 5)
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.fetch.maxFileSizeKb = maxSize
         }
@@ -708,7 +708,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with Content-Length"
         def floorsResponse = PriceFloorData.priceFloorData
-        def responseSize = convertKilobyteSizeToByte(maxSize) + 100
+        def responseSize = convertKilobyteSizeToByte(maxSize) + 75
         floorsProvider.setResponse(accountId, floorsResponse, ["Content-Length": responseSize as String])
 
         when: "PBS processes auction request"
