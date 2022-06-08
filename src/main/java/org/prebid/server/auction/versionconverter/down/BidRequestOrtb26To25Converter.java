@@ -92,7 +92,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
         JsonNode prebidNode = copy.get(PREBID_FIELD);
         if (prebidNode == null || !prebidNode.isObject()) {
-            prebidNode = copy.set(PREBID_FIELD, mapper.mapper().createObjectNode());
+            prebidNode = mapper.mapper().createObjectNode();
+            copy.set(PREBID_FIELD, prebidNode);
         }
         ((ObjectNode) prebidNode).put(IS_REWARDED_INVENTORY_FIELD, rewarded);
 
