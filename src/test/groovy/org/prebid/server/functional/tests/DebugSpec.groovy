@@ -15,7 +15,6 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.response.auction.BidderCallType.HTTP
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 
 class DebugSpec extends BaseSpec {
@@ -310,15 +309,15 @@ class DebugSpec extends BaseSpec {
         null         || null
     }
 
-    def "PBS should return HTTP call type when it's default bidder call"() {
+    def "PBS shouldn't populate call type when it's default bidder call"() {
         given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain call type HTTP"
-        assert response.ext?.debug?.httpcalls[GENERIC.value].first().calltype == HTTP
+        then: "Response shouldn't contain call type"
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().calltype == null
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
