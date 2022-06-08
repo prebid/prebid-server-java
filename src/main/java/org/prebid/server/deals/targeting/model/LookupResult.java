@@ -1,6 +1,7 @@
 package org.prebid.server.deals.targeting.model;
 
 import lombok.Value;
+import org.apache.commons.collections4.ListUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,5 +25,9 @@ public class LookupResult<T> {
 
     public boolean anyMatch(Predicate<T> matcher) {
         return values.stream().anyMatch(matcher);
+    }
+
+    public LookupResult<T> orElse(List<T> orValues) {
+        return LookupResult.of(ListUtils.union(values, orValues));
     }
 }

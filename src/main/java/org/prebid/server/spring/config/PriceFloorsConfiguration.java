@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
@@ -91,9 +92,14 @@ public class PriceFloorsConfiguration {
     }
 
     @Bean
+    FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
+        return new FloorAdjustmentFactorResolver();
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorAdjuster basicPriceFloorAdjuster() {
-        return new BasicPriceFloorAdjuster();
+    PriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
     }
 
     @Bean

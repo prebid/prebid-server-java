@@ -27,7 +27,7 @@ class UserDetailsSpec extends BasePgSpec {
     private static final String USER_SERVICE_NAME = "userservice"
 
     @Shared
-    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
+    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer)
 
     def "PBS should send user details request to the User Service during deals auction"() {
         given: "Bid request"
@@ -44,7 +44,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -84,7 +84,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -127,7 +127,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -174,7 +174,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -219,7 +219,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS where the winner is instantiated"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -276,7 +276,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS where the winner is instantiated"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -326,7 +326,7 @@ class UserDetailsSpec extends BasePgSpec {
         pgPbsService.sendAuctionRequest(bidRequest)
 
         and: "Sending event request to PBS"
-        pgPbsService.sendEventRequest(eventRequest, HttpUtil.getCookieHeader(mapper, uidsCookie))
+        pgPbsService.sendEventRequest(eventRequest, HttpUtil.getCookieHeader(uidsCookie))
 
         then: "PBS hasn't sent a win notification to the User Service"
         assert userData.requestCount == initialRequestCount

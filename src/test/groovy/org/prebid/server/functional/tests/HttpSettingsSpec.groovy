@@ -12,7 +12,6 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
@@ -21,12 +20,11 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@PBSTest
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
 
     @Shared
-    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
+    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer)
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
@@ -133,7 +131,7 @@ class HttpSettingsSpec extends BaseSpec {
     def "PBS should take account information from http data source on vtrack request"() {
         given: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber.toString()
 
         and: "Prepare default account response"

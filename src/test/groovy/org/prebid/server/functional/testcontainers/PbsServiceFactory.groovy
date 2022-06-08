@@ -3,7 +3,6 @@ package org.prebid.server.functional.testcontainers
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.SystemProperties
 
 import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
@@ -14,17 +13,15 @@ class PbsServiceFactory {
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
     private static final int MAX_CONTAINER_COUNT = maxContainerCount
 
-    private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
 
-    PbsServiceFactory(NetworkServiceContainer networkServiceContainer, ObjectMapperWrapper mapper) {
+    PbsServiceFactory(NetworkServiceContainer networkServiceContainer) {
         this.networkServiceContainer = networkServiceContainer
-        this.mapper = mapper
     }
 
     PrebidServerService getService(Map<String, String> config) {
         if (containers.containsKey(config)) {
-            return new PrebidServerService(containers.get(config), mapper)
+            return new PrebidServerService(containers.get(config))
         } else {
             if (containers.size() == 1 && MAX_CONTAINER_COUNT == 1) {
                 def container = containers.entrySet().first()
@@ -36,7 +33,7 @@ class PbsServiceFactory {
             def pbsContainer = new PrebidServerContainer(config)
             pbsContainer.start()
             containers.put(config, pbsContainer)
-            return new PrebidServerService(pbsContainer, mapper)
+            return new PrebidServerService(pbsContainer)
         }
     }
 

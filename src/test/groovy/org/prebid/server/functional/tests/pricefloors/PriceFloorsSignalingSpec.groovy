@@ -325,7 +325,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with bidAdjustment"
         def floorsProviderFloorValue = PBSUtils.randomFloorValue
@@ -371,14 +371,14 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
         def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def floorsProviderFloorValue = 0.8
         def bidAdjustment = 0.1
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: requestBidAdjustmentFlag))
-            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment as BigDecimal])
+            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
         }
 
         and: "Account in the DB"
@@ -411,13 +411,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should choose most aggressive adjustment when request contains multiple media-types"() {
         given: "BidRequest with bidAdjustment"
-        def bidAdjustment = PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(0, 10), 1)
+        def bidAdjustment = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(0, 10), 1)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first().video = Video.defaultVideo
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: true))
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(
-                    mediaTypes: [(BidAdjustmentMediaType.BANNER): [(GENERIC): bidAdjustment as BigDecimal],
-                                 (BidAdjustmentMediaType.VIDEO) : [(GENERIC): Float.sum(bidAdjustment, 0.1) as BigDecimal]])
+                    mediaTypes: [(BidAdjustmentMediaType.BANNER): [(GENERIC): bidAdjustment],
+                                 (BidAdjustmentMediaType.VIDEO) : [(GENERIC): bidAdjustment + 0.1]])
         }
 
         and: "Account with adjustForBidAdjustment in the DB"
