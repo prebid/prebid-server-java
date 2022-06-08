@@ -317,7 +317,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain call type"
-        assert response.ext?.debug?.httpcalls[GENERIC.value].first().calltype == null
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == null
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
@@ -338,7 +338,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain call type STORED_BID_RESPONSE"
-        assert response.ext?.debug?.httpcalls[GENERIC.value].first().calltype == STORED_BID_RESPONSE
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == STORED_BID_RESPONSE
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings

@@ -7,7 +7,7 @@ class BidderCall {
 
     String uri
     String requestbody
-    BidderCallType calltype
+    BidderCallType callType
     Map<String, List<String>> requestheaders
     String responsebody
     Integer status

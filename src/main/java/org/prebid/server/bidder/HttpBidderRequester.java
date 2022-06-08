@@ -371,7 +371,7 @@ public class HttpBidderRequester {
             final BidderCallType callType = httpCall.getCallType();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .calltype(callType != BidderCallType.HTTP ? callType : null)
+                    .callType(callType != BidderCallType.HTTP ? callType : null)
                     .requestbody(mapper.encodeToString(request.getPayload()))
                     .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
