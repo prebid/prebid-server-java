@@ -1733,6 +1733,82 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
     }
 
+    def "PBS should populate floors enabled = true when floors skip rate 100"() {
+        given: "Default BidRequest with floors"
+        def floorsSkipRate = 100
+        def floorsEnabled = true
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: floorsEnabled, skipRate: floorsSkipRate)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain floors data"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        verifyAll {
+            bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
+            bidderRequest.ext.prebid.floors?.skipRate == floorsSkipRate
+            bidderRequest.ext.prebid.floors?.skipped == true
+
+            bidderRequest.ext.prebid.floors?.fetchStatus == SUCCESS
+            bidderRequest.ext.prebid.floors?.location == FETCH
+        }
+    }
+
+    def "PBS shouldn't populate floors except initial field when floors enabled = false"() {
+        given: "Default BidRequest with floors"
+        def floorsSkipRate = 100
+        def floorsEnabled = false
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: floorsEnabled, skipRate: floorsSkipRate)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain floors data, except initial field"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        verifyAll {
+            bidderRequest.ext?.prebid?.floors?.enabled == floorsEnabled
+            bidderRequest.ext.prebid.floors?.skipRate == floorsSkipRate
+            bidderRequest.ext.prebid.floors?.skipped == null
+
+            !bidderRequest.ext.prebid.floors?.fetchStatus
+            !bidderRequest.ext.prebid.floors?.location
+        }
+    }
+
     static int convertKilobyteSizeToByte(int kilobyteSize) {
         kilobyteSize * 1024
     }
