@@ -4,14 +4,12 @@ import org.prebid.server.functional.model.mock.services.pubstack.PubStackRespons
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
 import spock.lang.Shared
 
-@PBSTest
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()

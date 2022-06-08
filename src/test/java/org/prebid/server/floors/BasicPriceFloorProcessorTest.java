@@ -125,6 +125,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorProvider("provider.com")
                         .floorMin(BigDecimal.ONE)
                         .data(providerFloorsData)
@@ -153,6 +154,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorProvider("provider.com")
                         .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
@@ -180,6 +182,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorProvider("provider.com")
                         .data(providerFloorsData)
                         .floorMin(BigDecimal.ONE)
@@ -237,6 +240,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorProvider("provider.com")
                         .enforcement(PriceFloorEnforcement.builder()
                                 .enforcePbs(false)
@@ -269,6 +273,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final PriceFloorRules expectedResult =
                 givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorProvider("provider.com")
                         .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
@@ -321,6 +326,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .floorMin(BigDecimal.ONE)
                         .location(PriceFloorLocation.request)));
     }
@@ -364,6 +370,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .skipped(false)
                         .skipRate(0)
                         .location(PriceFloorLocation.request)));
     }
@@ -384,7 +391,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .skipRate(100)
-                        .enabled(false)
+                        .enabled(true)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
@@ -406,7 +413,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .enabled(false)
+                        .enabled(true)
                         .skipRate(100)
                         .data(priceFloorData)
                         .skipped(true)
@@ -434,7 +441,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .isEqualTo(givenFloors(floors -> floors
                         .data(priceFloorData)
                         .skipRate(100)
-                        .enabled(false)
+                        .enabled(true)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));
     }

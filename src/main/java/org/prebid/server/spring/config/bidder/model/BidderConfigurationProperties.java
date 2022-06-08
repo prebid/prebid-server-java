@@ -44,6 +44,8 @@ public class BidderConfigurationProperties {
     @NotNull
     private UsersyncConfigurationProperties usersync;
 
+    private CompressionType endpointCompression;
+
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
     public BidderConfigurationProperties() {
@@ -54,10 +56,12 @@ public class BidderConfigurationProperties {
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
-        modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
-                defaultProperties.getModifyingVastXmlAllowed());
+        modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(
+                modifyingVastXmlAllowed, defaultProperties.getModifyingVastXmlAllowed());
         debug = ObjectUtils.defaultIfNull(debug, defaultProperties.getDebug());
         aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
+        endpointCompression = ObjectUtils.defaultIfNull(
+                endpointCompression, defaultProperties.getEndpointCompression());
     }
 }

@@ -24,4 +24,5 @@ class Prebid {
     BidAdjustmentFactors bidAdjustmentFactors
     PrebidCurrency currency
     ExtPrebidFloors floors
+    List<ExtPrebidBidderConfig> bidderConfig
 }

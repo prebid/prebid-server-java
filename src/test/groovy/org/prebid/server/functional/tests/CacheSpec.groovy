@@ -7,10 +7,8 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
-@PBSTest
 class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
