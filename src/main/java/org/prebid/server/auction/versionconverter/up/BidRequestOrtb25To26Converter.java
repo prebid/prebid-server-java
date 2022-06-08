@@ -29,10 +29,6 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
     @Override
     public BidRequest convert(BidRequest bidRequest) {
-        return moveBidRequestData(bidRequest);
-    }
-
-    private static BidRequest moveBidRequestData(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
         final List<Imp> modifiedImps = moveImpsData(imps);
 

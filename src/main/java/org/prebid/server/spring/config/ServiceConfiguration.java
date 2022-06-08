@@ -238,8 +238,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory() {
-        return new BidRequestOrtbVersionConverterFactory();
+    BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory(JacksonMapper jacksonMapper) {
+        return new BidRequestOrtbVersionConverterFactory(jacksonMapper);
     }
 
     @Bean
