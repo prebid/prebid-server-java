@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -367,9 +368,10 @@ public class HttpBidderRequester {
          */
         private ExtHttpCall toExt(BidderCall<T> httpCall) {
             final HttpRequest<T> request = httpCall.getRequest();
+            final BidderCallType callType = httpCall.getCallType();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .calltype(httpCall.getCallType())
+                    .calltype(callType != BidderCallType.HTTP ? callType : null)
                     .requestbody(mapper.encodeToString(request.getPayload()))
                     .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
