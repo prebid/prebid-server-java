@@ -20,7 +20,7 @@ public class ExtHttpCall {
 
     String responsebody;
 
-    BidderCallType callType;
+    BidderCallType calltype;
 
     Map<String, List<String>> requestheaders;
 
