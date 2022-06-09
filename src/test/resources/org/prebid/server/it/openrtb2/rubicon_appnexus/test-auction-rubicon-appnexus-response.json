@@ -470,6 +470,7 @@
                 1
               ]
             },
+            "rwdd": 1,
             "ext": {
               "prebid": {
                 "bidder": {
@@ -681,6 +682,42 @@
               }
             }
           ],
+          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+          "eids": [
+            {
+              "source": "adserver.org",
+              "uids": [
+                {
+                  "id": "cd96870f-f53d-4986-a08e-cd1612fb13b0",
+                  "ext": {
+                    "rtiPartner": "TDID"
+                  }
+                }
+              ]
+            },
+            {
+              "source": "liveintent.com",
+              "uids": [
+                {
+                  "id": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+                }
+              ],
+              "ext": {
+                "segments": [
+                  "999",
+                  "888"
+                ]
+              }
+            },
+            {
+              "source": "pubcid",
+              "uids": [
+                {
+                  "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+                }
+              ]
+            }
+          ],
           "ext": {
             "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
             "eids": [
@@ -730,6 +767,7 @@
           "tid": "tid"
         },
         "regs": {
+          "us_privacy": "1YNN",
           "ext": {
             "us_privacy": "1YNN"
           }
