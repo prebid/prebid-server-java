@@ -86,7 +86,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         }
 
         final JsonNode rewardedNode = impExt.at(IMP_EXT_PREBID_REWARDED);
-        return !rewardedNode.isMissingNode()
+        return rewardedNode.isIntegralNumber()
                 ? rewardedNode.asInt()
                 : null;
     }
