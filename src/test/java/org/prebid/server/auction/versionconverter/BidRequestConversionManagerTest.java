@@ -29,9 +29,9 @@ public class BidRequestConversionManagerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_5)))
+        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_6), eq(OrtbVersion.ORTB_2_5)))
                 .willReturn(bidRequest -> bidRequest.toBuilder().id("2.5").build());
-        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_6)))
+        given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_5), eq(OrtbVersion.ORTB_2_6)))
                 .willReturn(bidRequest -> bidRequest.toBuilder().id("2.6").build());
 
         ortbVersionConversionManager = new BidRequestOrtbVersionConversionManager(

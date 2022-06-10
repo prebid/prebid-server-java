@@ -9,22 +9,38 @@ import java.util.Map;
 
 public class BidRequestOrtbVersionConverterFactory {
 
-    private final Map<OrtbVersion, BidRequestOrtbVersionConverter> bidRequestOrtbConverters;
+    private final Map<OrtbVersion, BidRequestOrtbVersionConverter> upConverters;
+    private final Map<OrtbVersion, BidRequestOrtbVersionConverter> downConverters;
 
-    public BidRequestOrtbVersionConverterFactory(JacksonMapper mapper) {
-        bidRequestOrtbConverters = Map.of(
-                OrtbVersion.ORTB_2_5, createChain(new BidRequestOrtb26To25Converter(mapper)),
+    public BidRequestOrtbVersionConverterFactory(JacksonMapper jacksonMapper) {
+        upConverters = Map.of(
+                OrtbVersion.ORTB_2_5, BidRequestOrtbVersionConverter.identity(),
                 OrtbVersion.ORTB_2_6, createChain(new BidRequestOrtb25To26Converter()));
+
+        downConverters = Map.of(
+                OrtbVersion.ORTB_2_5, createChain(new BidRequestOrtb26To25Converter(jacksonMapper)),
+                OrtbVersion.ORTB_2_6, BidRequestOrtbVersionConverter.identity());
     }
 
     static BidRequestOrtbVersionConverter createChain(BidRequestOrtbVersionConverter... converters) {
-        return Arrays.stream(converters).reduce(
-                BidRequestOrtbVersionConverter.identity(),
-                BidRequestOrtbVersionConverter::andThen);
+        return Arrays.stream(converters)
+                .reduce(BidRequestOrtbVersionConverter::andThen)
+                .orElseThrow();
     }
 
-    public BidRequestOrtbVersionConverter getConverter(OrtbVersion targetVersion) {
-        final BidRequestOrtbVersionConverter converter = bidRequestOrtbConverters.get(targetVersion);
+    public BidRequestOrtbVersionConverter getConverter(OrtbVersion fromVersion, OrtbVersion toVersion) {
+        if (fromVersion.ordinal() <= toVersion.ordinal()) {
+            return getConverterFrom(upConverters, toVersion);
+        } else {
+            return getConverterFrom(downConverters, toVersion);
+        }
+    }
+
+    private static BidRequestOrtbVersionConverter getConverterFrom(
+            Map<OrtbVersion, BidRequestOrtbVersionConverter> converters,
+            OrtbVersion targetVersion) {
+
+        final BidRequestOrtbVersionConverter converter = converters.get(targetVersion);
         if (converter == null) {
             throw new IllegalArgumentException("Unsupported OpenRTB version for conversion.");
         }
