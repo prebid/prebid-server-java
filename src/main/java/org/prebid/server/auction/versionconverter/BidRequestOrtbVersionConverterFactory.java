@@ -22,9 +22,9 @@ public class BidRequestOrtbVersionConverterFactory {
     }
 
     static BidRequestOrtbVersionConverter createChain(BidRequestOrtbVersionConverter... converters) {
-        return Arrays.stream(converters).reduce(
-                BidRequestOrtbVersionConverter.identity(),
-                BidRequestOrtbVersionConverter::andThen);
+        return Arrays.stream(converters)
+                .reduce(BidRequestOrtbVersionConverter::andThen)
+                .orElseThrow();
     }
 
     public BidRequestOrtbVersionConverter getConverter(OrtbVersion fromVersion, OrtbVersion toVersion) {
