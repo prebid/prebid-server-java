@@ -348,7 +348,7 @@ public class BidResponseCreator {
 
         final Video storedVideo = videoStoredDataResult.getImpIdToStoredVideo().get(bid.getImpid());
         final Events events = createEvents(bidder, account, effectiveBidId, eventsContext, lineItemId);
-        final Optional<ExtBidPrebidVideo> extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
+        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt()).orElse(null);
 
         final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = getExtPrebid(bid.getExt(), ExtBidPrebid.class)
                 .map(ExtBidPrebid::toBuilder)
@@ -359,7 +359,7 @@ public class BidResponseCreator {
                 .type(bidType)
                 .storedRequestAttributes(storedVideo)
                 .events(events)
-                .video(extBidPrebidVideo.orElse(null))
+                .video(extBidPrebidVideo)
                 .build();
     }
 
