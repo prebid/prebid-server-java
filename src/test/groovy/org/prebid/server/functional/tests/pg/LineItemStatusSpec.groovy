@@ -110,7 +110,7 @@ class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
             it.readyToServeTimestamp.isBefore(ZonedDateTime.now())
             it.pacingFrequency == getDeliveryRateMs(deliverySchedule)
             it.accountId == lineItem.accountId
-            it.target as String == encode(lineItem.targeting)
+            encode(it.target) == encode(lineItem.targeting)
         }
     }
 

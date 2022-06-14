@@ -265,9 +265,10 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[GET] /pbs-admin/lineitem-status")
     LineItemStatusReport sendLineItemStatusRequest(String lineItemId) {
-        def request = lineItemId == null
-                ? given(adminRequestSpecification)
-                : given(adminRequestSpecification).queryParam("id", lineItemId)
+        def request = given(adminRequestSpecification)
+        if (lineItemId != null) {
+            request.queryParam("id", lineItemId)
+        }
 
         def response = request.get(LINE_ITEM_STATUS_ENDPOINT)
 

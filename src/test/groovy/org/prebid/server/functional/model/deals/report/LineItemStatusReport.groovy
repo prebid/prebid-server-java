@@ -1,6 +1,5 @@
 package org.prebid.server.functional.model.deals.report
 
-import com.fasterxml.jackson.databind.node.ObjectNode
 import groovy.transform.ToString
 
 import java.time.ZonedDateTime
@@ -14,5 +13,5 @@ class LineItemStatusReport {
     ZonedDateTime readyToServeTimestamp
     Long pacingFrequency
     String accountId
-    ObjectNode target
+    Map target
 }
