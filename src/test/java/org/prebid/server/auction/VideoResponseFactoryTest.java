@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
