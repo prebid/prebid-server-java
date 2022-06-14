@@ -646,7 +646,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(ExtBidResponse.builder()
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build())
                 .build();
 
@@ -2360,7 +2360,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.get("prebid"))
                 .extracting(ext -> mapper.convertValue(ext, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getDealtiersatisfied)
+                .extracting(ExtBidPrebid::getDealTierSatisfied)
                 .containsOnly(true);
     }
 
@@ -2847,7 +2847,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
     }
 
@@ -2880,7 +2880,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                         "invalid has been deprecated and is no longer available. Use valid instead."))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
@@ -2911,7 +2911,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "privacy error"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
     }
 

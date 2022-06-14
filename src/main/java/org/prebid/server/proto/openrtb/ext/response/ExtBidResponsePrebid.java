@@ -1,10 +1,12 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
- * Defines the contract for bidresponse.ext
+ * Defines the contract for bidresponse.ext.prebid
  */
 @AllArgsConstructor(staticName = "of")
 @Value
@@ -19,4 +21,6 @@ public class ExtBidResponsePrebid {
      * Defines the contract for bidresponse.ext.prebid.modules
      */
     ExtModules modules;
+
+    JsonNode passthrough;
 }

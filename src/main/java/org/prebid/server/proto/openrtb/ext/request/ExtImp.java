@@ -6,8 +6,7 @@ import lombok.Value;
 /**
  * Defines the contract for bidrequest.imp[i].ext
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImp {
 
     ExtImpPrebid prebid;
