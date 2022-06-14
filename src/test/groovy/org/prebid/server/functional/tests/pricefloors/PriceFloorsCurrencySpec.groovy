@@ -129,7 +129,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond floorMin"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0].bidFloor == getRoundedFloorValue(convertedMinFloorValue)
+            imp[0].bidFloor == getRoundedFloorValue(convertedMinFloorValue).stripTrailingZeros()
             imp[0].bidFloorCur == floorProviderCur
             ext?.prebid?.floors?.floorMin == floorMin
             ext?.prebid?.floors?.floorMinCur == requestFloorMinCur
