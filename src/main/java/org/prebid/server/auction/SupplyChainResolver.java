@@ -15,7 +15,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,7 +82,6 @@ public class SupplyChainResolver {
     }
 
     private SupplyChain enrich(SupplyChain bidderSpecificSchain, BidRequest bidRequest) {
-
         if (globalNode == null) {
             return bidderSpecificSchain;
         }
@@ -102,9 +100,7 @@ public class SupplyChainResolver {
 
     private SupplyChain requestSchain(BidRequest bidRequest) {
         final Source source = bidRequest.getSource();
-        final ExtSource extSource = source != null ? source.getExt() : null;
-
-        return extSource != null ? extSource.getSchain() : null;
+        return source != null ? source.getSchain() : null;
     }
 
     private SupplyChain enrichSchainWithGlobalNode(SupplyChain requestSchain) {

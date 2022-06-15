@@ -11,15 +11,17 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverter;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -92,16 +94,52 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static Source moveSourceData(Source source) {
-        if (source == null || source.getSchain() != null) {
+        if (source == null) {
             return null;
         }
 
-        final SupplyChain extSupplyChain = ObjectUtil.getIfNotNull(source.getExt(), ExtSource::getSchain);
-        return extSupplyChain != null
+        final ExtSource extSource = source.getExt();
+
+        final SupplyChain supplyChain = source.getSchain();
+        final SupplyChain resolvedSupplyChain = resolveSupplyChain(supplyChain, extSource);
+
+        final ExtSource resolvedExtSource = resolveExtSource(extSource);
+
+        return ObjectUtils.anyNotNull(resolvedSupplyChain, resolvedExtSource)
                 ? source.toBuilder()
-                .schain(extSupplyChain)
+                .schain(resolvedSupplyChain != null ? resolvedSupplyChain : supplyChain)
+                .ext(resolvedExtSource != null ? nullIfPropertiesEmpty(resolvedExtSource) : extSource)
                 .build()
                 : null;
+    }
+
+    private static SupplyChain resolveSupplyChain(SupplyChain supplyChain, ExtSource extSource) {
+        if (supplyChain != null) {
+            return null;
+        }
+
+        return extSource != null ? extSource.getSchain() : null;
+    }
+
+    private static ExtSource resolveExtSource(ExtSource extSource) {
+        if (extSource == null || extSource.getSchain() == null) {
+            return null;
+        }
+
+        final ExtSource modifiedExtSource = ExtSource.of(null);
+        copyProperties(extSource, modifiedExtSource);
+
+        return modifiedExtSource;
+    }
+
+    private static void copyProperties(FlexibleExtension source, FlexibleExtension target) {
+        Optional.ofNullable(source)
+                .map(FlexibleExtension::getProperties)
+                .ifPresent(target::addProperties);
+    }
+
+    private static <T extends FlexibleExtension> T nullIfPropertiesEmpty(T ext) {
+        return MapUtils.isNotEmpty(ext.getProperties()) ? ext : null;
     }
 
     private static Regs moveRegsData(Regs regs) {

@@ -68,8 +68,15 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getSource)
-                .extracting(Source::getSchain)
-                .isSameAs(supplyChain);
+                .satisfies(source -> {
+                    assertThat(source)
+                            .extracting(Source::getSchain)
+                            .isSameAs(supplyChain);
+                    assertThat(source)
+                            .extracting(Source::getExt)
+                            .isNull();
+                });
+
     }
 
     @Test
@@ -85,8 +92,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getSource)
-                .extracting(Source::getSchain)
-                .isSameAs(supplyChain);
+                .satisfies(source -> {
+                    assertThat(source)
+                            .extracting(Source::getSchain)
+                            .isSameAs(supplyChain);
+                    assertThat(source)
+                            .extracting(Source::getExt)
+                            .isNull();
+                });
     }
 
     @Test
