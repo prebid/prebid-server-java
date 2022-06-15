@@ -27,5 +27,5 @@ class Prebid {
     PrebidCurrency currency
     ExtPrebidFloors floors
     List<ExtPrebidBidderConfig> bidderConfig
-    JsonNode passThrough
+    Map passThrough
 }

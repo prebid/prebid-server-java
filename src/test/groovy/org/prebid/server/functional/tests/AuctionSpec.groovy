@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import com.fasterxml.jackson.databind.node.TextNode
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -315,28 +314,27 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.id == bidRequestId
     }
 
-    def "PBS should copy imp level passThrough to bidresponse.seatbid[].bid[].ext.prebid.passThrough when the imp.id matches seatbid[].bid[].impid"() {
+    def "PBS should copy imp level passThrough to bidresponse.seatbid[].bid[].ext.prebid.passThrough when the passThrough is present"() {
         given: "Default bid request with passThrough"
-        def textNode = TextNode.valueOf(PBSUtils.randomString)
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.passThrough = textNode
+            imp[0].ext.prebid.passThrough = passThrough
         }
 
         when: "Requesting PBS auction"
         def response = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should contain the same passThrough as on request"
-        assert response.seatbid.first().bid.first().ext.prebid.passThrough == textNode
-
-        and: "BidRequest imp.id should matches with BidResponse seatbid[].bid[].impid"
-        assert bidRequest.imp.first().id == response.seatbid.first().bid.first().impid
+        assert response.seatbid.first().bid.first().ext.prebid.passThrough == passThrough
     }
 
     def "PBS should copy global level passThrough object to bidresponse.ext.prebid.passThrough when passThrough is present"() {
         given: "Default bid request with passThrough"
-        def textNode = TextNode.valueOf(PBSUtils.randomString)
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.passThrough = textNode
+            ext.prebid.passThrough = passThrough
         }
 
         when: "Requesting PBS auction"
@@ -344,6 +342,6 @@ class AuctionSpec extends BaseSpec {
 
         then: "BidResponse should contain the same passThrough as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.passThrough == textNode
+        assert bidderRequest.ext.prebid.passThrough == passThrough
     }
 }

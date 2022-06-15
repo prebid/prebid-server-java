@@ -11,5 +11,5 @@ class BidResponsePrebid {
 
     Long auctionTimeStamp
 
-    JsonNode passThrough
+    Map passThrough
 }

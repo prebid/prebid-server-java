@@ -8,5 +8,5 @@ class Prebid {
     Map<String, String> targeting
     String targetbiddercode
     Cache cache
-    JsonNode passThrough
+    Map passThrough
 }

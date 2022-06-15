@@ -14,7 +14,7 @@ class ImpExtPrebid {
     List<StoredBidResponse> storedBidResponse
     PrebidStoredRequest storedRequest
     ImpExtPrebidFloors floors
-    JsonNode passThrough
+    Map passThrough
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {
