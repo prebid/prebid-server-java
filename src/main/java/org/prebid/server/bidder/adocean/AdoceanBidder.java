@@ -24,7 +24,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -287,7 +287,7 @@ public class AdoceanBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final List<NameValuePair> params;
         try {
             params = URLEncodedUtils.parse(new URI(httpCall.getRequest().getUri()), StandardCharsets.UTF_8);

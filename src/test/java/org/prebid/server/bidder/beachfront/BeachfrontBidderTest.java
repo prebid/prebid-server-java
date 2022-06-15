@@ -29,7 +29,7 @@ import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -571,7 +571,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "[]");
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -584,7 +584,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -609,7 +609,8 @@ public class BeachfrontBidderTest extends VertxTest {
                 .h(450)
                 .build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(singletonList(responseSlot)));
+        final BidderCall<Void> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(singletonList(responseSlot)));
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -632,7 +633,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseHasEmptySeatBids() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build()),
                 mapper.writeValueAsString(BidResponse.builder().id("some_id").build()));
 
@@ -657,7 +658,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .build())
                 .build();
 
-        final HttpCall<Void> httpCall = HttpCall.success(
+        final BidderCall<Void> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url&prebidserver").build(),
@@ -690,7 +691,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .build())
                 .build();
 
-        final HttpCall<Void> httpCall = HttpCall.success(
+        final BidderCall<Void> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url").build(),
@@ -720,7 +721,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -746,7 +747,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -772,7 +773,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -798,7 +799,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -824,7 +825,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -850,7 +851,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -874,7 +875,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -923,13 +924,13 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
-                                                BidResponse bidResponse) throws JsonProcessingException {
+    private static BidderCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
+                                                  BidResponse bidResponse) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsBytes(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
     }
 
-    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
                 HttpResponse.of(200, null, responseBody), null);
     }
