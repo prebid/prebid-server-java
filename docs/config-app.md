@@ -12,17 +12,29 @@ This section can be extended against standard [Spring configuration](https://doc
 - `vertx.worker-pool-size` - set the maximum number of worker threads to be used by the Vert.x instance.
 - `vertx.uploads-dir` - directory that Vert.x [BodyHandler](http://vertx.io/docs/apidocs/io/vertx/ext/web/handler/BodyHandler.html) will use to store multi-part file uploads. 
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
-- `vertx.http-server-instances` - how many http server instances should be created. 
-This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
-## HTTP
-- `http.port` - the port to listen on.
-- `http.max-headers-size` - set the maximum length of all headers.
-- `http.ssl` - enable SSL/TLS support.
-- `http.jks-path` - path to the java keystore (if ssl is enabled).
-- `http.jks-password` - password for the keystore (if ssl is enabled).
+## Server
+- `server.max-headers-size` - set the maximum length of all headers.
+- `server.ssl` - enable SSL/TLS support.
+- `server.jks-path` - path to the java keystore (if ssl is enabled).
+- `server.jks-password` - password for the keystore (if ssl is enabled).
+
+## HTTP Server
+- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.http.server-instances` - how many http server instances should be created.
+  This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
+- `server.http.enabled` - if set to `true` enables http server
+- `server.http.port` - the port to listen on.
+
+## Unix Domain Socket Server
+- `server.unix-socket.server-instances` - how many http server instances should be created.
+- `server.unix-socket.enabled` - if set to `true` enables unix socket server
+- `server.unix-socket.path` - the path to unix socket to listen on.
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).

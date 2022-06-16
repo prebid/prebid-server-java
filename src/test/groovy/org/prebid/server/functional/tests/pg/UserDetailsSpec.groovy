@@ -95,7 +95,7 @@ class UserDetailsSpec extends BasePgSpec {
         assert userServiceCall?.size() == 1
 
         assert !userServiceCall[0].status
-        assert !userServiceCall[0].responsebody
+        assert !userServiceCall[0].responseBody
 
         cleanup:
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
