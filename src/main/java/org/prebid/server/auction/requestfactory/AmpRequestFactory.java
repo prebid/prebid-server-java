@@ -39,7 +39,6 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -263,7 +262,7 @@ public class AmpRequestFactory {
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         return gdpr != null || usPrivacy != null
-                ? Regs.builder().ext(ExtRegs.of(gdpr, usPrivacy)).build()
+                ? Regs.builder().gdpr(gdpr).usPrivacy(usPrivacy).build()
                 : null;
     }
 

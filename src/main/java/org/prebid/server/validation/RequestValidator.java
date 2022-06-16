@@ -45,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -589,12 +588,11 @@ public class RequestValidator {
     }
 
     /**
-     * Validates {@link Regs}. Throws {@link ValidationException} in case if {@link ExtRegs} is present in
-     * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
+     * Validates {@link Regs}. Throws {@link ValidationException} in case if
+     * its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final Integer gdpr = regs != null ? regs.getGdpr() : null;
         if (gdpr != null && gdpr != 0 && gdpr != 1) {
             throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }

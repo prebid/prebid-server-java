@@ -115,8 +115,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
-                .extracting(Regs::getGdpr)
-                .isSameAs(gdpr);
+                .satisfies(regs -> {
+                    assertThat(regs)
+                            .extracting(Regs::getGdpr)
+                            .isSameAs(gdpr);
+                    assertThat(regs)
+                            .extracting(Regs::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -132,8 +138,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
-                .extracting(Regs::getGdpr)
-                .isSameAs(gdpr);
+                .satisfies(regs -> {
+                    assertThat(regs)
+                            .extracting(Regs::getGdpr)
+                            .isSameAs(gdpr);
+                    assertThat(regs)
+                            .extracting(Regs::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -149,8 +161,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
-                .extracting(Regs::getUsPrivacy)
-                .isSameAs(usPrivacy);
+                .satisfies(regs -> {
+                    assertThat(regs)
+                            .extracting(Regs::getUsPrivacy)
+                            .isSameAs(usPrivacy);
+                    assertThat(regs)
+                            .extracting(Regs::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -166,8 +184,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
-                .extracting(Regs::getUsPrivacy)
-                .isSameAs(usPrivacy);
+                .satisfies(regs -> {
+                    assertThat(regs)
+                            .extracting(Regs::getUsPrivacy)
+                            .isSameAs(usPrivacy);
+                    assertThat(regs)
+                            .extracting(Regs::getExt)
+                            .isNull();
+                });
     }
 
     @Test

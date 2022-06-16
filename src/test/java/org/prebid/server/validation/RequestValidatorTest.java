@@ -46,7 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -1447,10 +1446,10 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
+    public void validateShouldNotReturnErrorMessageWhenRegsIsEmptyObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.builder().ext(ExtRegs.of(null, null)).build())
+                .regs(Regs.builder().build())
                 .build();
 
         // when
@@ -2183,7 +2182,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.builder().ext(ExtRegs.of(2, null)).build())
+                .regs(Regs.builder().gdpr(2).build())
                 .build();
 
         // when

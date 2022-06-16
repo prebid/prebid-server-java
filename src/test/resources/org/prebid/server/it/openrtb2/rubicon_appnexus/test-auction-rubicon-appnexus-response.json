@@ -767,10 +767,7 @@
           "tid": "tid"
         },
         "regs": {
-          "us_privacy": "1YNN",
-          "ext": {
-            "us_privacy": "1YNN"
-          }
+          "us_privacy": "1YNN"
         },
         "ext": {
           "prebid": {

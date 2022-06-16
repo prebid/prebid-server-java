@@ -72,7 +72,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
         // given
-        final Regs regs = Regs.builder().ext(ExtRegs.of(1, null)).build();
+        final Regs regs = Regs.builder().gdpr(1).build();
 
         // when
         final String gdpr =
@@ -85,7 +85,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
         // given
-        final Regs regs = Regs.builder().ext(ExtRegs.of(0, null)).build();
+        final Regs regs = Regs.builder().gdpr(0).build();
 
         // when
         final String gdpr =
@@ -136,7 +136,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnDefaultCcpaWhenNotValidAndAddError() {
         // given
-        final Regs regs = Regs.builder().ext(ExtRegs.of(null, "invalid")).build();
+        final Regs regs = Regs.builder().usPrivacy("invalid").build();
         final ArrayList<String> errors = new ArrayList<>();
 
         // when
@@ -180,7 +180,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnPrivacyWithParametersExtractedFromBidRequest() {
         // given
-        final Regs regs = Regs.builder().ext(ExtRegs.of(0, "1Yn-")).build();
+        final Regs regs = Regs.builder().gdpr(0).usPrivacy("1Yn-").build();
         final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
 
         // when

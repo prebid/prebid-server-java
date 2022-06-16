@@ -147,25 +147,41 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs regsExt = regs.getExt();
-        final boolean regsExtIsNotNull = regsExt != null;
+        final ExtRegs extRegs = regs.getExt();
+        if (extRegs == null) {
+            return null;
+        }
 
         final Integer gdpr = regs.getGdpr();
-        final Integer resolvedGdpr = gdpr == null && regsExtIsNotNull
-                ? regsExt.getGdpr()
+        final Integer resolvedGdpr = gdpr == null
+                ? extRegs.getGdpr()
                 : null;
 
         final String usPrivacy = regs.getUsPrivacy();
-        final String resolvedUsPrivacy = usPrivacy == null && regsExtIsNotNull
-                ? regsExt.getUsPrivacy()
+        final String resolvedUsPrivacy = usPrivacy == null
+                ? extRegs.getUsPrivacy()
                 : null;
 
-        return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy)
+        final ExtRegs resolvedExtRegs = resolveExtRegs(extRegs);
+
+        return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy, resolvedExtRegs)
                 ? regs.toBuilder()
                 .gdpr(resolvedGdpr != null ? resolvedGdpr : gdpr)
                 .usPrivacy(resolvedUsPrivacy != null ? resolvedUsPrivacy : usPrivacy)
+                .ext(resolvedExtRegs != null ? nullIfPropertiesEmpty(resolvedExtRegs) : extRegs)
                 .build()
                 : null;
+    }
+
+    private static ExtRegs resolveExtRegs(ExtRegs extRegs) {
+        if (extRegs == null || (extRegs.getGdpr() == null && extRegs.getUsPrivacy() == null)) {
+            return null;
+        }
+
+        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null);
+        copyProperties(extRegs, modifiedExtRegs);
+
+        return modifiedExtRegs;
     }
 
     private static User moveUserData(User user) {

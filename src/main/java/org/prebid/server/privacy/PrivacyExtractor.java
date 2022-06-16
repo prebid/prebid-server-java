@@ -10,7 +10,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
@@ -62,13 +61,12 @@ public class PrivacyExtractor {
     }
 
     private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 
-        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final Integer extRegsGdpr = regs != null ? regs.getGdpr() : null;
         final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
         final Integer coppa = regs != null ? regs.getCoppa() : null;
 
         return toValidPrivacy(gdpr, consent, usPrivacy, coppa, errors);

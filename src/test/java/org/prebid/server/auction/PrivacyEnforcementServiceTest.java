@@ -43,7 +43,6 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -170,7 +169,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         final String referer = "Referer";
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.builder().ext(ExtRegs.of(1, "1YYY")).build())
+                .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .consent("consent")
@@ -216,7 +215,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void contextFromBidRequestShouldReturnTcfContextWithIpMasked() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.builder().ext(ExtRegs.of(1, "1YYY")).build())
+                .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .consent("consent")
