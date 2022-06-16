@@ -59,7 +59,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given
-        final Regs regs = Regs.builder().ext(ExtRegs.of(2, null)).build();
+        final Regs regs = Regs.builder().gdpr(2).build();
 
         // when
         final String gdpr =
