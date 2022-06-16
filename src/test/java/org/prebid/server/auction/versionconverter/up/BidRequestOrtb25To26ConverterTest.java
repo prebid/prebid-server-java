@@ -1,5 +1,6 @@
 package org.prebid.server.auction.versionconverter.up;
 
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
@@ -8,7 +9,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,7 +24,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 public class BidRequestOrtb25To26ConverterTest extends VertxTest {
 
@@ -40,7 +39,6 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final ObjectNode extImp = mapper.valueToTree(Map.of("prebid", Map.of("is_rewarded_inventory", 0)));
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(
-                givenImp(identity()),
                 givenImp(imp -> imp.rwdd(1).ext(extImp)),
                 givenImp(imp -> imp.ext(extImp)))));
 
@@ -50,9 +48,16 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getImp)
-                .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
-                .extracting(Imp::getRwdd)
-                .containsExactly(null, 1, 0);
+                .satisfies(imps -> {
+                    assertThat(imps)
+                            .extracting(Imp::getRwdd)
+                            .containsExactly(1, 0);
+                    assertThat(imps)
+                            .extracting(Imp::getExt)
+                            .extracting(ext -> ext.at("/prebid/is_rewarded_inventory"))
+                            .containsExactly(MissingNode.getInstance(), MissingNode.getInstance());
+                });
+
     }
 
     @Test

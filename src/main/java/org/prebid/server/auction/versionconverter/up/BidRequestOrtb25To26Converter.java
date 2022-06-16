@@ -27,7 +27,10 @@ import java.util.stream.IntStream;
 
 public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConverter {
 
-    private static final JsonPointer IMP_EXT_PREBID_REWARDED = JsonPointer.valueOf("/prebid/is_rewarded_inventory");
+    private static final String PREBID_FIELD = "prebid";
+    private static final String IS_REWARDED_INVENTORY_FIELD = "is_rewarded_inventory";
+    private static final JsonPointer IMP_EXT_PREBID_REWARDED = JsonPointer.valueOf(
+            "/" + PREBID_FIELD + "/" + IS_REWARDED_INVENTORY_FIELD);
 
     @Override
     public BidRequest convert(BidRequest bidRequest) {
@@ -72,25 +75,42 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final Integer rewarded = resolveImpRewarded(imp);
+        final ObjectNode extImp = imp.getExt();
 
-        return rewarded != null
+        final Integer rewarded = imp.getRwdd();
+        final Integer resolvedRewarded = resolveImpRewarded(rewarded, extImp);
+
+        final ObjectNode resolvedExtImp = resolveImpExt(extImp);
+
+        return ObjectUtils.anyNotNull(resolvedRewarded, resolvedExtImp)
                 ? imp.toBuilder()
-                .rwdd(rewarded)
+                .rwdd(resolvedRewarded != null ? resolvedRewarded : rewarded)
+                .ext(resolvedExtImp != null ? resolvedExtImp : extImp)
                 .build()
                 : null;
     }
 
-    private static Integer resolveImpRewarded(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (imp.getRwdd() != null || impExt == null || impExt.isEmpty()) {
+    private static Integer resolveImpRewarded(Integer rewarded, ObjectNode extImp) {
+        if (rewarded != null || extImp == null) {
             return null;
         }
 
-        final JsonNode rewardedNode = impExt.at(IMP_EXT_PREBID_REWARDED);
+        final JsonNode rewardedNode = extImp.at(IMP_EXT_PREBID_REWARDED);
         return rewardedNode.isIntegralNumber()
                 ? rewardedNode.asInt()
                 : null;
+    }
+
+    private static ObjectNode resolveImpExt(ObjectNode extImp) {
+        final JsonNode rewardedNode = extImp != null ? extImp.at(IMP_EXT_PREBID_REWARDED) : null;
+        if (rewardedNode == null || !rewardedNode.isIntegralNumber()) {
+            return null;
+        }
+
+        final ObjectNode copy = extImp.deepCopy();
+        ((ObjectNode) copy.get(PREBID_FIELD)).remove(IS_REWARDED_INVENTORY_FIELD);
+
+        return copy;
     }
 
     private static Source moveSourceData(Source source) {
@@ -101,9 +121,9 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         final ExtSource extSource = source.getExt();
 
         final SupplyChain supplyChain = source.getSchain();
-        final SupplyChain resolvedSupplyChain = resolveSupplyChain(supplyChain, extSource);
+        final SupplyChain resolvedSupplyChain = resolveSourceSupplyChain(supplyChain, extSource);
 
-        final ExtSource resolvedExtSource = resolveExtSource(extSource);
+        final ExtSource resolvedExtSource = resolveSourceExt(extSource);
 
         return ObjectUtils.anyNotNull(resolvedSupplyChain, resolvedExtSource)
                 ? source.toBuilder()
@@ -113,7 +133,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 : null;
     }
 
-    private static SupplyChain resolveSupplyChain(SupplyChain supplyChain, ExtSource extSource) {
+    private static SupplyChain resolveSourceSupplyChain(SupplyChain supplyChain, ExtSource extSource) {
         if (supplyChain != null) {
             return null;
         }
@@ -121,7 +141,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         return extSource != null ? extSource.getSchain() : null;
     }
 
-    private static ExtSource resolveExtSource(ExtSource extSource) {
+    private static ExtSource resolveSourceExt(ExtSource extSource) {
         if (extSource == null || extSource.getSchain() == null) {
             return null;
         }
@@ -162,7 +182,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 ? extRegs.getUsPrivacy()
                 : null;
 
-        final ExtRegs resolvedExtRegs = resolveExtRegs(extRegs);
+        final ExtRegs resolvedExtRegs = resolveRegsExt(extRegs);
 
         return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy, resolvedExtRegs)
                 ? regs.toBuilder()
@@ -173,7 +193,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 : null;
     }
 
-    private static ExtRegs resolveExtRegs(ExtRegs extRegs) {
+    private static ExtRegs resolveRegsExt(ExtRegs extRegs) {
         if (extRegs == null || (extRegs.getGdpr() == null && extRegs.getUsPrivacy() == null)) {
             return null;
         }
