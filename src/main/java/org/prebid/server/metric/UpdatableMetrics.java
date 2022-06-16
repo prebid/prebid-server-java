@@ -1,7 +1,6 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import lombok.Getter;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -14,7 +13,6 @@ class UpdatableMetrics {
     private final MetricRegistry metricRegistry;
     private final Function<MetricName, String> nameCreator;
     private final MetricIncrementer incrementer;
-    @Getter
     private final CounterType counterType;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
@@ -83,6 +81,10 @@ class UpdatableMetrics {
 
     private String name(MetricName metricName) {
         return metricNames.computeIfAbsent(metricName, key -> nameCreator.apply(metricName));
+    }
+
+    public CounterType getCounterType() {
+        return counterType;
     }
 
     @FunctionalInterface

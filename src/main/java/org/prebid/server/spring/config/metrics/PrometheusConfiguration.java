@@ -74,8 +74,7 @@ public class PrometheusConfiguration {
                     prometheusConfigurationProperties.getPort());
 
             if (metrics.getCounterType() == CounterType.flushingCounter) {
-                logger.warn("Metric type is set to flushingCounter. "
-                        + "This is not a good metric type for a prometheus metric system.");
+                logger.warn("Prometheus metric system: Metric type is flushingCounter.");
             }
 
             final Router router = Router.router(vertx);
