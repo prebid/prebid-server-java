@@ -1309,7 +1309,7 @@ public class BidResponseCreator {
                 getExtPrebid(originalBidExt, ExtBidPrebid.class)
                         .map(ExtBidPrebid::toBuilder)
                         .orElseGet(ExtBidPrebid::builder)
-                        .targeting(MapUtils.isEmpty(targetingKeywords) ? null : targetingKeywords)
+                        .targeting(MapUtils.isNotEmpty(targetingKeywords) ? targetingKeywords : null)
                         .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
                         .dealTierSatisfied(dealsTierSatisfied)
                         .cache(cache)
