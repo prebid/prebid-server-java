@@ -7,7 +7,6 @@ on:
       - '.github/**'
     branches:
       - master
-      - 'feature/**'
   release:
     types:
       - created
