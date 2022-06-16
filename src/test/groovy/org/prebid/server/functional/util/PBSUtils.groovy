@@ -10,8 +10,6 @@ import java.nio.file.Path
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
 import static java.math.RoundingMode.HALF_UP
-import static java.util.concurrent.TimeUnit.MILLISECONDS
-import static org.awaitility.Awaitility.with
 import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
@@ -58,12 +56,24 @@ class PBSUtils implements ObjectMapperWrapper {
         path
     }
 
-    static void waitUntil(Closure closure, long timeout = DEFAULT_TIMEOUT, long pollInterval = 100) {
-        with().pollDelay(0, MILLISECONDS)
-              .pollInterval(pollInterval, MILLISECONDS)
-              .await()
-              .atMost(timeout, MILLISECONDS)
-              .until(closure)
+    static void waitUntil(Closure closure, long timeoutMs = DEFAULT_TIMEOUT, long pollInterval = 100) {
+        def isConditionFulfilled = false
+        def waiterElapsedTime = 0
+        def waiterStartTime = System.currentTimeMillis()
+
+        while (waiterElapsedTime <= timeoutMs) {
+            if (closure()) {
+                isConditionFulfilled = true
+                break
+            } else {
+                waiterElapsedTime = System.currentTimeMillis() - waiterStartTime
+                sleep(pollInterval)
+            }
+        }
+
+        if (!isConditionFulfilled) {
+            throw new IllegalStateException("Condition was not fulfilled within $timeoutMs ms.")
+        }
     }
 
     static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
