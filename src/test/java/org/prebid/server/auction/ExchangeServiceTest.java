@@ -48,6 +48,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -219,6 +220,9 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+
+    @Mock
     private HttpBidderRequester httpBidderRequester;
 
     @Mock
@@ -332,6 +336,9 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
+        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
         dealsProcessor = new DealsProcessor(jacksonMapper);
@@ -345,6 +352,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -374,6 +382,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         supplyChainResolver,
                         debugResolver,
+                        ortbVersionConversionManager,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -650,6 +659,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -2634,6 +2644,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
+                ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -4272,6 +4283,33 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).isEmpty();
+    }
+
+    @Test
+    public void shouldConvertBidRequestOpenRTBVersionToConfiguredByBidder() {
+        // given
+        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(null)
+                        .build());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidderName", 1)),
+                request -> request.source(Source.builder().tid("uniqTid").build()));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+
+        // when
+        exchangeService.holdAuction(auctionContext);
+
+        // then
+        final ArgumentCaptor<BidderRequest> argumentCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester).requestBids(any(), argumentCaptor.capture(), any(), any(), anyBoolean());
+
+        assertThat(argumentCaptor.getValue())
+                .extracting(BidderRequest::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isNull();
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {

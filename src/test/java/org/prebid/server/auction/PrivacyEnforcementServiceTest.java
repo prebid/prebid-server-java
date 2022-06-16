@@ -1762,15 +1762,17 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
-        return BidderInfo.of(
-                true,
-                true,
+        return BidderInfo.create(
                 true,
                 null,
+                true,
                 null,
                 null,
                 null,
-                new BidderInfo.GdprInfo(gdprVendorId),
+                null,
+                null,
+                null,
+                gdprVendorId,
                 enforceCcpa,
                 false);
     }
