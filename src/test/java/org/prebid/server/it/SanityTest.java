@@ -11,7 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 // This will create new application context, so used ports must be changed (0 means random available local port).
 @TestPropertySource(properties = {
-        "spring.config.additional-location=sample/prebid-config.yaml", "http.port=0", "admin.port=0"})
+        "spring.config.additional-location=sample/prebid-config.yaml", "server.http.port=0", "admin.port=0"})
 public class SanityTest extends VertxTest {
 
     @Test

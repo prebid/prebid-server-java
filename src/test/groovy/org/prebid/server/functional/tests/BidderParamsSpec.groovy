@@ -400,7 +400,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain header Content-Encoding = gzip"
-        assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestheaders?.first()
+        assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
                        ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
@@ -416,7 +416,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should not contain header Content-Encoding"
-        assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestheaders?.first()
+        assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
                         ?.get(CONTENT_ENCODING_HEADER)
     }
 }

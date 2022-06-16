@@ -23,7 +23,7 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -233,7 +233,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall("Incorrect body");
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("Incorrect body");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -250,7 +250,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfResponseIsNull() {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall("null");
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("null");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -263,7 +263,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfResponseAdsUnitsIsNull() {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall("{}");
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("{}");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -276,7 +276,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfResponseAdsUnitsIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall();
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall();
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -289,7 +289,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipInvalidAdsUnits() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit());
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit());
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
@@ -303,7 +303,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldUseCurrencyOfFirstBidOfLastAdsUnit() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
                 givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "1.1"))),
                         givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "1.2")))),
                 givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "2.1"))),
@@ -323,7 +323,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfCreativeHeightOfSomeAdIsAbsent() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
                 givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
                 givenAdsUnit(givenAd(ad -> ad.creativeHeight(null))));
 
@@ -341,7 +341,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfCreativeWidthtOfSomeAdIsAbsent() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
                 givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
                 givenAdsUnit(givenAd(ad -> ad.creativeWidth(null))));
 
@@ -359,7 +359,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnCorrectSeatBids() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit(givenAd(ad -> ad
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit(givenAd(ad -> ad
                 .bid(AdnuntiusBid.of(BigDecimal.ONE, "CUR"))
                 .adId("adId")
                 .creativeId("creativeId")
@@ -396,7 +396,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenAdsUnitsCountGreaterThanImpsCount() throws JsonProcessingException {
         // given
-        final HttpCall<AdnuntiusRequest> httpCall = givenHttpCall(
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
                 givenAdsUnit(givenAd(identity())),
                 givenAdsUnit(givenAd(identity())));
 
@@ -429,13 +429,14 @@ public class AdnuntiusBidderTest extends VertxTest {
         return givenImp(ExtImpAdnuntius.of(null, null), impCustomizer);
     }
 
-    private HttpCall<AdnuntiusRequest> givenHttpCall(String body) {
+    private BidderCall<AdnuntiusRequest> givenHttpCall(String body) {
         final HttpRequest<AdnuntiusRequest> request = HttpRequest.<AdnuntiusRequest>builder().build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderCall.succeededHttp(request, response, null);
     }
 
-    private HttpCall<AdnuntiusRequest> givenHttpCall(AdnuntiusAdsUnit... adsUnits) throws JsonProcessingException {
+    private BidderCall<AdnuntiusRequest> givenHttpCall(AdnuntiusAdsUnit... adsUnits)
+            throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(AdnuntiusResponse.of(List.of(adsUnits))));
     }
 
