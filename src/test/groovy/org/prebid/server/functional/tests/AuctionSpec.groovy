@@ -313,4 +313,35 @@ class AuctionSpec extends BaseSpec {
         and: "BidderRequest and bidRequest ids should be equal"
         assert bidderRequest.id == bidRequestId
     }
+
+    def "PBS should copy imp level passThrough to bidresponse.seatbid[].bid[].ext.prebid.passThrough when the passThrough is present"() {
+        given: "Default bid request with passThrough"
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.passThrough = passThrough
+        }
+
+        when: "Requesting PBS auction"
+        def response = prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same passThrough as on request"
+        assert response.seatbid.first().bid.first().ext.prebid.passThrough == passThrough
+    }
+
+    def "PBS should copy global level passThrough object to bidresponse.ext.prebid.passThrough when passThrough is present"() {
+        given: "Default bid request with passThrough"
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.passThrough = passThrough
+        }
+
+        when: "Requesting PBS auction"
+        prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same passThrough as on request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.passThrough == passThrough
+    }
 }
