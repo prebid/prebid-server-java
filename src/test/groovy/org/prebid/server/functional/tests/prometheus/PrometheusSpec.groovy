@@ -7,6 +7,7 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.prometheus.PrometheusLabelsConfigHelper
 import org.testcontainers.containers.wait.strategy.Wait
 import spock.lang.Shared
+import java.time.Instant
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PROMETHEUS_PORT
 
@@ -120,6 +121,55 @@ class PrometheusSpec extends BaseSpec {
         def serviceFailedToStartTimeoutMs = 10_000
         PBSUtils.waitUntil({ pbsContainer.logs.contains("Invalid prefix: ${namespace}_${subsystem}_, namespace and subsystem should match regex: $PROMETHEUS_METRIC_NAME_REGEX") },
                 serviceFailedToStartTimeoutMs)
+    }
+
+    def "PBS should populate log when metric type is flushingCounter"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "PBS config with set up Prometheus"
+        def namespace = "namespace_01_Rubicon"
+        def subsystem = "subsystem_01_Rubicon"
+        def counterType = "counterType"
+        def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem) +
+                ["metrics.metricType": counterType]
+
+        and: "PBS is started"
+        def prometheusPbsService = pbsServiceFactory.getService(config)
+
+        when: "PBS auction request"
+        prometheusPbsService.sendAuctionRequest(BidRequest.getDefaultBidRequest())
+
+        then: "PBS should contain log with counterType text"
+        def logs = prometheusPbsService.getLogsByTime(startTime)
+        def flushingCounterLog = getLogsByText(logs, counterType)
+        assert flushingCounterLog.size() == 1
+        assert flushingCounterLog[0].contains("Prometheus metric system: Metric type is $counterType.")
+    }
+
+    def "PBS shouldn't populate log when metric type is #counterType"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "PBS config with set up Prometheus"
+        def namespace = "namespace_01_Rubicon"
+        def subsystem = "subsystem_01_Rubicon"
+        def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem) +
+                ["metrics.metricType": counterType]
+
+        and: "PBS is started"
+        def prometheusPbsService = pbsServiceFactory.getService(config)
+
+        when: "PBS auction request"
+        prometheusPbsService.sendAuctionRequest(BidRequest.getDefaultBidRequest())
+
+        then: "PBS shouldn't contain log with flushingCounter text"
+        def logs = prometheusPbsService.getLogsByTime(startTime)
+        def flushingCounterLog = getLogsByText(logs, "flushingCounter")
+        assert flushingCounterLog.size() == 0
+
+        where:
+        counterType << ["counter", "meter"]
     }
 
     private Map<String, String> getBasePrometheusConfig() {
