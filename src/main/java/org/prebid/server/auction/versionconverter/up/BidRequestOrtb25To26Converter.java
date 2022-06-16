@@ -85,7 +85,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         return ObjectUtils.anyNotNull(resolvedRewarded, resolvedExtImp)
                 ? imp.toBuilder()
                 .rwdd(resolvedRewarded != null ? resolvedRewarded : rewarded)
-                .ext(resolvedExtImp != null ? resolvedExtImp : extImp)
+                .ext(resolvedExtImp != null ? nullIfEmpty(resolvedExtImp) : extImp)
                 .build()
                 : null;
     }
@@ -107,10 +107,14 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ObjectNode copy = extImp.deepCopy();
-        ((ObjectNode) copy.get(PREBID_FIELD)).remove(IS_REWARDED_INVENTORY_FIELD);
+        final ObjectNode modifiedExtImp = extImp.deepCopy();
+        ((ObjectNode) modifiedExtImp.get(PREBID_FIELD)).remove(IS_REWARDED_INVENTORY_FIELD);
 
-        return copy;
+        return modifiedExtImp;
+    }
+
+    private static ObjectNode nullIfEmpty(ObjectNode objectNode) {
+        return objectNode.isEmpty() ? null : objectNode;
     }
 
     private static Source moveSourceData(Source source) {
