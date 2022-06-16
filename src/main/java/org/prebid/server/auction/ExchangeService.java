@@ -91,7 +91,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -1091,11 +1090,9 @@ public class ExchangeService {
             return receivedSource;
         }
 
-        final ExtSource extSource = ExtSource.of(bidderSchain);
-
         return receivedSource == null
-                ? Source.builder().ext(extSource).build()
-                : receivedSource.toBuilder().ext(extSource).build();
+                ? Source.builder().schain(bidderSchain).build()
+                : receivedSource.toBuilder().schain(bidderSchain).build();
     }
 
     /**

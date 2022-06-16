@@ -116,7 +116,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
@@ -794,7 +793,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue().getBidRequest();
-        final SupplyChain requestSchain1 = capturedBidRequest1.getSource().getExt().getSchain();
+        final SupplyChain requestSchain1 = capturedBidRequest1.getSource().getSchain();
         assertThat(requestSchain1).isNotNull();
         assertThat(requestSchain1).isEqualTo(specificSchain);
         assertThat(capturedBidRequest1.getExt().getPrebid().getSchains()).isNull();
@@ -802,7 +801,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue().getBidRequest();
-        final SupplyChain requestSchain2 = capturedBidRequest2.getSource().getExt().getSchain();
+        final SupplyChain requestSchain2 = capturedBidRequest2.getSource().getSchain();
         assertThat(requestSchain2).isNotNull();
         assertThat(requestSchain2).isEqualTo(specificSchain);
         assertThat(capturedBidRequest2.getExt().getPrebid().getSchains()).isNull();
@@ -810,7 +809,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequest3Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder3), bidRequest3Captor.capture(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest3 = bidRequest3Captor.getValue().getBidRequest();
-        final SupplyChain requestSchain3 = capturedBidRequest3.getSource().getExt().getSchain();
+        final SupplyChain requestSchain3 = capturedBidRequest3.getSource().getSchain();
         assertThat(requestSchain3).isNotNull();
         assertThat(requestSchain3).isEqualTo(generalSchain);
         assertThat(capturedBidRequest3.getExt().getPrebid().getSchains()).isNull();
@@ -4177,9 +4176,9 @@ public class ExchangeServiceTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.source(Source.builder().build()));
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        final SupplyChain givenExtSourceSchain = SupplyChain.of(1, singletonList(null), "", null);
+        final SupplyChain givenSourceSchain = SupplyChain.of(1, singletonList(null), "", null);
         given(supplyChainResolver.resolveForBidder(any(), any()))
-                .willReturn(givenExtSourceSchain);
+                .willReturn(givenSourceSchain);
 
         given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
@@ -4193,8 +4192,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest)
                 .extracting(BidRequest::getSource)
-                .extracting(Source::getExt)
-                .isEqualTo(ExtSource.of(givenExtSourceSchain));
+                .extracting(Source::getSchain)
+                .isEqualTo(givenSourceSchain);
     }
 
     @Test
