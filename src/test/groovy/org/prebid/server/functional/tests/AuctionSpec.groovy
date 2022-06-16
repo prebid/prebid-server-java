@@ -255,7 +255,7 @@ class AuctionSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
 
         and: "Flush metrics"
-        flushMetrics()
+        flushMetrics(pbsService)
 
         and: "Default bid request with stored request and id"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
