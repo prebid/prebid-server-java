@@ -39,6 +39,6 @@ public class ExtBidPrebid {
     @JsonProperty("dealtiersatisfied")
     Boolean dealTierSatisfied;
 
-    @JsonProperty("passThrough")
+    @JsonProperty("passthrough")
     JsonNode passThrough;
 }

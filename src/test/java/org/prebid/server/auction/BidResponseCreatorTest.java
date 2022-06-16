@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.BidRequest;
@@ -3314,6 +3315,61 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getExt)
                 .containsExactly(givenDefaultBidExt);
+    }
+
+    @Test
+    public void shouldCopyRequestExtPrebidPassThroughToResponseExtPrebidPassThroughWhenPresent() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.passthrough(TextNode.valueOf("passthrough")),
+                givenImp("i1")));
+
+        final Bid bid = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, null)), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getPassthrough)
+                .isEqualTo(TextNode.valueOf("passthrough"));
+    }
+
+    @Test
+    public void shouldCopyImpExtPrebidPassThroughToResponseBidExtPrebidPassThroughWhenPresentInCorrespondingImp() {
+        // given
+        final ExtImp impExt = ExtImp.of(
+                ExtImpPrebid.builder()
+                        .passthrough(TextNode.valueOf("passthrough"))
+                        .build(),
+                null);
+        final Imp imp = givenImp("i1").toBuilder().ext(mapper.valueToTree(impExt)).build();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.passthrough(TextNode.valueOf("passthrough")),
+                imp));
+
+        final Bid bid = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, null)), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.at("/prebid/passthrough"))
+                .containsExactly(TextNode.valueOf("passthrough"));
     }
 
     @Test
