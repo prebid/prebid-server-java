@@ -128,11 +128,8 @@ class PrometheusSpec extends BaseSpec {
         def startTime = Instant.now()
 
         and: "PBS config with set up Prometheus"
-        def namespace = "namespace_01_Rubicon"
-        def subsystem = "subsystem_01_Rubicon"
-        def counterType = "counterType"
-        def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem) +
-                ["metrics.metricType": counterType]
+        def counterType = "flushingCounter"
+        def config = basePrometheusConfig + ["metrics.metricType": counterType]
 
         and: "PBS is started"
         def prometheusPbsService = pbsServiceFactory.getService(config)
@@ -152,10 +149,7 @@ class PrometheusSpec extends BaseSpec {
         def startTime = Instant.now()
 
         and: "PBS config with set up Prometheus"
-        def namespace = "namespace_01_Rubicon"
-        def subsystem = "subsystem_01_Rubicon"
-        def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem) +
-                ["metrics.metricType": counterType]
+        def config = basePrometheusConfig + ["metrics.metricType": counterType]
 
         and: "PBS is started"
         def prometheusPbsService = pbsServiceFactory.getService(config)
