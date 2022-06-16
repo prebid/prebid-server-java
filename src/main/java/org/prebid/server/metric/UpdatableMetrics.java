@@ -2,7 +2,6 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import lombok.Getter;
-import org.springframework.jmx.support.MetricType;
 
 import java.util.EnumMap;
 import java.util.Map;
