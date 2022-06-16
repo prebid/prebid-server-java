@@ -9,6 +9,7 @@ import io.restassured.response.Response
 import io.restassured.specification.RequestSpecification
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.deals.report.LineItemStatusReport
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -58,6 +59,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
+    static final String LINE_ITEM_STATUS_ENDPOINT = "/pbs-admin/lineitem-status"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
 
     private final PrebidServerContainer pbsContainer
@@ -259,6 +261,19 @@ class PrebidServerService implements ObjectMapperWrapper {
                                                        .get(FORCE_DEALS_UPDATE_ENDPOINT)
 
         checkResponseStatusCode(response, 204)
+    }
+
+    @Step("[GET] /pbs-admin/lineitem-status")
+    LineItemStatusReport sendLineItemStatusRequest(String lineItemId) {
+        def request = given(adminRequestSpecification)
+        if (lineItemId != null) {
+            request.queryParam("id", lineItemId)
+        }
+
+        def response = request.get(LINE_ITEM_STATUS_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        response.as(LineItemStatusReport)
     }
 
     @Step("[GET] /metrics")
