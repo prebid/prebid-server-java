@@ -1,6 +1,8 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import lombok.Getter;
+import org.springframework.jmx.support.MetricType;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -13,6 +15,8 @@ class UpdatableMetrics {
     private final MetricRegistry metricRegistry;
     private final Function<MetricName, String> nameCreator;
     private final MetricIncrementer incrementer;
+    @Getter
+    private final CounterType counterType;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -20,6 +24,7 @@ class UpdatableMetrics {
 
     UpdatableMetrics(MetricRegistry metricRegistry, CounterType counterType, Function<MetricName, String> nameCreator) {
         this.metricRegistry = metricRegistry;
+        this.counterType = counterType;
         this.nameCreator = nameCreator;
         metricNames = new EnumMap<>(MetricName.class);
 
