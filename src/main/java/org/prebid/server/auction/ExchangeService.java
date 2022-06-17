@@ -26,6 +26,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -170,7 +171,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
-    private final AdjustmentFactorResolver adjustmentFactorResolver;
+    private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -195,7 +196,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
-                           AdjustmentFactorResolver adjustmentFactorResolver,
+                           BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -223,7 +224,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
-        this.adjustmentFactorResolver = Objects.requireNonNull(adjustmentFactorResolver);
+        this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -1482,7 +1483,7 @@ public class ExchangeService {
         final ImpMediaType mediaType = ImpMediaTypeResolver.resolve(
                 bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
-        return adjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
+        return bidAdjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
     }
 
     private static ExtRequestBidAdjustmentFactors extBidAdjustmentFactors(BidRequest bidRequest) {
@@ -1623,19 +1624,21 @@ public class ExchangeService {
         }
 
         final BidResponse bidResponse = context.getBidResponse();
-        final ExtBidResponse ext = bidResponse.getExt();
-        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
+        final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);
 
         final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
-                extPrebid != null ? extPrebid.getAuctiontimestamp() : null,
-                extModules);
-        final ExtBidResponse updatedExt = (ext != null ? ext.toBuilder() : ExtBidResponse.builder())
+                extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null),
+                extModules,
+                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null));
+
+        final ExtBidResponse updatedExt = ext
+                .map(ExtBidResponse::toBuilder)
+                .orElse(ExtBidResponse.builder())
                 .prebid(updatedExtPrebid)
                 .build();
 
-        final BidResponse updatedBidResponse = bidResponse.toBuilder()
-                .ext(updatedExt)
-                .build();
+        final BidResponse updatedBidResponse = bidResponse.toBuilder().ext(updatedExt).build();
         return context.with(updatedBidResponse);
     }
 

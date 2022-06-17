@@ -40,6 +40,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -252,7 +253,7 @@ public class ExchangeServiceTest extends VertxTest {
     private PriceFloorEnforcer priceFloorEnforcer;
 
     @Mock
-    private AdjustmentFactorResolver adjustmentFactorResolver;
+    private BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
 
     @Mock
     private Metrics metrics;
@@ -331,7 +332,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
                 .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
 
-        given(adjustmentFactorResolver.resolve(any(ImpMediaType.class), any(), any())).willReturn(null);
+        given(bidAdjustmentFactorResolver.resolve(any(ImpMediaType.class), any(), any())).willReturn(null);
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -363,7 +364,7 @@ public class ExchangeServiceTest extends VertxTest {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
-                adjustmentFactorResolver,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -393,7 +394,7 @@ public class ExchangeServiceTest extends VertxTest {
                         httpInteractionLogger,
                         priceFloorAdjuster,
                         priceFloorEnforcer,
-                        adjustmentFactorResolver,
+                        bidAdjustmentFactorResolver,
                         metrics,
                         clock,
                         jacksonMapper,
@@ -670,7 +671,7 @@ public class ExchangeServiceTest extends VertxTest {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
-                adjustmentFactorResolver,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -2655,7 +2656,7 @@ public class ExchangeServiceTest extends VertxTest {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
-                adjustmentFactorResolver,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -2796,7 +2797,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", TEN);
 
-        given(adjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
                 .willReturn(TEN);
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3158,7 +3159,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(adjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(2.468));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3193,7 +3194,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(adjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3229,7 +3230,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(adjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3335,7 +3336,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.banner,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(adjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3371,7 +3372,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(adjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),

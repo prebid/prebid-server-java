@@ -108,14 +108,14 @@ public class VideoResponseFactoryTest extends VertxTest {
                 .build();
 
         final ExtBidResponse extResponse = ExtBidResponse.builder()
-                .prebid(ExtBidResponsePrebid.of(
-                        1000L,
-                        ExtModules.of(
-                                singletonMap(
-                                        "module1", singletonMap("hook1", singletonList("error1"))),
-                                singletonMap(
-                                        "module1", singletonMap("hook1", singletonList("warning1"))),
-                                ExtModulesTrace.of(2L, emptyList()))))
+                .prebid(
+                        ExtBidResponsePrebid.of(
+                                1000L,
+                                ExtModules.of(
+                                        singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
+                                        singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
+                                        ExtModulesTrace.of(2L, emptyList())),
+                                null))
                 .build();
 
         final BidResponse bidResponse = BidResponse.builder()

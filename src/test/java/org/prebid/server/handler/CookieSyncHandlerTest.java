@@ -44,6 +44,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -651,7 +652,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                         null,
                         2,
                         true,
-                        false));
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -726,7 +728,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                         null,
                         2,
                         true,
-                        false));
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
@@ -768,7 +771,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                         null,
                         2,
                         true,
-                        false));
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -1513,7 +1517,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                         null,
                         2,
                         true,
-                        false));
+                        false,
+                        CompressionType.NONE));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 

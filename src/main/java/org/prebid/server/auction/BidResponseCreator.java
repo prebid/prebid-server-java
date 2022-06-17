@@ -105,6 +105,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -347,12 +348,11 @@ public class BidResponseCreator {
 
         final Video storedVideo = videoStoredDataResult.getImpIdToStoredVideo().get(bid.getImpid());
         final Events events = createEvents(bidder, account, effectiveBidId, eventsContext, lineItemId);
-        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
+        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt()).orElse(null);
 
-        final ExtBidPrebid extBidPrebid = getExtPrebid(bid.getExt());
-        final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = extBidPrebid != null
-                ? extBidPrebid.toBuilder()
-                : ExtBidPrebid.builder();
+        final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = getExtPrebid(bid.getExt(), ExtBidPrebid.class)
+                .map(ExtBidPrebid::toBuilder)
+                .orElseGet(ExtBidPrebid::builder);
 
         return extBidPrebidBuilder
                 .bidid(generatedBidId)
@@ -511,9 +511,8 @@ public class BidResponseCreator {
         final ExtRequestTargeting targeting = targeting(bidRequest);
         final TxnLog txnLog = auctionContext.getTxnLog();
 
-        final List<BidderResponseInfo> bidderResponseInfos =
-                toBidderResponseWithTargetingBidInfos(bidderResponses, bidderToMultiBids, preferDeals(targeting),
-                        txnLog);
+        final List<BidderResponseInfo> bidderResponseInfos = toBidderResponseWithTargetingBidInfos(
+                bidderResponses, bidderToMultiBids, preferDeals(targeting), txnLog);
 
         final Set<BidInfo> bidInfos = bidderResponseInfos.stream()
                 .map(BidderResponseInfo::getSeatBid)
@@ -750,6 +749,7 @@ public class BidResponseCreator {
         final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(bidderResponseInfos, auctionContext);
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
+        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(auctionTimestamp, auctionContext.getBidRequest());
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -757,8 +757,18 @@ public class BidResponseCreator {
                 .warnings(warnings)
                 .responsetimemillis(responseTimeMillis)
                 .tmaxrequest(auctionContext.getBidRequest().getTmax())
-                .prebid(ExtBidResponsePrebid.of(auctionTimestamp, null))
+                .prebid(prebid)
                 .build();
+    }
+
+    private static ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp, BidRequest bidRequest) {
+        final JsonNode passThrough = Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getPassthrough)
+                .orElse(null);
+
+        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough);
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,
@@ -1293,18 +1303,18 @@ public class BidResponseCreator {
         final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
 
         final ObjectNode originalBidExt = bid.getExt();
-        final ExtBidPrebid extBidPrebid = getExtPrebid(originalBidExt);
-        final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = extBidPrebid != null
-                ? extBidPrebid.toBuilder()
-                : ExtBidPrebid.builder();
         final Boolean dealsTierSatisfied = bidInfo.getSatisfiedPriority();
 
-        final ExtBidPrebid updatedExtBidPrebid = extBidPrebidBuilder
-                .targeting(MapUtils.isEmpty(targetingKeywords) ? null : targetingKeywords)
-                .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
-                .dealtiersatisfied(dealsTierSatisfied)
-                .cache(cache)
-                .build();
+        final ExtBidPrebid updatedExtBidPrebid =
+                getExtPrebid(originalBidExt, ExtBidPrebid.class)
+                        .map(ExtBidPrebid::toBuilder)
+                        .orElseGet(ExtBidPrebid::builder)
+                        .targeting(MapUtils.isNotEmpty(targetingKeywords) ? targetingKeywords : null)
+                        .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
+                        .dealTierSatisfied(dealsTierSatisfied)
+                        .cache(cache)
+                        .passThrough(extractPassThrough(bidInfo.getCorrespondingImp()))
+                        .build();
 
         final ObjectNode updatedBidExt =
                 originalBidExt != null ? originalBidExt.deepCopy() : mapper.mapper().createObjectNode();
@@ -1316,6 +1326,13 @@ public class BidResponseCreator {
                 .ext(updatedBidExt)
                 .exp(ttl)
                 .build();
+    }
+
+    private JsonNode extractPassThrough(Imp imp) {
+        return Optional.ofNullable(imp.getExt())
+                .flatMap(ext -> getExtPrebid(ext, ExtImpPrebid.class))
+                .map(ExtImpPrebid::getPassthrough)
+                .orElse(null);
     }
 
     private String createNativeMarkup(String bidAdm, Imp correspondingImp) {
@@ -1627,15 +1644,18 @@ public class BidResponseCreator {
     /**
      * Creates {@link ExtBidPrebidVideo} from bid extension.
      */
-    private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
-        final ExtBidPrebid extBidPrebid = getExtPrebid(bidExt);
-
-        return extBidPrebid != null ? extBidPrebid.getVideo() : null;
+    private Optional<ExtBidPrebidVideo> getExtBidPrebidVideo(ObjectNode bidExt) {
+        return getExtPrebid(bidExt, ExtBidPrebid.class)
+                .map(ExtBidPrebid::getVideo);
     }
 
-    private ExtBidPrebid getExtPrebid(ObjectNode bidExt) {
-        return bidExt != null && bidExt.hasNonNull(PREBID_EXT)
-                ? mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class)
-                : null;
+    private <T> Optional<T> getExtPrebid(ObjectNode extNode, Class<T> extClass) {
+        try {
+            return Optional.ofNullable(extNode)
+                    .filter(ext -> ext.hasNonNull(PREBID_EXT))
+                    .map(ext -> mapper.mapper().convertValue(extNode.get(PREBID_EXT), extClass));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 }

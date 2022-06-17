@@ -24,7 +24,7 @@ import org.prebid.server.bidder.consumable.model.ConsumablePlacement;
 import org.prebid.server.bidder.consumable.model.ConsumablePricing;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -242,7 +242,7 @@ public class ConsumableBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<ConsumableBidRequest> httpCall = HttpCall.success(null,
+        final BidderCall<ConsumableBidRequest> httpCall = BidderCall.succeededHttp(null,
                 HttpResponse.of(200, null, "invalid"), null);
 
         // when
@@ -258,7 +258,7 @@ public class ConsumableBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipDecisionsWithNullPricing() throws JsonProcessingException {
         // given
-        final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(null));
 
         // when
@@ -272,7 +272,7 @@ public class ConsumableBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipDecisionsWithNullClearPrice() throws JsonProcessingException {
         // given
-        final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(null)));
 
         // when
@@ -286,7 +286,7 @@ public class ConsumableBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
                         .width(300).height(250)
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
@@ -360,7 +360,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<ConsumableBidRequest> givenHttpCall(
+    private static BidderCall<ConsumableBidRequest> givenHttpCall(
             Function<ConsumableBidResponse, ConsumableBidResponse> bidResponse,
             Function<ConsumableDecision.ConsumableDecisionBuilder,
                     ConsumableDecision.ConsumableDecisionBuilder> decision)
@@ -369,7 +369,7 @@ public class ConsumableBidderTest extends VertxTest {
         final String body = mapper.writeValueAsString(
                 bidResponse.apply(ConsumableBidResponse.of(singletonMap("firstImp", givenDecision(decision)))));
 
-        return HttpCall.success(
+        return BidderCall.succeededHttp(
                 HttpRequest.<ConsumableBidRequest>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);
