@@ -7,13 +7,11 @@ import org.prebid.server.functional.model.request.auction.SchainNode
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.SourceExt
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
 
-@PBSTest
 class SchainSpec extends BaseSpec {
 
     private static final GLOBAL_SCHAIN_NODE = new SchainNode().tap {

@@ -153,4 +153,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.floors
      */
     PriceFloorRules floors;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.passthrough
+     */
+    JsonNode passthrough;
 }

@@ -472,6 +472,43 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenAliasesKeyDoesntContainAliasgvlidsKey() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("between", 2))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. vendorId 2 refers to unknown bidder alias: between");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasgvlidsValueLowerThatOne() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("pubmatic", 0))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. Invalid vendorId 0 for alias: pubmatic. "
+                        + "Choose a different vendorId, or remove this entry.");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroWidth() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()

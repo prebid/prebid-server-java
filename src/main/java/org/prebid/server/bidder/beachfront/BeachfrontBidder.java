@@ -29,7 +29,7 @@ import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
@@ -435,7 +435,7 @@ public class BeachfrontBidder implements Bidder<Void> {
      * Converts response to {@link List} of {@link BidderBid}s with {@link List}, depends on response type.
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
         final List<BidderBid> processedBidderBids = new ArrayList<>();
 

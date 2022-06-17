@@ -28,6 +28,7 @@ public class BidderInfoCreator {
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
                 configurationProperties.getPbsEnforcesCcpa(),
-                configurationProperties.getModifyingVastXmlAllowed());
+                configurationProperties.getModifyingVastXmlAllowed(),
+                configurationProperties.getEndpointCompression());
     }
 }

@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import java.util.HashSet;
 
@@ -191,7 +192,8 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 null,
                 0,
                 true,
-                false);
+                false,
+                CompressionType.NONE);
     }
 
     private static BidderInfo givenBidderInfo() {
