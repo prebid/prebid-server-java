@@ -127,6 +127,7 @@ public class HttpBidderRequestEnricherTest {
         // given
         when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
                 true,
+                null,
                 false,
                 null,
                 null,

@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -411,7 +411,7 @@ public class SovrnBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
                         .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                        .regs(Regs.of(null, ExtRegs.of(1, null))))
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build()))
                 .build();
     }
 

@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -68,7 +69,8 @@ public class BidRequestConversionManagerTest extends VertxTest {
                         null,
                         0,
                         false,
-                        false));
+                        false,
+                        CompressionType.NONE));
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
