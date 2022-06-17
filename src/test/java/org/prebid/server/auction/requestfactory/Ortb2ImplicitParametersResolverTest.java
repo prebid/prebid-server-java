@@ -1306,7 +1306,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSourceExtSchainIfNotDefinedAndExtSchainPresent() {
+    public void shouldSetSourceSchainIfNotDefinedAndExtSchainPresent() {
         // given
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),

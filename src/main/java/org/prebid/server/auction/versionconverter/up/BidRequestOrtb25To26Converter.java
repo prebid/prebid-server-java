@@ -76,6 +76,9 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         }
 
         final ObjectNode extImp = imp.getExt();
+        if (extImp == null) {
+            return null;
+        }
 
         final Integer rewarded = imp.getRwdd();
         final Integer resolvedRewarded = resolveImpRewarded(rewarded, extImp);
@@ -91,7 +94,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static Integer resolveImpRewarded(Integer rewarded, ObjectNode extImp) {
-        if (rewarded != null || extImp == null) {
+        if (rewarded != null) {
             return null;
         }
 
@@ -102,8 +105,8 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static ObjectNode resolveImpExt(ObjectNode extImp) {
-        final JsonNode rewardedNode = extImp != null ? extImp.at(IMP_EXT_PREBID_REWARDED) : null;
-        if (rewardedNode == null || !rewardedNode.isIntegralNumber()) {
+        final JsonNode rewardedNode = extImp.at(IMP_EXT_PREBID_REWARDED);
+        if (!rewardedNode.isIntegralNumber()) {
             return null;
         }
 
@@ -119,9 +122,12 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         }
 
         final ExtSource extSource = source.getExt();
+        if (extSource == null) {
+            return null;
+        }
 
         final SupplyChain supplyChain = source.getSchain();
-        final SupplyChain resolvedSupplyChain = resolveSourceSupplyChain(supplyChain, extSource);
+        final SupplyChain resolvedSupplyChain = supplyChain == null ? extSource.getSchain() : null;
 
         final ExtSource resolvedExtSource = resolveSourceExt(extSource);
 
@@ -133,16 +139,8 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 : null;
     }
 
-    private static SupplyChain resolveSourceSupplyChain(SupplyChain supplyChain, ExtSource extSource) {
-        if (supplyChain != null) {
-            return null;
-        }
-
-        return extSource != null ? extSource.getSchain() : null;
-    }
-
     private static ExtSource resolveSourceExt(ExtSource extSource) {
-        if (extSource == null || extSource.getSchain() == null) {
+        if (extSource.getSchain() == null) {
             return null;
         }
 
