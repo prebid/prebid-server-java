@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -1763,6 +1764,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 null,
                 gdprVendorId,
                 enforceCcpa,
-                false);
+                false,
+                CompressionType.NONE);
     }
 }

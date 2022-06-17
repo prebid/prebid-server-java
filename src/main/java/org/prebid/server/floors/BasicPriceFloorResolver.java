@@ -152,7 +152,10 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static boolean isPriceFloorsDisabledForRequest(BidRequest bidRequest) {
         final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
-        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled));
+        final Boolean enabled = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
+        final Boolean skipped = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getSkipped);
+
+        return BooleanUtils.isFalse(enabled) || BooleanUtils.isTrue(skipped);
     }
 
     private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {

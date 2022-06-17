@@ -139,6 +139,7 @@ public class RequestValidator {
                 }
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
                 validateAliases(aliases);
+                validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
                 validateSchains(extRequestPrebid.getSchains());
@@ -195,6 +196,26 @@ public class RequestValidator {
         if (CollectionUtils.isEmpty(currencies)) {
             throw new ValidationException(
                     "currency was not defined either in request.cur or in configuration field adServerCurrency");
+        }
+    }
+
+    private void validateAliasesGvlIds(ExtRequestPrebid extRequestPrebid,
+                                       Map<String, String> aliases) throws ValidationException {
+
+        final Map<String, Integer> aliasGvlIds = MapUtils.emptyIfNull(extRequestPrebid.getAliasgvlids());
+
+        for (Map.Entry<String, Integer> aliasToGvlId : aliasGvlIds.entrySet()) {
+
+            if (!aliases.containsKey(aliasToGvlId.getKey())) {
+                throw new ValidationException("request.ext.prebid.aliasgvlids. vendorId %s refers to"
+                        + " unknown bidder alias: %s", aliasToGvlId.getValue(), aliasToGvlId.getKey());
+            }
+
+            if (aliasToGvlId.getValue() < 1) {
+                throw new ValidationException("request.ext.prebid.aliasgvlids. "
+                        + "Invalid vendorId %s for alias: %s. Choose a different vendorId, or "
+                        + "remove this entry.", aliasToGvlId.getValue(), aliasToGvlId.getKey());
+            }
         }
     }
 

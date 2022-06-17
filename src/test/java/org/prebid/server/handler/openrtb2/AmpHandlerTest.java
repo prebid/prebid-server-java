@@ -455,7 +455,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build()));
 
         // when
@@ -479,11 +479,10 @@ public class AmpHandlerTest extends VertxTest {
                         .prebid(ExtBidResponsePrebid.of(
                                 1000L,
                                 ExtModules.of(
-                                        singletonMap(
-                                                "module1", singletonMap("hook1", singletonList("error1"))),
-                                        singletonMap(
-                                                "module1", singletonMap("hook1", singletonList("warning1"))),
-                                        ExtModulesTrace.of(2L, emptyList()))))
+                                        singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
+                                        singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
+                                        ExtModulesTrace.of(2L, emptyList())),
+                                null))
                         .build()));
 
         // when

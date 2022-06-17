@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
@@ -13,11 +12,11 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatis
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 import spock.lang.Shared
 import spock.lang.Specification
 
-@PBSTest
-// TODO migrate this to extend BaseSpec
+@Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
 abstract class BasePgSpec extends Specification {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
