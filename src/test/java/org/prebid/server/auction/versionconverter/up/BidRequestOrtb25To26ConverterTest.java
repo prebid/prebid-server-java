@@ -212,8 +212,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getConsent)
-                .isSameAs(consent);
+                .satisfies(user -> {
+                    assertThat(user)
+                            .extracting(User::getConsent)
+                            .isSameAs(consent);
+                    assertThat(user)
+                            .extracting(User::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -229,8 +235,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getConsent)
-                .isSameAs(consent);
+                .satisfies(user -> {
+                    assertThat(user)
+                            .extracting(User::getConsent)
+                            .isSameAs(consent);
+                    assertThat(user)
+                            .extracting(User::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -246,8 +258,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getEids)
-                .isSameAs(eids);
+                .satisfies(user -> {
+                    assertThat(user)
+                            .extracting(User::getEids)
+                            .isSameAs(eids);
+                    assertThat(user)
+                            .extracting(User::getExt)
+                            .isNull();
+                });
     }
 
     @Test
@@ -263,8 +281,14 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getEids)
-                .isSameAs(eids);
+                .satisfies(user -> {
+                    assertThat(user)
+                            .extracting(User::getEids)
+                            .isSameAs(eids);
+                    assertThat(user)
+                            .extracting(User::getExt)
+                            .isNull();
+                });
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

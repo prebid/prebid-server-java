@@ -1957,7 +1957,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
         final List<Eid> eids = singletonList(Eid.of("eId", emptyList(), null));
-        final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
+        final ExtUser extUser = ExtUser.builder().data(dataNode).build();
         final List<Data> data = singletonList(Data.builder().build());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
@@ -1971,6 +1971,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .gender("male")
                                 .yob(133)
                                 .geo(Geo.EMPTY)
+                                .eids(eids)
                                 .ext(extUser)
                                 .data(data)
                                 .build()));
@@ -1984,14 +1985,20 @@ public class ExchangeServiceTest extends VertxTest {
                 .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
-        final ExtUser maskedExtUser = ExtUser.builder().eids(eids).build();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt, User::getData)
+                .extracting(
+                        User::getKeywords,
+                        User::getGender,
+                        User::getYob,
+                        User::getGeo,
+                        User::getEids,
+                        User::getExt,
+                        User::getData)
                 .containsOnly(
-                        tuple("keyword", "male", 133, Geo.EMPTY, extUser, data),
-                        tuple("keyword", "male", 133, Geo.EMPTY, maskedExtUser, null));
+                        tuple("keyword", "male", 133, Geo.EMPTY, eids, extUser, data),
+                        tuple("keyword", "male", 133, Geo.EMPTY, eids, null, null));
     }
 
     @Test
@@ -2050,8 +2057,6 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
-        final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2061,7 +2066,8 @@ public class ExchangeServiceTest extends VertxTest {
                                                 singletonList("otherBidder")))))
                                 .build()))
                         .user(User.builder()
-                                .ext(extUser)
+                                .eids(singletonList(Eid.of("source1", null, null)))
+                                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                                 .build()));
 
         // when
@@ -2074,8 +2080,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ExtUser::getEids)
+                .extracting(User::getEids)
                 .element(0)
                 .isNull();
     }
@@ -2086,8 +2091,6 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
-        final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2098,7 +2101,8 @@ public class ExchangeServiceTest extends VertxTest {
                                                 singletonList("someBidderAlias")))))
                                 .build()))
                         .user(User.builder()
-                                .ext(extUser)
+                                .eids(singletonList(Eid.of("source1", null, null)))
+                                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                                 .build()));
 
         // when
@@ -2111,8 +2115,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ExtUser::getEids)
+                .extracting(User::getEids)
                 .element(0)
                 .isNull();
     }
@@ -2123,8 +2126,6 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidderAlias", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidderAlias", 1);
-        final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
-                .eids(singletonList(Eid.of("source1", null, null))).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2135,7 +2136,8 @@ public class ExchangeServiceTest extends VertxTest {
                                                 singletonList("someBidder")))))
                                 .build()))
                         .user(User.builder()
-                                .ext(extUser)
+                                .eids(singletonList(Eid.of("source1", null, null)))
+                                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                                 .build()));
 
         // when
@@ -2148,8 +2150,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ExtUser::getEids)
+                .extracting(User::getEids)
                 .element(0)
                 .isNull();
     }
@@ -2198,7 +2199,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
         final List<Eid> eids = singletonList(Eid.of("eId", emptyList(), null));
-        final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
+        final ExtUser extUser = ExtUser.builder().data(dataNode).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2209,6 +2210,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .gender("male")
                                 .yob(133)
                                 .geo(Geo.EMPTY)
+                                .eids(eids)
                                 .ext(extUser)
                                 .build()));
 
@@ -2221,14 +2223,13 @@ public class ExchangeServiceTest extends VertxTest {
                 .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
-        final ExtUser expectedExtUser = ExtUser.builder().eids(eids).build();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
+                .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getEids, User::getExt)
                 .containsOnly(
-                        tuple("keyword", "male", 133, Geo.EMPTY, expectedExtUser),
-                        tuple("keyword", "male", 133, Geo.EMPTY, expectedExtUser));
+                        tuple("keyword", "male", 133, Geo.EMPTY, eids, null),
+                        tuple("keyword", "male", 133, Geo.EMPTY, eids, null));
     }
 
     @Test
@@ -4466,7 +4467,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
     }
 
-    private void testUserEidsPermissionFiltering(List<Eid> givenExtUserEids,
+    private void testUserEidsPermissionFiltering(List<Eid> givenUserEids,
                                                  List<ExtRequestPrebidDataEidPermissions> givenEidPermissions,
                                                  Map<String, String> givenAlises,
                                                  List<Eid> expectedExtUserEids) {
@@ -4474,7 +4475,6 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
-        final ExtUser extUser = ExtUser.builder().eids(givenExtUserEids).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -4483,7 +4483,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .data(ExtRequestPrebidData.of(null, givenEidPermissions))
                                 .build()))
                         .user(User.builder()
-                                .ext(extUser)
+                                .eids(givenUserEids)
                                 .build()));
 
         // when
@@ -4496,8 +4496,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .flatExtracting(ExtUser::getEids)
+                .flatExtracting(User::getEids)
                 .isEqualTo(expectedExtUserEids);
     }
 

@@ -171,9 +171,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
+                        .consent("consent")
                         .build())
                 .site(Site.builder().ref(referer).build())
                 .build();
@@ -217,9 +215,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
+                        .consent("consent")
                         .build())
                 .device(Device.builder()
                         .lmt(1)
@@ -853,6 +849,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .user(givenNotMaskedUser(userBuilder -> userBuilder
                         .id(null)
                         .buyeruid(null)
+                        .consent(null)
                         .ext(extUserIdsMasked())))
                 .device(notMaskedDevice())
                 .requestBidder(BIDDER_NAME)
@@ -875,12 +872,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
-        final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(Eid.of("Test", emptyList(), null)))
-                .build();
         final User user = User.builder()
                 .buyeruid(BUYER_UID)
-                .ext(extUser)
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
 
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -1104,8 +1098,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
-        final ExtUser extUser = ExtUser.builder().consent("consent").build();
-        final User user = User.builder().gender("gender").ext(extUser).build();
+        final User user = User.builder().gender("gender").consent("consent").build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -1272,12 +1265,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldNotReturnUserIfMaskingAppliedAndUserBecameEmptyObject() {
         // given
-        final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(Eid.of("Test", emptyList(), null)))
-                .build();
         final User user = User.builder()
                 .buyeruid("buyeruid")
-                .ext(extUser)
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
@@ -1650,7 +1640,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
-                .ext(ExtUser.builder().consent("consent").build())
+                .consent("consent")
                 .build();
     }
 
@@ -1659,6 +1649,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .ext(extUser)
                 .build();
     }
@@ -1666,7 +1657,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static ExtUser notMaskedExtUser() {
         return ExtUser.builder()
                 .digitrust(mapper.createObjectNode())
-                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
     }
@@ -1704,7 +1694,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return User.builder()
                 .buyeruid(null)
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).country("US").build())
-                .ext(ExtUser.builder().consent("consent").build())
+                .consent("consent")
                 .build();
     }
 

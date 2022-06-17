@@ -238,7 +238,7 @@ public class DealsPopulatorTest extends VertxTest {
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .device(Device.builder().ip("ip").ua("ua").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
+                        .consent("consent")
                         .build()));
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
@@ -249,8 +249,8 @@ public class DealsPopulatorTest extends VertxTest {
         assertThat(result.getBidRequest().getUser()).isEqualTo(User.builder()
                 .data(singletonList(Data.builder().id("rubicon")
                         .segment(singletonList(Segment.builder().id("segmentId").build())).build()))
+                .consent("consent")
                 .ext(ExtUser.builder()
-                        .consent("consent")
                         .fcapIds(singletonList("fcapId"))
                         .time(ExtUserTime.of(5, 0))
                         .build())
@@ -289,7 +289,7 @@ public class DealsPopulatorTest extends VertxTest {
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .device(Device.builder().ip("ip").ua("ua").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
+                        .consent("consent")
                         .build()));
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
@@ -298,8 +298,8 @@ public class DealsPopulatorTest extends VertxTest {
 
         // then
         assertThat(result.getBidRequest().getUser()).isEqualTo(User.builder()
+                .consent("consent")
                 .ext(ExtUser.builder()
-                        .consent("consent")
                         .time(ExtUserTime.of(4, 17))
                         .build())
                 .build());
@@ -365,7 +365,7 @@ public class DealsPopulatorTest extends VertxTest {
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .device(Device.builder().ip("ip").ua("ua").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
+                        .consent("consent")
                         .build()));
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
@@ -374,8 +374,8 @@ public class DealsPopulatorTest extends VertxTest {
 
         // then
         assertThat(result.getBidRequest().getUser()).isEqualTo(User.builder()
+                .consent("consent")
                 .ext(ExtUser.builder()
-                        .consent("consent")
                         .time(ExtUserTime.of(5, 0))
                         .build())
                 .build());

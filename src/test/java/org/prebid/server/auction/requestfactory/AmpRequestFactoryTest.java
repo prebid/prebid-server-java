@@ -1183,7 +1183,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 
@@ -1202,7 +1202,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 

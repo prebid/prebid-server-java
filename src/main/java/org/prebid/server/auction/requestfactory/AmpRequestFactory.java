@@ -250,12 +250,13 @@ public class AmpRequestFactory {
                 ? ConsentedProvidersSettings.of(addtlConsent)
                 : null;
 
-        final ExtUser extUser = ExtUser.builder()
-                .consent(consent)
+        final ExtUser extUser = consentedProvidersSettings != null
+                ? ExtUser.builder()
                 .consentedProvidersSettings(consentedProvidersSettings)
-                .build();
+                .build()
+                : null;
 
-        return User.builder().ext(extUser).build();
+        return User.builder().consent(consent).ext(extUser).build();
     }
 
     private static Regs createRegs(ConsentParam consentParam, Integer gdpr) {

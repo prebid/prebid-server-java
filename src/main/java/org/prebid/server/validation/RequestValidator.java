@@ -531,9 +531,47 @@ public class RequestValidator {
     }
 
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
-        if (user != null && user.getExt() != null) {
-            final ExtUser extUser = user.getExt();
+        if (user != null) {
+            validateUserExt(user.getExt(), aliases);
 
+            final List<Eid> eids = user.getEids();
+            if (eids != null) {
+                if (eids.isEmpty()) {
+                    throw new ValidationException(
+                            "request.user.eids must contain at least one element or be undefined");
+                }
+                for (int index = 0; index < eids.size(); index++) {
+                    final Eid eid = eids.get(index);
+                    if (StringUtils.isBlank(eid.getSource())) {
+                        throw new ValidationException(
+                                "request.user.eids[%d] missing required field: \"source\"", index);
+                    }
+                    final List<Uid> eidUids = eid.getUids();
+                    if (CollectionUtils.isEmpty(eidUids)) {
+                        throw new ValidationException(
+                                "request.user.eids[%d].uids must contain at least one element", index);
+                    }
+                    for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                        final Uid uid = eidUids.get(uidsIndex);
+                        if (StringUtils.isBlank(uid.getId())) {
+                            throw new ValidationException(
+                                    "request.user.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                    uidsIndex);
+                        }
+                    }
+                }
+                final Set<String> uniqueSources = eids.stream()
+                        .map(Eid::getSource)
+                        .collect(Collectors.toSet());
+                if (eids.size() != uniqueSources.size()) {
+                    throw new ValidationException("request.user.eids must contain unique sources");
+                }
+            }
+        }
+    }
+
+    private void validateUserExt(ExtUser extUser, Map<String, String> aliases) throws ValidationException {
+        if (extUser != null) {
             final ExtUserPrebid prebid = extUser.getPrebid();
             if (prebid != null) {
                 final Map<String, String> buyerUids = prebid.getBuyeruids();
@@ -548,40 +586,6 @@ public class RequestValidator {
                         throw new ValidationException("request.user.ext.%s is neither a known bidder "
                                 + "name nor an alias in request.ext.prebid.aliases", bidder);
                     }
-                }
-            }
-
-            final List<Eid> eids = extUser.getEids();
-            if (eids != null) {
-                if (eids.isEmpty()) {
-                    throw new ValidationException(
-                            "request.user.ext.eids must contain at least one element or be undefined");
-                }
-                for (int index = 0; index < eids.size(); index++) {
-                    final Eid eid = eids.get(index);
-                    if (StringUtils.isBlank(eid.getSource())) {
-                        throw new ValidationException(
-                                "request.user.ext.eids[%d] missing required field: \"source\"", index);
-                    }
-                    final List<Uid> eidUids = eid.getUids();
-                    if (CollectionUtils.isEmpty(eidUids)) {
-                        throw new ValidationException(
-                                "request.user.ext.eids[%d].uids must contain at least one element", index);
-                    }
-                    for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                        final Uid uid = eidUids.get(uidsIndex);
-                        if (StringUtils.isBlank(uid.getId())) {
-                            throw new ValidationException(
-                                    "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                    uidsIndex);
-                        }
-                    }
-                }
-                final Set<String> uniqueSources = eids.stream()
-                        .map(Eid::getSource)
-                        .collect(Collectors.toSet());
-                if (eids.size() != uniqueSources.size()) {
-                    throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }
             }
         }

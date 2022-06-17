@@ -194,7 +194,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static ExtRegs resolveRegsExt(ExtRegs extRegs) {
-        if (extRegs == null || (extRegs.getGdpr() == null && extRegs.getUsPrivacy() == null)) {
+        if (extRegs == null || allNull(extRegs.getGdpr(), extRegs.getUsPrivacy())) {
             return null;
         }
 
@@ -204,29 +204,63 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         return modifiedExtRegs;
     }
 
+    private static boolean allNull(Object... objects) {
+        return !ObjectUtils.anyNotNull(objects);
+    }
+
     private static User moveUserData(User user) {
         if (user == null) {
             return null;
         }
 
-        final ExtUser userExt = user.getExt();
-        final boolean userExtIsNotNull = userExt != null;
+        final ExtUser extUser = user.getExt();
+        if (extUser == null) {
+            return null;
+        }
 
         final String consent = user.getConsent();
-        final String resolvedConsent = consent == null && userExtIsNotNull
-                ? userExt.getConsent()
+        final String resolvedConsent = consent == null
+                ? extUser.getConsent()
                 : null;
 
         final List<Eid> eids = user.getEids();
-        final List<Eid> resolvedEids = CollectionUtils.isEmpty(eids) && userExtIsNotNull
-                ? userExt.getEids()
-                : null;
+        final List<Eid> resolvedEids = resolveUserEids(eids, extUser);
 
-        return ObjectUtils.anyNotNull(resolvedConsent, resolvedEids)
+        final ExtUser resolvedExtUser = resolveUserExt(extUser);
+
+        return ObjectUtils.anyNotNull(resolvedConsent, resolvedEids, resolvedExtUser)
                 ? user.toBuilder()
                 .consent(resolvedConsent != null ? resolvedConsent : consent)
                 .eids(resolvedEids != null ? resolvedEids : eids)
+                .ext(resolvedExtUser != null ? nullIfUserExtEmpty(resolvedExtUser) : extUser)
                 .build()
                 : null;
+    }
+
+    private static List<Eid> resolveUserEids(List<Eid> eids, ExtUser extUser) {
+        if (CollectionUtils.isNotEmpty(eids)) {
+            return null;
+        }
+
+        final List<Eid> extEids = extUser.getEids();
+        return CollectionUtils.isNotEmpty(extEids) ? extEids : null;
+    }
+
+    private static ExtUser resolveUserExt(ExtUser extUser) {
+        if (extUser == null || allNull(extUser.getConsent(), extUser.getEids())) {
+            return null;
+        }
+
+        final ExtUser modifiedExtUser = extUser.toBuilder()
+                .consent(null)
+                .eids(null)
+                .build();
+        copyProperties(extUser, modifiedExtUser);
+
+        return modifiedExtUser;
+    }
+
+    private static ExtUser nullIfUserExtEmpty(ExtUser extUser) {
+        return extUser.isEmpty() ? null : extUser;
     }
 }

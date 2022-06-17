@@ -1999,9 +1999,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(emptyList())
-                                .build())
+                        .eids(emptyList())
                         .build())
                 .build();
 
@@ -2010,7 +2008,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids must contain at least one element or be undefined");
+                .containsOnly("request.user.eids must contain at least one element or be undefined");
     }
 
     @Test
@@ -2018,9 +2016,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(null, null, null)))
-                                .build())
+                        .eids(singletonList(Eid.of(null, null, null)))
                         .build())
                 .build();
 
@@ -2029,7 +2025,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0] missing required field: \"source\"");
+                .containsOnly("request.user.eids[0] missing required field: \"source\"");
     }
 
     @Test
@@ -2037,9 +2033,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of("source", null, null)))
-                                .build())
+                        .eids(singletonList(Eid.of("source", null, null)))
                         .build())
                 .build();
 
@@ -2048,7 +2042,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].uids must contain at least one element");
+                .containsOnly("request.user.eids[0].uids must contain at least one element");
     }
 
     @Test
@@ -2056,9 +2050,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of("source", emptyList(), null)))
-                                .build())
+                        .eids(singletonList(Eid.of("source", emptyList(), null)))
                         .build())
                 .build();
 
@@ -2067,7 +2059,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].uids must contain at least one element");
+                .containsOnly("request.user.eids[0].uids must contain at least one element");
     }
 
     @Test
@@ -2075,12 +2067,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        "source",
-                                        singletonList(Uid.of(null, null, null)),
-                                        null)))
-                                .build())
+                        .eids(singletonList(Eid.of(
+                                "source",
+                                singletonList(Uid.of(null, null, null)),
+                                null)))
                         .build())
                 .build();
 
@@ -2089,7 +2079,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].uids[0] missing required field: \"id\"");
+                .containsOnly("request.user.eids[0].uids[0] missing required field: \"id\"");
     }
 
     @Test
@@ -2097,11 +2087,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .eids(asList(
-                                        Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
-                                        Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
-                                .build())
+                        .eids(asList(
+                                Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
+                                Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
                         .build())
                 .build();
 
@@ -2109,7 +2097,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly("request.user.ext.eids must contain unique sources");
+        assertThat(result.getErrors()).containsExactly("request.user.eids must contain unique sources");
     }
 
     @Test

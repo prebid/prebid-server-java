@@ -116,7 +116,6 @@
         "user": {
           "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
           "ext": {
-            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
             "fcapids": [],
             "time": {
               "userdow": "{{ userdow }}",
