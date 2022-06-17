@@ -128,7 +128,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         return ObjectUtils.anyNotNull(resolvedSupplyChain, resolvedExtSource)
                 ? source.toBuilder()
                 .schain(resolvedSupplyChain != null ? resolvedSupplyChain : supplyChain)
-                .ext(resolvedExtSource != null ? nullIfPropertiesEmpty(resolvedExtSource) : extSource)
+                .ext(resolvedExtSource != null ? nullIfEmpty(resolvedExtSource) : extSource)
                 .build()
                 : null;
     }
@@ -158,8 +158,12 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 .ifPresent(target::addProperties);
     }
 
-    private static <T extends FlexibleExtension> T nullIfPropertiesEmpty(T ext) {
-        return MapUtils.isNotEmpty(ext.getProperties()) ? ext : null;
+    private static <T extends FlexibleExtension> T nullIfEmpty(T ext) {
+        return nullIfEmpty(ext, MapUtils.isEmpty(ext.getProperties()));
+    }
+
+    private static <T> T nullIfEmpty(T object, boolean isEmpty) {
+        return isEmpty ? null : object;
     }
 
     private static Regs moveRegsData(Regs regs) {
@@ -188,7 +192,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 ? regs.toBuilder()
                 .gdpr(resolvedGdpr != null ? resolvedGdpr : gdpr)
                 .usPrivacy(resolvedUsPrivacy != null ? resolvedUsPrivacy : usPrivacy)
-                .ext(resolvedExtRegs != null ? nullIfPropertiesEmpty(resolvedExtRegs) : extRegs)
+                .ext(resolvedExtRegs != null ? nullIfEmpty(resolvedExtRegs) : extRegs)
                 .build()
                 : null;
     }
@@ -232,7 +236,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 ? user.toBuilder()
                 .consent(resolvedConsent != null ? resolvedConsent : consent)
                 .eids(resolvedEids != null ? resolvedEids : eids)
-                .ext(resolvedExtUser != null ? nullIfUserExtEmpty(resolvedExtUser) : extUser)
+                .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser, resolvedExtUser.isEmpty()) : extUser)
                 .build()
                 : null;
     }
@@ -258,9 +262,5 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         copyProperties(extUser, modifiedExtUser);
 
         return modifiedExtUser;
-    }
-
-    private static ExtUser nullIfUserExtEmpty(ExtUser extUser) {
-        return extUser.isEmpty() ? null : extUser;
     }
 }
