@@ -201,6 +201,8 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
                 .readyToServeTimestamp(lineItem.getReadyAt())
                 .spentTokens(activeDeliveryPlan.getSpentTokens())
                 .pacingFrequency(activeDeliveryPlan.getDeliveryRateInMilliseconds())
+                .accountId(lineItem.getAccountId())
+                .target(lineItem.getTargeting())
                 .build();
     }
 }

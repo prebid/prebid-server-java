@@ -3,7 +3,7 @@ package org.prebid.server.bidder;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
@@ -39,7 +39,7 @@ public class BidderErrorNotifier {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public <T> HttpCall<T> processTimeout(HttpCall<T> httpCall, Bidder<T> bidder) {
+    public <T> BidderCall<T> processTimeout(BidderCall<T> httpCall, Bidder<T> bidder) {
         final BidderError error = httpCall.getError();
 
         if (error != null && error.getType() == BidderError.Type.timeout) {

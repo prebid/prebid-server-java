@@ -33,10 +33,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
@@ -86,13 +86,32 @@ public class DeliveryProgressServiceTest extends VertxTest {
     @Test
     public void updateLineItemsShouldUpdateCurrentDeliveryReportIfUpdatedPlanUpdateTimeStampIsInFuture() {
         // given
-        final LineItemMetaData firstPlanResponse = givenLineItemMetaData("lineItem1", "1001", "rubicon",
-                singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
-                        now.plusHours(1), now, singleton(Token.of(1, 100)))), now);
-
-        final LineItemMetaData secondPlanResponse = givenLineItemMetaData("lineItem1", "1001", "rubicon",
-                singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
-                        now.plusHours(1), now.plusMinutes(1), singleton(Token.of(1, 200)))), now);
+        final LineItemMetaData firstPlanResponse = givenLineItemMetaData(
+                now,
+                lineItemMetaData -> lineItemMetaData
+                        .lineItemId("lineItem1")
+                        .accountId("1001")
+                        .source("rubicon")
+                        .deliverySchedules(singletonList(
+                                givenDeliverySchedule(
+                                        "planId1",
+                                        now.minusHours(1),
+                                        now.plusHours(1),
+                                        now,
+                                        singleton(Token.of(1, 100))))));
+        final LineItemMetaData secondPlanResponse = givenLineItemMetaData(
+                now,
+                lineItemMetaData -> lineItemMetaData
+                        .lineItemId("lineItem1")
+                        .accountId("1001")
+                        .source("rubicon")
+                        .deliverySchedules(singletonList(
+                                givenDeliverySchedule(
+                                        "planId1",
+                                        now.minusHours(1),
+                                        now.plusHours(1),
+                                        now.plusMinutes(1),
+                                        singleton(Token.of(1, 200))))));
 
         LineItem lineItem1 = LineItem.of(firstPlanResponse, null, null, now);
         LineItem lineItem12 = LineItem.of(secondPlanResponse, null, null, now);
@@ -161,15 +180,38 @@ public class DeliveryProgressServiceTest extends VertxTest {
         final String lineItemId1 = "lineItemId1";
         final String lineItemId2 = "lineItemId2";
 
-        final LineItem lineItem1 = LineItem.of(givenLineItemMetaData(lineItemId1, "1001", "rubicon",
-                singletonList(givenDeliverySchedule("plan1", now.minusHours(1), now.plusHours(1),
-                        new HashSet<>(asList(Token.of(1, 100), Token.of(2, 100))))),
-                now), null, null, now);
-
-        final LineItem lineItem2 = LineItem.of(givenLineItemMetaData(lineItemId2, "1001", "rubicon",
-                singletonList(givenDeliverySchedule("plan2", now.minusHours(1), now.plusHours(1),
-                        new HashSet<>(asList(Token.of(1, 100), Token.of(2, 100))))),
-                now), null, null, now);
+        final LineItem lineItem1 = LineItem.of(
+                givenLineItemMetaData(
+                        now,
+                        lineItemMetaData -> lineItemMetaData
+                                .lineItemId(lineItemId1)
+                                .accountId("1001")
+                                .source("rubicon")
+                                .deliverySchedules(singletonList(
+                                        givenDeliverySchedule(
+                                                "plan1",
+                                                now.minusHours(1),
+                                                now.plusHours(1),
+                                                Set.of(Token.of(1, 100), Token.of(2, 100)))))),
+                null,
+                null,
+                now);
+        final LineItem lineItem2 = LineItem.of(
+                givenLineItemMetaData(
+                        now,
+                        lineItemMetaData -> lineItemMetaData
+                                .lineItemId(lineItemId2)
+                                .accountId("1001")
+                                .source("rubicon")
+                                .deliverySchedules(singletonList(
+                                        givenDeliverySchedule(
+                                                "plan2",
+                                                now.minusHours(1),
+                                                now.plusHours(1),
+                                                Set.of(Token.of(1, 100), Token.of(2, 100)))))),
+                null,
+                null,
+                now);
 
         given(lineItemService.getLineItemById(eq(lineItemId1))).willReturn(lineItem1);
         given(lineItemService.getLineItemById(eq(lineItemId2))).willReturn(lineItem2);
@@ -249,10 +291,22 @@ public class DeliveryProgressServiceTest extends VertxTest {
     @Test
     public void trackWinEventShouldCreateLineItemStatusAndUpdateWinEventsMetric() {
         // given
-        final LineItem lineItem = LineItem.of(givenLineItemMetaData("lineItemId1", "1001", "rubicon",
-                singletonList(givenDeliverySchedule("plan1", now.minusHours(1), now.plusHours(1),
-                        new HashSet<>(asList(Token.of(1, 100), Token.of(2, 100))))),
-                now), null, null, now);
+        final LineItem lineItem = LineItem.of(
+                givenLineItemMetaData(
+                        now,
+                        lineItemMetaData -> lineItemMetaData
+                                .lineItemId("lineItemId1")
+                                .accountId("1001")
+                                .source("rubicon")
+                                .deliverySchedules(singletonList(
+                                        givenDeliverySchedule(
+                                                "plan1",
+                                                now.minusHours(1),
+                                                now.plusHours(1),
+                                                Set.of(Token.of(1, 100), Token.of(2, 100)))))),
+                null,
+                null,
+                now);
 
         given(lineItemService.getLineItemById(eq("lineItemId1"))).willReturn(lineItem);
 
@@ -278,10 +332,23 @@ public class DeliveryProgressServiceTest extends VertxTest {
     @Test
     public void getLineItemStatusReportShouldReturnExpectedResult() {
         // given
-        final DeliverySchedule deliverySchedule = givenDeliverySchedule("plan1", now.minusHours(1), now.plusHours(1),
-                singleton(Token.of(1, 100)));
-        final LineItem lineItem = LineItem.of(givenLineItemMetaData("lineItemId1", "1001", "rubicon",
-                singletonList(deliverySchedule), now), null, null, now);
+        final LineItem lineItem = LineItem.of(
+                givenLineItemMetaData(
+                        now,
+                        lineItemMetaData -> lineItemMetaData
+                                .lineItemId("lineItemId1")
+                                .accountId("1001")
+                                .source("rubicon")
+                                .deliverySchedules(singletonList(
+                                        givenDeliverySchedule(
+                                                "plan1",
+                                                now.minusHours(1),
+                                                now.plusHours(1),
+                                                singleton(Token.of(1, 100)))))
+                                .targeting(mapper.createObjectNode().put("targetingField", "targetingValue"))),
+                null,
+                null,
+                now);
         given(lineItemService.getLineItemById(anyString())).willReturn(lineItem);
 
         // when
@@ -300,25 +367,24 @@ public class DeliveryProgressServiceTest extends VertxTest {
                 .readyToServeTimestamp(now)
                 .spentTokens(0L)
                 .pacingFrequency(72000L)
+                .accountId("1001")
+                .target(mapper.createObjectNode().put("targetingField", "targetingValue"))
                 .build());
     }
 
     private static LineItemMetaData givenLineItemMetaData(
-            String lineItemId, String account, String bidderCode, List<DeliverySchedule> deliverySchedules,
-            ZonedDateTime now) {
+            ZonedDateTime now,
+            UnaryOperator<LineItemMetaData.LineItemMetaDataBuilder> lineItemMetaDataCustomizer) {
 
-        return LineItemMetaData.builder()
-                .lineItemId(lineItemId)
-                .dealId("dealId")
-                .status("active")
-                .accountId(account)
-                .source(bidderCode)
-                .price(Price.of(BigDecimal.ONE, "USD"))
-                .relativePriority(5)
-                .startTimeStamp(now.minusHours(1))
-                .endTimeStamp(now.plusHours(1))
-                .updatedTimeStamp(now)
-                .deliverySchedules(deliverySchedules)
+        return lineItemMetaDataCustomizer
+                .apply(LineItemMetaData.builder()
+                        .dealId("dealId")
+                        .status("active")
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .relativePriority(5)
+                        .startTimeStamp(now.minusHours(1))
+                        .endTimeStamp(now.plusHours(1))
+                        .updatedTimeStamp(now))
                 .build();
     }
 

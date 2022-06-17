@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.BidRequest;
@@ -646,7 +647,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(ExtBidResponse.builder()
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build())
                 .build();
 
@@ -2360,7 +2361,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.get("prebid"))
                 .extracting(ext -> mapper.convertValue(ext, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getDealtiersatisfied)
+                .extracting(ExtBidPrebid::getDealTierSatisfied)
                 .containsOnly(true);
     }
 
@@ -2847,7 +2848,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
     }
 
@@ -2880,7 +2881,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                         "invalid has been deprecated and is no longer available. Use valid instead."))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
@@ -2911,7 +2912,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "privacy error"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null))
                         .build());
     }
 
@@ -3319,6 +3320,61 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getExt)
                 .containsExactly(givenDefaultBidExt);
+    }
+
+    @Test
+    public void shouldCopyRequestExtPrebidPassThroughToResponseExtPrebidPassThroughWhenPresent() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.passthrough(TextNode.valueOf("passthrough")),
+                givenImp("i1")));
+
+        final Bid bid = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, null)), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getPassthrough)
+                .isEqualTo(TextNode.valueOf("passthrough"));
+    }
+
+    @Test
+    public void shouldCopyImpExtPrebidPassThroughToResponseBidExtPrebidPassThroughWhenPresentInCorrespondingImp() {
+        // given
+        final ExtImp impExt = ExtImp.of(
+                ExtImpPrebid.builder()
+                        .passthrough(TextNode.valueOf("passthrough"))
+                        .build(),
+                null);
+        final Imp imp = givenImp("i1").toBuilder().ext(mapper.valueToTree(impExt)).build();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.passthrough(TextNode.valueOf("passthrough")),
+                imp));
+
+        final Bid bid = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, null)), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.at("/prebid/passthrough"))
+                .containsExactly(TextNode.valueOf("passthrough"));
     }
 
     @Test
