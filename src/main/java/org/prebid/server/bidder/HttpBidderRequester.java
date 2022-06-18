@@ -204,7 +204,7 @@ public class HttpBidderRequester {
 
     private static byte[] gzip(byte[] value) {
         try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
-             GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
+                GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value);
             gzip.finish();
