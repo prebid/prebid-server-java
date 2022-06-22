@@ -290,10 +290,7 @@ class AmpSpec extends BaseSpec {
         def ampResponse = pbsService.sendAmpRequest(ampRequest)
 
         then: "Actual bid request ID should be different from incoming bid request id"
-        logger.info(String.format("AmpSpec after request - ampResponse.ext?.debug?.resolvedRequest?.id = %s",
-                ampResponse.ext?.debug?.resolvedRequest?.id))
-        def bidderRequest = bidder.getBidderRequest(ampResponse.ext?.debug?.resolvedRequest?.id)
-        assert bidderRequest.id != bidRequestId
+        assert  ampResponse.ext?.debug?.resolvedRequest?.id != bidRequestId
 
         where:
         bidRequestId          | generateBidRequestId

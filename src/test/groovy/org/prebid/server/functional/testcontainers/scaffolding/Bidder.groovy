@@ -62,8 +62,6 @@ class Bidder extends NetworkScaffolding {
         def bidderCallCount = bidderRequests.size()
 
         if (bidderCallCount != 1) {
-            logger.info("--- AmpSpec bidRequestId" + bidRequestId)
-            logger.info("--- List of recorded request body : "+getRecordedRequestsBody())
             throw new IllegalStateException("Expecting exactly 1 bidder call. Got $bidderCallCount")
         }
 
