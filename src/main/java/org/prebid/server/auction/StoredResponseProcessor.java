@@ -101,7 +101,15 @@ public class StoredResponseProcessor {
                 .collect(Collectors.toList());
     }
 
-    public AuctionParticipation applyStoredBidResponseAdjustments(AuctionParticipation auctionParticipation) {
+    public List<AuctionParticipation> applyStoredBidResponseAdjustments(
+            List<AuctionParticipation> auctionParticipations) {
+
+        return auctionParticipations.stream()
+                .map(StoredResponseProcessor::applyStoredBidResponseAdjustments)
+                .collect(Collectors.toList());
+    }
+
+    private static AuctionParticipation applyStoredBidResponseAdjustments(AuctionParticipation auctionParticipation) {
         final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 

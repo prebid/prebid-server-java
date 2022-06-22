@@ -282,6 +282,7 @@ public class ExchangeService {
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
 
+                .map(storedResponseProcessor::applyStoredBidResponseAdjustments)
                 .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
                 .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
@@ -1302,7 +1303,6 @@ public class ExchangeService {
                                                              BidderAliases aliases) {
 
         return auctionParticipations.stream()
-                .map(storedResponseProcessor::applyStoredBidResponseAdjustments)
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> applyBidPriceChanges(auctionParticipation, auctionContext.getBidRequest()))
                 .map(auctionParticipation -> priceFloorEnforcer.enforce(

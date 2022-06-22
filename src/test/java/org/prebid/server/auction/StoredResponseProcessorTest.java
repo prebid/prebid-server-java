@@ -378,11 +378,11 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionParticipation result = storedResponseProcessor
-                .applyStoredBidResponseAdjustments(requestAuctionParticipation);
+        final List<AuctionParticipation> result = storedResponseProcessor
+                .applyStoredBidResponseAdjustments(singletonList(requestAuctionParticipation));
 
         // then
-        assertThat(result).isEqualTo(requestAuctionParticipation);
+        assertThat(result).containsExactly(requestAuctionParticipation);
     }
 
     @Test
@@ -406,8 +406,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionParticipation result = storedResponseProcessor
-                .applyStoredBidResponseAdjustments(requestAuctionParticipation);
+        final List<AuctionParticipation> result = storedResponseProcessor
+                .applyStoredBidResponseAdjustments(singletonList(requestAuctionParticipation));
 
         // then
         final List<BidderBid> expectedBids = List.of(
@@ -416,7 +416,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse expectedBidderResponse = BidderResponse.of(
                 "rubicon", BidderSeatBid.of(expectedBids, emptyList(), emptyList()), 100);
 
-        assertThat(result).isEqualTo(requestAuctionParticipation.with(expectedBidderResponse));
+        assertThat(result).containsExactly(requestAuctionParticipation.with(expectedBidderResponse));
     }
 
     @Test
