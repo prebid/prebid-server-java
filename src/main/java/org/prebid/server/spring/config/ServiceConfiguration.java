@@ -17,9 +17,9 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
+import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
@@ -293,9 +293,9 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
-            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -306,9 +306,9 @@ public class ServiceConfiguration {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
-                bidRequestOrtbVersionConversionManager,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
@@ -339,9 +339,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+    AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
-                                        Ortb2RequestFactory ortb2RequestFactory,
+                                        BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
@@ -352,9 +352,9 @@ public class ServiceConfiguration {
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
-                bidRequestOrtbVersionConversionManager,
-                storedRequestProcessor,
                 ortb2RequestFactory,
+                storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
@@ -370,8 +370,9 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
-            VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver auctionTimeoutResolver,
@@ -383,8 +384,9 @@ public class ServiceConfiguration {
                 enforceStoredRequest,
                 escapeLogCacheRegex,
                 ortb2RequestFactory,
-                ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
+                ortb2ImplicitParametersResolver,
                 privacyEnforcementService,
                 auctionTimeoutResolver,
                 debugResolver,

@@ -31,9 +31,9 @@ import java.util.Objects;
 public class AuctionRequestFactory {
 
     private final long maxRequestSize;
-    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
@@ -46,9 +46,9 @@ public class AuctionRequestFactory {
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
     public AuctionRequestFactory(long maxRequestSize,
-                                 BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
+                                 BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
@@ -59,9 +59,9 @@ public class AuctionRequestFactory {
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
-        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
@@ -88,7 +88,6 @@ public class AuctionRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
-                        .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
 
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
@@ -174,6 +173,9 @@ public class AuctionRequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
+
+                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
+
                 .map(resolvedBidRequest ->
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
 
