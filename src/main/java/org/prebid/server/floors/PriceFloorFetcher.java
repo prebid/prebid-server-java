@@ -227,10 +227,8 @@ public class PriceFloorFetcher {
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRulesData(), cacheInfo.getFetchStatus(), maxAgeTimerId);
 
-        if (cacheInfo.getRulesData() != null || !fetchedData.containsKey(accountId)) {
-            fetchedData.put(accountId, fetchContext);
-            fetchInProgress.remove(accountId);
-        }
+        fetchedData.put(accountId, fetchContext);
+        fetchInProgress.remove(accountId);
 
         return fetchContext.getRulesData();
     }
