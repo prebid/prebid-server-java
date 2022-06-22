@@ -14,7 +14,6 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -26,9 +25,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BAS
 abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2
-    @Shared
-    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(
-            ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
@@ -78,7 +74,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         geo
     }
 
-    protected static void cacheVendorList(PrebidServerService pbsService = defaultPbsService) {
+    protected static void cacheVendorList(PrebidServerService pbsService) {
         def isVendorListCachedClosure = {
             def validConsentString = new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
@@ -91,5 +87,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             pbsService.sendCollectedMetricsRequest()["privacy.tcf.v2.vendorlist.missing"] == 0
         }
         PBSUtils.waitUntil(isVendorListCachedClosure, 10000, 1000)
+    }
+
+    protected PrebidServerService getPrivacyPbsService() {
+        getPbsService(["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
     }
 }

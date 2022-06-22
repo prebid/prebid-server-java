@@ -22,7 +22,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BAS
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
-        cacheVendorList()
+        cacheVendorList(defaultPbsService)
     }
 
     @PendingFeature

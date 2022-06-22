@@ -41,6 +41,10 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_PASSWORD
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_USERNAME
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_PORT
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PORT
 
 class PrebidServerService {
 
@@ -59,22 +63,22 @@ class PrebidServerService {
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
 
-    private final PrebidServerContainer pbsContainer
+    private final ContainerWrapper<PrebidServerContainer> pbsContainerWrapper
     private final ObjectMapperWrapper mapper
     private final RequestSpecification requestSpecification
     private final RequestSpecification adminRequestSpecification
 
     private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
-    PrebidServerService(ContainerWrapper<PrebidServerContainer> pbsContainer, ObjectMapperWrapper mapper) {
+    PrebidServerService(ContainerWrapper<PrebidServerContainer> pbsContainerWrapper, ObjectMapperWrapper mapper) {
         def authenticationScheme = new BasicAuthScheme()
-        authenticationScheme.userName = pbsContainer.ADMIN_ENDPOINT_USERNAME
-        authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
-        this.pbsContainer = pbsContainer
+        authenticationScheme.userName = ADMIN_ENDPOINT_USERNAME
+        authenticationScheme.password = ADMIN_ENDPOINT_PASSWORD
+        this.pbsContainerWrapper = pbsContainerWrapper
         this.mapper = mapper
-        requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
+        requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainerWrapper.getRootUri(PORT))
                                                        .build()
-        adminRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.adminRootUri)
+        adminRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainerWrapper.getRootUri(ADMIN_PORT))
                                                             .setAuth(authenticationScheme)
                                                             .build()
     }
@@ -306,7 +310,7 @@ class PrebidServerService {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                                                        .withZone(ZoneId.from(UTC))
-        def logs = Arrays.asList(pbsContainer.logs.split("\n"))
+        def logs = Arrays.asList(pbsContainerWrapper.logs.split("\n"))
         def filteredLogs = []
 
         def deltaTime = Duration.between(testStart, testEnd).seconds

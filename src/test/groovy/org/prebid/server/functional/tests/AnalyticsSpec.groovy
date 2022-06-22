@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.mock.services.pubstack.PubStackResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsConfig
@@ -15,7 +14,6 @@ import spock.lang.Shared
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
 
     @Shared
     PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer, mapper).tap {
@@ -31,7 +29,7 @@ class AnalyticsSpec extends BaseSpec {
         def analyticsRequestCount = analytics.requestCount
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        getPbsService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID)).sendAuctionRequest(bidRequest)
 
         then: "PBS should call pubstack analytics"
         PBSUtils.waitUntil { analytics.requestCount == analyticsRequestCount + 1 }

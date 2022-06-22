@@ -28,7 +28,7 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(adapterConfig)
+        def pbsService = getPbsService(adapterConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -54,7 +54,7 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should not send request to bidder and emit error when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(adapterConfig)
+        def pbsService = getPbsService(adapterConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -77,8 +77,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
-                                                       "adapters.generic.modifying-vast-xml-allowed": generic])
+        def pbsService = getPbsService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
+                                        "adapters.generic.modifying-vast-xml-allowed": generic])
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
@@ -105,8 +105,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should not modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
-                                                       "adapters.generic.modifying-vast-xml-allowed": generic])
+        def pbsService = getPbsService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
+                                        "adapters.generic.modifying-vast-xml-allowed": generic])
 
         and: "Default VtrackRequest"
         String payload = PBSUtils.randomString
@@ -133,8 +133,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
-                                                       "adapters.generic.pbs-enforces-ccpa": generic])
+        def pbsService = getPbsService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
+                                        "adapters.generic.pbs-enforces-ccpa": generic])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -160,8 +160,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should not mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
-                                                       "adapters.generic.pbs-enforces-ccpa": generic])
+        def pbsService = getPbsService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
+                                        "adapters.generic.pbs-enforces-ccpa": generic])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -259,9 +259,9 @@ class BidderParamsSpec extends BaseSpec {
     @Issue("https://github.com/prebid/prebid-server-java/issues/1478")
     def "PBS should emit warning when bidder endpoint is invalid"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"           : "true",
-                                                       "adapters.generic.endpoint"          : "https://",
-                                                       "http-client.circuit-breaker.enabled": "false"])
+        def pbsService = getPbsService(["adapters.generic.enabled"           : "true",
+                                        "adapters.generic.endpoint"          : "https://",
+                                        "http-client.circuit-breaker.enabled": "false"])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -368,9 +368,9 @@ class BidderParamsSpec extends BaseSpec {
         def serverDataCenter = PBSUtils.randomString
         def serverExternalUrl = "https://${PBSUtils.randomString}.com/"
         def serverHostVendorId = PBSUtils.randomNumber
-        def pbsService = pbsServiceFactory.getService(["datacenter-region"  : serverDataCenter,
-                                                       "external-url"       : serverExternalUrl as String,
-                                                       "gdpr.host-vendor-id": serverHostVendorId as String])
+        def pbsService = getPbsService(["datacenter-region"  : serverDataCenter,
+                                        "external-url"       : serverExternalUrl as String,
+                                        "gdpr.host-vendor-id": serverHostVendorId as String])
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest

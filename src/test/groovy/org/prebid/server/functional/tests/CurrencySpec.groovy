@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 
 import java.math.RoundingMode
@@ -24,14 +23,13 @@ class CurrencySpec extends BaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer, mapper).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
 
     def "PBS should use default server currency if not specified in the request"() {
         given: "Default BidRequest without currency"
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = null }
 
         when: "PBS processes auction request"
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = getPbsService(externalCurrencyConverterConfig).sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain default currency"
         assert bidResponse.cur == DEFAULT_CURRENCY
@@ -50,7 +48,7 @@ class CurrencySpec extends BaseSpec {
 
         when: "PBS processes auction request"
         bidder.setResponse(bidRequest.id, bidderResponse)
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = getPbsService(externalCurrencyConverterConfig).sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain default currency"
         assert bidResponse.cur == DEFAULT_CURRENCY
@@ -66,7 +64,7 @@ class CurrencySpec extends BaseSpec {
 
         when: "PBS processes auction request"
         bidder.setResponse(bidRequest.id, bidderResponse)
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = getPbsService(externalCurrencyConverterConfig).sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
         assert bidResponse.cur == requestCurrency
@@ -90,7 +88,7 @@ class CurrencySpec extends BaseSpec {
 
         when: "PBS processes auction request"
         bidder.setResponse(bidRequest.id, bidderResponse)
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = getPbsService(externalCurrencyConverterConfig).sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
         assert bidResponse.cur == requestCurrency

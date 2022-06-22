@@ -37,7 +37,6 @@ class ContainerWrapper<T extends GenericContainer> {
     void stop() {
         guardWithLock {
             container.stop()
-            container.getMappedPort(8080)
         }
     }
 
@@ -53,7 +52,17 @@ class ContainerWrapper<T extends GenericContainer> {
         }
     }
 
-    private <T> T guardWithLock(Closure<T> closure) {
+    String getRootUri(int port) {
+        "http://$host:${getMappedPort(port)}"
+    }
+
+    String getLogs() {
+        guardWithLock {
+            container.logs
+        }
+    }
+
+    private def guardWithLock(Closure closure) {
         try {
             lock.lock()
             closure()

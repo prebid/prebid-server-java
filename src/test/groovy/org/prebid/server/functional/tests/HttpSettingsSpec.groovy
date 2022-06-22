@@ -28,9 +28,6 @@ class HttpSettingsSpec extends BaseSpec {
     @Shared
     HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
 
-    @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
-
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
         def bidRequest = BidRequest.defaultBidRequest
@@ -41,7 +38,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(bidRequest?.site?.publisher?.id, httpSettingsResponse)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        def response = httpSettingsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain basic fields"
         assert response.id
@@ -74,7 +71,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(ampRequest.account.toString(), httpSettingsResponse)
 
         when: "PBS processes amp request"
-        def response = prebidServerService.sendAmpRequest(ampRequest)
+        def response = httpSettingsPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain httpcalls"
         assert !response.ext?.debug?.httpcalls?.isEmpty()
@@ -95,7 +92,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(eventRequest.accountId.toString(), httpSettingsResponse)
 
         when: "PBS processes event request"
-        def responseBody = prebidServerService.sendEventRequest(eventRequest)
+        def responseBody = httpSettingsPbsService.sendEventRequest(eventRequest)
 
         then: "Event response should contain and corresponding content-type"
         assert responseBody ==
@@ -117,7 +114,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(request.account, httpSettingsResponse)
 
         when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+        def response = httpSettingsPbsService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
         assert response.uidsCookie.bday
@@ -141,7 +138,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(accountId, httpSettingsResponse)
 
         when: "PBS processes vtrack request"
-        def response = prebidServerService.sendVtrackRequest(request, accountId)
+        def response = httpSettingsPbsService.sendVtrackRequest(request, accountId)
 
         then: "Response should contain uid"
         assert response.responses[0]?.uuid
@@ -160,11 +157,15 @@ class HttpSettingsSpec extends BaseSpec {
         def eventRequest = EventRequest.defaultEventRequest
 
         when: "PBS processes event request"
-        prebidServerService.sendEventRequest(eventRequest)
+        httpSettingsPbsService.sendEventRequest(eventRequest)
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 401
         assert exception.responseBody.contains("Account '$eventRequest.accountId' doesn't support events")
+    }
+
+    private PrebidServerService getHttpSettingsPbsService() {
+        getPbsService(PbsConfig.httpSettingsConfig)
     }
 }

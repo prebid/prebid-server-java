@@ -11,11 +11,12 @@ import org.prebid.server.functional.testcontainers.ContainerFactory
 import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
-import org.prebid.server.functional.testcontainers.PbsServiceFactory
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
+import org.testcontainers.containers.GenericContainer
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
@@ -27,7 +28,6 @@ abstract class BaseSpec extends Specification {
     protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
-    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
 
     protected static final AccountDao accountDao = repository.accountDao
@@ -41,8 +41,7 @@ abstract class BaseSpec extends Specification {
 
     private static final int DEFAULT_TARGETING_PRECISION = 1
 
-    private static final ContainerFactory containerFactory = new ContainerFactory(2)
-    private static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
+    private static final ContainerFactory containerFactory = new ContainerFactory()
     private static final ThreadLocal<Set<ContainerWrapper>> acquiredContainers = ThreadLocal.withInitial { [] } as ThreadLocal<Set<ContainerWrapper>>
 
     def setupSpec() {
@@ -64,12 +63,12 @@ abstract class BaseSpec extends Specification {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 
-    protected static Number getCurrentMetricValue(PrebidServerService pbsService = defaultPbsService, String name) {
+    protected static Number getCurrentMetricValue(PrebidServerService pbsService, String name) {
         def response = pbsService.sendCollectedMetricsRequest()
         response[name] ?: 0
     }
 
-    protected static void flushMetrics(PrebidServerService pbsService = defaultPbsService) {
+    protected static void flushMetrics(PrebidServerService pbsService) {
         // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
         pbsService.sendCollectedMetricsRequest()
     }
@@ -82,10 +81,19 @@ abstract class BaseSpec extends Specification {
         "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
     }
 
-    protected acquireContainer(Map<String, String> config) {
-        def container = containerFactory.acquireContainer(config)
-        acquiredContainers.get().add(container)
-        container
+    private <T extends GenericContainer> ContainerWrapper acquireContainer(T container, Map<String, String> config) {
+        containerFactory.acquireContainer(container, config).tap {
+            acquiredContainers.get().add(it)
+        }
+    }
+
+    protected PrebidServerService getPbsService(Map<String, String> config) {
+        PrebidServerContainer prebidServerContainer = new PrebidServerContainer(config)
+        new PrebidServerService(acquireContainer(prebidServerContainer, config), mapper)
+    }
+
+    protected PrebidServerService getDefaultPbsService() {
+        getPbsService([:])
     }
 
     private void releaseContainers() {

@@ -9,7 +9,6 @@ import org.prebid.server.functional.model.request.auction.SourceExt
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
 
@@ -23,9 +22,6 @@ class SchainSpec extends BaseSpec {
         rid = "BidRequest"
     }
 
-    @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
-
     def "Global schain node should be appended when only ext.prebid.schains exists"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -36,7 +32,7 @@ class SchainSpec extends BaseSpec {
         bidRequest.ext.prebid.schains = [prebidSchain]
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        schainPbsService.sendAuctionRequest(bidRequest)
 
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -101,7 +97,7 @@ class SchainSpec extends BaseSpec {
         bidRequest.source = new Source(ext: sourceExt)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        schainPbsService.sendAuctionRequest(bidRequest)
 
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -123,7 +119,7 @@ class SchainSpec extends BaseSpec {
         bidRequest.source = new Source(ext: sourceExt)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        schainPbsService.sendAuctionRequest(bidRequest)
 
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -135,7 +131,7 @@ class SchainSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        schainPbsService.sendAuctionRequest(bidRequest)
 
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -152,7 +148,7 @@ class SchainSpec extends BaseSpec {
         bidRequest.ext.prebid.schains = [prebidSchain]
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        schainPbsService.sendAuctionRequest(bidRequest)
 
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -168,6 +164,10 @@ class SchainSpec extends BaseSpec {
             domain = PBSUtils.randomString
         }
         new Schain(ver: "1.0", complete: 1, nodes: [node])
+    }
+
+    private PrebidServerService getSchainPbsService() {
+        getPbsService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
     }
 }
 

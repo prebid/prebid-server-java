@@ -34,7 +34,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final float FLOOR_MIN = 0.5
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
@@ -44,6 +43,10 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
+
+    protected PrebidServerService getFloorsPbsService() {
+        getPbsService(floorsConfig)
+    }
 
     def setupSpec() {
         floorsProvider.setResponse()

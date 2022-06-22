@@ -224,7 +224,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceDealFloors = false
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
@@ -273,7 +273,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
@@ -329,7 +329,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceRate
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
@@ -384,7 +384,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"

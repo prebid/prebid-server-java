@@ -7,7 +7,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
-import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
@@ -16,10 +15,6 @@ class AuctionSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
-
-    @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
 
     def "PBS should return version in response header for auction request for #description"() {
 
@@ -53,7 +48,7 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        getPbsService(pbsTimeoutConfig).sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain timeout from the stored request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -78,7 +73,7 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        getPbsService(pbsTimeoutConfig).sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain timeout from the request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -105,7 +100,7 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        getPbsService(pbsTimeoutConfig).sendAuctionRequest(bidRequest)
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -135,7 +130,7 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        getPbsService(pbsTimeoutConfig).sendAuctionRequest(bidRequest)
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -190,5 +185,10 @@ class AuctionSpec extends BaseSpec {
         DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
         null            | DEFAULT_TIMEOUT    | getRandomTimeout()
         null            | null               | DEFAULT_TIMEOUT
+    }
+
+    private Map<String, String> getPbsTimeoutConfig() {
+        ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+         "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
     }
 }

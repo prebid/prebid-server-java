@@ -19,12 +19,12 @@ class ContainerFactory<T extends GenericContainer> {
     private final Map<ContainerWrapper<T>, AtomicInteger> containersInUse = [:]
     private final Set<ContainerWrapper<T>> stoppingContainers = []
 
-    ContainerWrapper<T> acquireContainer(Map<String, String> config) {
-         guardWithLock {
+    ContainerWrapper<T> acquireContainer(T container, Map<String, String> config) {
+         guardContainerWrapperWithLock {
             if (containers.find { it.configuration == config }) {
                 return getExistingContainer(config)
             } else if (containers.size() + stoppingContainers.size() < maxContainers) {
-                return createContainer(config)
+                return createContainer(container, config)
             } else {
                 while (
                         containers.size() + stoppingContainers.size() >= maxContainers
@@ -34,7 +34,7 @@ class ContainerFactory<T extends GenericContainer> {
                     containerAddedOrReleasedOrStopped.await()
                 }
 
-                return createOrGetExistingContainer(config)
+                return createOrGetExistingContainer(container, config)
             }
         }.tap {
             it.start()
@@ -47,22 +47,22 @@ class ContainerFactory<T extends GenericContainer> {
         }
     }
 
-    private ContainerWrapper<T> createContainer(Map<String, String> config) {
-        new ContainerWrapper<T>(config).tap {
+    private ContainerWrapper<T> createContainer(T container, Map<String, String> config) {
+        new ContainerWrapper<T>(container, config).tap {
             containers.add(it)
             containerAddedOrReleasedOrStopped.signalAll()
             registerAsActive(it)
         }
     }
 
-    private ContainerWrapper createOrGetExistingContainer(Map<String, String> config) {
+    private ContainerWrapper createOrGetExistingContainer(T container, Map<String, String> config) {
         if (containers.find { it.configuration == config }) {
             return getExistingContainer(config)
         } else if (containers.size() + stoppingContainers.size() < maxContainers) {
-            return createContainer(config)
+            return createContainer(container, config)
         } else if (!unusedContainers.isEmpty()) {
             stopAndRemoveRandomUnusedContainer()
-            return createOrGetExistingContainer(config)
+            return createOrGetExistingContainer(container, config)
         } else {
             throw new IllegalStateException("Should never happen")
         }
@@ -72,10 +72,9 @@ class ContainerFactory<T extends GenericContainer> {
         def container = unusedContainers.min { it.creationTime }
         containers.remove(container)
         stoppingContainers.add(container)
-        registryLock.unlock()
 
         container.stop()
-        registryLock.lock()
+
         stoppingContainers.remove(container)
         containerAddedOrReleasedOrStopped.signalAll()
     }
@@ -103,7 +102,16 @@ class ContainerFactory<T extends GenericContainer> {
         }
     }
 
-    private <T> T guardWithLock(Closure<T> closure) {
+    private def guardWithLock(Closure closure) {
+        try {
+            registryLock.lock()
+            closure()
+        } finally {
+            registryLock.unlock()
+        }
+    }
+
+    private ContainerWrapper<T> guardContainerWrapperWithLock(Closure<ContainerWrapper<T>> closure) {
         try {
             registryLock.lock()
             closure()

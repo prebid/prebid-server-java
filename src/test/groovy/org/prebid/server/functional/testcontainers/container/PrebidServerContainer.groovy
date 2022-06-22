@@ -13,11 +13,11 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     private static final int DEFAULT_PORT = 8080
     private static final int DEFAULT_ADMIN_PORT = 8060
     private static final int DEFAULT_DEBUG_PORT = 8000
-    private static final String ADMIN_ENDPOINT_USERNAME = "admin"
-    private static final String ADMIN_ENDPOINT_PASSWORD = "admin"
     private static final String APP_WORKDIR = "/app/prebid-server/"
-    private static final int PORT = SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT)
-    private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
+    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
+    public static final int PORT = SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT)
+    public static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
     private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
 
     PrebidServerContainer(Map<String, String> config) {

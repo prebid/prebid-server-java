@@ -138,8 +138,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     def "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["currency-converter.external-rates.enabled": "false"])
+        def pbsService = getPbsService(floorsConfig + ["currency-converter.external-rates.enabled": "false"])
 
         and: "BidRequest with floorMinCur"
         def requestFloorCur = USD

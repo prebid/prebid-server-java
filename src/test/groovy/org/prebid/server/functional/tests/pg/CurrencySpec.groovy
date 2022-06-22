@@ -22,7 +22,7 @@ class CurrencySpec extends BasePgSpec {
     }
 
     private static final Map<String, String> pgCurrencyConverterPbsConfig = externalCurrencyConverterConfig + pgConfig.properties
-    private static final PrebidServerService pgCurrencyConverterPbsService = pbsServiceFactory.getService(pgCurrencyConverterPbsConfig)
+    private static final PrebidServerService pgCurrencyConverterPbsService = getService(pgCurrencyConverterPbsConfig)
 
     @Shared
     BidRequest bidRequest

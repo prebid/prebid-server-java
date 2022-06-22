@@ -7,9 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -17,10 +15,6 @@ class AmpSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
-
-    @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
 
     def "PBS should apply timeout from stored request when it's not specified in the request"() {
         given: "Default AMP request without timeout"
@@ -39,7 +33,7 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        prebidServerService.sendAmpRequest(ampRequest)
+        getPbsService(pbsTimeoutConfig).sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain timeout from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -63,7 +57,7 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        prebidServerService.sendAmpRequest(ampRequest)
+        getPbsService(pbsTimeoutConfig).sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain timeout from the request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -89,7 +83,7 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        prebidServerService.sendAmpRequest(ampRequest)
+        getPbsService(pbsTimeoutConfig).sendAmpRequest(ampRequest)
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -118,7 +112,7 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        prebidServerService.sendAmpRequest(ampRequest)
+        getPbsService(pbsTimeoutConfig).sendAmpRequest(ampRequest)
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -265,5 +259,10 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
+    }
+
+    private Map<String, String> getPbsTimeoutConfig() {
+        ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+         "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
     }
 }

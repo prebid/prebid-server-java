@@ -44,7 +44,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should activate floors feature when price-floors.enabled = true in PBS config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.enabled": "true"])
+        def pbsService = getPbsService(floorsConfig + ["price-floors.enabled": "true"])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -69,7 +69,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not activate floors feature when price-floors.enabled = false in #description config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.enabled": pbdConfigEnabled])
+        def pbsService = getPbsService(floorsConfig + ["price-floors.enabled": pbdConfigEnabled])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -319,7 +319,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest with ext.prebid.floors"
@@ -364,7 +364,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with floors"
@@ -648,8 +648,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when fetch request exceeds fetch.timeout-ms"() {
         given: "PBS with minTimeoutMs configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minTimeoutMs": "1"])
+        def pbsService = getPbsService(floorsConfig + ["price-floors.minTimeoutMs": "1"])
 
         and: "Test start time"
         def startTime = Instant.now()
@@ -952,7 +951,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should periodically fetch floor rules when previous response from floors provider is #description"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["price-floors.minMaxAgeSec": "3",
                  "price-floors.minPeriodSec": "3"])
 
@@ -986,7 +985,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.fetch.maxAgeSec = 86400
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
@@ -1350,7 +1349,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = getPbsService(floorsConfig +
                 ["price-floors.minMaxAgeSec": "3",
                  "price-floors.minPeriodSec": "3"])
 

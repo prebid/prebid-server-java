@@ -16,8 +16,7 @@ class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with inactive account"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account": enforceValidAccount as String])
+        def pbsService = getPbsService(["settings.enforce-valid-account": enforceValidAccount as String])
 
         and: "Inactive account id"
         def accountId = PBSUtils.randomNumber
@@ -43,9 +42,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with unknown account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "true",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Non-existing account id"
         def accountId = PBSUtils.randomNumber
@@ -69,9 +67,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS should reject request without account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "true",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default basic BidRequest without account"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -92,9 +89,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS should not reject request with unknown account when settings.enforce-valid-account = false"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "false",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default basic BidRequest with non-existing account id"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -117,9 +113,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS AMP should reject request with unknown account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "true",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -155,9 +150,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS AMP should reject request without account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "true",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -188,9 +182,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS AMP should not reject request with unknown account when settings.enforce-valid-account = false"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "false",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -224,9 +217,8 @@ class AccountSpec extends BaseSpec {
 
     def "PBS AMP should not reject request without account when settings.enforce-valid-account = false"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+        def pbsService = getPbsService(["settings.enforce-valid-account" : "false",
+                                        "settings.default-account-config": mapper.encode(defaultAccountConfig)])
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
