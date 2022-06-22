@@ -46,7 +46,7 @@ class PgBidderRequestSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)

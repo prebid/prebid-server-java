@@ -9,6 +9,8 @@ import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.InvalidStoredImpException;
+import org.prebid.server.exception.InvalidStoredRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
@@ -54,15 +56,15 @@ public class StoredRequestProcessor {
     private final JsonMerger jsonMerger;
 
     public StoredRequestProcessor(long defaultTimeout,
-                                   String defaultBidRequestPath,
-                                   boolean generateBidRequestId,
-                                   FileSystem fileSystem,
-                                   ApplicationSettings applicationSettings,
-                                   IdGenerator idGenerator,
-                                   Metrics metrics,
-                                   TimeoutFactory timeoutFactory,
-                                   JacksonMapper mapper,
-                                   JsonMerger jsonMerger) {
+                                  String defaultBidRequestPath,
+                                  boolean generateBidRequestId,
+                                  FileSystem fileSystem,
+                                  ApplicationSettings applicationSettings,
+                                  IdGenerator idGenerator,
+                                  Metrics metrics,
+                                  TimeoutFactory timeoutFactory,
+                                  JacksonMapper mapper,
+                                  JsonMerger jsonMerger) {
 
         this.defaultTimeout = defaultTimeout;
         this.defaultBidRequest = readBidRequest(
@@ -76,22 +78,22 @@ public class StoredRequestProcessor {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    /**
-     * Runs a stored request processing: gather stored request ids from {@link BidRequest} and its {@link Imp}s,
-     * fetches json bodies from source by stored request ids and doing merge between original httpRequest value and
-     * fetched jsons from source. In case any error happen during the process, returns failedFuture with
-     * InvalidRequestException {@link InvalidRequestException} as cause.
-     */
-    public Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
+    public Future<BidRequest> processAuctionRequest(String accountId, BidRequest bidRequest) {
+        return processAuctionStoredRequest(accountId, bidRequest)
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
+    }
+
+    private Future<BidRequest> processAuctionStoredRequest(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
             bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestIdFromBidRequest);
 
             impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    bidRequest.getImp(), this::getStoredRequestFromImp);
-        } catch (InvalidRequestException e) {
+                    bidRequest.getImp(), this::getStoredRequestIdFromImp);
+        } catch (InvalidStoredRequestException | InvalidStoredImpException e) {
             return Future.failedFuture(e);
         }
 
@@ -103,56 +105,80 @@ public class StoredRequestProcessor {
 
         final Future<StoredDataResult> storedDataFuture =
                 applicationSettings.getStoredData(accountId, requestIds, impIds, timeout(bidRequest))
-                        .compose(storedDataResult -> updateMetrics(storedDataResult, requestIds, impIds));
+                        .onSuccess(storedDataResult -> updateStoredResultMetrics(storedDataResult, requestIds, impIds));
 
         return storedRequestsToBidRequest(
                 storedDataFuture, bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId)
                 .map(this::generateBidRequestIdForApp);
     }
 
-    /**
-     * Fetches the AMP request from the source.
-     */
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
-        final Future<StoredDataResult> ampStoredDataFuture =
-                applicationSettings.getAmpStoredData(accountId, Collections.singleton(ampRequestId),
-                                Collections.emptySet(), timeout(bidRequest))
-                        .compose(storedDataResult -> updateMetrics(
-                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
+        return processAmpStoredRequest(accountId, ampRequestId, bidRequest)
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
+    }
+
+    private Future<BidRequest> processAmpStoredRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
+        final Future<StoredDataResult> ampStoredDataFuture = applicationSettings.getAmpStoredData(
+                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                .onSuccess(storedDataResult -> updateStoredResultMetrics(
+                        storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
                 .map(this::generateBidRequestId);
     }
 
-    /**
-     * Fetches stored request.video and map existing values to imp.id.
-     */
     Future<VideoStoredDataResult> videoStoredDataResult(String accountId,
                                                         List<Imp> imps,
                                                         List<String> errors,
                                                         Timeout timeout) {
 
-        final Map<String, String> storedIdToImpId =
-                mapStoredRequestHolderToStoredRequestId(imps, this::getStoredRequestFromImp)
-                        .entrySet().stream()
-                        .collect(Collectors.toMap(Map.Entry::getValue,
-                                impIdToStoredId -> impIdToStoredId.getKey().getId()));
+        return videoStoredDataResultInternal(accountId, imps, errors, timeout)
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
+    }
+
+    private Future<VideoStoredDataResult> videoStoredDataResultInternal(String accountId,
+                                                                        List<Imp> imps,
+                                                                        List<String> errors,
+                                                                        Timeout timeout) {
+
+        final Map<Imp, String> impToStoredRequestId;
+        try {
+            impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(imps, this::getStoredRequestIdFromImp);
+        } catch (InvalidStoredImpException e) {
+            return Future.failedFuture(e);
+        }
+
+        final Map<String, String> storedIdToImpId = impToStoredRequestId.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getValue, impIdToStoredId -> impIdToStoredId.getKey().getId()));
 
         return applicationSettings.getStoredData(accountId, Collections.emptySet(), storedIdToImpId.keySet(), timeout)
                 .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
     }
 
-    private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds) {
+    private void updateInvalidStoredResultMetrics(String accountId, Throwable cause) {
+        if (cause instanceof InvalidStoredRequestException) {
+            metrics.updateAccountRequestRejectedByInvalidStoredRequestMetrics(accountId);
+        } else if (cause instanceof InvalidStoredImpException) {
+            metrics.updateAccountRequestRejectedByInvalidStoredImpMetrics(accountId);
+        }
+    }
+
+    private static <T> Future<T> stripToInvalidRequestException(Throwable cause) {
+        return Future.failedFuture(new InvalidRequestException(
+                "Stored request processing failed: " + cause.getMessage()));
+    }
+
+    private void updateStoredResultMetrics(StoredDataResult storedDataResult,
+                                           Set<String> requestIds,
+                                           Set<String> impIds) {
 
         requestIds.forEach(
                 id -> metrics.updateStoredRequestMetric(storedDataResult.getStoredIdToRequest().containsKey(id)));
 
         impIds.forEach(
                 id -> metrics.updateStoredImpsMetric(storedDataResult.getStoredIdToImp().containsKey(id)));
-
-        return Future.succeededFuture(storedDataResult);
     }
 
     private static BidRequest readBidRequest(String defaultBidRequestPath,
@@ -210,13 +236,11 @@ public class StoredRequestProcessor {
                                                           Map<Imp, String> impsToStoredRequestId) {
 
         return storedDataFuture
-                .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
                 .compose(result -> !result.getErrors().isEmpty()
-                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
+                        ? Future.failedFuture(new InvalidStoredRequestException(result.getErrors()))
                         : Future.succeededFuture(result))
-                .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
-                        impsToStoredRequestId, result));
+                .map(result -> mergeBidRequestAndImps(
+                        bidRequest, storedBidRequestId, impsToStoredRequestId, result));
     }
 
     /**
@@ -298,62 +322,65 @@ public class StoredRequestProcessor {
      */
     private static <K> Map<K, String> mapStoredRequestHolderToStoredRequestId(
             List<K> storedRequestHolders,
-            Function<K, ExtStoredRequest> storedRequestExtractor) {
+            Function<K, String> storedRequestIdExtractor) {
 
         if (CollectionUtils.isEmpty(storedRequestHolders)) {
             return Collections.emptyMap();
         }
 
         final Map<K, String> holderToPreBidRequest = new HashMap<>();
-        final List<String> errors = new ArrayList<>();
 
         for (K storedRequestHolder : storedRequestHolders) {
-            final ExtStoredRequest extStoredRequest = storedRequestExtractor.apply(storedRequestHolder);
-
-            if (extStoredRequest != null) {
-                final String storedRequestId = extStoredRequest.getId();
-
-                if (storedRequestId != null) {
-                    holderToPreBidRequest.put(storedRequestHolder, storedRequestId);
-                } else {
-                    errors.add("Id is not found in storedRequest");
-                }
+            final String storedRequestId = storedRequestIdExtractor.apply(storedRequestHolder);
+            if (storedRequestId != null) {
+                holderToPreBidRequest.put(storedRequestHolder, storedRequestId);
             }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new InvalidRequestException(errors);
         }
 
         return holderToPreBidRequest;
     }
 
-    /**
-     * Extracts {@link ExtStoredRequest} from {@link BidRequest} if exists.
-     */
-    private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
+    private static String getStoredRequestIdFromBidRequest(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest);
+        final ExtStoredRequest extStoredRequest = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest);
+
+        if (extStoredRequest == null) {
+            return null;
+        }
+
+        final String storedRequestId = extStoredRequest.getId();
+        if (storedRequestId == null) {
+            throw new InvalidStoredRequestException("Id is not found in storedRequest");
+        }
+
+        return storedRequestId;
     }
 
-    /**
-     * Extracts {@link ExtStoredRequest} from {@link Imp} if exists. In case when Extension has invalid
-     * format throws {@link InvalidRequestException}.
-     */
-    private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
-        if (imp.getExt() != null) {
-            try {
-                final ExtImp extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
-                final ExtImpPrebid prebid = extImp.getPrebid();
-                if (prebid != null) {
-                    return prebid.getStoredrequest();
-                }
-            } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(String.format(
-                        "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
-            }
+    private String getStoredRequestIdFromImp(Imp imp) {
+        if (imp.getExt() == null) {
+            return null;
         }
-        return null;
+
+        final ExtImp extImp;
+        try {
+            extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidStoredImpException(
+                    "Incorrect Imp extension format for Imp with id " + imp.getId() + ": " + e.getMessage());
+        }
+
+        final ExtStoredRequest extStoredRequest = ObjectUtil.getIfNotNull(
+                extImp.getPrebid(), ExtImpPrebid::getStoredrequest);
+        if (extStoredRequest == null) {
+            return null;
+        }
+
+        final String storedRequestId = extStoredRequest.getId();
+        if (storedRequestId == null) {
+            throw new InvalidStoredImpException("Id is not found in storedRequest");
+        }
+
+        return storedRequestId;
     }
 
     /**

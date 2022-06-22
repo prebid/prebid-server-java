@@ -2,7 +2,6 @@ package org.prebid.server.functional.testcontainers.scaffolding
 
 import org.mockserver.model.HttpRequest
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -13,8 +12,8 @@ class CurrencyConversion extends NetworkScaffolding {
 
     static final String CURRENCY_ENDPOINT_PATH = "/currency"
 
-    CurrencyConversion(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, CURRENCY_ENDPOINT_PATH, mapper)
+    CurrencyConversion(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, CURRENCY_ENDPOINT_PATH)
     }
 
     void setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse conversionRatesResponse) {

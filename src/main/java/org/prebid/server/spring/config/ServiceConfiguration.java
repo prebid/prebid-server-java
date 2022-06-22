@@ -24,6 +24,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
@@ -208,21 +209,25 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
+                cacheOnlyWinningBids,
                 adServerCurrency,
-                blacklistedApps,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
@@ -245,6 +250,7 @@ public class ServiceConfiguration {
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -263,6 +269,7 @@ public class ServiceConfiguration {
                 dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 
@@ -291,6 +298,11 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
+    }
+
+    @Bean
+    BidAdjustmentFactorResolver bidAdjustmentFactorResolver() {
+        return new BidAdjustmentFactorResolver();
     }
 
     @Bean
@@ -605,6 +617,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -629,6 +642,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 mapper,
