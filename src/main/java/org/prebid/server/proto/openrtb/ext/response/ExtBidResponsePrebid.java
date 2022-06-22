@@ -1,16 +1,14 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.Map;
 
 /**
- * Defines the contract for bidresponse.ext
+ * Defines the contract for bidresponse.ext.prebid
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtBidResponsePrebid {
 
     /**
@@ -22,6 +20,8 @@ public class ExtBidResponsePrebid {
      * Defines the contract for bidresponse.ext.prebid.modules
      */
     ExtModules modules;
+
+    JsonNode passthrough;
 
     /**
      * Additional targeting key/values for the bid response (only used for AMP)

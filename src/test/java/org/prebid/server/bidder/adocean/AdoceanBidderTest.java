@@ -17,7 +17,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -312,7 +312,7 @@ public class AdoceanBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "");
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, null);
@@ -338,7 +338,7 @@ public class AdoceanBidderTest extends VertxTest {
         final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(adoceanResponseCreator(identity()),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
@@ -379,7 +379,7 @@ public class AdoceanBidderTest extends VertxTest {
                 adoceanResponseCreator(response -> response.error("true")),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
@@ -519,9 +519,9 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody)
+    private static BidderCall<Void> givenHttpCall(String requestBody, String responseBody)
             throws JsonProcessingException {
-        return HttpCall.success(
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(requestBody))
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"

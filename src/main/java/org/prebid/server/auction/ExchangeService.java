@@ -1614,20 +1614,22 @@ public class ExchangeService {
         }
 
         final BidResponse bidResponse = context.getBidResponse();
-        final ExtBidResponse ext = bidResponse.getExt();
-        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
+        final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);
 
         final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
-                extPrebid != null ? extPrebid.getAuctiontimestamp() : null,
+                extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null),
                 extModules,
-                extPrebid != null ? extPrebid.getTargeting() : Collections.emptyMap());
-        final ExtBidResponse updatedExt = (ext != null ? ext.toBuilder() : ExtBidResponse.builder())
+                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null),
+                extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null));
+
+        final ExtBidResponse updatedExt = ext
+                .map(ExtBidResponse::toBuilder)
+                .orElse(ExtBidResponse.builder())
                 .prebid(updatedExtPrebid)
                 .build();
 
-        final BidResponse updatedBidResponse = bidResponse.toBuilder()
-                .ext(updatedExt)
-                .build();
+        final BidResponse updatedBidResponse = bidResponse.toBuilder().ext(updatedExt).build();
         return context.with(updatedBidResponse);
     }
 

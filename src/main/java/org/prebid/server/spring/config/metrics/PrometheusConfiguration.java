@@ -3,8 +3,6 @@ package org.prebid.server.spring.config.metrics;
 import com.codahale.metrics.MetricRegistry;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
-import io.prometheus.client.dropwizard.samplebuilder.CustomMappingSampleBuilder;
-import io.prometheus.client.dropwizard.samplebuilder.DefaultSampleBuilder;
 import io.prometheus.client.dropwizard.samplebuilder.MapperConfig;
 import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.vertx.MetricsHandler;
@@ -15,6 +13,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.metric.CounterType;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.prometheus.NamespaceSubsystemSampleBuilder;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,14 +38,10 @@ public class PrometheusConfiguration {
     public SampleBuilder sampleBuilder(PrometheusConfigurationProperties prometheusConfigurationProperties,
                                        List<MapperConfig> mapperConfigs) {
 
-        final SampleBuilder sampleBuilder = mapperConfigs.isEmpty()
-                ? new DefaultSampleBuilder()
-                : new CustomMappingSampleBuilder(mapperConfigs);
-
         return new NamespaceSubsystemSampleBuilder(
-                sampleBuilder,
                 prometheusConfigurationProperties.getNamespace(),
-                prometheusConfigurationProperties.getSubsystem());
+                prometheusConfigurationProperties.getSubsystem(),
+                mapperConfigs);
     }
 
     @Configuration
@@ -63,6 +59,9 @@ public class PrometheusConfiguration {
         private MetricRegistry metricRegistry;
 
         @Autowired
+        private Metrics metrics;
+
+        @Autowired
         private PrometheusConfigurationProperties prometheusConfigurationProperties;
 
         @Autowired
@@ -73,6 +72,10 @@ public class PrometheusConfiguration {
             logger.info(
                     "Starting Prometheus Server on port {0,number,#}",
                     prometheusConfigurationProperties.getPort());
+
+            if (metrics.getCounterType() == CounterType.flushingCounter) {
+                logger.warn("Prometheus metric system: Metric type is flushingCounter.");
+            }
 
             final Router router = Router.router(vertx);
             router.route("/metrics").handler(new MetricsHandler());

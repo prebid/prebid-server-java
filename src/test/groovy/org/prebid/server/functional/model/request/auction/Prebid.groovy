@@ -16,6 +16,7 @@ class Prebid {
     Amp amp
     Channel channel
     Map<String, BidderName> aliases
+    Map<String, Integer> aliasgvlids
     List<PrebidSchain> schains
     List<MultiBid> multibid
     Pbs pbs
@@ -24,4 +25,6 @@ class Prebid {
     BidAdjustmentFactors bidAdjustmentFactors
     PrebidCurrency currency
     ExtPrebidFloors floors
+    List<ExtPrebidBidderConfig> bidderConfig
+    Map passThrough
 }

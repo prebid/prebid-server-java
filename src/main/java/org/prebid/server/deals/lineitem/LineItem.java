@@ -1,5 +1,6 @@
 package org.prebid.server.deals.lineitem;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -187,6 +188,10 @@ public class LineItem {
 
     public List<LineItemSize> getSizes() {
         return metaData.getSizes();
+    }
+
+    public ObjectNode getTargeting() {
+        return metaData.getTargeting();
     }
 
     public TargetingDefinition getTargetingDefinition() {
