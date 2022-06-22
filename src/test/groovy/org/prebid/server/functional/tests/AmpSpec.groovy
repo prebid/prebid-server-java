@@ -1,7 +1,5 @@
 package org.prebid.server.functional.tests
 
-import io.vertx.core.logging.Logger
-import io.vertx.core.logging.LoggerFactory
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -19,7 +17,6 @@ class AmpSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
-    private static final Logger logger = LoggerFactory.getLogger(AmpSpec.class)
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,

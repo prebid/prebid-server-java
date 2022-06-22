@@ -1,7 +1,5 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
-import io.vertx.core.logging.Logger
-import io.vertx.core.logging.LoggerFactory
 import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
@@ -22,8 +20,6 @@ import static org.mockserver.model.JsonPathBody.jsonPath
 class Bidder extends NetworkScaffolding {
 
     private static final String AUCTION_ENDPOINT = "/auction"
-    private static final Logger logger = LoggerFactory.getLogger(Bidder.class)
-
 
     Bidder(MockServerContainer mockServerContainer) {
         super(mockServerContainer, AUCTION_ENDPOINT)
