@@ -286,7 +286,7 @@ class AmpSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = pbsService.sendAmpRequest(ampRequest)
 
-        sleep(200L)
+        PBSUtils.waitUntil { ampResponse != null }
 
         then: "Actual bid request ID should be different from incoming bid request id"
         def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
