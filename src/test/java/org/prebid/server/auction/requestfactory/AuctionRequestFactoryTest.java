@@ -73,11 +73,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
+    @Mock
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
@@ -166,9 +166,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
-                ortbVersionConversionManager,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                ortbVersionConversionManager,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -199,9 +199,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         target = new AuctionRequestFactory(
                 1,
-                ortbVersionConversionManager,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                ortbVersionConversionManager,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -628,7 +628,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldConvertBidRequestToInternalOpenRTBVersion() {
         // given
-        givenBidRequest(BidRequest.builder().build());
+        givenValidBidRequest();
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any())).willAnswer(
                 invocation -> ((BidRequest) invocation.getArgument(0))
@@ -640,11 +640,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).enrichAuctionContext(
-                any(),
-                any(),
+        verify(paramsResolver).resolve(
                 argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
-                anyLong());
+                any(),
+                any(),
+                any());
     }
 
     private void givenBidRequest(BidRequest bidRequest) {

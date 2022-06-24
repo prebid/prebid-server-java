@@ -31,6 +31,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -73,9 +74,11 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
-    private Ortb2ImplicitParametersResolver paramsResolver;
-    @Mock
     private VideoStoredRequestProcessor videoStoredRequestProcessor;
+    @Mock
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    @Mock
+    private Ortb2ImplicitParametersResolver paramsResolver;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
 
@@ -100,6 +103,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         given(debugResolver.debugContextFrom(any()))
                 .willReturn(DebugContext.of(true, null));
 
@@ -122,8 +128,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 false,
                 null,
                 ortb2RequestFactory,
-                paramsResolver,
                 videoStoredRequestProcessor,
+                ortbVersionConversionManager,
+                paramsResolver,
                 privacyEnforcementService,
                 timeoutResolver,
                 debugResolver,
@@ -157,8 +164,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 true,
                 null,
                 ortb2RequestFactory,
-                paramsResolver,
                 videoStoredRequestProcessor,
+                ortbVersionConversionManager,
+                paramsResolver,
                 privacyEnforcementService,
                 timeoutResolver,
                 debugResolver,
@@ -182,8 +190,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 true,
                 null,
                 ortb2RequestFactory,
-                paramsResolver,
                 videoStoredRequestProcessor,
+                ortbVersionConversionManager,
+                paramsResolver,
                 privacyEnforcementService,
                 timeoutResolver,
                 debugResolver,
