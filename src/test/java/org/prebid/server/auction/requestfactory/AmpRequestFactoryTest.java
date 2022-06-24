@@ -95,11 +95,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
-    private Ortb2RequestFactory ortb2RequestFactory;
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
@@ -170,9 +170,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new AmpRequestFactory(
-                ortbVersionConversionManager,
-                storedRequestProcessor,
                 ortb2RequestFactory,
+                storedRequestProcessor,
+                ortbVersionConversionManager,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,

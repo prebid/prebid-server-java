@@ -10,7 +10,6 @@ class User {
     String buyeruid
     Integer yob
     String gender
-    String language
     String keywords
     String customdata
     Geo geo
