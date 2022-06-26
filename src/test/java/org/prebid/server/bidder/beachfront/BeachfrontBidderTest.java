@@ -229,10 +229,12 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "The following error was received from the currency converter while attempting to convert the "
-                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
-                                + "currency.\nThe provided value of imp.ext.beachfront.bidfloor,"
-                                + " 1 USD is being used as a fallback.");
+                        """
+                                The following error was received from the currency converter while \
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD:
+                                Currency service was unable to convert currency.
+                                The provided value of imp.ext.beachfront.bidfloor, \
+                                1 USD is being used as a fallback.""");
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
@@ -317,10 +319,12 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "The following error was received from the currency converter while attempting to convert the "
-                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
-                                + "currency.\nA value of imp.ext.beachfront.bidfloor was not provided. "
-                                + "The bid is being skipped.");
+                        """
+                                The following error was received from the currency converter while \
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD:
+                                Currency service was unable to convert currency.
+                                A value of imp.ext.beachfront.bidfloor was not provided. \
+                                The bid is being skipped.""");
     }
 
     @Test

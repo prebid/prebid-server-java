@@ -1457,8 +1457,11 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
                 .containsExactlyInAnyOrder(
-                        "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
-                                + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                        """
+                                WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: \
+                                request.imp[0].ext.prebid.bidder.rubicon failed validation.
+                                errorMessage1
+                                errorMessage2""",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
