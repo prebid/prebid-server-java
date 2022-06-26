@@ -80,7 +80,7 @@ public class AcuityadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAcuityads.of("", "someVal")))));
+                        ExtPrebid.of(null, new ExtImpAcuityads("", "someVal")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -94,7 +94,7 @@ public class AcuityadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAcuityads.of("someVal", "")))));
+                        ExtPrebid.of(null, new ExtImpAcuityads("someVal", "")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -298,7 +298,7 @@ public class AcuityadsBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAcuityads.of("hostVal", "accountIdVal")))))
+                                new ExtImpAcuityads("hostVal", "accountIdVal")))))
                 .build();
     }
 

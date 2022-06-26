@@ -56,7 +56,7 @@ public class AceexBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolveEndpoint(extImpAceex.getAccountId()))
+                .uri(resolveEndpoint(extImpAceex.accountId()))
                 .headers(constructHeaders(request))
                 .body(mapper.encodeToBytes(request))
                 .payload(request)

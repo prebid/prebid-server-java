@@ -54,7 +54,7 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
 
         try {
             extImpAcuityads = parseImpExt(request.getImp().get(0));
-            url = resolveEndpoint(extImpAcuityads.getHost(), extImpAcuityads.getAccountId());
+            url = resolveEndpoint(extImpAcuityads.host(), extImpAcuityads.accountId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -84,10 +84,10 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
         if (extImpAcuityads == null) {
             throw new PreBidException("ext.bidder not provided");
         }
-        if (StringUtils.isBlank(extImpAcuityads.getHost())) {
+        if (StringUtils.isBlank(extImpAcuityads.host())) {
             throw new PreBidException("Missed host param");
         }
-        if (StringUtils.isBlank(extImpAcuityads.getAccountId())) {
+        if (StringUtils.isBlank(extImpAcuityads.accountId())) {
             throw new PreBidException("Missed accountId param");
         }
         return extImpAcuityads;
