@@ -272,10 +272,9 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof final InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .toList();

@@ -30,27 +30,18 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        final LogEvent<?> logEvent;
-
-        if (event instanceof AmpEvent) {
-            logEvent = LogEvent.of("/openrtb2/amp", ((AmpEvent) event).getBidResponse());
-        } else if (event instanceof AuctionEvent) {
-            logEvent = LogEvent.of("/openrtb2/auction", ((AuctionEvent) event).getBidResponse());
-        } else if (event instanceof CookieSyncEvent) {
-            logEvent = LogEvent.of("/cookie_sync", ((CookieSyncEvent) event).getBidderStatus());
-        } else if (event instanceof NotificationEvent) {
-            final NotificationEvent notificationEvent = (NotificationEvent) event;
-            logEvent = LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-        } else if (event instanceof SetuidEvent) {
-            final SetuidEvent setuidEvent = (SetuidEvent) event;
-            logEvent = LogEvent.of(
+        final LogEvent<?> logEvent = switch (event) {
+            case AmpEvent ampEvent -> LogEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
+            case AuctionEvent auctionEvent -> LogEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
+            case CookieSyncEvent cookieSyncEvent -> LogEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
+            case final NotificationEvent notificationEvent ->
+                    LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
+            case final SetuidEvent setuidEvent -> LogEvent.of(
                     "/setuid",
                     setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess());
-        } else if (event instanceof VideoEvent) {
-            logEvent = LogEvent.of("/openrtb2/video", ((VideoEvent) event).getBidResponse());
-        } else {
-            logEvent = LogEvent.of("unknown", null);
-        }
+            case VideoEvent videoEvent -> LogEvent.of("/openrtb2/video", videoEvent.getBidResponse());
+            case null, default -> LogEvent.of("unknown", null);
+        };
 
         logger.debug(mapper.encodeToString(logEvent));
 

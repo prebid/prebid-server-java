@@ -141,8 +141,7 @@ public class AnalyticsReporterDelegator {
     }
 
     private static <T> T updateEvent(T event, String adapter) {
-        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent) {
-            final AuctionEvent auctionEvent = (AuctionEvent) event;
+        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof final AuctionEvent auctionEvent) {
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
             return updatedAuctionContext != null
