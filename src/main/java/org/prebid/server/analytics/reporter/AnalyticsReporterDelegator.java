@@ -125,7 +125,7 @@ public class AnalyticsReporterDelegator {
         if (analyticsFieldNames != null) {
             final List<String> unknownAdapterNames = StreamUtil.asStream(analyticsFieldNames)
                     .filter(adapter -> !reporterNames.contains(adapter))
-                    .collect(Collectors.toList());
+                    .toList();
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;

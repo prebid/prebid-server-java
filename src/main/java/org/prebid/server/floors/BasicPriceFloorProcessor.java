@@ -37,7 +37,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
@@ -219,7 +218,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
                 .filter(BasicPriceFloorProcessor::isValidModelGroup)
                 .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
-                .collect(Collectors.toList());
+                .toList();
 
         int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
         for (PriceFloorModelGroup modelGroup : groupsByWeight) {
@@ -241,7 +240,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final Integer modelWeight = modelGroup.getModelWeight();
         return modelWeight == null
-                || (modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE);
+                || modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE;
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
@@ -323,7 +322,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         return CollectionUtils.emptyIfNull(imps).stream()
                 .map(imp -> updateImpWithFloors(imp, floors, bidRequest, errors, warnings))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static PriceFloorModelGroup extractFloorModelGroup(PriceFloorRules floors) {

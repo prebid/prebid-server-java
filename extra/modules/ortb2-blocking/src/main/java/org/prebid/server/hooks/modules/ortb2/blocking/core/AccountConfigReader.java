@@ -420,7 +420,7 @@ public class AccountConfigReader {
 
         return StreamUtil.asStream(node.elements())
                 .map(element -> typedAs(element, type, field))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <T> T typedFieldFrom(JsonNode parent, Class<T> type, String field) {

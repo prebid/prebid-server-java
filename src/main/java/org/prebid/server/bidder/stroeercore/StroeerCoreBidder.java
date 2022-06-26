@@ -9,8 +9,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class StroeerCoreBidder implements Bidder<BidRequest> {
 
@@ -160,7 +159,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
                 .map(StroeerCoreBidder::toBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid toBidderBid(StroeerCoreBid stroeercoreBid) {

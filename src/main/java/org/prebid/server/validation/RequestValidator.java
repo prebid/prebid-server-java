@@ -36,7 +36,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -59,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
@@ -688,7 +688,7 @@ public class RequestValidator {
         }
 
         if (type < ContextType.CONTENT.getValue()
-                || (type > ContextType.PRODUCT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
+                || type > ContextType.PRODUCT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
             throw new ValidationException(
                     "request.imp[%d].native.request.context is invalid. See " + documentationOnPage(39), index);
         }
@@ -742,8 +742,8 @@ public class RequestValidator {
             return;
         }
 
-        if (type < PlacementType.FEED.getValue() || (type > PlacementType.RECOMMENDATION_WIDGET.getValue()
-                && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
+        if (type < PlacementType.FEED.getValue() || type > PlacementType.RECOMMENDATION_WIDGET.getValue()
+                && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
             throw new ValidationException(
                     "request.imp[%d].native.request.plcmttype is invalid. See " + documentationOnPage(40), index, type);
         }
@@ -811,7 +811,7 @@ public class RequestValidator {
 
         final Integer type = data.getType();
         if (type < DataAssetType.SPONSORED.getValue()
-                || (type > DataAssetType.CTA_TEXT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
+                || type > DataAssetType.CTA_TEXT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets[%d].data.type is invalid. See section 7.4: "
                             + documentationOnPage(40), impIndex, assetIndex);
@@ -880,8 +880,8 @@ public class RequestValidator {
         if (eventTracker != null) {
             final int event = eventTracker.getEvent() != null ? eventTracker.getEvent() : 0;
 
-            if (event != 0 && (event < EventType.IMPRESSION.getValue() || (event > EventType.VIEWABLE_VIDEO50.getValue()
-                    && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND))) {
+            if (event != 0 && (event < EventType.IMPRESSION.getValue() || event > EventType.VIEWABLE_VIDEO50.getValue()
+                    && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
                 throw new ValidationException(
                         "request.imp[%d].native.request.eventtrackers[%d].event is invalid. See section 7.6: "
                                 + documentationOnPage(43), impIndex, eventIndex
@@ -899,8 +899,8 @@ public class RequestValidator {
 
             for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
                 int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
-                if (method < EventTrackingMethod.IMAGE.getValue() || (method > EventTrackingMethod.JS.getValue()
-                        && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
+                if (method < EventTrackingMethod.IMAGE.getValue() || method > EventTrackingMethod.JS.getValue()
+                        && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
                     throw new ValidationException(
                             "request.imp[%d].native.request.eventtrackers[%d].methods[%d] is invalid. See section 7.7: "
                                     + documentationOnPage(43), impIndex, eventIndex, methodIndex

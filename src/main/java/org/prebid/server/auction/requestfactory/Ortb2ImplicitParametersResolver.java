@@ -371,8 +371,8 @@ public class Ortb2ImplicitParametersResolver {
                 : null;
 
         if (ObjectUtils.anyNotNull(updatedPage, updatedDomain, updatedPublisher, updatedSiteExt)) {
-            final boolean domainPresent = (publisher != null && publisher.getDomain() != null)
-                    || (updatedPublisher != null && updatedPublisher.getDomain() != null);
+            final boolean domainPresent = publisher != null && publisher.getDomain() != null
+                    || updatedPublisher != null && updatedPublisher.getDomain() != null;
 
             return (site == null ? Site.builder() : site.toBuilder())
                     // do not set page if domain was not parsed successfully
@@ -472,7 +472,7 @@ public class Ortb2ImplicitParametersResolver {
 
         final List<ImpPopulationContext> impPopulationContexts = imps.stream()
                 .map(imp -> new ImpPopulationContext(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger))
-                .collect(Collectors.toList());
+                .toList();
 
         if (impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulatedImp)
@@ -483,7 +483,7 @@ public class Ortb2ImplicitParametersResolver {
 
         return impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulationResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {

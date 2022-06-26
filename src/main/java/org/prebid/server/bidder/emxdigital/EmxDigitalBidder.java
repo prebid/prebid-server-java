@@ -18,8 +18,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class EmxDigitalBidder implements Bidder<BidRequest> {
 
@@ -79,7 +78,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(imp -> modifyImp(imp, isSecure, unpackImpExt(imp)))
-                .collect(Collectors.toList());
+                .toList();
 
         return request.toBuilder()
                 .imp(modifiedImps)
@@ -181,7 +180,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     private static List<Integer> removeVast40Protocols(List<Integer> protocols) {
         return protocols.stream()
                 .filter(protocol -> !protocol.equals(PROTOCOL_VAST_40))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Banner modifyImpBanner(Banner banner) {
@@ -261,7 +260,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String bidAdm) {

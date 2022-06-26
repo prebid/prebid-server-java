@@ -114,13 +114,13 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy,
-                alpha2CountryCode,
-                effectiveIpAddress,
-                accountGdpr,
-                requestType,
-                requestLogInfo,
-                timeout)
+                        privacy,
+                        alpha2CountryCode,
+                        effectiveIpAddress,
+                        accountGdpr,
+                        requestType,
+                        requestLogInfo,
+                        timeout)
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
@@ -165,7 +165,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -181,7 +181,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -353,7 +353,7 @@ public class PrivacyEnforcementService {
                         .user(maskCoppaUser(bidderAndUser.getValue()))
                         .device(maskCoppaDevice(device))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private User maskCoppaUser(User user) {
@@ -405,10 +405,10 @@ public class PrivacyEnforcementService {
                                                                                        Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                Collections.unmodifiableSet(bidders),
-                VendorIdResolver.of(aliases, bidderCatalog),
-                tcfContext,
-                accountGdprConfig(account))
+                        Collections.unmodifiableSet(bidders),
+                        VendorIdResolver.of(aliases, bidderCatalog),
+                        tcfContext,
+                        accountGdprConfig(account))
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
@@ -465,12 +465,12 @@ public class PrivacyEnforcementService {
 
             final User user = bidderToUser.get(bidder);
             boolean userIdRemoved = enforcement.isRemoveUserIds();
-            if (requestBlocked || (userIdRemoved && !shouldMaskUser(user))) {
+            if (requestBlocked || userIdRemoved && !shouldMaskUser(user)) {
                 userIdRemoved = false;
             }
 
             boolean geoMasked = enforcement.isMaskGeo();
-            if (requestBlocked || (geoMasked && !shouldMaskGeo(user, device))) {
+            if (requestBlocked || geoMasked && !shouldMaskGeo(user, device)) {
                 geoMasked = false;
             }
 
@@ -510,7 +510,7 @@ public class PrivacyEnforcementService {
      * Returns true if {@link User} or {@link Device} has {@link Geo} information that can be masked.
      */
     private static boolean shouldMaskGeo(User user, Device device) {
-        return (user != null && user.getGeo() != null) || (device != null && device.getGeo() != null);
+        return user != null && user.getGeo() != null || device != null && device.getGeo() != null;
     }
 
     /**
@@ -533,7 +533,7 @@ public class PrivacyEnforcementService {
                         bidderUserEntry.getKey(),
                         isLmtEnabled,
                         bidderToEnforcement))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

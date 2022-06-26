@@ -35,8 +35,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.bidder.model.Result;
@@ -836,7 +836,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StreamSupport.stream(booleanArray.spliterator(), false)
                 .map(JsonNode::booleanValue)
                 .map(value -> Boolean.toString(value))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -846,7 +846,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> vendorsUrls = metrics.stream()
                 .filter(this::isMetricSupported)
                 .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
-                .collect(Collectors.toList());
+                .toList();
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
     }
 
@@ -1016,7 +1016,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
                 .sorted(RubiconSize.comparator())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (validRubiconSizeIds.isEmpty()) {
             // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits (PR #1003)
@@ -1130,14 +1130,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return CollectionUtils.emptyIfNull(extUserEids).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::prepareExtUserEid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static ExtUserEid prepareExtUserEid(ExtUserEid extUserEid) {
         final List<ExtUserEidUid> extUserEidUids = CollectionUtils.emptyIfNull(extUserEid.getUids()).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::cleanExtUserEidUidStype)
-                .collect(Collectors.toList());
+                .toList();
         return ExtUserEid.of(extUserEid.getSource(), extUserEid.getId(), extUserEidUids, extUserEid.getExt());
     }
 
@@ -1286,7 +1286,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(segments -> segments.stream()
                         .map(Segment::getId))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (CollectionUtils.isNotEmpty(iabValue)) {
             final ArrayNode iab = target.putArray("iab");
@@ -1438,7 +1438,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(lineItem -> createLineItemBidRequest(lineItem, bidRequest, singleImp))
                 .map((BidRequest request) -> createHttpRequest(request, uri))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidRequest createLineItemBidRequest(ExtDealLine lineItem, BidRequest bidRequest, Imp imp) {
@@ -1501,7 +1501,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
                 .map(bid -> createBidderBid(bid, idToRubiconImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
@@ -1513,7 +1513,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<Bid> updatedBids = seatBid.getBid().stream()
                 .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 

@@ -15,8 +15,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -191,14 +191,14 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
         final List<Integer> api = CollectionUtils.isNotEmpty(extApi) ? extApi : videoApi;
         return CollectionUtils.isNotEmpty(api)
-                ? api.stream().filter(APIS::contains).collect(Collectors.toList())
+                ? api.stream().filter(APIS::contains).toList()
                 : videoApi;
     }
 
     private static List<Integer> makeProtocols(List<Integer> extProtocols, List<Integer> videoProtocols) {
         final List<Integer> protocols = CollectionUtils.isNotEmpty(extProtocols) ? extProtocols : videoProtocols;
         return CollectionUtils.isNotEmpty(protocols)
-                ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList())
+                ? protocols.stream().filter(PROTOCOLS::contains).toList()
                 : videoProtocols;
     }
 
@@ -235,7 +235,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(updateBidWithId(bid), getType(bid.getImpid(),
                         bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Bid updateBidWithId(Bid bid) {

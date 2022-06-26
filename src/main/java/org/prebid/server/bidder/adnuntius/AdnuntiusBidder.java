@@ -23,8 +23,8 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
 import org.prebid.server.bidder.adnuntius.model.util.AdsUnitWithImpId;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -48,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
@@ -213,7 +212,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final List<AdsUnitWithImpId> validAdsUnitToImpId = IntStream.range(0, adsUnits.size())
                 .mapToObj(i -> AdsUnitWithImpId.of(adsUnits.get(i), imps.get(i).getId()))
                 .filter(adsUnitWithImpId -> validateAdsUnit(adsUnitWithImpId.getAdsUnit()))
-                .collect(Collectors.toList());
+                .toList();
 
         if (validAdsUnitToImpId.isEmpty()) {
             return Collections.emptyList();
@@ -222,7 +221,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final String currency = extractCurrency(validAdsUnitToImpId);
         return validAdsUnitToImpId.stream()
                 .map(adsUnitWithImpId -> makeBid(adsUnitWithImpId.getAdsUnit(), adsUnitWithImpId.getImpId(), currency))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
@@ -273,6 +272,6 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .map(url -> url.split("/"))
                 .filter(splintedUrl -> splintedUrl.length >= 2)
                 .map(splintedUrl -> splintedUrl[2].replaceAll("www\\.", ""))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

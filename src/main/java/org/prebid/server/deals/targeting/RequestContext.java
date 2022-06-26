@@ -239,7 +239,7 @@ public class RequestContext {
         final List<Format> formats = getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getFormat);
         final List<Size> sizes = ListUtils.emptyIfNull(formats).stream()
                 .map(format -> Size.of(format.getW(), format.getH()))
-                .collect(Collectors.toList());
+                .toList();
 
         return !sizes.isEmpty() ? LookupResult.ofValue(sizes) : LookupResult.empty();
     }
@@ -271,7 +271,7 @@ public class RequestContext {
     private static <T> List<T> listOfNonNulls(T... candidates) {
         return Stream.of(candidates)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <S, T> T getIfNotNull(S source, Function<S, T> getter) {
@@ -310,7 +310,7 @@ public class RequestContext {
                 .map(siteNode -> siteNode.at("/ext/data" + toJsonPointer(path)))
                 .map(valueExtractor)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean validateBidderConfig(ExtRequestPrebidBidderConfig bidderConfig) {
@@ -342,7 +342,7 @@ public class RequestContext {
                 .flatMap(data -> ListUtils.emptyIfNull(data.getSegment()).stream())
                 .map(Segment::getId)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return !segments.isEmpty() ? segments : null;
     }
@@ -382,7 +382,7 @@ public class RequestContext {
         return StreamUtil.asStream(node.spliterator())
                 .map(valueExtractor)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static class AttributeReader<T> {

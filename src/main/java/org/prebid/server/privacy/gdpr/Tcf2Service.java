@@ -76,7 +76,7 @@ public class Tcf2Service {
                 .filter(Objects::nonNull)
                 .map(vendorId -> VendorPermission.of(
                         vendorId, bidderCatalog.nameByVendorId(vendorId), PrivacyEnforcementAction.restrictAll()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Collection<VendorPermission> vendorPermissions(Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
@@ -85,7 +85,7 @@ public class Tcf2Service {
                 .filter(Objects::nonNull)
                 .map(bidderName -> VendorPermission.of(
                         vendorIdResolver.resolve(bidderName), bidderName, PrivacyEnforcementAction.restrictAll()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Future<Collection<VendorPermission>> permissionsForInternal(Collection<VendorPermission> vendorPermissions,
@@ -104,7 +104,7 @@ public class Tcf2Service {
                 .map(vendorGvlPermissions -> wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions))
 
                 .compose(gvlResult -> processSupportedPurposeStrategies(tcfConsent, gvlResult, mergedPurposes,
-                        purposeOneTreatmentInterpretation),
+                                purposeOneTreatmentInterpretation),
                         ignoredFailed -> processDowngradedSupportedPurposeStrategies(tcfConsent,
                                 vendorPermissionsByType, mergedPurposes, mergedPurposeOneTreatmentInterpretation))
 
@@ -142,12 +142,12 @@ public class Tcf2Service {
 
         final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
-                .collect(Collectors.toList());
+                .toList();
 
         final List<VendorPermissionWithGvl> standardPermissions = vendorPermissionsByType.getStandardPermissions()
                 .stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
-                .collect(Collectors.toList());
+                .toList();
 
         return VendorPermissionsByType.of(weakPermissions, standardPermissions);
     }
@@ -186,7 +186,7 @@ public class Tcf2Service {
 
         return Future.succeededFuture(vendorPermissionsByType.joinPermissions().stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     private Future<Collection<VendorPermission>> processDowngradedSupportedPurposeStrategies(
@@ -387,7 +387,7 @@ public class Tcf2Service {
 
         public Collection<T> joinPermissions() {
             return Stream.concat(weakPermissions.stream(), standardPermissions.stream())
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 }

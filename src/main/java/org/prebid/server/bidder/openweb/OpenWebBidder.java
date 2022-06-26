@@ -11,8 +11,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class OpenWebBidder implements Bidder<BidRequest> {
 
@@ -106,7 +105,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
 
         return sourceIdToImps.entrySet().stream()
                 .map(impGroupEntry -> makeGroupRequest(request, impGroupEntry.getValue(), impGroupEntry.getKey()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private HttpRequest<BidRequest> makeGroupRequest(BidRequest request, List<Imp> imps, Integer sourceId) {
@@ -151,7 +150,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, bidResponse, bidRequest.getImp(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid toBidderBid(Bid bid, BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {

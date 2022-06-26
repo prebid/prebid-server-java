@@ -153,11 +153,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
         return exception instanceof PreBidException
                 ? Future.succeededFuture(Account.builder()
-                    .id(accountId)
-                    .auction(AccountAuctionConfig.builder()
-                            .events(AccountEventsConfig.of(false))
-                            .build())
-                    .build())
+                .id(accountId)
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(false))
+                        .build())
+                .build())
                 : Future.failedFuture(exception);
     }
 

@@ -221,7 +221,7 @@ public abstract class VendorListService<T, V> {
     }
 
     private boolean shouldFallback(int version) {
-        return deprecated || (versionsToFallback != null && versionsToFallback.contains(version));
+        return deprecated || versionsToFallback != null && versionsToFallback.contains(version);
     }
 
     /**

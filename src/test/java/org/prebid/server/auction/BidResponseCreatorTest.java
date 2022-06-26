@@ -3536,7 +3536,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .bidder(bidderResponse.getBidder())
                         .bidderResponse(bidderResponse)
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void givenCacheServiceResult(List<CacheInfo> cacheInfos) {
@@ -3595,7 +3595,7 @@ public class BidResponseCreatorTest extends VertxTest {
                             .id(dealIdAndLineId.getKey())
                             .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(
                                     dealIdAndLineId.getValue(), null, null, null)))).build())
-                    .collect(Collectors.toList());
+                    .toList();
             pmp = Pmp.builder().deals(deals).build();
         }
 
@@ -3691,7 +3691,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     @SafeVarargs
     private static <T> List<T> mutableList(T... values) {
-        return Arrays.stream(values).collect(Collectors.toList());
+        return Arrays.stream(values).collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Accessors(fluent = true)

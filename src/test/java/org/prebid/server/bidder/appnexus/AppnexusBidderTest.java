@@ -27,8 +27,8 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
@@ -623,7 +622,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(10).build())))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
@@ -646,7 +645,7 @@ public class AppnexusBidderTest extends VertxTest {
                                 .id(String.format("1_%d", impIdSuffix))
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -676,7 +675,7 @@ public class AppnexusBidderTest extends VertxTest {
                                 .id(String.format("1_%d", impIdSuffix))
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -708,7 +707,7 @@ public class AppnexusBidderTest extends VertxTest {
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -740,7 +739,7 @@ public class AppnexusBidderTest extends VertxTest {
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -772,7 +771,7 @@ public class AppnexusBidderTest extends VertxTest {
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(impIdSuffix % 2 == 0))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -800,7 +799,7 @@ public class AppnexusBidderTest extends VertxTest {
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(false))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()

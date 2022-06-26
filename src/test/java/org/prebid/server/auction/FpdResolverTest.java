@@ -118,7 +118,7 @@ public class FpdResolverTest extends VertxTest {
         // then
         assertThat(resultUser).isEqualTo(User.builder()
                 .ext(ExtUser.builder().data(mapper.createObjectNode()
-                        .set("geo", mapper.createObjectNode().put("country", "country")))
+                                .set("geo", mapper.createObjectNode().put("country", "country")))
                         .build())
                 .build());
     }
@@ -169,8 +169,8 @@ public class FpdResolverTest extends VertxTest {
         // then
         assertThat(resultUser).isEqualTo(User.builder()
                 .ext(ExtUser.builder().data(mapper.createObjectNode()
-                        .put("originAttr", "originValue")
-                        .put("replaceAttr", "originValue2"))
+                                .put("originAttr", "originValue")
+                                .put("replaceAttr", "originValue2"))
                         .build())
                 .build());
     }
@@ -475,7 +475,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
         assertThat(result).isEqualTo(expectedResult
                 .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
-                .put("fpdAttr", "fpdValue2")));
+                        .put("fpdAttr", "fpdValue2")));
     }
 
     @Test

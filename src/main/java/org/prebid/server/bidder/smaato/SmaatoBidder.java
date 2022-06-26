@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smaato.proto.SmaatoBidExt;
@@ -187,7 +187,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .map(impsPod -> preparePodRequest(bidRequest, impsPod, errors))
                 .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String extractPod(Imp imp) {
@@ -229,7 +229,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
         return IntStream.range(0, imps.size())
                 .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId) {
@@ -249,7 +249,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
                 .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<Imp> splitImps(List<Imp> imps, List<BidderError> errors) {
@@ -343,7 +343,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> bidderBid(bid, bidResponse.getCur(), headers, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(bidderBids, errors);
     }

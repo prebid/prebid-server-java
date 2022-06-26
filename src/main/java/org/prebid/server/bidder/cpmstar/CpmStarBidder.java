@@ -10,8 +10,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class CpmStarBidder implements Bidder<BidRequest> {
 
@@ -108,7 +107,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, bidResponse.getCur(), errors);
         return Result.of(result, errors);

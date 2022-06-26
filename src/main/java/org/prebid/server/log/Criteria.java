@@ -60,7 +60,7 @@ public class Criteria {
 
     private boolean isMatched(Criteria criteria) {
         return criteria != null
-                && ((account == null || account.equals(criteria.account))
+                && (account == null || account.equals(criteria.account)
                 && (bidder == null || bidder.equals(criteria.bidder))
                 && (lineItemId == null || lineItemId.equals(criteria.lineItemId)));
     }

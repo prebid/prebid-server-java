@@ -255,7 +255,7 @@ public class TargetingService {
     private static <T> List<T> parseArray(JsonNode node, Function<JsonNode, T> mapper) {
         validateIsArray(node);
 
-        return StreamUtil.asStream(node.spliterator()).map(mapper).collect(Collectors.toList());
+        return StreamUtil.asStream(node.spliterator()).map(mapper).toList();
     }
 
     private static Expression parseTypedInFunction(TargetingCategory category, JsonNode value) {

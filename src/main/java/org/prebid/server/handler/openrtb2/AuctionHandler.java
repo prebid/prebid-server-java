@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class AuctionHandler implements Handler<RoutingContext> {
 
@@ -154,7 +153,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .toList();
                 final String message = String.join("\n", errorMessages);
                 final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
                 conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);

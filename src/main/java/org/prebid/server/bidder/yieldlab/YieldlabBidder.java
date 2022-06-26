@@ -19,8 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
@@ -96,7 +96,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final List<String> adSlotIds = extImps.stream()
                 .map(ExtImpYieldlab::getAdslotId)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         final Map<String, String> targeting = extImps.stream()
                 .map(ExtImpYieldlab::getTargeting)

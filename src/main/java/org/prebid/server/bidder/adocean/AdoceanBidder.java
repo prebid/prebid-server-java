@@ -23,8 +23,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -265,7 +265,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .filter(slaveId -> StringUtils.isNotEmpty(slaveSizes.get(slaveId)))
                 .map(rawSlaveID -> String.format("%s~%s", rawSlaveID.replaceFirst("adocean", ""),
                         slaveSizes.get(rawSlaveID)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static MultiMap getHeaders(BidRequest request) {
@@ -314,7 +314,7 @@ public class AdoceanBidder implements Bidder<Void> {
                         StringUtils.isNotBlank(MapUtils.getString(auctionIds, adoceanResponse.getId())))
                 .map(adoceanResponse -> BidderBid.of(createBid(auctionIds, adoceanResponse), BidType.banner,
                         adoceanResponse.getCurrency()))
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.withValues(bidderBids);
     }

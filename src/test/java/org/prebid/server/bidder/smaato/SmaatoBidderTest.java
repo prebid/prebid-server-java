@@ -24,8 +24,8 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
@@ -934,7 +933,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .app(App.builder().build())
                         .imp(Arrays.stream(impCustomizers)
                                 .map(SmaatoBidderTest::givenVideoImp)
-                                .collect(Collectors.toList())))
+                                .toList()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
                         .build()))
@@ -953,7 +952,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .app(App.builder().build())
                         .imp(Arrays.stream(impCustomizers)
                                 .map(SmaatoBidderTest::givenImp)
-                                .collect(Collectors.toList())))
+                                .toList()))
                 .build();
     }
 

@@ -17,8 +17,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * AlgoriX (@link Bidder) implementation.
@@ -152,14 +151,11 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         if (Objects.isNull(extImp.getRegion())) {
             return "xyz";
         }
-        switch (extImp.getRegion()) {
-            case "APAC":
-                return "apac.xyz";
-            case "USE":
-                return "use.xyz";
-            default:
-                return "xyz";
-        }
+        return switch (extImp.getRegion()) {
+            case "APAC" -> "apac.xyz";
+            case "USE" -> "use.xyz";
+            default -> "xyz";
+        };
     }
 
     private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
@@ -199,7 +195,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private AlgorixBidExt parseAlgorixBidExt(Bid bid) {

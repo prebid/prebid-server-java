@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -29,7 +29,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -448,7 +447,7 @@ public class OperaadsBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(Arrays.stream(impCustomizers)
                                 .map(OperaadsBidderTest::givenImp)
-                                .collect(Collectors.toList()))
+                                .toList())
                         .device(Device.builder().os("deviceOs").build()))
                 .build();
     }
@@ -469,7 +468,7 @@ public class OperaadsBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.stream(bidCustomizers)
                                 .map(customizer -> customizer.apply(Bid.builder()).build())
-                                .collect(Collectors.toList()))
+                                .toList())
                         .build()))
                 .build();
     }

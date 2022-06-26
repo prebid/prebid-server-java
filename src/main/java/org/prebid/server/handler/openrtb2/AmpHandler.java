@@ -278,7 +278,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .toList();
                 final String message = String.join("\n", errorMessages);
 
                 conditionalLogger.info(String.format("%s, Referer: %s", message,

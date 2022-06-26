@@ -89,16 +89,16 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                         "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build(),
-                Imp.builder().id("impId2").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId2")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build(),
+                        Imp.builder().id("impId2").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId2")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
@@ -123,12 +123,12 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build(),
-                Imp.builder().id("impId2").build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build(),
+                        Imp.builder().id("impId2").build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
@@ -155,10 +155,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null, null, null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null, null, null))))
+                                .build())).build()).build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
@@ -185,10 +185,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.createObjectNode().set("line", new IntNode(5)))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.createObjectNode().set("line", new IntNode(5)))
+                                .build())).build()).build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
@@ -204,8 +204,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         bidderRequester.setBidRates(Collections.singletonMap("lineItemId1", 1.00));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1").build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1").build())).build()).build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
@@ -226,10 +226,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         bidderRequester.setBidRates(Collections.singletonMap("lineItemId1", 1.00));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null, null, null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null, null, null))))
+                                .build())).build()).build()))
                 .build();
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 

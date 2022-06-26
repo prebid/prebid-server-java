@@ -232,7 +232,7 @@ public final class HttpUtil {
                         entry -> StringUtils.isNotBlank(entry.getValue())
                                 ? Arrays.stream(entry.getValue().split(","))
                                 .map(String::trim)
-                                .collect(Collectors.toList())
+                                .toList()
                                 : Collections.singletonList(entry.getValue())))
                 : null;
     }

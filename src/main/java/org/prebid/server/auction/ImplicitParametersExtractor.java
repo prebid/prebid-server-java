@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Convenient place to keep utilities for extracting parameters from HTTP request with intention to use them in auction.
@@ -83,7 +82,7 @@ public class ImplicitParametersExtractor {
         return candidates.stream()
                 .map(StringUtils::trimToNull)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

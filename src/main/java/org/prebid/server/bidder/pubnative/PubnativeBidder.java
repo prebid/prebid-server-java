@@ -16,8 +16,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class PubnativeBidder implements Bidder<BidRequest> {
 
@@ -189,7 +188,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> createBidderBid(imps, currency, bid))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
@@ -246,7 +245,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isOnlyOneSize(Integer width, Integer height, List<Format> formats) {
-        return CollectionUtils.isEmpty(formats) || (formats.size() == 1 && isSameFormat(width, height, formats.get(0)));
+        return CollectionUtils.isEmpty(formats) || formats.size() == 1 && isSameFormat(width, height, formats.get(0));
     }
 
     private static boolean isSameFormat(Integer width, Integer height, Format format) {

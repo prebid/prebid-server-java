@@ -101,7 +101,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                                 dealInfo.getLineItemId()))
                         .filter(Objects::nonNull))
                 .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_CURRENCY))
-                .collect(Collectors.toList());
+                .toList();
 
         return Future.succeededFuture(BidderSeatBid.of(bidderBids, Collections.emptyList(), Collections.emptyList()));
     }
@@ -147,7 +147,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private ExtDeal getExtDeal(JsonNode extDeal) {

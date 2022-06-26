@@ -589,11 +589,11 @@ public class AmpRequestFactory {
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else if (height != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             updatedFormats = Collections.emptyList();
         }
@@ -725,11 +725,11 @@ public class AmpRequestFactory {
             final boolean typeSpecifiedAsTcf =
                     specifiedType == ConsentType.TCF_V1 || specifiedType == ConsentType.TCF_V2;
 
-            return (isConsentStringPresent() && typeSpecifiedAsTcf) || isTcf;
+            return isConsentStringPresent() && typeSpecifiedAsTcf || isTcf;
         }
 
         public boolean isCcpaCompatible() {
-            return (isConsentStringPresent() && specifiedType == ConsentType.CCPA) || isCcpa;
+            return isConsentStringPresent() && specifiedType == ConsentType.CCPA || isCcpa;
         }
 
         public boolean isValid() {

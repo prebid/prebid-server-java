@@ -129,15 +129,12 @@ public class BasicCategoryMappingService implements CategoryMappingService {
             throw new InvalidRequestException(
                     "Primary ad server required but was not defined when translate category is enabled");
         }
-        switch (primaryAdServer) {
-            case 1:
-                return FREEWHEEL_AD_SERVER;
-            case 2:
-                return DFP_AD_SERVER;
-            default:
-                throw new InvalidRequestException(
-                        String.format("Primary ad server `%s` is not recognized", primaryAdServer));
-        }
+        return switch (primaryAdServer) {
+            case 1 -> FREEWHEEL_AD_SERVER;
+            case 2 -> DFP_AD_SERVER;
+            default -> throw new InvalidRequestException(
+                    String.format("Primary ad server `%s` is not recognized", primaryAdServer));
+        };
     }
 
     /**
@@ -330,7 +327,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec()).stream()
-                .sorted().collect(Collectors.toList());
+                .sorted().toList();
 
         final List<String> errors = new ArrayList<>();
         final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = isSupportedForDeals(bidRequest)
@@ -346,7 +343,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
 
         rejectedBids.addAll(collectRejectedDuplicatedBids(uniqueCatKeysToCategoryBids));
-        errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).collect(Collectors.toList()));
+        errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).toList());
 
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
@@ -647,7 +644,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                 .map(bidderResponse -> bidderToRejectedBidIds.containsKey(bidderResponse.getBidder())
                         ? removeRejectedBids(bidderResponse, bidderToRejectedBidIds.get(bidderResponse.getBidder()))
                         : bidderResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -658,7 +655,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final List<BidderBid> survivedBidderBids = bidderResponse.getSeatBid().getBids().stream()
                 .filter(bidderBid -> !rejectedBidIds.contains(bidderBid.getBid().getId()))
-                .collect(Collectors.toList());
+                .toList();
 
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
         return BidderResponse.of(bidder,

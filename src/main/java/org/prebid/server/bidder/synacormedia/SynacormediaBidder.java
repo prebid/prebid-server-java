@@ -12,8 +12,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class SynacormediaBidder implements Bidder<BidRequest> {
 
@@ -131,7 +130,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> mapBidToBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid mapBidToBidderBid(Bid bid, List<Imp> imps, String currency) {

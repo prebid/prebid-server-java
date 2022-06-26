@@ -175,7 +175,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, routingContext.request(), account, timeout)
+                                cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -447,7 +447,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
-                .collect(Collectors.toList());
+                .toList();
 
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
@@ -643,12 +643,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final List<BidderUsersyncStatus> allowedStatuses = bidderStatuses.stream()
                 .filter(status -> StringUtils.isEmpty(status.getError()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(allowedStatuses);
 
         final List<BidderUsersyncStatus> rejectedStatuses = bidderStatuses.stream()
                 .filter(status -> StringUtils.isNotEmpty(status.getError()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(rejectedStatuses);
 
         return ListUtils.union(allowedStatuses, rejectedStatuses).subList(0, limit);

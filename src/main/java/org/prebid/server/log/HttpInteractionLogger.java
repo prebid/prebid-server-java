@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class HttpInteractionLogger {
 
@@ -166,7 +165,7 @@ public class HttpInteractionLogger {
 
         final List<Imp> updatedImps = imps.stream()
                 .map(imp -> makeImpExtBidderName(bidder, imp))
-                .collect(Collectors.toList());
+                .toList();
 
         return bidRequest.toBuilder().imp(updatedImps).build();
     }

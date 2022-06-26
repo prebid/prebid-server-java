@@ -87,10 +87,10 @@ public class FileApplicationSettings implements ApplicationSettings {
                 existingStoredIdToJson(requestIds, storedIdToRequest),
                 existingStoredIdToJson(impIds, storedIdToImp),
                 Stream.of(
-                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
-                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                                errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                                errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
                         .flatMap(Collection::stream)
-                        .collect(Collectors.toList())));
+                        .toList()));
     }
 
     @Override
@@ -214,10 +214,10 @@ public class FileApplicationSettings implements ApplicationSettings {
                                                    StoredDataType type) {
         final List<String> missedIds = ids.stream()
                 .filter(id -> !storedIdToJson.containsKey(id))
-                .collect(Collectors.toList());
+                .toList();
 
         return missedIds.isEmpty() ? Collections.emptyList() : missedIds.stream()
                 .map(id -> String.format("No stored %s found for id: %s", type, id))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

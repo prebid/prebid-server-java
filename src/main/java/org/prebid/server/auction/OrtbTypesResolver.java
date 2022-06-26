@@ -354,6 +354,6 @@ public class OrtbTypesResolver {
     }
 
     private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
-        return resolverWarning.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
+        return resolverWarning.stream().map(warning -> "WARNING: " + warning).toList();
     }
 }

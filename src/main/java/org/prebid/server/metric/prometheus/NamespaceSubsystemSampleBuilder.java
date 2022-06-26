@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
@@ -57,6 +56,6 @@ public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
                         prefix + mapperConfig.getMatch(),
                         prefix + mapperConfig.getName(),
                         mapperConfig.getLabels()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

@@ -54,7 +54,6 @@ import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -333,7 +332,7 @@ public class DealsPopulator {
                 .map(userDataElement -> Data.builder()
                         .id(userDataElement.getName())
                         .segment(makeSegments(userDataElement.getSegment())).build())
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -344,7 +343,7 @@ public class DealsPopulator {
         return segments != null
                 ? segments.stream()
                 .map(segment -> Segment.builder().id(segment.getId()).build())
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -404,7 +403,7 @@ public class DealsPopulator {
     private Imp enrichImpWithDeals(Imp imp, List<LineItem> lineItems) {
         final List<Deal> deals = lineItems.stream()
                 .map(lineItem -> toDeal(imp, lineItem))
-                .collect(Collectors.toList());
+                .toList();
 
         return impWithPopulatedDeals(imp, deals);
     }
@@ -428,7 +427,7 @@ public class DealsPopulator {
             final List<Format> matchedSizes = lineItemSizes.stream()
                     .filter(size -> formatsContainLineItemSize(formats, size))
                     .map(size -> Format.builder().w(size.getW()).h(size.getH()).build())
-                    .collect(Collectors.toList());
+                    .toList();
             lineSizes = CollectionUtils.isNotEmpty(matchedSizes) ? matchedSizes : null;
         } else {
             lineSizes = null;
@@ -454,7 +453,7 @@ public class DealsPopulator {
         final List<Deal> existingDeals = ListUtils.emptyIfNull(pmp != null ? pmp.getDeals() : null);
 
         final List<Deal> combinedDeals = Stream.concat(existingDeals.stream(), deals.stream())
-                .collect(Collectors.toList());
+                .toList();
 
         final Pmp.PmpBuilder pmpBuilder = pmp != null ? pmp.toBuilder() : Pmp.builder();
         final Pmp updatedPmp = pmpBuilder.deals(combinedDeals).build();

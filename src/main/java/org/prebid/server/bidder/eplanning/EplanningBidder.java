@@ -21,8 +21,8 @@ import org.prebid.server.bidder.eplanning.model.HbResponse;
 import org.prebid.server.bidder.eplanning.model.HbResponseAd;
 import org.prebid.server.bidder.eplanning.model.HbResponseSpace;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -312,7 +312,7 @@ public class EplanningBidder implements Bidder<Void> {
         return Result.of(getSpacesStream(hbResponse)
                         .flatMap(hbResponseSpace -> getAdsStream(hbResponseSpace)
                                 .map(hbResponseAd -> mapToBidderBid(hbResponseSpace, hbResponseAd, nameSpaceToImpId)))
-                        .collect(Collectors.toList()),
+                        .toList(),
                 Collections.emptyList());
     }
 

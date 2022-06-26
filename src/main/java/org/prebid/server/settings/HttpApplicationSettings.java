@@ -350,7 +350,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
             errors.addAll(missedIds.stream()
                     .map(id -> String.format("Stored %s not found for id: %s", type, id))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         return result;

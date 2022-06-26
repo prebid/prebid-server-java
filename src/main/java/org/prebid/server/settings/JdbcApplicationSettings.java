@@ -107,10 +107,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery(
-                selectAccountQuery,
-                Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
-                timeout)
+                        selectAccountQuery,
+                        Collections.singletonList(accountId),
+                        result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
+                        timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
 

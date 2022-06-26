@@ -1,12 +1,12 @@
 package org.prebid.server.bidder.algorix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -15,12 +15,12 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
-import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
@@ -359,7 +359,7 @@ public class AlgorixBidderTest extends VertxTest {
             String region) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extImpPrebid, region))))
+                        .imp(singletonList(givenImp(impCustomizer, extImpPrebid, region))))
                 .build();
     }
 
@@ -373,10 +373,10 @@ public class AlgorixBidderTest extends VertxTest {
                                 Object extImpPrebid,
                                 String region) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(extImpPrebid,
-                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", region)))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(extImpPrebid,
+                                ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", region)))))
                 .build();
     }
 

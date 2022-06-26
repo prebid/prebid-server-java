@@ -14,7 +14,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class InterstitialProcessor {
 
@@ -39,7 +38,7 @@ public class InterstitialProcessor {
             final int minHeightPerc = extDeviceInt.getMinHeightPerc();
             final List<Imp> updatedImps = bidRequest.getImp().stream()
                     .map(imp -> processInterstitialImp(imp, device, minWidthPerc, minHeightPerc))
-                    .collect(Collectors.toList());
+                    .toList();
             bidRequest = bidRequest.toBuilder().imp(updatedImps).build();
         }
         return bidRequest;
@@ -60,7 +59,7 @@ public class InterstitialProcessor {
         Integer maxHeight = firstFormat != null ? firstFormat.getH() : null;
         Integer maxWidth = firstFormat != null ? firstFormat.getW() : null;
 
-        if (maxHeight == null || maxWidth == null || (maxHeight == 1 && maxWidth == 1)) {
+        if (maxHeight == null || maxWidth == null || maxHeight == 1 && maxWidth == 1) {
             maxHeight = device.getH();
             maxWidth = device.getW();
         }
@@ -78,7 +77,7 @@ public class InterstitialProcessor {
                 InterstitialSize.getNestedSizes(minWidth, minHeight, maxWidth, maxHeight, MAX_SIZES_COUNT)
                         .stream()
                         .map(interstitialSize -> Format.builder().w(interstitialSize.w).h(interstitialSize.h).build())
-                        .collect(Collectors.toList());
+                        .toList();
 
         if (CollectionUtils.isEmpty(interstitialFormats)) {
             return imp;
@@ -366,7 +365,7 @@ public class InterstitialProcessor {
             return INTERSTITIAL_SIZES.stream()
                     .filter(size -> isNested(size, minWidth, minHeight, maxWidth, maxHeight))
                     .limit(count)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         private static boolean isNested(InterstitialSize size, double minWidth, double minHeight, double maxWidth,

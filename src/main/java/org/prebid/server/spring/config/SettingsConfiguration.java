@@ -48,7 +48,6 @@ import javax.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -329,7 +328,7 @@ public class SettingsConfiguration {
                                     jdbcApplicationSettings,
                                     httpApplicationSettings)
                             .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+                            .toList();
 
             return new CompositeApplicationSettings(applicationSettingsList);
         }

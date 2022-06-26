@@ -278,7 +278,7 @@ public class ExchangeService {
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         aliases)
                                         .map(auctionParticipation::with))
-                                .collect(Collectors.toList())))
+                                .collect(Collectors.toCollection(ArrayList::new))))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
 
@@ -481,13 +481,13 @@ public class ExchangeService {
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .map(imp -> dealsProcessor.removePgDealsOnlyBiddersWithoutDeals(context, imp, aliases))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
@@ -716,7 +716,7 @@ public class ExchangeService {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
                 .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -775,7 +775,7 @@ public class ExchangeService {
                         context))
                 // Can't be removed after we prepare workflow to filter blocked
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(bidderRequests);
 
@@ -881,7 +881,7 @@ public class ExchangeService {
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, useFirstPartyData, aliases, account))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Imp prepareImp(Imp imp,
@@ -919,7 +919,7 @@ public class ExchangeService {
                 .map(deal -> Tuple2.of(deal, toExtDeal(deal.getExt())))
                 .filter((Tuple2<Deal, ExtDeal> tuple) -> DealUtil.isBidderHasDeal(bidder, tuple.getRight(), aliases))
                 .map((Tuple2<Deal, ExtDeal> tuple) -> prepareDeal(tuple.getLeft(), tuple.getRight()))
-                .collect(Collectors.toList());
+                .toList();
 
         return pmp.toBuilder().deals(updatedDeals).build();
     }
@@ -1173,7 +1173,7 @@ public class ExchangeService {
                                                            MetricName requestTypeMetric) {
         auctionParticipations = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         metrics.updateRequestBidderCardinalityMetric(auctionParticipations.size());
         metrics.updateAccountRequestMetrics(account, requestTypeMetric);
@@ -1264,7 +1264,7 @@ public class ExchangeService {
 
         return auctionParticipations.stream()
                 .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private AuctionParticipation dropZeroNonDealBids(AuctionParticipation auctionParticipation,
@@ -1294,7 +1294,7 @@ public class ExchangeService {
     private boolean isZeroNonDealBids(BigDecimal price, String dealId) {
         return price == null
                 || price.compareTo(BigDecimal.ZERO) < 0
-                || (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(dealId));
+                || price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(dealId);
     }
 
     private List<AuctionParticipation> validateAndAdjustBids(List<AuctionParticipation> auctionParticipations,
@@ -1307,7 +1307,7 @@ public class ExchangeService {
                         auctionContext.getBidRequest(),
                         auctionParticipation,
                         auctionContext.getAccount()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -1536,7 +1536,7 @@ public class ExchangeService {
         final List<BidderResponse> bidderResponses = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .map(AuctionParticipation::getBidderResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
@@ -1671,7 +1671,7 @@ public class ExchangeService {
                                         messagesLists -> messagesLists.getValue().stream()
                                                 .map(messagesGetter)
                                                 .flatMap(Collection::stream)
-                                                .collect(Collectors.toList())))));
+                                                .toList()))));
 
         return !messagesByModule.isEmpty() ? messagesByModule : null;
     }
@@ -1687,7 +1687,7 @@ public class ExchangeService {
                 .entrySet().stream()
                 .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), traceLevel))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (stages.isEmpty()) {
             return null;
@@ -1705,7 +1705,7 @@ public class ExchangeService {
         final List<ExtModulesTraceStageOutcome> extStageOutcomes = stageOutcomes.stream()
                 .map(stageOutcome -> toTraceStageOutcome(stageOutcome, level))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (extStageOutcomes.isEmpty()) {
             return null;
@@ -1724,7 +1724,7 @@ public class ExchangeService {
 
         final List<ExtModulesTraceGroup> groups = stageOutcome.getGroups().stream()
                 .map(group -> toTraceGroup(group, level))
-                .collect(Collectors.toList());
+                .toList();
 
         if (groups.isEmpty()) {
             return null;
@@ -1738,7 +1738,7 @@ public class ExchangeService {
     private static ExtModulesTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
         final List<ExtModulesTraceInvocationResult> invocationResults = group.getHooks().stream()
                 .map(hook -> toTraceInvocationResult(hook, level))
-                .collect(Collectors.toList());
+                .toList();
 
         final long executionTime = invocationResults.stream()
                 .mapToLong(ExtModulesTraceInvocationResult::getExecutionTime)
@@ -1769,7 +1769,7 @@ public class ExchangeService {
         return ExtModulesTraceAnalyticsTags.of(CollectionUtils.emptyIfNull(analyticsTags.activities()).stream()
                 .filter(Objects::nonNull)
                 .map(ExchangeService::toTraceAnalyticsActivity)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
@@ -1779,7 +1779,7 @@ public class ExchangeService {
                 CollectionUtils.emptyIfNull(activity.results()).stream()
                         .filter(Objects::nonNull)
                         .map(ExchangeService::toTraceAnalyticsResult)
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     private static ExtModulesTraceAnalyticsResult toTraceAnalyticsResult(Result result) {

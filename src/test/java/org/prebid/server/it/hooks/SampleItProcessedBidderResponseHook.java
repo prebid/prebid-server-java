@@ -10,7 +10,6 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SampleItProcessedBidderResponseHook implements ProcessedBidderResponseHook {
 
@@ -41,6 +40,6 @@ public class SampleItProcessedBidderResponseHook implements ProcessedBidderRespo
                                 .build(),
                         bidderBid.getType(),
                         bidderBid.getBidCurrency()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

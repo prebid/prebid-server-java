@@ -14,9 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPOutputStream;
 
@@ -114,7 +113,7 @@ public class HttpBidderRequester {
                 .map(httpCallFuture -> httpCallFuture
                         .map(httpCall -> bidderErrorNotifier.processTimeout(httpCall, bidder))
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
-                .collect(Collectors.toList());
+                .toList();
 
         return CompositeFuture.any(
                         CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
@@ -131,7 +130,7 @@ public class HttpBidderRequester {
                         .headers(requestEnricher.enrichHeaders(
                                 bidderName, httpRequest.getHeaders(), requestHeaders, bidRequest))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -201,7 +200,8 @@ public class HttpBidderRequester {
     }
 
     private static byte[] gzip(byte[] value) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+        try (
+                ByteArrayOutputStream obj = new ByteArrayOutputStream();
                 GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value);
@@ -356,7 +356,7 @@ public class HttpBidderRequester {
 
             // Capture debugging info from the requests
             final List<ExtHttpCall> extHttpCalls = debugEnabled
-                    ? httpCalls.stream().map(this::toExt).collect(Collectors.toList())
+                    ? httpCalls.stream().map(this::toExt).toList()
                     : Collections.emptyList();
 
             final List<BidderError> errors = combineErrors(previousErrors, httpCalls, errorsRecorded);
@@ -396,7 +396,7 @@ public class HttpBidderRequester {
                             responseErrors.stream(),
                             calls.stream().map(BidderCall::getError).filter(Objects::nonNull))
                     .flatMap(Function.identity())
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 

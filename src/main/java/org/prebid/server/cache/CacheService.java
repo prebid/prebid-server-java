@@ -49,6 +49,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -234,7 +235,7 @@ public class CacheService {
                                 integration))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<BidInfo> bidsToCache,
@@ -287,7 +288,7 @@ public class CacheService {
 
         return bidInfos.stream()
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, false))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos,
@@ -297,7 +298,7 @@ public class CacheService {
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, true))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -346,7 +347,7 @@ public class CacheService {
                         bids.stream().map(cacheBid ->
                                 createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
                         videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId, hbCacheId)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (cachedCreatives.isEmpty()) {
             return Future.succeededFuture(CacheServiceResult.empty());
@@ -578,7 +579,7 @@ public class CacheService {
                 .filter(Objects::nonNull)
                 .map(responseItemCreator)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -597,7 +598,7 @@ public class CacheService {
             final List<Bid> videoBids = cacheVideoBids.stream()
                     .map(CacheBid::getBidInfo)
                     .map(BidInfo::getBid)
-                    .collect(Collectors.toList());
+                    .toList();
 
             final int bidsSize = cacheBids.size();
             for (int i = 0; i < bidsSize; i++) {
@@ -702,7 +703,7 @@ public class CacheService {
     private BidCacheRequest toBidCacheRequest(List<CachedCreative> cachedCreatives) {
         return BidCacheRequest.of(cachedCreatives.stream()
                 .map(CachedCreative::getPayload)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @Value(staticConstructor = "of")

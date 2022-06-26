@@ -131,7 +131,7 @@ public class DeliveryStatsService implements Suspendable {
         reports.stream()
                 .reduce(Future.<Void>succeededFuture(),
                         (future, report) -> future.compose(v -> sendReport(report, headers, now)
-                                .map(aVoid -> sentReports.add(report)))
+                                        .map(aVoid -> sentReports.add(report)))
                                 .compose(aVoid -> reportIntervalMs > 0 && reportsCount > sentReports.size()
                                         ? setInterval(reportIntervalMs)
                                         : Future.succeededFuture()),
@@ -159,12 +159,12 @@ public class DeliveryStatsService implements Suspendable {
         if (deliveryStatsProperties.isRequestCompressionEnabled()) {
             headers.add(HttpHeaders.CONTENT_ENCODING, GZIP);
             httpClient.request(HttpMethod.POST, deliveryStatsProperties.getEndpoint(), headers, gzipBody(body),
-                    deliveryStatsProperties.getTimeoutMs())
+                            deliveryStatsProperties.getTimeoutMs())
                     .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         } else {
             httpClient.post(deliveryStatsProperties.getEndpoint(), headers, body,
-                    deliveryStatsProperties.getTimeoutMs())
+                            deliveryStatsProperties.getTimeoutMs())
                     .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         }
@@ -272,7 +272,8 @@ public class DeliveryStatsService implements Suspendable {
     }
 
     private static byte[] gzipBody(String body) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+        try (
+                ByteArrayOutputStream obj = new ByteArrayOutputStream();
                 GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
             gzip.write(body.getBytes(StandardCharsets.UTF_8));
             gzip.finish();

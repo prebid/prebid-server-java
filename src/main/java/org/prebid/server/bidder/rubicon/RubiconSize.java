@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 final class RubiconSize {
@@ -133,7 +132,7 @@ final class RubiconSize {
                     .sorted(Comparator.comparing(rubiconSize -> rubiconSize.h))
                     .limit(1)
                     .map(rubiconSize -> Format.builder().w(rubiconSize.w).h(rubiconSize.h).build())
-                    .collect(Collectors.toList());
+                    .toList();
             result.addAll(idResult);
         }
         return result;

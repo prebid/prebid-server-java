@@ -396,7 +396,7 @@ public class ResponseBidValidator {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean isPgDeal(Imp imp, String dealId) {

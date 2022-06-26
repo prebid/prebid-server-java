@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
@@ -92,7 +91,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private List<BidderInstanceDeps> aliasesDeps() {
         return configProperties.getAliases().entrySet().stream()
                 .map(this::aliasDeps)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {

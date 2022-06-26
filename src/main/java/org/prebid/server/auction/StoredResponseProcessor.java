@@ -95,7 +95,7 @@ public class StoredResponseProcessor {
                                                        Map<String, String> auctionStoredResponseToImpId) {
         return imps.stream()
                 .filter(imp -> !auctionStoredResponseToImpId.containsValue(imp.getId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
@@ -117,7 +117,7 @@ public class StoredResponseProcessor {
         return responseBidders.stream()
                 .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
                         bidderToSeatBid.get(bidder), impIdToBidType))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {
@@ -186,7 +186,7 @@ public class StoredResponseProcessor {
             validateStoredSeatBid(seatBids);
             resolvedSeatBids.addAll(seatBids.stream()
                     .map(seatBid -> updateSeatBidBids(seatBid, impId))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         return mergeSameBidderSeatBid(resolvedSeatBids);
     }
@@ -204,7 +204,7 @@ public class StoredResponseProcessor {
     }
 
     private List<Bid> updateBidsWithImpId(List<Bid> bids, String impId) {
-        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).collect(Collectors.toList());
+        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).toList();
     }
 
     private static Bid updateBidWithImpId(Bid bid, String impId) {
@@ -227,12 +227,12 @@ public class StoredResponseProcessor {
         return seatBids.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
                 .entrySet().stream()
                 .map(bidderToSeatBid -> makeMergedSeatBid(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private SeatBid makeMergedSeatBid(String seat, List<SeatBid> storedSeatBids) {
         return SeatBid.builder()
-                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).collect(Collectors.toList()))
+                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).toList())
                 .seat(seat)
                 .ext(storedSeatBids.stream().map(SeatBid::getExt).filter(Objects::nonNull).findFirst().orElse(null))
                 .build();
@@ -288,7 +288,7 @@ public class StoredResponseProcessor {
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
                 .map(bid -> makeBidderBid(bid, bidCurrency, impIdToBidType))
-                .collect(Collectors.toList())
+                .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());

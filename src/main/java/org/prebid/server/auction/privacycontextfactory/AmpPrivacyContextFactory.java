@@ -59,13 +59,13 @@ public class AmpPrivacyContextFactory {
         final Account account = auctionContext.getAccount();
 
         return tcfDefinerService.resolveTcfContext(
-                strippedPrivacy,
-                resolveAlpha2CountryCode(device),
-                resolveIpAddress(device, strippedPrivacy),
-                extractGdprConfig(account),
-                requestType,
-                requestLogInfo(requestType, bidRequest, account.getId()),
-                timeout)
+                        strippedPrivacy,
+                        resolveAlpha2CountryCode(device),
+                        resolveIpAddress(device, strippedPrivacy),
+                        extractGdprConfig(account),
+                        requestType,
+                        requestLogInfo(requestType, bidRequest, account.getId()),
+                        timeout)
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
@@ -105,7 +105,7 @@ public class AmpPrivacyContextFactory {
 
     private String resolveIpAddress(Device device, Privacy privacy) {
         final boolean shouldBeMasked = Objects.equals(privacy.getCoppa(), 1)
-                || (device != null && Objects.equals(device.getLmt(), 1));
+                || device != null && Objects.equals(device.getLmt(), 1);
 
         final String ipV4Address = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ipV4Address)) {

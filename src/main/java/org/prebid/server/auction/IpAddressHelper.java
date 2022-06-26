@@ -35,7 +35,7 @@ public class IpAddressHelper {
                 toAddress(String.format("::/%d", validateIpv6AnonLeftMaskBits(ipv6AnonLeftMaskBits))).getNetworkMask();
         ipv6LocalNetworkMaskAddresses = ipv6LocalNetworks.stream()
                 .map(this::toAddress)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public String anonymizeIpv6(String ip) {
@@ -107,7 +107,7 @@ public class IpAddressHelper {
     private static int validateIpv6AnonLeftMaskBits(int ipv6AnonLeftMaskBits) {
         if (ipv6AnonLeftMaskBits < 1
                 || ipv6AnonLeftMaskBits > 128
-                || (ipv6AnonLeftMaskBits > 32 && ipv6AnonLeftMaskBits < 56)) {
+                || ipv6AnonLeftMaskBits > 32 && ipv6AnonLeftMaskBits < 56) {
 
             throw new IllegalArgumentException(
                     "IPv6 anonymize mask bits should be between 1 and 32 or 56 and 128 inclusive");

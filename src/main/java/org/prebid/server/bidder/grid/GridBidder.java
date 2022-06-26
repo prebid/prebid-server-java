@@ -22,8 +22,8 @@ import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.grid.model.response.GridBidResponse;
 import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -44,7 +44,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
 
@@ -220,7 +219,7 @@ public class GridBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {

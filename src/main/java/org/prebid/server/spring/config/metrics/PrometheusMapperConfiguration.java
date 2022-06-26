@@ -14,7 +14,6 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnProperty(value = "metrics.prometheus.custom-labels-enabled", havingValue = "true")
@@ -28,7 +27,7 @@ public class PrometheusMapperConfiguration {
                         mapperProperties.getMatch(),
                         mapperProperties.getName(),
                         mapperProperties.getLabels()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Data

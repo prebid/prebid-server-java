@@ -51,7 +51,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HookStageExecutor {
@@ -321,7 +320,7 @@ public class HookStageExecutor {
         final List<ExecutionGroup> combinedGroups = Stream.of(hostStageExecutionPlan, accountStageExecutionPlan)
                 .map(StageExecutionPlan::getGroups)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
 
         return StageExecutionPlan.of(combinedGroups);
     }

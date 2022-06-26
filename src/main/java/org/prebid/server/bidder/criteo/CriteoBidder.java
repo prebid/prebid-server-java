@@ -25,8 +25,8 @@ import org.prebid.server.bidder.criteo.model.CriteoResponse;
 import org.prebid.server.bidder.criteo.model.CriteoResponseSlot;
 import org.prebid.server.bidder.criteo.model.CriteoUser;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class CriteoBidder implements Bidder<CriteoRequest> {
 
@@ -132,7 +131,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         if (CollectionUtils.isNotEmpty(formats)) {
             return formats.stream()
                     .map(format -> formatSizesAsString(format.getW(), format.getH()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         final Integer width = banner.getW();
@@ -197,14 +196,11 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
 
     private static String resolveDeviceType(String deviceOs) {
         final String lowerCaseDeviceOs = StringUtils.stripToEmpty(deviceOs).toLowerCase();
-        switch (lowerCaseDeviceOs) {
-            case "ios":
-                return "idfa";
-            case "android":
-                return "gaid";
-            default:
-                return "unknown";
-        }
+        return switch (lowerCaseDeviceOs) {
+            case "ios" -> "idfa";
+            case "android" -> "gaid";
+            default -> "unknown";
+        };
     }
 
     private static CriteoGdprConsent resolveGdprConsent(ExtUser extUser, ExtRegs extRegs) {
@@ -263,7 +259,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         return criteoResponse.getSlots().stream()
                 .filter(Objects::nonNull)
                 .map(CriteoBidder::slotToBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid slotToBidderBid(CriteoResponseSlot slot) {

@@ -20,8 +20,8 @@ import org.prebid.server.bidder.invibes.model.InvibesBidderResponse;
 import org.prebid.server.bidder.invibes.model.InvibesPlacementProperty;
 import org.prebid.server.bidder.invibes.model.InvibesTypedBid;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -59,6 +59,52 @@ public class InvibesBidderTest extends VertxTest {
     private static final String BID_VERSION = "4";
 
     private InvibesBidder invibesBidder;
+
+    private static InvibesBidderResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return InvibesBidderResponse.builder()
+                .typedBids(singletonList(InvibesTypedBid.builder()
+                        .bid(bidCustomizer.apply(Bid.builder()).build())
+                        .dealPriority(12)
+                        .build()))
+                .currency(CURRENCY)
+                .build();
+    }
+
+    private static BidderCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<InvibesBidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            ExtImpInvibes extImpInvibes) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .site(Site.builder().page(PAGE_URL).build())
+                        .imp(singletonList(givenImp(impCustomizer, extImpInvibes))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(
+                                givenImp(impCustomizer, ExtImpInvibes.of("12", 15,
+                                        InvibesDebug.of("test", true))))))
+                .build();
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+                                ExtImpInvibes extImpInvibes) {
+        return impCustomizer.apply(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpInvibes))))
+                .build();
+    }
 
     @Before
     public void setUp() {
@@ -212,9 +258,9 @@ public class InvibesBidderTest extends VertxTest {
     public void shouldCreateRequestWithDataFromEveryImpression() {
         // given
         final List<Imp> imps = Arrays.asList(givenImp(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
-                ExtImpInvibes.of(FIRST_PLACEMENT_ID, 15, InvibesDebug.of("test1", true))),
+                        impBuilder -> impBuilder
+                                .banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                        ExtImpInvibes.of(FIRST_PLACEMENT_ID, 15, InvibesDebug.of("test1", true))),
                 givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().h(SECOND_BANNER_H).w(SECOND_BANNER_W).build()),
                         ExtImpInvibes.of(SECOND_PLACEMENT_ID, 1001, InvibesDebug.of("test2", false))));
@@ -353,51 +399,5 @@ public class InvibesBidderTest extends VertxTest {
                 .extracting(BidderError::getMessage)
                 .containsOnly("Server error: someError.");
         assertThat(result.getValue()).isEmpty();
-    }
-
-    private static InvibesBidderResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return InvibesBidderResponse.builder()
-                .typedBids(singletonList(InvibesTypedBid.builder()
-                        .bid(bidCustomizer.apply(Bid.builder()).build())
-                        .dealPriority(12)
-                        .build()))
-                .currency(CURRENCY)
-                .build();
-    }
-
-    private static BidderCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<InvibesBidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            ExtImpInvibes extImpInvibes) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .site(Site.builder().page(PAGE_URL).build())
-                .imp(singletonList(givenImp(impCustomizer, extImpInvibes))))
-                .build();
-    }
-
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impCustomizer, ExtImpInvibes.of("12", 15,
-                                InvibesDebug.of("test", true))))))
-                .build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                ExtImpInvibes extImpInvibes) {
-        return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpInvibes))))
-                .build();
     }
 }

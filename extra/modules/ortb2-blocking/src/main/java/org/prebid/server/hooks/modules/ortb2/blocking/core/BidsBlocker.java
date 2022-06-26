@@ -78,7 +78,7 @@ public class BidsBlocker {
             final List<Result<BlockingResult>> blockedBidResults = bids.stream()
                     .sequential()
                     .map(bid -> isBlocked(bid, accountConfigReader))
-                    .collect(Collectors.toList());
+                    .toList();
 
             final Set<Integer> blockedBidIndexes = IntStream.range(0, bids.size())
                     .filter(index -> blockedBidResults.get(index).getValue().isBlocked())
@@ -161,7 +161,7 @@ public class BidsBlocker {
             final List<T> blockedBidValues = attribute.stream()
                     .filter(blockedAttributeValues::contains)
                     .filter(blockedBidValue -> !blockingConfig.getAllowedValues().contains(blockedBidValue))
-                    .collect(Collectors.toList());
+                    .toList();
 
             return CollectionUtils.isEmpty(blockedBidValues)
                     ? AttributeCheckResult.succeeded()
@@ -210,7 +210,7 @@ public class BidsBlocker {
 
         return blockedBidIndexes.stream()
                 .map(index -> debugEntryFor(index, blockedBidResults.get(index).getValue()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private String debugEntryFor(int index, BlockingResult blockingResult) {
@@ -229,7 +229,7 @@ public class BidsBlocker {
                         blockingResult.isBlocked() ? toAnalyticsResultValues(blockingResult) : null,
                         bidder,
                         blockingResult.getImpId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Map<String, Object> toAnalyticsResultValues(BlockingResult blockingResult) {

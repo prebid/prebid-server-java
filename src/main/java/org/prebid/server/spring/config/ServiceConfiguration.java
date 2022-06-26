@@ -100,7 +100,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Configuration
@@ -864,7 +863,7 @@ public class ServiceConfiguration {
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
                 .map(String::trim)
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 }

@@ -674,7 +674,7 @@ public class ApplicationTest extends IntegrationTest {
         if (listOfFiles != null) {
             return Arrays.stream(listOfFiles)
                     .map(s -> s.substring(0, s.indexOf('.')))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return Collections.emptyList();
     }

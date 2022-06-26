@@ -142,7 +142,7 @@ public class LineItemService {
         final List<LineItem> matchedLineItems =
                 getPreMatchedLineItems(auctionContext.getAccount().getId(), imp, aliases).stream()
                         .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext, aliases))
-                        .collect(Collectors.toList());
+                        .toList();
 
         return MatchLineItemsResult.of(postProcessMatchedLineItems(matchedLineItems, auctionContext, imp, now));
     }
@@ -165,7 +165,7 @@ public class LineItemService {
             final List<LineItemMetaData> lineItemsMetaData = ListUtils.emptyIfNull(planResponse).stream()
                     .filter(lineItemMetaData -> !isExpired(now, lineItemMetaData.getEndTimeStamp()))
                     .filter(lineItemMetaData -> Objects.equals(lineItemMetaData.getStatus(), ACTIVE))
-                    .collect(Collectors.toList());
+                    .toList();
 
             removeInactiveLineItems(planResponse, now);
             lineItemsMetaData.forEach(lineItemMetaData -> updateLineItem(lineItemMetaData, now));
@@ -297,7 +297,7 @@ public class LineItemService {
 
         final List<LineItem> accountsLineItems = idToLineItems.values().stream()
                 .filter(lineItem -> lineItem.getAccountId().equals(accountId))
-                .collect(Collectors.toList());
+                .toList();
 
         if (accountsLineItems.isEmpty()) {
             criteriaLogManager.log(logger, accountId,
@@ -308,11 +308,11 @@ public class LineItemService {
         final List<String> bidders = StreamUtil.asStream(bidderParamsFromImp(imp).fieldNames())
                 .filter(bidder -> isValidActiveBidder(bidder, aliases))
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         return accountsLineItems.stream()
                 .filter(lineItem -> containBidderCodeConsideringAliases(bidders, lineItem.getSource(), aliases))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static JsonNode bidderParamsFromImp(Imp imp) {
@@ -387,7 +387,7 @@ public class LineItemService {
                 .flatMap(Collection::stream)
                 .peek(lineItem -> txnLog.lineItemsSentToBidder().get(lineItem.getSource())
                         .add(lineItem.getLineItemId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean planHasTokensIfPresent(LineItem lineItem, AuctionContext auctionContext) {

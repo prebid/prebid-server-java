@@ -17,8 +17,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BrightrollBidder implements Bidder<BidRequest> {
 
@@ -127,7 +126,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         builder.imp(bidRequest.getImp().stream()
                 .filter(imp -> isImpValid(imp, errors))
                 .map(imp -> updateImp(imp, publisherBidFloor))
-                .collect(Collectors.toList()));
+                .toList());
 
         return builder.build();
     }
@@ -231,7 +230,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         return seatBids.get(0).getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

@@ -16,8 +16,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -484,16 +484,16 @@ public class AdoceanBidderTest extends VertxTest {
             Function<AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder,
                     AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder> adoceanCustomizer) {
         return adoceanCustomizer.apply(AdoceanResponseAdUnit.builder()
-                .id("ad")
-                .price("1")
-                .winUrl("https://win-url.com")
-                .statsUrl("https://stats-url.com")
-                .code(" <!-- code 1 --> ")
-                .currency("EUR")
-                .width("300")
-                .height("250")
-                .crid("0af345b42983cc4bc0")
-                .error("false"))
+                        .id("ad")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("false"))
                 .build();
     }
 
@@ -502,7 +502,7 @@ public class AdoceanBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -512,10 +512,10 @@ public class AdoceanBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                "adoceanmyaozpniqismex")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex")))))
                 .build();
     }
 

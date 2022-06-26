@@ -19,8 +19,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
@@ -117,7 +117,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return acatNode != null && acatNode.isArray()
                 ? Arrays.stream(mapper.mapper().convertValue(acatNode, String[].class))
                 .map(StringUtils::stripToEmpty)
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -252,7 +252,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static Banner assignSizesIfMissing(Banner banner) {
         final List<Format> format = banner.getFormat();
-        if ((banner.getW() != null && banner.getH() != null) || CollectionUtils.isEmpty(format)) {
+        if (banner.getW() != null && banner.getH() != null || CollectionUtils.isEmpty(format)) {
             return banner;
         }
 
@@ -389,7 +389,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid resolveBidderBid(Bid bid, String currency) {

@@ -21,8 +21,8 @@ import org.prebid.server.bidder.invibes.model.InvibesInternalParams;
 import org.prebid.server.bidder.invibes.model.InvibesPlacementProperty;
 import org.prebid.server.bidder.invibes.model.InvibesTypedBid;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
@@ -296,6 +295,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 .filter(Objects::nonNull)
                 //TODO add DealPriority
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCurrency()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

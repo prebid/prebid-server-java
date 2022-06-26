@@ -18,8 +18,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -212,7 +212,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(OperaadsBidder::isValidBid)
                 .map(this::createBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean isValidBid(Bid bid) {
