@@ -156,16 +156,12 @@ final class RubiconSize {
         }
 
         private static int ordinal(Integer i) {
-            switch (i) {
-                case 15:
-                    return 1;
-                case 2:
-                    return 2;
-                case 9:
-                    return 3;
-                default:
-                    return 4;
-            }
+            return switch (i) {
+                case 15 -> 1;
+                case 2 -> 2;
+                case 9 -> 3;
+                default -> 4;
+            };
         }
     }
 }

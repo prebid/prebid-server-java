@@ -415,16 +415,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private String renderAdMarkup(String markupType, String adm) {
-        switch (markupType) {
-            case SMT_AD_TYPE_IMG:
-                return extractAdmImage(adm);
-            case SMT_ADTYPE_RICHMEDIA:
-                return extractAdmRichMedia(adm);
-            case SMT_ADTYPE_VIDEO:
-                return markupType;
-            default:
-                throw new PreBidException(String.format("Unknown markup type %s", markupType));
-        }
+        return switch (markupType) {
+            case SMT_AD_TYPE_IMG -> extractAdmImage(adm);
+            case SMT_ADTYPE_RICHMEDIA -> extractAdmRichMedia(adm);
+            case SMT_ADTYPE_VIDEO -> markupType;
+            default -> throw new PreBidException(String.format("Unknown markup type %s", markupType));
+        };
     }
 
     private String extractAdmImage(String adm) {
@@ -489,15 +485,11 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String markupType) {
-        switch (markupType) {
-            case SMT_AD_TYPE_IMG:
-            case SMT_ADTYPE_RICHMEDIA:
-                return BidType.banner;
-            case SMT_ADTYPE_VIDEO:
-                return BidType.video;
-            default:
-                throw new PreBidException(String.format("Invalid markupType %s", markupType));
-        }
+        return switch (markupType) {
+            case SMT_AD_TYPE_IMG, SMT_ADTYPE_RICHMEDIA -> BidType.banner;
+            case SMT_ADTYPE_VIDEO -> BidType.video;
+            default -> throw new PreBidException(String.format("Invalid markupType %s", markupType));
+        };
     }
 
     private static <T, R> R getIfNotNullOrThrow(T target, Function<T, R> getter, String propertyName) {

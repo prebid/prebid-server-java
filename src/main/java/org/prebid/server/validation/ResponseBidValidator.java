@@ -274,16 +274,17 @@ public class ResponseBidValidator {
                                                                    ConditionalLogger conditionalLogger,
                                                                    String message) throws ValidationException {
         switch (enforcement) {
-            case enforce:
+            case enforce -> {
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 throw new ValidationException(message);
-            case warn:
+            }
+            case warn -> {
                 metricsRecorder.accept(MetricName.warn);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 return Collections.singletonList(message);
-            default:
-                throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
+            }
+            default -> throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
         }
     }
 

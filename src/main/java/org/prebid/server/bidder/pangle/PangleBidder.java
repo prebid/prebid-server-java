@@ -182,25 +182,21 @@ public class PangleBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        final BidType bidType;
-        switch (adType) {
-            case 1:
-            case 2:
-                bidType = BidType.banner;
-                break;
-            case 5:
-                bidType = BidType.xNative;
-                break;
-            case 7:
-            case 8:
-                bidType = BidType.video;
-                break;
-            default:
-                errors.add(BidderError.badServerResponse("unrecognized adtype in response"));
-                return null;
-        }
+        final BidType bidType = resolveBidType(adType, errors);
 
         return BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType resolveBidType(Integer adType, List<BidderError> errors) {
+        return switch (adType) {
+            case 1, 2 -> BidType.banner;
+            case 5 -> BidType.xNative;
+            case 7, 8 -> BidType.video;
+            default -> {
+                errors.add(BidderError.badServerResponse("unrecognized adtype in response"));
+                yield null;
+            }
+        };
     }
 
     private Integer getAdTypeFromBidExt(Bid bid) {

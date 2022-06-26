@@ -168,16 +168,14 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                         TCString tcString,
                                         RestrictionType restrictionType) {
 
-        switch (restrictionType) {
-            case REQUIRE_CONSENT:
-                return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
-            case REQUIRE_LEGITIMATE_INTEREST:
-                return isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            case UNDEFINED:
-                return isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            default:
-                return false;
-        }
+        return switch (restrictionType) {
+            case REQUIRE_CONSENT -> isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
+            case REQUIRE_LEGITIMATE_INTEREST ->
+                    isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+            case UNDEFINED ->
+                    isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+            default -> false;
+        };
     }
 }
 

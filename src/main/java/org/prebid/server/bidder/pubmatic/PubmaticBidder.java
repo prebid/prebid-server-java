@@ -423,14 +423,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 ? ObjectUtils.defaultIfNull(bidExt.getBidType(), 0)
                 : 0;
 
-        switch (bidType) {
-            case 1:
-                return BidType.video;
-            case 2:
-                return BidType.xNative;
-            default:
-                return BidType.banner;
-        }
+        return switch (bidType) {
+            case 1 -> BidType.video;
+            case 2 -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 
     private static Integer getDuration(PubmaticBidExt bidExt) {

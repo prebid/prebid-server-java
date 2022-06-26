@@ -173,14 +173,10 @@ class GroupResult<T> {
             return null;
         }
 
-        switch (status) {
-            case success:
-                return ExecutionStatus.success;
-            case failure:
-                return ExecutionStatus.failure;
-            default:
-                throw new IllegalStateException(String.format("Unknown invocation status %s", status));
-        }
+        return switch (status) {
+            case success -> ExecutionStatus.success;
+            case failure -> ExecutionStatus.failure;
+        };
     }
 
     private static ExecutionAction toExecutionAction(InvocationAction action) {
@@ -188,16 +184,11 @@ class GroupResult<T> {
             return null;
         }
 
-        switch (action) {
-            case reject:
-                return ExecutionAction.reject;
-            case update:
-                return ExecutionAction.update;
-            case no_action:
-                return ExecutionAction.no_action;
-            default:
-                throw new IllegalStateException(String.format("Unknown invocation action %s", action));
-        }
+        return switch (action) {
+            case reject -> ExecutionAction.reject;
+            case update -> ExecutionAction.update;
+            case no_action -> ExecutionAction.no_action;
+        };
     }
 
     private static class RejectionNotSupportedException extends RuntimeException {

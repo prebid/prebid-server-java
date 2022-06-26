@@ -326,42 +326,29 @@ public class Tcf2Service {
     }
 
     private Purpose findPurposeByTcfPurpose(PurposeCode tcfPurpose, Purposes purposes) {
-        switch (tcfPurpose) {
-            case ONE:
-                return purposes.getP1();
-            case TWO:
-                return purposes.getP2();
-            case THREE:
-                return purposes.getP3();
-            case FOUR:
-                return purposes.getP4();
-            case FIVE:
-                return purposes.getP5();
-            case SIX:
-                return purposes.getP6();
-            case SEVEN:
-                return purposes.getP7();
-            case EIGHT:
-                return purposes.getP8();
-            case NINE:
-                return purposes.getP9();
-            case TEN:
-                return purposes.getP10();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %s", tcfPurpose));
-        }
+        return switch (tcfPurpose) {
+            case ONE -> purposes.getP1();
+            case TWO -> purposes.getP2();
+            case THREE -> purposes.getP3();
+            case FOUR -> purposes.getP4();
+            case FIVE -> purposes.getP5();
+            case SIX -> purposes.getP6();
+            case SEVEN -> purposes.getP7();
+            case EIGHT -> purposes.getP8();
+            case NINE -> purposes.getP9();
+            case TEN -> purposes.getP10();
+            default ->
+                    throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %s", tcfPurpose));
+        };
     }
 
     private SpecialFeature findSpecialFeatureById(int tcfSpecialFeaturesId, SpecialFeatures specialFeatures) {
-        switch (tcfSpecialFeaturesId) {
-            case 1:
-                return specialFeatures.getSf1();
-            case 2:
-                return specialFeatures.getSf2();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal TCF code for special feature: %d",
-                        tcfSpecialFeaturesId));
-        }
+        return switch (tcfSpecialFeaturesId) {
+            case 1 -> specialFeatures.getSf1();
+            case 2 -> specialFeatures.getSf2();
+            default -> throw new IllegalArgumentException(String.format("Illegal TCF code for special feature: %d",
+                    tcfSpecialFeaturesId));
+        };
     }
 
     private PurposeOneTreatmentInterpretation mergePurposeOneTreatmentInterpretation(

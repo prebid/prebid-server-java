@@ -172,18 +172,12 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         switch (impType) {
-            case banner:
-                impBuilder.banner(modifyBanner(imp, impInstlEqOne));
-                break;
-            case video:
-                impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
-                break;
-            case xNative:
-                impBuilder.xNative(modifyNative(imp.getXNative()));
-                break;
-            default:
-                // Do nothing for Audio
-                break;
+            case banner -> impBuilder.banner(modifyBanner(imp, impInstlEqOne));
+            case video -> impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
+            case xNative -> impBuilder.xNative(modifyNative(imp.getXNative()));
+            default -> {
+            }
+            // Do nothing for Audio
         }
         return impBuilder
                 .ext(null)

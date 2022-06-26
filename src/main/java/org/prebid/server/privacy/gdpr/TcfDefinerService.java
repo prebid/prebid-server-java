@@ -363,24 +363,14 @@ public class TcfDefinerService {
         }
 
         switch (requestLogInfo.getRequestType()) {
-            case amp:
-                AMP_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
-                break;
-            case openrtb2app:
-                APP_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
-                break;
-            case openrtb2web:
-                SITE_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
-                break;
-            case video:
-            case cookiesync:
-            case setuid:
-            default:
-                UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
+            case amp -> AMP_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
+            case openrtb2app -> APP_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+            case openrtb2web -> SITE_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
+            case video, cookiesync, setuid, default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
         }
     }
 

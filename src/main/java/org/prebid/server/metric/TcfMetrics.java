@@ -28,14 +28,11 @@ class TcfMetrics extends UpdatableMetrics {
     }
 
     TcfVersionMetrics fromVersion(int version) {
-        switch (version) {
-            case TCF_V1_VERSION:
-                return tcfVersion1Metrics;
-            case TCF_V2_VERSION:
-                return tcfVersion2Metrics;
-            default:
-                throw new PreBidException(String.format("Unknown tcf version %s", version));
-        }
+        return switch (version) {
+            case TCF_V1_VERSION -> tcfVersion1Metrics;
+            case TCF_V2_VERSION -> tcfVersion2Metrics;
+            default -> throw new PreBidException(String.format("Unknown tcf version %s", version));
+        };
     }
 
     private static String createTcfPrefix(String prefix) {

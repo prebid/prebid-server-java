@@ -80,29 +80,18 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
 
     private void handleDealsAction(DealsAction dealsAction) {
         switch (dealsAction) {
-            case UPDATE_LINE_ITEMS:
-                plannerService.updateLineItemMetaData();
-                break;
-            case SEND_REPORT:
-                deliveryStatsService.sendDeliveryProgressReports();
-                break;
-            case REGISTER_INSTANCE:
-                registerService.performRegistration();
-                break;
-            case RESET_ALERT_COUNT:
+            case UPDATE_LINE_ITEMS -> plannerService.updateLineItemMetaData();
+            case SEND_REPORT -> deliveryStatsService.sendDeliveryProgressReports();
+            case REGISTER_INSTANCE -> registerService.performRegistration();
+            case RESET_ALERT_COUNT -> {
                 alertHttpService.resetAlertCount("pbs-register-client-error");
                 alertHttpService.resetAlertCount("pbs-planner-client-error");
                 alertHttpService.resetAlertCount("pbs-planner-empty-response-error");
                 alertHttpService.resetAlertCount("pbs-delivery-stats-client-error");
-                break;
-            case CREATE_REPORT:
-                deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
-                break;
-            case INVALIDATE_LINE_ITEMS:
-                lineItemService.invalidateLineItems();
-                break;
-            default:
-                throw new IllegalStateException("Unexpected action value");
+            }
+            case CREATE_REPORT -> deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
+            case INVALIDATE_LINE_ITEMS -> lineItemService.invalidateLineItems();
+            default -> throw new IllegalStateException("Unexpected action value");
         }
     }
 
