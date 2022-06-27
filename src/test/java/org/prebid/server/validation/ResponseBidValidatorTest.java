@@ -596,6 +596,25 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldFailIfBidIsBannerAndMatchingLineItemDoesNotHaveSizes() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
+                BIDDER_NAME,
+                givenAuctionContext(givenRequest(imp -> imp
+                        .pmp(pmp(singletonList(deal(builder -> builder
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId", null,
+                                        null, null))))))))
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(400).build()))
+                                .build()))),
+                bidderAliases);
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Line item sizes were not found for bidId bidId1 and dealId dealId1");
+    }
+
+    @Test
     public void validateShouldSuccessIfBidIsBannerAndSizeHasNoMatchInLineItemForNonPgDeal() {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),

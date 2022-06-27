@@ -333,18 +333,24 @@ public class ResponseBidValidator {
                 }
 
                 if (isPgDeal(imp, dealId)) {
-                    validateIsInLineItemSizes(bid, bidId, imp);
+                    validateIsInLineItemSizes(bid, bidId, dealId, imp);
                 }
             }
         }
     }
 
-    private void validateIsInLineItemSizes(Bid bid, String bidId, Imp imp) throws ValidationException {
-        final List<Format> lineItemSizes = getLineItemSizes(imp);
+    private void validateIsInLineItemSizes(Bid bid, String bidId, String dealId, Imp imp) throws ValidationException {
+        final List<Format> lineItemSizes = getLineItemSizes(imp, dealId);
+        if (lineItemSizes.isEmpty()) {
+            throw new ValidationException(
+                    "Line item sizes were not found for bidId %s and dealId %s", bid.getId(), dealId);
+        }
+
         if (bidSizeNotInFormats(bid, lineItemSizes)) {
-            throw new ValidationException("Bid \"%s\" has 'w' and 'h' not matched to Line Item. Bid "
-                    + "dimensions: '%dx%d', Line Item sizes: '%s'", bidId, bid.getW(), bid.getH(),
-                    formatSizes(lineItemSizes));
+            throw new ValidationException(
+                    "Bid \"%s\" has 'w' and 'h' not matched to Line Item. Bid "
+                            + "dimensions: '%dx%d', Line Item sizes: '%s'",
+                    bidId, bid.getW(), bid.getH(), formatSizes(lineItemSizes));
         }
     }
 
@@ -384,8 +390,9 @@ public class ResponseBidValidator {
         return ListUtils.emptyIfNull(imp.getBanner().getFormat());
     }
 
-    private List<Format> getLineItemSizes(Imp imp) {
+    private List<Format> getLineItemSizes(Imp imp, String dealId) {
         return getDeals(imp)
+                .filter(deal -> dealId.equals(deal.getId()))
                 .map(Deal::getExt)
                 .filter(Objects::nonNull)
                 .map(this::dealExt)
@@ -424,7 +431,11 @@ public class ResponseBidValidator {
 
     private static String formatSizes(List<Format> lineItemSizes) {
         return lineItemSizes.stream()
-                .map(format -> String.format("%dx%d", format.getW(), format.getH()))
+                .map(ResponseBidValidator::formatSize)
                 .collect(Collectors.joining(","));
+    }
+
+    private static String formatSize(Format lineItemSize) {
+        return String.format("%dx%d", lineItemSize.getW(), lineItemSize.getH());
     }
 }
