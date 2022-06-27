@@ -14,9 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
@@ -164,7 +164,9 @@ public class HttpBidderRequester {
                 ? Collections.singletonList(BidderError.failedToRequestBids(
                 "The bidder failed to generate any bid requests, but also failed to generate an error"))
                 : bidderErrors;
-        return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), errors));
+
+        return Future.succeededFuture(BidderSeatBid.of(
+                Collections.emptyList(), Collections.emptyList(), errors, Collections.emptyList()));
     }
 
     /**
@@ -360,7 +362,7 @@ public class HttpBidderRequester {
                     : Collections.emptyList();
 
             final List<BidderError> errors = combineErrors(previousErrors, httpCalls, errorsRecorded);
-            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors);
+            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors, Collections.emptyList());
         }
 
         /**

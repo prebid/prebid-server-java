@@ -22,9 +22,12 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -159,6 +162,7 @@ public class ExchangeService {
     private final FpdResolver fpdResolver;
     private final SchainResolver schainResolver;
     private final DebugResolver debugResolver;
+    private final MediaTypeProcessor mediaTypeProcessor;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -183,6 +187,7 @@ public class ExchangeService {
                            FpdResolver fpdResolver,
                            SchainResolver schainResolver,
                            DebugResolver debugResolver,
+                           MediaTypeProcessor mediaTypeProcessor,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -210,6 +215,7 @@ public class ExchangeService {
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.schainResolver = Objects.requireNonNull(schainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
+        this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -1244,7 +1250,28 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+        final MediaTypeProcessingResult mediaTypeProcessingResult =
+                mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
+
+        if (mediaTypeProcessingResult.isRejected()) {
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    mediaTypeProcessingResult.getErrors());
+
+            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+        }
+
+        final BidderRequest modifiedBidderRequest = bidderRequest.with(mediaTypeProcessingResult.getBidRequest());
+
+        return httpBidderRequester
+                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+                .map(seatBid -> BidderSeatBid.of(
+                        seatBid.getBids(),
+                        seatBid.getHttpCalls(),
+                        seatBid.getErrors(),
+                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
@@ -1328,6 +1355,7 @@ public class ExchangeService {
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
+        final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
@@ -1365,7 +1393,7 @@ public class ExchangeService {
 
         final BidderResponse resultBidderResponse = errors.isEmpty()
                 ? bidderResponse
-                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors));
+                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors, warnings));
         return auctionParticipation.with(resultBidderResponse);
     }
 
@@ -1428,8 +1456,8 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse =
-                bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
+        final BidderResponse resultBidderResponse = bidderResponse.with(BidderSeatBid.of(
+                updatedBidderBids, seatBid.getHttpCalls(), errors, seatBid.getWarnings()));
         return auctionParticipation.with(resultBidderResponse);
     }
 

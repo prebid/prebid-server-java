@@ -38,6 +38,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -220,6 +223,9 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock
+    private MediaTypeProcessor mediaTypeProcessor;
+
+    @Mock
     private HttpBidderRequester httpBidderRequester;
 
     @Mock
@@ -346,6 +352,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -375,6 +382,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         schainResolver,
                         debugResolver,
+                        null,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -651,6 +659,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -1060,8 +1069,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
-                        singletonList(ExtHttpCall.builder().build()), emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.of(
+                        emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
 
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1087,8 +1096,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(),
-                singletonList(ExtHttpCall.builder().build()), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
+                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1124,7 +1133,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldNotAddDebugInfoIfPublisherIsNotAllowedToDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1155,7 +1164,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldNotAddDebugInfoIfBidderDisabledDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1271,9 +1280,11 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(auctionParticipations)
                 .extracting(AuctionParticipation::getBidderResponse)
                 .containsOnly(
-                        BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                                BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
-                        BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
+                        BidderResponse.of(
+                                "bidder2",
+                                BidderSeatBid.of(singletonList(BidderBid.of(expectedThirdBid, banner, null))),
+                                0),
+                        BidderResponse.of("bidder1", BidderSeatBid.empty(), 0));
 
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .auctionParticipations(auctionParticipations)
@@ -1573,7 +1584,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), banner, "USD");
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid), null, emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willReturn(singletonList(
                         AuctionParticipation.builder()
@@ -2639,6 +2650,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -3000,9 +3012,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
                         Bid.builder().id("bidId").impid("impId").price(price)
-                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
-                emptyList(),
-                emptyList()));
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null))));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder.app(App.builder()
@@ -3105,7 +3115,8 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.badServerResponse("rubicon error"),
                                 BidderError.failedToRequestBids("rubicon failed to request bids"),
                                 BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")))));
+                                BidderError.generic("timeout error")),
+                        emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -3435,7 +3446,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(AuctionParticipation.builder()
                         .bidder("bidder1")
                         .bidderResponse(BidderResponse.of(
-                                "bidder1", BidderSeatBid.of(singletonList(bidToAccept), null, emptyList()), 0))
+                                "bidder1", BidderSeatBid.of(singletonList(bidToAccept)), 0))
                         .build());
 
         // when
@@ -4280,6 +4291,67 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(BidderSeatBid::getBids).isEmpty();
     }
 
+    @Test
+    public void shouldResponseWithEmptySeatBidIfBidderNotSupportProvidedMediaTypes() {
+        // given
+        final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+
+        given(mediaTypeProcessor.process(any(), anyString()))
+                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
+                        BidderError.badInput("MediaTypeProcessor error."))));
+        given(bidResponseCreator.create(
+                argThat(argument -> argument.get(0)
+                        .getBidderResponse()
+                        .equals(BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        Collections.emptyList(),
+                                        Collections.emptyList(),
+                                        Collections.emptyList(),
+                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
+                                0))),
+                any(),
+                any(),
+                any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
+
+        exchangeService = new ExchangeService(
+                100,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsProcessor,
+                privacyEnforcementService,
+                fpdResolver,
+                schainResolver,
+                debugResolver,
+                mediaTypeProcessor,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager);
+
+        // when
+        final Future<AuctionContext> result = exchangeService.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidResponse)
+                .isEqualTo(BidResponse.builder().id("uniqId").build());
+    }
+
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
         return givenRequestContext(
                 bidRequest,
@@ -4359,7 +4431,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderSeatBid givenSeatBid(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, emptyList(), emptyList());
+        return BidderSeatBid.of(bids);
     }
 
     private static BidderSeatBid givenSingleSeatBid(BidderBid bid) {
