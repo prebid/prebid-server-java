@@ -19,6 +19,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * {@link BidderMediaTypeProcessor} is an implementation of {@link MediaTypeProcessor} that
+ * can be used to remove media types from {@link Imp} unsupported by specific bidder.
+ */
 public class BidderMediaTypeProcessor implements MediaTypeProcessor {
 
     private final BidderCatalog bidderCatalog;
@@ -94,7 +98,7 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
         }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        unsupportedMediaTypes.forEach(unsupportedMediaType -> removeMedia(impBuilder, unsupportedMediaType));
+        unsupportedMediaTypes.forEach(unsupportedMediaType -> removeMediaType(impBuilder, unsupportedMediaType));
 
         return impBuilder.build();
     }
@@ -109,7 +113,7 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(MediaType.class)));
     }
 
-    private static void removeMedia(Imp.ImpBuilder impBuilder, MediaType mediaType) {
+    private static void removeMediaType(Imp.ImpBuilder impBuilder, MediaType mediaType) {
         switch (mediaType) {
             case BANNER:
                 impBuilder.banner(null);
