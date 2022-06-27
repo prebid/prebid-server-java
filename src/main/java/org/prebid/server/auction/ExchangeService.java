@@ -1620,7 +1620,8 @@ public class ExchangeService {
         final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
                 extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null),
                 extModules,
-                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null));
+                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null),
+                extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null));
 
         final ExtBidResponse updatedExt = ext
                 .map(ExtBidResponse::toBuilder)
