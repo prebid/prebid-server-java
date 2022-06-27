@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 import spock.lang.Shared
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
@@ -267,6 +268,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
+    @Retry
     def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
@@ -287,7 +289,8 @@ class AmpSpec extends BaseSpec {
         def ampResponse = pbsService.sendAmpRequest(ampRequest)
 
         then: "Actual bid request ID should be different from incoming bid request id"
-        def bidderRequest = bidder.getBidderRequest(ampResponse.ext?.debug?.resolvedRequest?.id)
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def bidderRequest = bidder.getBidderRequest(requestId)
         assert bidderRequest.id != bidRequestId
 
         where:
