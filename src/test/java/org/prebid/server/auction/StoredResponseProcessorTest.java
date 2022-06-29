@@ -356,7 +356,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
-    public void applyStoredBidResponseAdjustmentsShouldNotModifyParticipationWithMoreThanOneImp() {
+    public void updateStoredBidResponseShouldNotModifyParticipationWithMoreThanOneImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder().build(), Imp.builder().build()))
@@ -384,7 +384,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
-    public void applyStoredBidResponseAdjustmentsShouldReplaceAllBidImpIdMacrosForStoredResponseParticipation() {
+    public void updateStoredBidResponseShouldReplaceAllBidImpIdMacrosForStoredResponseParticipation() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").build()))
