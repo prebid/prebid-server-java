@@ -101,40 +101,38 @@ public class StoredResponseProcessor {
                 .collect(Collectors.toList());
     }
 
-    public List<AuctionParticipation> applyStoredBidResponseAdjustments(
-            List<AuctionParticipation> auctionParticipations) {
-
+    public List<AuctionParticipation> updateStoredBidResponse(List<AuctionParticipation> auctionParticipations) {
         return auctionParticipations.stream()
-                .map(StoredResponseProcessor::applyStoredBidResponseAdjustments)
+                .map(StoredResponseProcessor::updateStoredBidResponse)
                 .collect(Collectors.toList());
     }
 
-    private static AuctionParticipation applyStoredBidResponseAdjustments(AuctionParticipation auctionParticipation) {
+    private static AuctionParticipation updateStoredBidResponse(AuctionParticipation auctionParticipation) {
         final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final List<Imp> imps = bidRequest.getImp();
-        // for now, Stored Bid Response works only for bid requests with single imp
+        // Аor now, Stored Bid Response works only for bid requests with single imp
         if (imps.size() > 1 || StringUtils.isEmpty(bidderRequest.getStoredResponse())) {
             return auctionParticipation;
         }
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid initialSeatBid = bidderResponse.getSeatBid();
-        final BidderSeatBid adjustedSeatBid = adjustSeatBid(initialSeatBid, imps.get(0).getId());
+        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.get(0).getId());
 
         return auctionParticipation.with(bidderResponse.with(adjustedSeatBid));
     }
 
-    private static BidderSeatBid adjustSeatBid(BidderSeatBid bidderSeatBid, String impId) {
+    private static BidderSeatBid updateSeatBid(BidderSeatBid bidderSeatBid, String impId) {
         final List<BidderBid> bids = bidderSeatBid.getBids().stream()
-                .map(bidderBid -> adjustBidImpId(bidderBid, impId))
+                .map(bidderBid -> resolveBidImpId(bidderBid, impId))
                 .collect(Collectors.toList());
 
         return bidderSeatBid.with(bids);
     }
 
-    private static BidderBid adjustBidImpId(BidderBid bidderBid, String impId) {
+    private static BidderBid resolveBidImpId(BidderBid bidderBid, String impId) {
         final Bid bid = bidderBid.getBid();
         final String bidImpId = bid.getImpid();
         if (!bidImpId.contains(PBS_IMPID_MACRO)) {

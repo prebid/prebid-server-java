@@ -282,7 +282,7 @@ public class ExchangeService {
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
 
-                .map(storedResponseProcessor::applyStoredBidResponseAdjustments)
+                .map(storedResponseProcessor::updateStoredBidResponse)
                 .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
                 .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))

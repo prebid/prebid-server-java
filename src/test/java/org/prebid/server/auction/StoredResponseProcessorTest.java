@@ -379,7 +379,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = storedResponseProcessor
-                .applyStoredBidResponseAdjustments(singletonList(requestAuctionParticipation));
+                .updateStoredBidResponse(singletonList(requestAuctionParticipation));
 
         // then
         assertThat(result).containsExactly(requestAuctionParticipation);
@@ -407,7 +407,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = storedResponseProcessor
-                .applyStoredBidResponseAdjustments(singletonList(requestAuctionParticipation));
+                .updateStoredBidResponse(singletonList(requestAuctionParticipation));
 
         // then
         final List<BidderBid> expectedBids = List.of(
