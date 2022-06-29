@@ -655,14 +655,14 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      */
     private static BidderResponse removeRejectedBids(BidderResponse bidderResponse, List<String> rejectedBidIds) {
         final String bidder = bidderResponse.getBidder();
+        final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
-        final List<BidderBid> survivedBidderBids = bidderResponse.getSeatBid().getBids().stream()
+        final List<BidderBid> survivedBidderBids = bidderSeatBid.getBids().stream()
                 .filter(bidderBid -> !rejectedBidIds.contains(bidderBid.getBid().getId()))
                 .collect(Collectors.toList());
 
-        final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
         return BidderResponse.of(bidder,
-                BidderSeatBid.of(survivedBidderBids, bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors()),
+                bidderSeatBid.with(survivedBidderBids),
                 bidderResponse.getResponseTime());
     }
 
