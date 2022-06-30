@@ -135,7 +135,7 @@ public class StoredResponseProcessor {
     private static BidderBid resolveBidImpId(BidderBid bidderBid, String impId) {
         final Bid bid = bidderBid.getBid();
         final String bidImpId = bid.getImpid();
-        if (!bidImpId.contains(PBS_IMPID_MACRO)) {
+        if (!StringUtils.contains(bidImpId, PBS_IMPID_MACRO)) {
             return bidderBid;
         }
 
