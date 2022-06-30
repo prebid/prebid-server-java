@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
@@ -10,6 +11,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -46,6 +48,7 @@ public class StoredResponseProcessor {
 
     private static final String PREBID_EXT = "prebid";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String PBS_IMPID_MACRO = "##PBSIMPID##";
 
     private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPE =
             new TypeReference<>() {
@@ -96,6 +99,49 @@ public class StoredResponseProcessor {
         return imps.stream()
                 .filter(imp -> !auctionStoredResponseToImpId.containsValue(imp.getId()))
                 .collect(Collectors.toList());
+    }
+
+    public List<AuctionParticipation> updateStoredBidResponse(List<AuctionParticipation> auctionParticipations) {
+        return auctionParticipations.stream()
+                .map(StoredResponseProcessor::updateStoredBidResponse)
+                .collect(Collectors.toList());
+    }
+
+    private static AuctionParticipation updateStoredBidResponse(AuctionParticipation auctionParticipation) {
+        final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
+
+        final List<Imp> imps = bidRequest.getImp();
+        // Аor now, Stored Bid Response works only for bid requests with single imp
+        if (imps.size() > 1 || StringUtils.isEmpty(bidderRequest.getStoredResponse())) {
+            return auctionParticipation;
+        }
+
+        final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
+        final BidderSeatBid initialSeatBid = bidderResponse.getSeatBid();
+        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.get(0).getId());
+
+        return auctionParticipation.with(bidderResponse.with(adjustedSeatBid));
+    }
+
+    private static BidderSeatBid updateSeatBid(BidderSeatBid bidderSeatBid, String impId) {
+        final List<BidderBid> bids = bidderSeatBid.getBids().stream()
+                .map(bidderBid -> resolveBidImpId(bidderBid, impId))
+                .collect(Collectors.toList());
+
+        return bidderSeatBid.with(bids);
+    }
+
+    private static BidderBid resolveBidImpId(BidderBid bidderBid, String impId) {
+        final Bid bid = bidderBid.getBid();
+        final String bidImpId = bid.getImpid();
+        if (!bidImpId.contains(PBS_IMPID_MACRO)) {
+            return bidderBid;
+        }
+
+        return bidderBid.toBuilder()
+                .bid(bid.toBuilder().impid(bidImpId.replace(PBS_IMPID_MACRO, impId)).build())
+                .build();
     }
 
     List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,

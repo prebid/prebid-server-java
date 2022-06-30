@@ -328,6 +328,8 @@ public class ExchangeServiceTest extends VertxTest {
                         emptyMap())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
+        given(storedResponseProcessor.updateStoredBidResponse(any()))
+                .willAnswer(inv -> inv.getArgument(0));
 
         given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -2711,6 +2713,26 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.getBidResponse().getSeatbid())
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getPrice).containsExactly(updatedPrice);
+    }
+
+    @Test
+    public void shouldApplyStoredBidResponseAdjustments() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                givenBid(Bid.builder().impid("impId").price(BigDecimal.ONE).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("bidder", 2), identity())), identity());
+
+        given(currencyService.convertCurrency(any(), any(), any(), any()))
+                .willReturn(TEN);
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(storedResponseProcessor).updateStoredBidResponse(any());
     }
 
     @Test
