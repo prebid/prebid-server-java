@@ -89,9 +89,12 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .collect(Collectors.toSet())));
 
         if (impsToDealInfo.values().stream().noneMatch(CollectionUtils::isNotEmpty)) {
-            return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
+            return Future.succeededFuture(BidderSeatBid.of(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
                     Collections.singletonList(BidderError.failedToRequestBids(
-                            "Matched or ready to serve line items were not found, but required in simulation mode"))));
+                            "Matched or ready to serve line items were not found, but required in simulation mode")),
+                    Collections.emptyList()));
         }
 
         final List<BidderBid> bidderBids = impsToDealInfo.entrySet().stream()
@@ -103,7 +106,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                 .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_CURRENCY))
                 .collect(Collectors.toList());
 
-        return Future.succeededFuture(BidderSeatBid.of(bidderBids, Collections.emptyList(), Collections.emptyList()));
+        return Future.succeededFuture(BidderSeatBid.of(bidderBids));
     }
 
     private String getLineItemId(Deal deal) {
