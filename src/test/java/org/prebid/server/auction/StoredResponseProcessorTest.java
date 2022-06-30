@@ -356,6 +356,34 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void updateStoredBidResponseShouldTolerateMissingBidImpId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("imp1").build()))
+                .build();
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+
+        final BidderResponse bidderResponse = BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                100);
+
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderRequest(bidderRequest)
+                .bidderResponse(bidderResponse)
+                .build();
+
+        // when
+        final List<AuctionParticipation> result = storedResponseProcessor
+                .updateStoredBidResponse(singletonList(requestAuctionParticipation));
+
+        // then
+        assertThat(result).containsExactly(requestAuctionParticipation);
+    }
+
+    @Test
     public void updateStoredBidResponseShouldNotModifyParticipationWithMoreThanOneImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
