@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
@@ -143,13 +144,14 @@ class AuctionSpec extends BaseSpec {
         def defaultRequest = PBSUtils.createJsonFile(defaultRequestModel)
 
         and: "Pbs config with default request"
-        def pbsContainer = new PrebidServerContainer(
-                ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
-                 "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                 "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]).tap {
-            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
+        def configuration = ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
+                             "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+                             "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
+        def pbsContainer = new PrebidServerContainer(configuration).tap {
+            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR)
+        }
         pbsContainer.start()
-        def pbsService = new PrebidServerService(pbsContainer, mapper)
+        def pbsService = new PrebidServerService(new ContainerWrapper<PrebidServerContainer>(pbsContainer, configuration), mapper)
 
         and: "Default basic BidRequest with timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {

@@ -1,5 +1,7 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.ConfigDao
@@ -17,6 +19,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.GenericContainer
+import spock.lang.Retry
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
@@ -50,9 +53,11 @@ abstract class BaseSpec extends Specification {
     }
 
     def cleanupSpec() {
-        bidder.reset()
-        prebidCache.reset()
-        repository.removeAllDatabaseData()
+        // TODO should be removed because of simultaneous tests execution.
+        //  But check that it doesn't break anything.
+        //        bidder.reset()
+        //        prebidCache.reset()
+        //        repository.removeAllDatabaseData()
     }
 
     def cleanup() {
@@ -89,7 +94,11 @@ abstract class BaseSpec extends Specification {
 
     protected PrebidServerService getPbsService(Map<String, String> config) {
         PrebidServerContainer prebidServerContainer = new PrebidServerContainer(config)
-        new PrebidServerService(acquireContainer(prebidServerContainer, config), mapper)
+        new PrebidServerService(acquireContainer(prebidServerContainer, config), mapper).tap { pbsService ->
+            // TODO check whether it is necessary at all
+            // request to "warm up" a PBS service
+            pbsService.sendAuctionRequest(BidRequest.defaultBidRequest)
+        }
     }
 
     protected PrebidServerService getDefaultPbsService() {

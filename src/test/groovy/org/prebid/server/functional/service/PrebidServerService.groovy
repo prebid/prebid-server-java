@@ -88,7 +88,7 @@ class PrebidServerService {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
-        response.as(BidResponse)
+        mapper.decode(response.body().asString(), BidResponse)
     }
 
     @Step("[POST RAW] /openrtb2/auction")
@@ -106,7 +106,7 @@ class PrebidServerService {
         def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response)
-        response.as(AmpResponse)
+        mapper.decode(response.body().asString(), AmpResponse)
     }
 
     @Step("[GET RAW] /openrtb2/amp")
@@ -126,7 +126,7 @@ class PrebidServerService {
                                                   .post(COOKIE_SYNC_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(CookieSyncResponse)
+        mapper.decode(response.body().asString(), CookieSyncResponse)
     }
 
     @Step("[POST] /cookie_sync with cookie")
@@ -140,7 +140,7 @@ class PrebidServerService {
                                                   .post(COOKIE_SYNC_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(CookieSyncResponse)
+        mapper.decode(response.body().asString(), CookieSyncResponse)
     }
 
     @Step("[GET] /setuid")
@@ -168,7 +168,7 @@ class PrebidServerService {
                                                   .get(GET_UIDS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(GetuidResponse)
+        mapper.decode(response.body().asString(), GetuidResponse)
     }
 
     @Step("[GET] /event")
@@ -188,7 +188,7 @@ class PrebidServerService {
                                                   .post(VTRACK_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(PrebidCacheResponse)
+        mapper.decode(response.body().asString(), PrebidCacheResponse)
     }
 
     @Step("[GET] /status")
@@ -196,7 +196,7 @@ class PrebidServerService {
         def response = given(requestSpecification).get(STATUS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(StatusResponse)
+        mapper.decode(response.body().asString(), StatusResponse)
     }
 
     @Step("[GET] /info/bidders")
@@ -222,7 +222,7 @@ class PrebidServerService {
         def response = given(requestSpecification).get("$INFO_BIDDERS_ENDPOINT/$bidderName.value")
 
         checkResponseStatusCode(response)
-        response.as(BidderInfoResponse)
+        mapper.decode(response.body().asString(), BidderInfoResponse)
     }
 
     @Step("[GET] /bidders/params")
@@ -230,7 +230,7 @@ class PrebidServerService {
         def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(BiddersParamsResponse)
+        mapper.decode(response.body().asString(), BiddersParamsResponse)
     }
 
     @Step("[GET] /currency/rates")
@@ -238,7 +238,7 @@ class PrebidServerService {
         def response = given(adminRequestSpecification).get(CURRENCY_RATES_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(CurrencyRatesResponse)
+        mapper.decode(response.body().asString(), CurrencyRatesResponse)
     }
 
     @Step("[GET] /logging/httpinteraction")
