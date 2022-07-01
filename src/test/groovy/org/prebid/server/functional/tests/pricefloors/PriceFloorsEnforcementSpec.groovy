@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
@@ -10,10 +11,12 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.MultiBid
+import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
@@ -81,7 +84,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [6]
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
-                         "price $lowerPrice is below the floor $floorValue" as String]
+                         "price $lowerPrice is below the floor ${floorValue.stripTrailingZeros()}" as String]
 
         where:
         descriprion       | floors
@@ -130,9 +133,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC]*.code == [6, 6]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Bid with id '${bidResponse.seatbid[0].bid[1].id}' was rejected by floor enforcement: " +
-                         "price ${bidResponse.seatbid[0].bid[1].price} is below the floor $floorValue" as String,
+                         "price ${bidResponse.seatbid[0].bid[1].price} is below the floor ${floorValue.stripTrailingZeros()}" as String,
                  "Bid with id '${bidResponse.seatbid[0].bid[2].id}' was rejected by floor enforcement: " +
-                         "price ${bidResponse.seatbid[0].bid[2].price} is below the floor $floorValue" as String]
+                         "price ${bidResponse.seatbid[0].bid[2].price} is below the floor ${floorValue.stripTrailingZeros()}" as String]
 
         where:
         enforcePbs << [true, null]
@@ -225,11 +228,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceDealFloors = false
         }
         def pbsService = getPbsService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.targeting = new Targeting(preferDeals: true)
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: true))
         }
 
@@ -274,11 +277,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
         }
         def pbsService = getPbsService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.targeting = new Targeting(preferDeals: true)
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: floorDeals, enforcePbs: enforcePbs))
         }
 
@@ -330,7 +333,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceRate
         }
         def pbsService = getPbsService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -385,7 +388,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
         }
         def pbsService = getPbsService(floorsConfig +
-                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -472,5 +475,77 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         then: "PBS should suppress bid lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.first().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
+    }
+
+    def "PBS floor enforcement shouldn't fail when bidder request was not made"() {
+        given: "BidRequestWithFloors with Stored Auction Response and Floors enabled = #bidRequestFloors"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = getBidRequestWithFloors().tap {
+            ext.prebid.floors.enabled = bidRequestFloors
+            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
+        }
+
+        and: "Stored response in DB"
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request shouldn't fail with an error"
+        def thrown = noExceptionThrown()
+        assert !thrown
+
+        and: "PBS shouldn't log errors"
+        assert !response.ext.errors
+
+        where: bidRequestFloors << [true, false]
+    }
+
+     def "PBS floors shouldn't enforce when floors property disabled"() {
+        given: "BidRequestWithFloors with floors"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            ext.prebid.floors = new ExtPrebidFloors(enabled: bidRequestFloors)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = accountConfigFloors
+        }
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(bidRequest)
+
+        and: "Bid response with bid price"
+        def bidPrice = floorValue - 0.1
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.first().price = bidPrice
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't suppress bid lower than floorRuleValue"
+        assert response.seatbid.first().bid.collect { it.price } == [bidPrice]
+
+        where:
+        bidRequestFloors     | accountConfigFloors
+        false                | true
+        true                 | false
+        false                | false
     }
 }

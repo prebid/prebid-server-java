@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -22,9 +21,10 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
+import org.prebid.server.bidder.adnuntius.model.util.AdsUnitWithImpId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
@@ -188,30 +189,40 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<AdnuntiusRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<AdnuntiusRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
             final AdnuntiusResponse bidResponse = mapper.decodeValue(body, AdnuntiusResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidRequest, bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(AdnuntiusResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, AdnuntiusResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getAdsUnits())) {
             return Collections.emptyList();
         }
 
-        final List<AdnuntiusAdsUnit> validAdsUnits = bidResponse.getAdsUnits().stream()
-                .filter(AdnuntiusBidder::validateAdsUnit).collect(Collectors.toList());
+        final List<AdnuntiusAdsUnit> adsUnits = bidResponse.getAdsUnits();
+        final List<Imp> imps = bidRequest.getImp();
+        if (adsUnits.size() > imps.size()) {
+            throw new PreBidException("Impressions count is less then ads units count.");
+        }
 
-        if (validAdsUnits.isEmpty()) {
+        final List<AdsUnitWithImpId> validAdsUnitToImpId = IntStream.range(0, adsUnits.size())
+                .mapToObj(i -> AdsUnitWithImpId.of(adsUnits.get(i), imps.get(i).getId()))
+                .filter(adsUnitWithImpId -> validateAdsUnit(adsUnitWithImpId.getAdsUnit()))
+                .collect(Collectors.toList());
+
+        if (validAdsUnitToImpId.isEmpty()) {
             return Collections.emptyList();
         }
 
-        final String currency = extractCurrency(validAdsUnits);
-        return validAdsUnits.stream().map(adsUnit -> makeBid(adsUnit, currency)).collect(Collectors.toList());
+        final String currency = extractCurrency(validAdsUnitToImpId);
+        return validAdsUnitToImpId.stream()
+                .map(adsUnitWithImpId -> makeBid(adsUnitWithImpId.getAdsUnit(), adsUnitWithImpId.getImpId(), currency))
+                .collect(Collectors.toList());
     }
 
     private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
@@ -219,17 +230,17 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return CollectionUtils.isNotEmpty(ads) && ads.get(0) != null;
     }
 
-    private static String extractCurrency(List<AdnuntiusAdsUnit> adsUnits) {
-        final AdnuntiusBid bid = adsUnits.get(adsUnits.size() - 1).getAds().get(0).getBid();
+    private static String extractCurrency(List<AdsUnitWithImpId> adsUnits) {
+        final AdnuntiusBid bid = adsUnits.get(adsUnits.size() - 1).getAdsUnit().getAds().get(0).getBid();
         return ObjectUtil.getIfNotNull(bid, AdnuntiusBid::getCurrency);
     }
 
-    private static BidderBid makeBid(AdnuntiusAdsUnit adsUnit, String currency) {
+    private static BidderBid makeBid(AdnuntiusAdsUnit adsUnit, String impId, String currency) {
         final AdnuntiusAd ad = adsUnit.getAds().get(0);
         final String adId = ad.getAdId();
         final Bid bid = Bid.builder()
                 .id(adId)
-                .impid(extractImpId(adsUnit))
+                .impid(impId)
                 .w(parseMeasure(ad.getCreativeWidth()))
                 .h(parseMeasure(ad.getCreativeHeight()))
                 .adid(adId)
@@ -241,15 +252,6 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .build();
 
         return BidderBid.of(bid, BidType.banner, currency);
-    }
-
-    private static String extractImpId(AdnuntiusAdsUnit adsUnit) {
-        final String targetId = adsUnit.getTargetId();
-        final String auId = adsUnit.getAuId();
-
-        return ObjectUtils.allNotNull(targetId, auId) && targetId.startsWith(auId + TARGET_ID_DELIMITER)
-                ? targetId.substring(auId.length() + TARGET_ID_DELIMITER.length())
-                : null;
     }
 
     private static Integer parseMeasure(String measure) {

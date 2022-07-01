@@ -19,6 +19,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.CombinatoricsUtils;
@@ -99,6 +100,10 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     Format format,
                                     List<String> warnings) {
 
+        if (isPriceFloorsDisabledForRequest(bidRequest)) {
+            return null;
+        }
+
         final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floorRules);
 
         if (modelGroup == null) {
@@ -143,6 +148,19 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         return null;
+    }
+
+    private static boolean isPriceFloorsDisabledForRequest(BidRequest bidRequest) {
+        final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
+        final Boolean enabled = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
+        final Boolean skipped = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getSkipped);
+
+        return BooleanUtils.isFalse(enabled) || BooleanUtils.isTrue(skipped);
+    }
+
+    private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
     private static PriceFloorModelGroup extractFloorModelGroup(PriceFloorRules floors) {

@@ -12,7 +12,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.ContainerFactory
 import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
@@ -25,12 +24,11 @@ import spock.lang.Specification
 import static java.math.RoundingMode.DOWN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
-@PBSTest
-abstract class BaseSpec extends Specification {
+abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
+
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
 
     protected static final AccountDao accountDao = repository.accountDao

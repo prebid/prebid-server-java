@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRe
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.ContainerWrapper
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
@@ -13,28 +12,26 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.Alert
 import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatistics
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 import spock.lang.Execution
 import spock.lang.Shared
 import spock.lang.Specification
 
 import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
-@PBSTest
 @Execution(SAME_THREAD)
+@Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
 // TODO migrate this to extend BaseSpec
 abstract class BasePgSpec extends Specification {
 
-    protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
-
-    protected static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer, mapper)
-    protected static final DeliveryStatistics deliveryStatistics = new DeliveryStatistics(Dependencies.networkServiceContainer, mapper)
-    protected static final Alert alert = new Alert(Dependencies.networkServiceContainer, mapper)
-    protected static final UserData userData = new UserData(Dependencies.networkServiceContainer, mapper)
+    protected static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer)
+    protected static final DeliveryStatistics deliveryStatistics = new DeliveryStatistics(Dependencies.networkServiceContainer)
+    protected static final Alert alert = new Alert(Dependencies.networkServiceContainer)
+    protected static final UserData userData = new UserData(Dependencies.networkServiceContainer)
 
     protected static final PbsPgConfig pgConfig = new PbsPgConfig(Dependencies.networkServiceContainer)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
+    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
 
     @Shared
     protected final PrebidServerService pgPbsService = getService(pgConfig.properties)

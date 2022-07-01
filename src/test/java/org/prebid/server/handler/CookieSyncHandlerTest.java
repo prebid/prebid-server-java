@@ -44,6 +44,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -639,7 +640,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, true, null, null, null, null, null, null, 2, true, false));
+                .willReturn(BidderInfo.create(
+                        true,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        2,
+                        true,
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -702,8 +715,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, true, null, null, null,
-                        null, null, null, 2, true, false));
+                .willReturn(BidderInfo.create(
+                        true,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        2,
+                        true,
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
@@ -733,7 +757,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, true, null, null, null, null, null, null, 2, true, false));
+                .willReturn(BidderInfo.create(
+                        true,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        2,
+                        true,
+                        false,
+                        CompressionType.NONE));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -1465,8 +1501,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
-        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(
-                BidderInfo.create(true, true, null, null, null, null, null, null, 2, true, false));
+        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(
+                true,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                2,
+                true,
+                false,
+                CompressionType.NONE));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 

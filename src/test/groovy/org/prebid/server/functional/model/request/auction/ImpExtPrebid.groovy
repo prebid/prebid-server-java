@@ -11,7 +11,9 @@ class ImpExtPrebid {
     Bidder bidder
     StoredAuctionResponse storedAuctionResponse
     List<StoredBidResponse> storedBidResponse
+    PrebidStoredRequest storedRequest
     ImpExtPrebidFloors floors
+    Map passThrough
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {

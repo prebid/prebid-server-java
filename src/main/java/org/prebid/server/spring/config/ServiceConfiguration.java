@@ -24,9 +24,13 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -249,6 +253,7 @@ public class ServiceConfiguration {
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -267,6 +272,7 @@ public class ServiceConfiguration {
                 dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 
@@ -295,6 +301,11 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
+    }
+
+    @Bean
+    BidAdjustmentFactorResolver bidAdjustmentFactorResolver() {
+        return new BidAdjustmentFactorResolver();
     }
 
     @Bean
@@ -517,6 +528,22 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
+    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "auction.filter-imp-media-type",
+            name = "enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    MediaTypeProcessor noOpMediaTypeProcessor() {
+        return new NoOpMediaTypeProcessor();
+    }
+
+    @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
@@ -537,8 +564,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
-        return new HttpBidderRequestEnricher(prebidVersionProvider);
+    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider,
+                                                        BidderCatalog bidderCatalog) {
+
+        return new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
     }
 
     @Bean
@@ -599,6 +628,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
             DebugResolver debugResolver,
+            MediaTypeProcessor mediaTypeProcessor,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -609,6 +639,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -623,6 +654,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                mediaTypeProcessor,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -633,6 +665,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 mapper,

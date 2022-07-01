@@ -16,9 +16,9 @@ public class MetaInfo {
     @NotBlank
     private String maintainerEmail;
 
-    private List<String> appMediaTypes;
+    private List<MediaType> appMediaTypes;
 
-    private List<String> siteMediaTypes;
+    private List<MediaType> siteMediaTypes;
 
     private List<String> supportedVendors;
 

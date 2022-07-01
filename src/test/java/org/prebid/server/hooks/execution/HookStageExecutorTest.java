@@ -2086,17 +2086,11 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future1 = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                emptyList(),
-                                emptyList()),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                         0),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 = executor.executeRawBidderResponseStage(
-                BidderResponse.of(
-                        "bidder2",
-                        BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
-                        0),
+                BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
                 auctionContext);
 
         // then
@@ -2149,10 +2143,7 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                emptyList(),
-                                emptyList()),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                         0),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
@@ -2251,18 +2242,13 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                        emptyList(),
-                                        emptyList()),
+                                BidderSeatBid.of(singletonList(
+                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                                 0),
                         auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
                 executor.executeProcessedBidderResponseStage(
-                        BidderResponse.of(
-                                "bidder2",
-                                BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
-                                0),
+                        BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
                         auctionContext);
 
         // then
@@ -2317,10 +2303,8 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                        emptyList(),
-                                        emptyList()),
+                                BidderSeatBid.of(singletonList(
+                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                                 0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())

@@ -79,7 +79,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return auctionContext.with(updatedBidRequest);
     }
 
-    private boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
+    private static boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
         return isPriceFloorsDisabledForAccount(account) || isPriceFloorsDisabledForRequest(bidRequest);
     }
 
@@ -389,13 +389,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return floors.toBuilder()
                 .skipRate(skipRate)
                 .enabled(true)
+                .skipped(false)
                 .build();
     }
 
     private static PriceFloorRules skippedFloors(PriceFloorRules floors, Integer skipRate) {
         return floors.toBuilder()
                 .skipRate(skipRate)
-                .enabled(false)
+                .enabled(true)
                 .skipped(true)
                 .build();
     }

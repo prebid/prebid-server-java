@@ -39,6 +39,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PriceFloorFetcher {
 
@@ -46,6 +48,9 @@ public class PriceFloorFetcher {
 
     private static final int ACCOUNT_FETCH_TIMEOUT_MS = 5000;
     private static final int MAXIMUM_CACHE_SIZE = 300;
+    private static final int MIN_MAX_AGE_SEC_VALUE = 600;
+    private static final int MAX_AGE_SEC_VALUE = Integer.MAX_VALUE;
+    private static final Pattern CACHE_CONTROL_HEADER_PATTERN = Pattern.compile("^.*max-age=(\\d+).*$");
 
     private final ApplicationSettings applicationSettings;
     private final Metrics metrics;
@@ -196,18 +201,18 @@ public class PriceFloorFetcher {
     }
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {
-        final String cacheMaxAge = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+        final String cacheControlValue = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+        final Matcher cacheHeaderMatcher = StringUtils.isNotBlank(cacheControlValue)
+                ? CACHE_CONTROL_HEADER_PATTERN.matcher(cacheControlValue)
+                : null;
 
-        if (StringUtils.isNotBlank(cacheMaxAge) && cacheMaxAge.contains("max-age")) {
-            final String[] maxAgeRecord = cacheMaxAge.split("=");
-            if (maxAgeRecord.length == 2) {
-                try {
-                    return Long.parseLong(maxAgeRecord[1]);
-                } catch (NumberFormatException e) {
-                    logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
-                            cacheMaxAge,
-                            fetchUrl));
-                }
+        if (cacheHeaderMatcher != null && cacheHeaderMatcher.matches()) {
+            try {
+                return Long.parseLong(cacheHeaderMatcher.group(1));
+            } catch (NumberFormatException e) {
+                logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
+                        cacheControlValue,
+                        fetchUrl));
             }
         }
 
@@ -222,17 +227,32 @@ public class PriceFloorFetcher {
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRulesData(), cacheInfo.getFetchStatus(), maxAgeTimerId);
 
-        if (cacheInfo.getRulesData() != null || !fetchedData.containsKey(accountId)) {
+        if (cacheInfo.getFetchStatus() == FetchStatus.success || !fetchedData.containsKey(accountId)) {
             fetchedData.put(accountId, fetchContext);
-            fetchInProgress.remove(accountId);
         }
+
+        fetchInProgress.remove(accountId);
 
         return fetchContext.getRulesData();
     }
 
-    private long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
+    private static long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
+        final Long headerCacheTtl = cacheInfo.getCacheTtl();
 
-        return ObjectUtils.defaultIfNull(cacheInfo.getCacheTtl(), fetchConfig.getMaxAgeSec());
+        return isValidMaxAge(headerCacheTtl, fetchConfig) ? headerCacheTtl : fetchConfig.getMaxAgeSec();
+    }
+
+    private static boolean isValidMaxAge(Long headerCacheTtl, AccountPriceFloorsFetchConfig fetchConfig) {
+        final Long periodSec = fetchConfig.getPeriodSec();
+        final long minMaxAgeValue = periodSec != null
+                ? Math.max(MIN_MAX_AGE_SEC_VALUE, periodSec)
+                : MIN_MAX_AGE_SEC_VALUE;
+
+        return headerCacheTtl != null && isInMaxAgeRange(headerCacheTtl, minMaxAgeValue);
+    }
+
+    private static boolean isInMaxAgeRange(long number, long min) {
+        return Math.max(min, number) == Math.min(number, MAX_AGE_SEC_VALUE);
     }
 
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {
