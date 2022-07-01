@@ -13,8 +13,8 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatis
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Retry
 import spock.lang.Execution
+import spock.lang.Retry
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -36,11 +36,16 @@ abstract class BasePgSpec extends Specification {
     @Shared
     protected final PrebidServerService pgPbsService = getService(pgConfig.properties)
 
+    private static Map<Map<String, String>, PrebidServerContainer> containerConfigMap = [:]
+
     protected static PrebidServerService getService(Map<String, String> config) {
-        PrebidServerContainer prebidServerContainer = new PrebidServerContainer(config).tap {
-            start()
+        if (!containerConfigMap.containsKey(config)) {
+            new PrebidServerContainer(config).tap { pbsContainer ->
+                start()
+                containerConfigMap << [(config): pbsContainer]
+            }
         }
-        new PrebidServerService(new ContainerWrapper(prebidServerContainer, config), mapper)
+        new PrebidServerService(new ContainerWrapper(containerConfigMap[config], config))
     }
 
     def setupSpec() {

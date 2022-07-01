@@ -165,6 +165,6 @@ class SchainSpec extends BaseSpec {
     }
 
     private PrebidServerService getSchainPbsService() {
-        getPbsService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
+        getPbsService(["auction.host-schain-node": encode(GLOBAL_SCHAIN_NODE)])
     }
 }

@@ -157,8 +157,7 @@ class AuctionSpec extends BaseSpec {
             withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR)
         }
         pbsContainer.start()
-        // TODO
-        def pbsService = new PrebidServerService(new ContainerWrapper<PrebidServerContainer>(pbsContainer, configuration), mapper)
+        def pbsService = new PrebidServerService(new ContainerWrapper<PrebidServerContainer>(pbsContainer, configuration))
 
         and: "Default basic BidRequest with timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -250,7 +249,7 @@ class AuctionSpec extends BaseSpec {
 
     def "PBS should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
+        def pbsService = getPbsService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
 
         and: "Flush metrics"
         flushMetrics(pbsService)

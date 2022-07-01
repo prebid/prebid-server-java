@@ -19,7 +19,7 @@ class PrometheusSpec extends BaseSpec {
 
     def "PBS should add custom labels to Prometheus metrics when custom labels are enabled in config"() {
         given: "PBS config with set up Prometheus and enabled Promethues custom labels"
-        def prometheusPbsService = pbsServiceFactory.getService(basePrometheusConfig +
+        def prometheusPbsService = getPbsService(basePrometheusConfig +
                 ["metrics.prometheus.custom-labels-enabled": "true"])
 
         and: "Labels config metric matcher and an appropriate PBS metric to it are specified"
@@ -50,7 +50,7 @@ class PrometheusSpec extends BaseSpec {
         given: "PBS config with set up Prometheus with enabled custom labels"
         def namespace = "namespace_01"
         def subsystem = "subsystem_01"
-        def prometheusPbsService = pbsServiceFactory.getService(basePrometheusConfig +
+        def prometheusPbsService = getPbsService(basePrometheusConfig +
                 getNamespaceSubsystemConfig(namespace, subsystem) +
                 ["metrics.prometheus.custom-labels-enabled": "true"])
 
@@ -86,7 +86,7 @@ class PrometheusSpec extends BaseSpec {
         def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem)
 
         and: "PBS is started"
-        def prometheusPbsService = pbsServiceFactory.getService(config)
+        def prometheusPbsService = getPbsService(config)
 
         and: "PBS auction request is made to capture more metrics"
         prometheusPbsService.sendAuctionRequest(BidRequest.getDefaultBidRequest())

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
@@ -18,7 +17,6 @@ import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.GenericContainer
-import spock.lang.Retry
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
@@ -26,8 +24,8 @@ import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
+    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
+    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer)
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
 
@@ -92,7 +90,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected PrebidServerService getPbsService(Map<String, String> config) {
         PrebidServerContainer prebidServerContainer = new PrebidServerContainer(config)
-        new PrebidServerService(acquireContainer(prebidServerContainer, config), mapper).tap { pbsService ->
+        new PrebidServerService(acquireContainer(prebidServerContainer, config)).tap { pbsService ->
             // TODO check whether it is necessary at all
             // request to "warm up" a PBS service
             pbsService.sendAuctionRequest(BidRequest.defaultBidRequest)

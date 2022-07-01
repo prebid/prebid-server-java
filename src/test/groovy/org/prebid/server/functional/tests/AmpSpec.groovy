@@ -9,7 +9,6 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Retry
-import spock.lang.Shared
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -266,7 +265,7 @@ class AmpSpec extends BaseSpec {
     @Retry
     def "PBS should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id and default-account-config"
-        def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
+        def pbsService = getPbsService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
 
         and: "Default AMP request with custom Id"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {

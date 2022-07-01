@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -374,9 +373,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should emit error when filter-imp-media-type = true and #configMediaType is empty in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"                     : "true",
-                 ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"                     : "true",
+                                        ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -396,9 +394,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should not validate request when filter-imp-media-type = false and #configMediaType is empty in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"                     : "false",
-                 ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"                     : "false",
+                                        ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -417,9 +414,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should emit error when filter-imp-media-type = true and request contains media type that is not configured in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"      : "true",
-                 "adapters.generic.meta-info.site-media-types": "native"])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"      : "true",
+                                        "adapters.generic.meta-info.site-media-types": "native"])
 
         and: "Default basic BidRequest with banner, native"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -448,9 +444,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should not validate request when filter-imp-media-type = false and request contains only media type that is not configured in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"      : "false",
-                 "adapters.generic.meta-info.site-media-types": "native"])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"      : "false",
+                                        "adapters.generic.meta-info.site-media-types": "native"])
 
         and: "Default basic BidRequest with banner, native"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -473,9 +468,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should emit error for request with multiple impressions when filter-imp-media-type = true, one of imp doesn't contain supported media type"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"      : "true",
-                 "adapters.generic.meta-info.site-media-types": "native,video"])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"      : "true",
+                                        "adapters.generic.meta-info.site-media-types": "native,video"])
 
         and: "Default basic BidRequest with banner, native"
         def nativeImp = Imp.nativeImpression
@@ -513,9 +507,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should return empty seatBit when filter-imp-media-type = true, request.imp doesn't contain supported media type"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"      : "true",
-                 "adapters.generic.meta-info.site-media-types": "native,video"])
+        def pbsService = getPbsService(["auction.filter-imp-media-type.enabled"      : "true",
+                                        "adapters.generic.meta-info.site-media-types": "native,video"])
 
         and: "Default basic BidRequest with banner"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -566,8 +559,8 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpoint-compression = gzip"() {
         given: "PBS with adapter configuration"
         def compressionType = GZIP.value
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled": "true",
-                                                       "adapters.generic.endpoint-compression": compressionType])
+        def pbsService = getPbsService(["adapters.generic.enabled"             : "true",
+                                        "adapters.generic.endpoint-compression": compressionType])
 
         and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -582,8 +575,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpoint-compression = none"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled": "true",
-                                                       "adapters.generic.endpoint-compression": NONE.value])
+        def pbsService = getPbsService(["adapters.generic.enabled"             : "true",
+                                        "adapters.generic.endpoint-compression": NONE.value])
 
         and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest

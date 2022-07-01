@@ -47,6 +47,7 @@ import static org.prebid.server.functional.testcontainers.container.PrebidServer
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_USERNAME
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_PORT
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PORT
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PROMETHEUS_PORT
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -81,8 +82,10 @@ class PrebidServerService implements ObjectMapperWrapper {
         this.pbsContainerWrapper = pbsContainerWrapper
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainerWrapper.getRootUri(PORT))
                                                        .build()
-        adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
-        prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
+        adminRequestSpecification = buildAndGetRequestSpecification(pbsContainerWrapper.getRootUri(ADMIN_PORT),
+                authenticationScheme)
+        prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainerWrapper.getRootUri(PROMETHEUS_PORT),
+                authenticationScheme)
     }
 
     @Step("[POST] /openrtb2/auction")
@@ -278,7 +281,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = request.get(LINE_ITEM_STATUS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(LineItemStatusReport)
+        decode(response.body().asString(), LineItemStatusReport)
     }
 
     @Step("[GET] /metrics")

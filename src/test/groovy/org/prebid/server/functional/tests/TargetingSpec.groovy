@@ -181,10 +181,10 @@ class TargetingSpec extends BaseSpec {
     }
 
     private PrebidServerService getEnabledWinBidsPbsService() {
-        pbsServiceFactory.getService(["auction.cache.only-winning-bids": "true"])
+        getPbsService(["auction.cache.only-winning-bids": "true"])
     }
 
     private PrebidServerService getDisabledWinBidsPbsService() {
-        pbsServiceFactory.getService(["auction.cache.only-winning-bids": "false"])
+        getPbsService(["auction.cache.only-winning-bids": "false"])
     }
 }
