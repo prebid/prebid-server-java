@@ -227,7 +227,7 @@ class AuctionSpec extends BaseSpec {
         and: "Initial metric count is taken"
         def accountId = bidRequest.site.publisher.id
         def fullMetricName = "account.${accountId}.requests.rejected.$metricName" as String
-        def initialMetricCount = getCurrentMetricValue(fullMetricName)
+        def initialMetricCount = getCurrentMetricValue(defaultPbsService, fullMetricName)
 
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -301,7 +301,7 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "Requesting PBS auction"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -320,7 +320,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should contain the same passThrough as on request"
         assert response.seatbid.first().bid.first().ext.prebid.passThrough == passThrough
@@ -335,7 +335,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should contain the same passThrough as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)

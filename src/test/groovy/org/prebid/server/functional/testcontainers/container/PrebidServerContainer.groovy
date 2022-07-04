@@ -6,6 +6,8 @@ import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 
+import java.time.Duration
+
 import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
@@ -27,6 +29,8 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         super(PBS_DOCKER_IMAGE_NAME)
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withFixedPorts()
+        withStartupAttempts(3)
+        withStartupTimeout(Duration.ofSeconds(90))
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
                        .forStatusCode(200))

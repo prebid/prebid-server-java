@@ -15,7 +15,6 @@ class ContainerWrapper<T extends GenericContainer> {
 
     private final T container
 
-    private boolean isRunning = false
     private ReentrantLock lock = new ReentrantLock(true)
 
     ContainerWrapper(T container, Map<String, String> configuration) {
@@ -27,9 +26,8 @@ class ContainerWrapper<T extends GenericContainer> {
 
     void start() {
         guardWithLock {
-            if (!isRunning) {
+            if (!isContainerRunning()) {
                 container.start()
-                isRunning = true
             }
         }
     }
@@ -59,6 +57,12 @@ class ContainerWrapper<T extends GenericContainer> {
     String getLogs() {
         guardWithLock {
             container.logs
+        }
+    }
+
+    boolean isContainerRunning() {
+        guardWithLock {
+            container.running
         }
     }
 

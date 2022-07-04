@@ -17,11 +17,13 @@ import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.GenericContainer
+import spock.lang.Retry
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
+@Retry(count = 2, mode = Retry.Mode.SETUP_FEATURE_CLEANUP) // TODO decide whether it's necessary
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
@@ -50,7 +52,6 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     def cleanupSpec() {
         // TODO should be removed because of simultaneous tests execution.
-        //  But check that it doesn't break anything.
         //        bidder.reset()
         //        prebidCache.reset()
         //        repository.removeAllDatabaseData()
@@ -91,9 +92,10 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected PrebidServerService getPbsService(Map<String, String> config) {
         PrebidServerContainer prebidServerContainer = new PrebidServerContainer(config)
         new PrebidServerService(acquireContainer(prebidServerContainer, config)).tap { pbsService ->
-            // TODO check whether it is necessary at all
             // request to "warm up" a PBS service
-            pbsService.sendAuctionRequest(BidRequest.defaultBidRequest)
+            try {
+                pbsService.sendAuctionRequest(BidRequest.defaultBidRequest)
+            } catch(Exception ignored) {}
         }
     }
 

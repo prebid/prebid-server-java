@@ -13,7 +13,7 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 class MetricsSpec extends BaseSpec {
 
     def setup() {
-        flushMetrics()
+        flushMetrics(defaultPbsService)
     }
 
     def "PBS should not populate account metric when verbosity level is none"() {
