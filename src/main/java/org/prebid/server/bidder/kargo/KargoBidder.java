@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.kargo;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
@@ -18,8 +17,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.kargo.ExtImpKargo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -30,10 +27,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class KargoBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpKargo>> KARGO_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
