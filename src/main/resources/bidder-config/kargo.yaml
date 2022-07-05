@@ -1,6 +1,7 @@
 adapters:
   kargo:
     endpoint: https://krk.kargo.com/api/v1/openrtb
+    modifyingVastXmlAllowed: true
     meta-info:
       maintainer-email: kraken@kargo.com
       app-media-types:
@@ -9,7 +10,7 @@ adapters:
         - video
         - native
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 972
     usersync:
       url:
       redirect-url:
