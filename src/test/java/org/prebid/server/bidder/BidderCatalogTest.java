@@ -6,6 +6,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -91,8 +92,8 @@ public class BidderCatalogTest {
                 null,
                 null,
                 "test@email.com",
-                singletonList("banner"),
-                singletonList("video"),
+                singletonList(MediaType.BANNER),
+                singletonList(MediaType.VIDEO),
                 null,
                 99,
                 true,
@@ -168,8 +169,8 @@ public class BidderCatalogTest {
                 null,
                 null,
                 "test@email.com",
-                singletonList("banner"),
-                singletonList("video"),
+                singletonList(MediaType.BANNER),
+                singletonList(MediaType.VIDEO),
                 null,
                 99,
                 true,
