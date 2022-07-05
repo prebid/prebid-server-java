@@ -5,8 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 public class UsersyncUtil {
 
     public static final String FORMAT_PARAMETER = "f";
-    public static final String BLANK_FORMAT = "b";
-    public static final String IMG_FORMAT = "i";
 
     private UsersyncUtil() {
     }
@@ -19,27 +17,14 @@ public class UsersyncUtil {
      * Note: format is inserted before the last param for safety reason because of
      * usersync url can be appended with UID on the exchange side without parsing query string.
      */
-    public static String enrichUsersyncUrlWithFormat(String url, String type) {
-        if (StringUtils.isAnyEmpty(url, type)) {
+    public static String enrichUsersyncUrlWithFormat(String url, UsersyncMethodType type) {
+        if (StringUtils.isEmpty(url)) {
             return url;
         }
 
-        final String formatValue = resolveFormatValueByType(type);
-
         return hasTwoOrMoreParameters(url)
-                ? insertFormatParameter(url, formatValue)
-                : appendFormatParameter(url, formatValue);
-    }
-
-    private static String resolveFormatValueByType(String type) {
-        switch (type) {
-            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
-                return IMG_FORMAT;
-            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
-                return BLANK_FORMAT;
-            default:
-                return StringUtils.EMPTY; // never should happen
-        }
+                ? insertFormatParameter(url, type.format)
+                : appendFormatParameter(url, type.format);
     }
 
     private static boolean hasTwoOrMoreParameters(String url) {

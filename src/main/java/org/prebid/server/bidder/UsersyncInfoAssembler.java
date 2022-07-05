@@ -10,14 +10,15 @@ public class UsersyncInfoAssembler {
 
     private String usersyncUrl;
     private String redirectUrl;
-    private String type;
+    private UsersyncMethodType type;
     private Boolean supportCORS;
 
     public static UsersyncInfoAssembler from(Usersyncer.UsersyncMethod usersyncMethod) {
         final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
         usersyncInfoAssembler.usersyncUrl = usersyncMethod.getUsersyncUrl();
         usersyncInfoAssembler.redirectUrl = UsersyncUtil.enrichUsersyncUrlWithFormat(
-                StringUtils.stripToEmpty(usersyncMethod.getRedirectUrl()), usersyncMethod.getType());
+                StringUtils.stripToEmpty(usersyncMethod.getRedirectUrl()),
+                usersyncMethod.getType());
         usersyncInfoAssembler.type = usersyncMethod.getType();
         usersyncInfoAssembler.supportCORS = usersyncMethod.isSupportCORS();
         return usersyncInfoAssembler;

@@ -123,7 +123,7 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
         // given
-        final Usersyncer usersyncer = Usersyncer.of(null, null, null);
+        final Usersyncer usersyncer = Usersyncer.of(null, null);
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())

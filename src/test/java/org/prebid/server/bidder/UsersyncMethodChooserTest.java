@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UsersyncMethodChooserTest extends VertxTest {
@@ -15,7 +17,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     @Test
     public void shouldReturnPrimaryMethodWhenFilterIsNull() {
         // given
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -29,7 +31,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     public void shouldReturnPrimaryMethodWhenFilterIsEmpty() {
         // given
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -45,7 +47,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(null, null),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -63,8 +65,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         null,
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -82,7 +84,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add("anotherbidder"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -100,8 +102,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(BIDDER),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -119,8 +121,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -138,7 +140,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new IntNode(1),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -156,7 +158,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(1),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -174,7 +176,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         null,
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -192,8 +194,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add("anotherbidder"),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -211,7 +213,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(BIDDER),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -229,7 +231,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -247,8 +249,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new IntNode(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -266,8 +268,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -287,8 +289,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include));
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -308,8 +310,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude));
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
+        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
 
         // when
@@ -323,7 +325,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     public void shouldReturnNullWhenPrimaryHasNoUrl() {
         // given
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", null);
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, null);
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -341,7 +343,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
+        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
@@ -358,10 +360,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
     private Usersyncer createUsersyncer(Usersyncer.UsersyncMethod primaryMethod,
                                         Usersyncer.UsersyncMethod secondaryMethod) {
 
-        return Usersyncer.of(null, primaryMethod, secondaryMethod);
+        return Usersyncer.of(null, List.of(primaryMethod, secondaryMethod));
     }
 
-    private Usersyncer.UsersyncMethod createMethod(String type, String url) {
+    private Usersyncer.UsersyncMethod createMethod(UsersyncMethodType type, String url) {
         return Usersyncer.UsersyncMethod.of(type, url, null, false);
     }
 }

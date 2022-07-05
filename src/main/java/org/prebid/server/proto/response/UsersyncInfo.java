@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
+import org.prebid.server.bidder.UsersyncMethodType;
 
 /**
  * Basic info the browser needs in order to run a user sync.
@@ -17,7 +18,7 @@ public class UsersyncInfo {
 
     String url;
 
-    String type;
+    UsersyncMethodType type;
 
     @JsonProperty("supportCORS")
     Boolean supportCORS;

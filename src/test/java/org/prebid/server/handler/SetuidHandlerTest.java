@@ -19,6 +19,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -45,11 +46,13 @@ import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -120,9 +123,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(any())).willReturn(true);
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Usersyncer.of(RUBICON, Usersyncer.UsersyncMethod.of("redirect", null, null, false), null));
+                Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
-                Usersyncer.of(FACEBOOK, Usersyncer.UsersyncMethod.of("redirect", null, null, false), null));
+                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.REDIRECT)));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -393,7 +396,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
         given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                Usersyncer.of(FACEBOOK, Usersyncer.UsersyncMethod.of("iframe", null, null, false), null));
+                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.IFRAME)));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -483,7 +486,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
         given(bidderCatalog.names()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Usersyncer.of(RUBICON, Usersyncer.UsersyncMethod.of("redirect", null, null, false), null));
+                .willReturn(Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
 
         setuidHandler = new SetuidHandler(
                 2000,
@@ -518,7 +521,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Usersyncer.of(RUBICON, Usersyncer.UsersyncMethod.of("iframe", null, null, false), null));
+                Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.IFRAME)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -557,7 +560,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(bidderCatalog.names()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Usersyncer.of(RUBICON, Usersyncer.UsersyncMethod.of("redirect", null, null, false), null));
+                .willReturn(Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         setuidHandler = new SetuidHandler(
@@ -718,7 +721,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
 
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                Usersyncer.of(FACEBOOK, Usersyncer.UsersyncMethod.of("redirect", null, null, false), null));
+                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.REDIRECT)));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -783,5 +786,9 @@ public class SetuidHandlerTest extends VertxTest {
         final ArgumentCaptor<SetuidEvent> setuidEventCaptor = ArgumentCaptor.forClass(SetuidEvent.class);
         verify(analyticsReporterDelegator).processEvent(setuidEventCaptor.capture(), eq(tcfContext));
         return setuidEventCaptor.getValue();
+    }
+
+    private List<Usersyncer.UsersyncMethod> singleMethodList(UsersyncMethodType methodType) {
+        return singletonList(Usersyncer.UsersyncMethod.of(methodType, null, null, false));
     }
 }

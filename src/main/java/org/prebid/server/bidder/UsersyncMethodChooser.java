@@ -9,13 +9,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 public class UsersyncMethodChooser {
 
     private static final String CATCH_ALL_BIDDERS = "*";
 
-    private final Map<String, CookieSyncRequest.MethodFilter> filters;
+    private final Map<UsersyncMethodType, CookieSyncRequest.MethodFilter> filters;
 
     public UsersyncMethodChooser(CookieSyncRequest.FilterSettings filterSettings) {
         filters = initializeFilters(filterSettings);
@@ -26,23 +25,23 @@ public class UsersyncMethodChooser {
     }
 
     public Usersyncer.UsersyncMethod choose(Usersyncer usersyncer, String bidder) {
-        return Stream.of(usersyncer.getPrimaryMethod(), usersyncer.getSecondaryMethod())
+        return usersyncer.getMethods().stream()
                 .filter(method -> methodValidAndAllowed(method, bidder))
                 .findFirst()
                 .orElse(null);
     }
 
-    private static Map<String, CookieSyncRequest.MethodFilter> initializeFilters(
+    private static Map<UsersyncMethodType, CookieSyncRequest.MethodFilter> initializeFilters(
             CookieSyncRequest.FilterSettings filterSettings) {
 
         if (filterSettings == null) {
             return Collections.emptyMap();
         }
 
-        final Map<String, CookieSyncRequest.MethodFilter> filterMap = new HashMap<>();
+        final Map<UsersyncMethodType, CookieSyncRequest.MethodFilter> filterMap = new HashMap<>();
 
-        filterMap.computeIfAbsent(Usersyncer.UsersyncMethod.IFRAME_TYPE, key -> filterSettings.getIframe());
-        filterMap.computeIfAbsent(Usersyncer.UsersyncMethod.REDIRECT_TYPE, key -> filterSettings.getImage());
+        filterMap.computeIfAbsent(UsersyncMethodType.IFRAME, key -> filterSettings.getIframe());
+        filterMap.computeIfAbsent(UsersyncMethodType.REDIRECT, key -> filterSettings.getImage());
 
         return filterMap;
     }

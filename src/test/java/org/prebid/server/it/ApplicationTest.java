@@ -21,6 +21,7 @@ import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -365,7 +366,7 @@ public class ApplicationTest extends IntegrationTest {
                                                 + "&us_privacy=1YNN"
                                                 + "&f=i"
                                                 + "&uid=host-cookie-uid",
-                                        "redirect", false))
+                                        UsersyncMethodType.REDIRECT, false))
                                 .build(),
                         BidderUsersyncStatus.builder()
                                 .bidder(APPNEXUS)
@@ -376,7 +377,7 @@ public class ApplicationTest extends IntegrationTest {
                                                 + "%26us_privacy%3D1YNN"
                                                 + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
-                                        "redirect", false))
+                                        UsersyncMethodType.REDIRECT, false))
                                 .build());
     }
 

@@ -2,22 +2,19 @@ package org.prebid.server.bidder;
 
 import lombok.Value;
 
+import java.util.List;
+
 @Value(staticConstructor = "of")
 public class Usersyncer {
 
     String cookieFamilyName;
 
-    UsersyncMethod primaryMethod;
-
-    UsersyncMethod secondaryMethod;
+    List<UsersyncMethod> methods;
 
     @Value(staticConstructor = "of")
     public static class UsersyncMethod {
 
-        public static final String IFRAME_TYPE = "iframe";
-        public static final String REDIRECT_TYPE = "redirect";
-
-        String type;
+        UsersyncMethodType type;
 
         String usersyncUrl;
 

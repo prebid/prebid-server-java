@@ -9,7 +9,7 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfMissing() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat(null, "iframe");
+        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat(null, UsersyncMethodType.IFRAME);
 
         // then
         assertThat(url).isNull();
@@ -18,7 +18,7 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfEmpty() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", "iframe");
+        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", UsersyncMethodType.IFRAME);
 
         // then
         assertThat(url).isEmpty();
@@ -34,18 +34,10 @@ public class UsersyncUtilTest {
     }
 
     @Test
-    public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfTypeEmpty() {
-        // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", "");
-
-        // then
-        assertThat(url).isEmpty();
-    }
-
-    @Test
     public void enrichUsersyncUrlWithFormatShouldAddFormat() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("//url", "iframe");
+        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("//url", UsersyncMethodType.IFRAME);
+        ;
 
         // then
         assertThat(url).isEqualTo("//url?f=b");
@@ -54,7 +46,8 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUsersyncUrlWithFormatShouldAppendFormat() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1", "redirect");
+        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1", UsersyncMethodType.REDIRECT);
+        ;
 
         // then
         assertThat(url).isEqualTo("http://url?param1=value1&f=i");
@@ -64,7 +57,7 @@ public class UsersyncUtilTest {
     public void enrichUsersyncUrlWithFormatShouldInsertFormat() {
         // given and when
         final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1&param2=value2",
-                "redirect");
+                UsersyncMethodType.REDIRECT);
 
         // then
         assertThat(url).isEqualTo("http://url?param1=value1&f=i&param2=value2");
