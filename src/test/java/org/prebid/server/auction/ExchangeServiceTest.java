@@ -4352,7 +4352,7 @@ public class ExchangeServiceTest extends VertxTest {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
                 ortbVersionConversionManager,
