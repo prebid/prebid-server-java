@@ -98,23 +98,29 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
             return extImpNextMillenium.getPlacementId();
         }
 
+        final String size = formattedSizeFromBanner(bidRequest.getImp().get(0).getBanner());
         final String domain = ObjectUtils.firstNonNull(
                 ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getDomain),
                 ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getDomain),
                 StringUtils.EMPTY);
 
-        final Banner banner = bidRequest.getImp().get(0).getBanner();
+        return "g%s;%s;%s".formatted(groupId, size, domain);
+    }
+
+    private static String formattedSizeFromBanner(Banner banner) {
+        if (banner == null) {
+            return StringUtils.EMPTY;
+        }
+
         final List<Format> formats = banner.getFormat();
         final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
 
-        final String size = ObjectUtils.firstNonNull(
+        return ObjectUtils.firstNonNull(
                 formatSize(
                         ObjectUtil.getIfNotNull(firstFormat, Format::getW),
                         ObjectUtil.getIfNotNull(firstFormat, Format::getH)),
                 formatSize(banner.getW(), banner.getH()),
                 StringUtils.EMPTY);
-
-        return "g%s;%s;%s".formatted(groupId, size, domain);
     }
 
     private static String formatSize(Integer w, Integer h) {
