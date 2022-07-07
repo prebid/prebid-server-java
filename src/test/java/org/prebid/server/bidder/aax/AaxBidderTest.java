@@ -2,14 +2,24 @@ package org.prebid.server.bidder.aax;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.model.*;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -18,7 +28,9 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.*;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AaxBidderTest extends VertxTest {
 

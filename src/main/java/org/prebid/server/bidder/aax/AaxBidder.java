@@ -10,7 +10,11 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.aax.model.AaxResponseBidExt;
-import org.prebid.server.bidder.model.*;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -65,7 +69,9 @@ public class AaxBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidRequest, bidResponse, errorList);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errorList) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest,
+                                             BidResponse bidResponse,
+                                             List<BidderError> errorList) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
