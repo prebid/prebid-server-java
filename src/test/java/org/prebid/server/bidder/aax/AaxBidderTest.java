@@ -238,7 +238,7 @@ public class AaxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).containsNull();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.of("Unable to fetch mediaType in multi-format: 123",
                         BidderError.Type.bad_server_response));
@@ -255,7 +255,7 @@ public class AaxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).containsNull();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.of("Unable to fetch mediaType in multi-format: 123",
                         BidderError.Type.bad_server_response));

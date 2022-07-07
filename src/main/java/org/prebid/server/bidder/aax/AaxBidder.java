@@ -78,6 +78,7 @@ public class AaxBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errorList))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
