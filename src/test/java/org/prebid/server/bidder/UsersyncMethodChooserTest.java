@@ -15,30 +15,31 @@ public class UsersyncMethodChooserTest extends VertxTest {
     private static final String BIDDER = "bidder";
 
     @Test
-    public void shouldReturnPrimaryMethodWhenFilterIsNull() {
-        // given
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
+    public void shouldPreferIframeOverRedirect() {
 
-        // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(null).choose(usersyncer, BIDDER);
-
-        // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
     }
 
     @Test
-    public void shouldReturnPrimaryMethodWhenFilterIsEmpty() {
-        // given
-        final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
-
-        // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+    public void shouldReturnPreferredMethodWhenFilterIsNull() {
+        // given and when
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(null)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+    }
+
+    @Test
+    public void shouldReturnPreferredMethodWhenFilterIsEmpty() {
+        // given
+        final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
+
+        // when
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
+
+        // then
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -47,33 +48,31 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(null, null),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
-    public void shouldReturnSecondaryMethodWhenMethodFilterExcludeAndNullBidders() {
+    public void shouldReturnRedirectMethodWhenIframeMethodFilterExcludeAndNullBidders() {
         // given
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         null,
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -84,14 +83,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add("anotherbidder"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -102,15 +100,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(BIDDER),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -121,15 +118,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -140,14 +136,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new IntNode(1),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -158,14 +153,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(1),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -176,14 +170,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         null,
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -194,15 +187,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add("anotherbidder"),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -213,14 +205,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(BIDDER),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -231,14 +222,12 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(iframeUsersyncer("url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(primaryMethod);
+        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
     }
 
     @Test
@@ -249,15 +238,13 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new IntNode(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -268,15 +255,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
-
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -289,15 +275,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include));
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isSameAs(secondaryMethod);
+        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
     }
 
     @Test
@@ -310,12 +295,11 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude));
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer.UsersyncMethod secondaryMethod = createMethod(UsersyncMethodType.REDIRECT, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(usersyncer, BIDDER);
 
         // then
         assertThat(chosenMethod).isNull();
@@ -325,11 +309,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
     public void shouldReturnNullWhenPrimaryHasNoUrl() {
         // given
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, null);
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
-
+        
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer(null), BIDDER);
 
         // then
         assertThat(chosenMethod).isNull();
@@ -343,27 +326,28 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer.UsersyncMethod primaryMethod = createMethod(UsersyncMethodType.IFRAME, "url");
-        final Usersyncer usersyncer = createUsersyncer(primaryMethod);
 
         // when
-        final Usersyncer.UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("url"), BIDDER);
 
         // then
         assertThat(chosenMethod).isNull();
     }
 
-    private Usersyncer createUsersyncer(Usersyncer.UsersyncMethod primaryMethod) {
-        return createUsersyncer(primaryMethod, null);
+    private Usersyncer iframeUsersyncer(String url) {
+        return Usersyncer.of(null, iframeMethod(url), null);
     }
 
-    private Usersyncer createUsersyncer(Usersyncer.UsersyncMethod primaryMethod,
-                                        Usersyncer.UsersyncMethod secondaryMethod) {
-
-        return Usersyncer.of(null, List.of(primaryMethod, secondaryMethod));
+    private Usersyncer redirectUsersyncer(String url) {
+        return Usersyncer.of(null, redirectMethod(url), null);
+    }
+    
+    private UsersyncMethod iframeMethod(String url) {
+       return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
     }
 
-    private Usersyncer.UsersyncMethod createMethod(UsersyncMethodType type, String url) {
-        return Usersyncer.UsersyncMethod.of(type, url, null, false);
+    private UsersyncMethod redirectMethod(String url) {
+        return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
     }
 }

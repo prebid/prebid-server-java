@@ -13,7 +13,7 @@ public class UsersyncInfoAssembler {
     private UsersyncMethodType type;
     private Boolean supportCORS;
 
-    public static UsersyncInfoAssembler from(Usersyncer.UsersyncMethod usersyncMethod) {
+    public static UsersyncInfoAssembler from(UsersyncMethod usersyncMethod) {
         final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
         usersyncInfoAssembler.usersyncUrl = usersyncMethod.getUsersyncUrl();
         usersyncInfoAssembler.redirectUrl = UsersyncUtil.enrichUsersyncUrlWithFormat(

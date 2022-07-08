@@ -20,6 +20,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
+import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
@@ -175,7 +176,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, routingContext.request(), account, timeout)
+                                cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -517,8 +518,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
 
-        final Usersyncer.UsersyncMethod usersyncMethod =
-                cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
+        final UsersyncMethod usersyncMethod = cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
         if (usersyncMethod == null) {
             // there is nothing to sync
             return null;
@@ -579,7 +579,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return hostCookieUid;
     }
 
-    private UsersyncInfo toUsersyncInfo(Usersyncer.UsersyncMethod usersyncMethod,
+    private UsersyncInfo toUsersyncInfo(UsersyncMethod usersyncMethod,
                                         String cookieFamilyName,
                                         String uidFromHostCookieToSet,
                                         Privacy privacy) {
@@ -598,7 +598,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Returns updated usersync-url pointed directly to Prebid Server /setuid endpoint.
      */
     private String toHostBidderUsersyncUrl(String cookieFamilyName,
-                                           Usersyncer.UsersyncMethod usersyncMethod,
+                                           UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
         final String url = String.format(

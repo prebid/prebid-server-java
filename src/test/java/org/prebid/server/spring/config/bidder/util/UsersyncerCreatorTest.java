@@ -2,7 +2,7 @@
 //
 //import org.junit.Test;
 //import org.prebid.server.bidder.Usersyncer;
-//import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+//import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 //
 //import java.net.MalformedURLException;
 //

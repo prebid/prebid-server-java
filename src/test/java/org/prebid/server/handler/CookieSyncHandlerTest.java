@@ -18,15 +18,13 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.BidderInfo;
-import org.prebid.server.bidder.UsersyncMethodType;
-import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.bidder.*;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.handler.cookiesync.CookieSyncHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -440,10 +438,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(null, null, true)));
 
-        appnexusUsersyncer = Usersyncer.of(APPNEXUS_COOKIE,
-                singletonList(Usersyncer.UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://adnxsexample.com", null, false)));
-        rubiconUsersyncer = Usersyncer.of(RUBICON,
-                singletonList(Usersyncer.UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://rubiconexample.com", null, false)));
+        appnexusUsersyncer = Usersyncer.of(
+                APPNEXUS_COOKIE,
+                null,
+                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://adnxsexample.com", null, false));
+        rubiconUsersyncer = Usersyncer.of(
+                RUBICON,
+                null,
+                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://rubiconexample.com", null, false));
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -929,9 +931,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         rubiconUsersyncer = Usersyncer.of(
                 RUBICON,
-                List.of(
-                        Usersyncer.UsersyncMethod.of(UsersyncMethodType.IFRAME, "iframe-url", null, false),
-                Usersyncer.UsersyncMethod.of(UsersyncMethodType.REDIRECT, "redirect-url", null, false)));
+                UsersyncMethod.of(UsersyncMethodType.IFRAME, "iframe-url", null, false),
+                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "redirect-url", null, false));
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -1618,32 +1619,35 @@ public class CookieSyncHandlerTest extends VertxTest {
     private void givenDefaultRubiconUsersyncer() {
         rubiconUsersyncer = Usersyncer.of(
                 RUBICON,
-                singletonList(
-                        Usersyncer.UsersyncMethod.of(
+                null,
+                UsersyncMethod.of(
                         UsersyncMethodType.REDIRECT,
                         "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
                         null,
-                        false)));
+                        false));
     }
 
     private void givenDefaultAppnexusUsersyncer() {
         appnexusUsersyncer = Usersyncer.of(
                 APPNEXUS_COOKIE,
-                singletonList(
-                        Usersyncer.UsersyncMethod.of(
+                null,
+                UsersyncMethod.of(
                         UsersyncMethodType.REDIRECT,
                         "http://rubiconexample.com",
                         null,
-                        false)));
+                        false));
     }
 
     private static Usersyncer createUsersyncer(String cookieFamilyName,
                                                String usersyncUrl,
                                                UsersyncMethodType type) {
 
-        return Usersyncer.of(
-                cookieFamilyName,
-                singletonList(Usersyncer.UsersyncMethod.of(type, usersyncUrl, null, false)));
+        return switch (type) {
+            case REDIRECT -> Usersyncer.of(
+                    cookieFamilyName, null, UsersyncMethod.of(type, usersyncUrl, null, false));
+            case IFRAME -> Usersyncer.of(
+                    cookieFamilyName, UsersyncMethod.of(type, usersyncUrl, null, false), null);
+        };
     }
 
     private CookieSyncResponse captureCookieSyncResponse() throws IOException {

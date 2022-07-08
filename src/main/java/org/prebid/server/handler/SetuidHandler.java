@@ -19,6 +19,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SetuidHandler implements Handler<RoutingContext> {
 
@@ -106,9 +108,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
-        return usersyncer.getMethods().stream()
+        return Stream.of(usersyncer.getIframe(), usersyncer.getRedirect())
                 .findFirst()
-                .map(Usersyncer.UsersyncMethod::getType)
+                .map(UsersyncMethod::getType)
                 .orElse(null);
     }
 

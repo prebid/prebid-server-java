@@ -282,7 +282,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
-        given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", emptyList()));
+        given(bidderCatalog.usersyncerByName(anyString()))
+                .willReturn(Usersyncer.of("cookieFamily", null, null));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->

@@ -34,7 +34,7 @@ public class BidderInstanceDeps {
     BidderInfo bidderInfo;
 
     /**
-     * Bidder's user syncer is used in {@link org.prebid.server.handler.CookieSyncHandler} handler and holds cookie
+     * Bidder's user syncer is used in {@link CookieSyncHandler} handler and holds cookie
      * family name.
      */
     Usersyncer usersyncer;
