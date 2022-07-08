@@ -4,13 +4,7 @@ adapters:
     meta-info:
       maintainer-email: realtime-siggi@otto.de
       app-media-types:
-        - banner
+      - banner
       site-media-types:
       supported-vendors:
       vendor-id: 559
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: orbidder
-      type: redirect
-      support-cors: false

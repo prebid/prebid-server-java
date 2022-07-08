@@ -25,7 +25,7 @@ import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
-import org.prebid.server.handler.cookiesync.CookieSyncHandler;
+import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.GetuidsHandler;

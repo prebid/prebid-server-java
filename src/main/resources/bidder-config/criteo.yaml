@@ -4,15 +4,9 @@ adapters:
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:
-        - banner
+      - banner
       site-media-types:
-        - banner
+      - banner
       supported-vendors:
       vendor-id: 91
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: criteo
-      type: redirect
-      support-cors: false
     generate-slot-id: true

@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: prebid@so-netmedia.jp
       app-media-types:
-        - banner
+      - banner
       site-media-types:
-        - banner
+      - banner
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru=
-      redirect-url: /setuid?bidder=logicad&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: logicad
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru=
+        uid-macro: $UID
+        support-cors: false

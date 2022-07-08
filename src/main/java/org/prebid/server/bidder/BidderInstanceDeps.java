@@ -2,7 +2,6 @@ package org.prebid.server.bidder;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.handler.cookiesync.CookieSyncHandler;
 
 import java.util.List;
 
@@ -35,7 +34,7 @@ public class BidderInstanceDeps {
     BidderInfo bidderInfo;
 
     /**
-     * Bidder's user syncer is used in {@link CookieSyncHandler} handler and holds cookie
+     * Bidder's user syncer is used in {@link org.prebid.server.handler.CookieSyncHandler} handler and holds cookie
      * family name.
      */
     Usersyncer usersyncer;

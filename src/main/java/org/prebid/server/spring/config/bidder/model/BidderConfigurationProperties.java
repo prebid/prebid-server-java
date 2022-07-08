@@ -42,7 +42,6 @@ public class BidderConfigurationProperties {
     @NotNull
     private MetaInfo metaInfo;
 
-    @NotNull
     private UsersyncConfigurationProperties usersync;
 
     private CompressionType endpointCompression;

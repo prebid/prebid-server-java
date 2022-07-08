@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -116,7 +117,10 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private Usersyncer usersyncer(CFG configProperties) {
-        return configProperties.getEnabled() ? usersyncerCreator.apply(configProperties.getUsersync()) : null;
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
+        final boolean usersyncPresent = usersync != null &&
+                ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
+        return configProperties.getEnabled() && usersyncPresent ? usersyncerCreator.apply(usersync) : null;
     }
 
     private Bidder<?> bidder(CFG configProperties) {

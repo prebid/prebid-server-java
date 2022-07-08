@@ -4,12 +4,6 @@ adapters:
     meta-info:
       maintainer-email: system_operations@invibes.com
       site-media-types:
-        - banner
+      - banner
       supported-vendors:
       vendor-id: 436
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: invibes
-      type: redirect
-      support-cors: false

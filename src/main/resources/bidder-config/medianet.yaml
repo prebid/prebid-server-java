@@ -4,18 +4,18 @@ adapters:
     meta-info:
       maintainer-email: prebid@media.net
       app-media-types:
-        - banner
-        - video
-        - native
+      - banner
+      - video
+      - native
       site-media-types:
-        - banner
-        - video
-        - native
+      - banner
+      - video
+      - native
       supported-vendors:
       vendor-id: 142
     usersync:
-      url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect=
-      redirect-url: /setuid?bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=<vsid>
       cookie-family-name: medianet
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect=
+        uid-macro: <vsid>
+        support-cors: false

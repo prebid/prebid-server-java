@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prebidsupport@unrulygroup.com
       app-media-types:
-        - banner
-        - video
+      - banner
+      - video
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 36
     usersync:
-      url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[RX_UUID]
       cookie-family-name: unruly
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+        uid-macro: [RX_UUID]
+        support-cors: false

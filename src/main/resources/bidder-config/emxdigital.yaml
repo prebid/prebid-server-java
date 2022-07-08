@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: adops@emxdigital.com
       app-media-types:
-        - banner
-        - video
+      - banner
+      - video
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 183
     usersync:
-      url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=emx_digital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: emx_digital
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+        uid-macro: $UID
+        support-cors: false

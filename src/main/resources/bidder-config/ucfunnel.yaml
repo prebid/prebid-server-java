@@ -2,18 +2,18 @@ adapters:
   ucfunnel:
     endpoint: https://pbs.aralego.com/prebid
     meta-info:
-      maintainer-email: "support@ucfunnel.com"
+      maintainer-email: support@ucfunnel.com
       app-media-types:
-        - banner
-        - video
+      - banner
+      - video
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 607
     usersync:
-      url: https://sync.aralego.com/idsync?gdpr={{gdpr}}}&gdpr_consent={{gdpr_consent}}&usprivacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=ucfunnel&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=SspCookieUserId
       cookie-family-name: ucfunnel
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.aralego.com/idsync?gdpr={{gdpr}}}&gdpr_consent={{gdpr_consent}}&usprivacy={{us_privacy}}&redirect=
+        uid-macro: SspCookieUserId
+        support-cors: false

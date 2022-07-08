@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prebid@smaato.com
       app-media-types:
-        - banner
-        - video
+      - banner
+      - video
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 82
     usersync:
-      url: https://s.ad.smaato.net/c/?adExInit=p&redir=
-      redirect-url: /setuid?bidder=smaato&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: smaato
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://s.ad.smaato.net/c/?adExInit=p&redir=
+        uid-macro: $UID
+        support-cors: false

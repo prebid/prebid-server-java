@@ -5,13 +5,13 @@ adapters:
       maintainer-email: contact@jixie.io
       app-media-types:
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=jixie&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%%JXUID%%
       cookie-family-name: jixie
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+        uid-macro: '%%JXUID%%'
+        support-cors: false

@@ -749,7 +749,9 @@ public class ExchangeService {
      * Extract cookie family name from bidder's {@link Usersyncer} if it is enabled. If not - return null.
      */
     private String resolveCookieFamilyName(String bidder) {
-        return bidderCatalog.isActive(bidder) ? bidderCatalog.usersyncerByName(bidder).getCookieFamilyName() : null;
+        return bidderCatalog.isActive(bidder)
+                ? ObjectUtil.getIfNotNull(bidderCatalog.usersyncerByName(bidder), Usersyncer::getCookieFamilyName)
+                : null;
     }
 
     /**
@@ -1193,8 +1195,9 @@ public class ExchangeService {
             final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
             final String bidder = aliases.resolveBidder(bidderRequest.getBidder());
             final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
-            final boolean noBuyerId = !bidderCatalog.isActive(bidder) || StringUtils.isBlank(
-                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
+            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
+            final boolean noBuyerId = usersyncer != null
+                    && StringUtils.isBlank(uidsCookie.uidFrom(usersyncer.getCookieFamilyName()));
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestTypeMetric, !isApp && noBuyerId);
         }

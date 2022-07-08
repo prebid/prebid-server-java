@@ -89,15 +89,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        try {
-            cookieNameToSyncType = bidderCatalog.names().stream()
-                    .filter(bidderCatalog::isActive)
-                    .map(bidderCatalog::usersyncerByName)
-                    .distinct() // built-in aliases looks like bidders with the same usersyncers
-                    .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
-        } catch (Exception e) {
-            throw e;
-        }
+        cookieNameToSyncType = bidderCatalog.names().stream()
+                .filter(bidderCatalog::isActive)
+                .map(bidderCatalog::usersyncerByName)
+                .filter(Objects::nonNull)
+                .distinct() // built-in aliases looks like bidders with the same usersyncers
+                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
     private static Integer validateHostVendorId(Integer gdprHostVendorId) {
@@ -109,9 +106,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
         return Stream.of(usersyncer.getIframe(), usersyncer.getRedirect())
+                .filter(Objects::nonNull)
                 .findFirst()
                 .map(UsersyncMethod::getType)
-                .orElse(null);
+                .get(); // when usersyncer is present, it will contain at least one method
     }
 
     @Override

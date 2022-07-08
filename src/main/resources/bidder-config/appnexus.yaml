@@ -7,20 +7,20 @@ adapters:
     meta-info:
       maintainer-email: prebid-server@xandr.com
       app-media-types:
-        - banner
-        - video
-        - native
+      - banner
+      - video
+      - native
       site-media-types:
-        - banner
-        - video
+      - banner
+      - video
       supported-vendors:
       vendor-id: 32
     usersync:
-      url: https://ib.adnxs.com/getuid?
-      redirect-url: /setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: adnxs
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ib.adnxs.com/getuid?
+        uid-macro: $UID
+        support-cors: false
     platform-id: 5
     iab-categories:
       1: IAB20-3
