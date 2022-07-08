@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: pubgrowth.engineering@sharethrough.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 80
     usersync:
       cookie-family-name: sharethrough
       redirect:
         url: https://match.sharethrough.com/FGMrCMMc/v1?redirectUri=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

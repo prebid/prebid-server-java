@@ -5,8 +5,8 @@ adapters:
       maintainer-email: partner@adview.com
       site-media-types:
       app-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       supported-vendors:
       vendor-id: 1022

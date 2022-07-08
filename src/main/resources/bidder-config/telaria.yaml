@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: github@telaria.com
       app-media-types:
-      - video
+        - video
       site-media-types:
-      - video
+        - video
       supported-vendors:
       vendor-id: 202
     usersync:
       cookie-family-name: telaria
       redirect:
         url: https://pbs.publishers.tremorhub.com/pubsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
-        uid-macro: [tvid]
+        uid-macro: '[tvid]'
         support-cors: false

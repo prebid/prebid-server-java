@@ -4,10 +4,10 @@ adapters:
     meta-info:
       maintainer-email: developers@revcontent.com
       app-media-types:
-      - banner
-      - native
+        - banner
+        - native
       site-media-types:
-      - banner
-      - native
+        - banner
+        - native
       supported-vendors:
       vendor-id: 203

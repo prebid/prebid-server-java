@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prebid@yieldmo.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 173
     usersync:
       cookie-family-name: yieldmo
       redirect:
         url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

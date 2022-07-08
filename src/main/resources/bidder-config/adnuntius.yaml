@@ -4,8 +4,8 @@ adapters:
     meta-info:
       maintainer-email: hello@adnuntius.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 855

@@ -4,14 +4,13 @@ adapters:
     meta-info:
       maintainer-email: support@connectad.io
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 138
     usersync:
       cookie-family-name: connectad
       iframe:
         url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-        uid-macro: 
         support-cors: false

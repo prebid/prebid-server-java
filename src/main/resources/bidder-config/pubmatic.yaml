@@ -14,20 +14,19 @@ adapters:
     meta-info:
       maintainer-email: header-bidding@pubmatic.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 76
     usersync:
       cookie-family-name: pubmatic
       iframe:
         url: https://ads.pubmatic.com/AdServer/js/user_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&predirect=
-        uid-macro: 
         support-cors: false
       redirect:
         url: https://image8.pubmatic.com/AdServer/ImgSync?p=159706&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&pu=
-        uid-macro: #PMUID
+        uid-macro: '#PMUID'
         support-cors: false

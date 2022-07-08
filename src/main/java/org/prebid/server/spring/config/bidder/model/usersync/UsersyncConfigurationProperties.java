@@ -6,8 +6,8 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
 
-@Validated
 @Data
+@Validated
 @NoArgsConstructor
 public class UsersyncConfigurationProperties {
 

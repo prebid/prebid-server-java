@@ -4,18 +4,18 @@ adapters:
     meta-info:
       maintainer-email: support@smartyads.com
       app-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       site-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       supported-vendors:
       vendor-id: 0
     usersync:
       cookie-family-name: smartyads
       redirect:
         url: https://us.ck-ie.com/yhsfle286.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: {$PARTNER_UID}
+        uid-macro: '{$PARTNER_UID}'
         support-cors: false

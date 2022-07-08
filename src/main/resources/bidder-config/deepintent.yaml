@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: sourabh@deepintent.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 541
     usersync:
       cookie-family-name: deepintent
       iframe:
         url: https://match.deepintent.com/usersync/136?id=unk&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: ${DI_USER_ID}
+        uid-macro: '${DI_USER_ID}'
         support-cors: false

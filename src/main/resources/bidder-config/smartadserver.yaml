@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: support@smartadserver.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 45
     usersync:
       cookie-family-name: smartadserver
       redirect:
         url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-        uid-macro: [ssb_sync_pid]
+        uid-macro: '[ssb_sync_pid]'
         support-cors: false

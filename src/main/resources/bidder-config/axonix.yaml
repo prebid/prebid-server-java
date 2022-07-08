@@ -4,12 +4,12 @@ adapters:
     meta-info:
       maintainer-email: support.axonix@emodoinc.com
       app-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       site-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       supported-vendors:
       vendor-id: 678

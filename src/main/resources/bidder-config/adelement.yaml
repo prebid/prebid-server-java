@@ -4,12 +4,12 @@ adapters:
     meta-info:
       maintainer-email: tech@adelement.com
       app-media-types:
-      - banner
-      - video
-      - audio
+        - banner
+        - video
+        - audio
       site-media-types:
-      - banner
-      - video
-      - audio
+        - banner
+        - video
+        - audio
       supported-vendors:
       vendor-id: 196

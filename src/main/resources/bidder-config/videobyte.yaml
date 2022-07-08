@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prebid@videobyte.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 1011
     usersync:
       cookie-family-name: videobyte
       redirect:
         url: https://x.videobyte.com/usync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

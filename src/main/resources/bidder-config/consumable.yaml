@@ -4,14 +4,13 @@ adapters:
     meta-info:
       maintainer-email: naffis@consumable.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 591
     usersync:
       cookie-family-name: consumable
       redirect:
         url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: 
         support-cors: false

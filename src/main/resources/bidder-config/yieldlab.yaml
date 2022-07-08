@@ -4,11 +4,11 @@ adapters:
     meta-info:
       maintainer-email: solutions@yieldlab.de
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 70
     usersync:

@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: support@ucfunnel.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 607
     usersync:
       cookie-family-name: ucfunnel
       redirect:
         url: https://sync.aralego.com/idsync?gdpr={{gdpr}}}&gdpr_consent={{gdpr_consent}}&usprivacy={{us_privacy}}&redirect=
-        uid-macro: SspCookieUserId
+        uid-macro: 'SspCookieUserId'
         support-cors: false

@@ -28,9 +28,9 @@ adapters:
         meta-info:
           maintainer-email: contact@streamkey.tv
           app-media-types:
-          - video
+            - video
           site-media-types:
-          - video
+            - video
           vendor-id: 0
         usersync:
           url:
@@ -42,11 +42,11 @@ adapters:
         meta-info:
           maintainer-email: info@thejmg.com
           app-media-types:
-          - banner
-          - video
+            - banner
+            - video
           site-media-types:
-          - banner
-          - video
+            - banner
+            - video
           vendor-id: 0
           usersync:
             url:
@@ -65,10 +65,10 @@ adapters:
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 410

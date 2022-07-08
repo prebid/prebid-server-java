@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: support@vidoomy.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 380
     usersync:
       cookie-family-name: vidoomy
       iframe:
         url: https://vid.vidoomy.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-        uid-macro: {{VID}}
+        uid-macro: '{{VID}}'
         support-cors: false

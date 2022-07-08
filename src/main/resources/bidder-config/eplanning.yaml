@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: producto@e-planning.net
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 90
     usersync:
       cookie-family-name: eplanning
       iframe:
         url: https://ads.us.e-planning.net/uspd/1/?du=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

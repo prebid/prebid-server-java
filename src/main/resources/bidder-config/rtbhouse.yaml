@@ -5,12 +5,11 @@ adapters:
       maintainer-email: prebid@rtbhouse.com
       app-media-types:
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 16
     usersync:
       cookie-family-name: rtbhouse
       redirect:
         url: https://creativecdn.com/cm-notify?pi=rp-pbserv
-        uid-macro:
         support-cors: false

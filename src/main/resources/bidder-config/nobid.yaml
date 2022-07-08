@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: developers@nobid.io
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 816
     usersync:
       cookie-family-name: nobid
       redirect:
         url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

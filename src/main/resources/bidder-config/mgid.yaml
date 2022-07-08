@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prebid@mgid.com
       app-media-types:
-      - banner
-      - native
+        - banner
+        - native
       site-media-types:
-      - banner
-      - native
+        - banner
+        - native
       supported-vendors:
       vendor-id: 358
     usersync:
       cookie-family-name: mgid
       redirect:
         url: https://cm.mgid.com/m?cdsp=363893&adu=
-        uid-macro: {muidn}
+        uid-macro: '{muidn}'
         support-cors: false

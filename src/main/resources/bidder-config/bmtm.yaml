@@ -6,7 +6,7 @@ adapters:
       maintainer-email: dev@brightmountainmedia.com
       app-media-types:
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 0

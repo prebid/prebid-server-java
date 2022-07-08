@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: tech@adpone.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 799
     usersync:
       cookie-family-name: adpone
       redirect:
         url: https://usersync.adpone.com/csync?redir=
-        uid-macro: {uid}
+        uid-macro: '{uid}'
         support-cors: false

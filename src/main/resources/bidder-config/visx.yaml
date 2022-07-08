@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: supply.partners@yoc.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 154
     usersync:
       cookie-family-name: visx
       redirect:
         url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: ${UUID}
+        uid-macro: '${UUID}'
         support-cors: false

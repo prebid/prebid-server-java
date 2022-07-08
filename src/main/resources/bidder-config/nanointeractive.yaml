@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: development@nanointeractive.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 72
     usersync:
       cookie-family-name: nanointeractive
       redirect:
         url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-        uid-macro: $UID
+        uid-macro: '$UID'
         support-cors: false

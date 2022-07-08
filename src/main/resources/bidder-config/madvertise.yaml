@@ -4,9 +4,9 @@ adapters:
     meta-info:
       maintainer-email: support@madvertise.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 153

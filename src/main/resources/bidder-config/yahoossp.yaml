@@ -9,16 +9,15 @@ adapters:
     meta-info:
       maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 25
     usersync:
       cookie-family-name: yahoossp
       redirect:
         url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
-        uid-macro:
         support-cors: false

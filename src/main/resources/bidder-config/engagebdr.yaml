@@ -4,9 +4,9 @@ adapters:
     meta-info:
       maintainer-email: tech@engagebdr.com
       app-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       site-media-types:
       supported-vendors:
       vendor-id: 0
@@ -14,5 +14,5 @@ adapters:
       cookie-family-name: engagebdr
       iframe:
         url: https://match.bnmla.com/usersync?sspid=1000363&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: {UUID}
+        uid-macro: '{UUID}'
         support-cors: false

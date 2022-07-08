@@ -4,8 +4,8 @@ adapters:
     meta-info:
       maintainer-email: dev@interactiveoffers.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 0

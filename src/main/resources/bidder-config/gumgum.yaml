@@ -5,13 +5,12 @@ adapters:
       maintainer-email: prebid@gumgum.com
       app-media-types:
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 61
     usersync:
       cookie-family-name: gumgum
       iframe:
         url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: 
         support-cors: false

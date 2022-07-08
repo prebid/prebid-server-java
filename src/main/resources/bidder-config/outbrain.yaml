@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: prog-ops-team@outbrain.com
       app-media-types:
-      - banner
-      - native
+        - banner
+        - native
       site-media-types:
-      - banner
-      - native
+        - banner
+        - native
       supported-vendors:
       vendor-id: 164
     usersync:
       cookie-family-name: outbrain
       redirect:
         url: https://prebidtest.zemanta.com/usersync/prebidtest?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-        uid-macro: __ZUID__
+        uid-macro: '__ZUID__'
         support-cors: false

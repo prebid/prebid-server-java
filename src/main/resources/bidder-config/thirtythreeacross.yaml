@@ -10,13 +10,13 @@ adapters:
       maintainer-email: headerbidding@33across.com
       app-media-types:
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 58
     usersync:
       cookie-family-name: 33across
       iframe:
         url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru=
-        uid-macro: 33XUSERID33X
+        uid-macro: '33XUSERID33X'
         support-cors: false

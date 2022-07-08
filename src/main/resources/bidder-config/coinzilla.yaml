@@ -4,7 +4,7 @@ adapters:
     meta-info:
       maintainer-email: technical@sevio.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       vendor-id: 0

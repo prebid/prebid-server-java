@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: bidding@lockerdome.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 0
     usersync:
       cookie-family-name: lockerdome
       redirect:
         url: https://lockerdome.com/usync/prebidserver?redirect=
-        uid-macro: {{uid}}
+        uid-macro: '{{uid}}'
         support-cors: false

@@ -4,18 +4,17 @@ adapters:
     meta-info:
       maintainer-email: prebid@amxrtb.com
       app-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       site-media-types:
-      - banner
-      - video
-      - native
+        - banner
+        - video
+        - native
       supported-vendors:
       vendor-id: 737
     usersync:
       cookie-family-name: amx
       redirect:
         url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-        uid-macro: 
         support-cors: false

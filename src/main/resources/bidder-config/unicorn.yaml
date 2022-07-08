@@ -4,7 +4,7 @@ adapters:
     meta-info:
       maintainer-email: prebid@unicorn.inc
       app-media-types:
-      - banner
+        - banner
       site-media-types:
       supported-vendors:
       vendor-id: 0

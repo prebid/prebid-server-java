@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
@@ -47,7 +48,7 @@ public class UsersyncerCreator {
     private static String toRedirectUrl(String cookieFamilyName, String externalUri, String uidMacro) {
         final String redirectUrl = "/setuid?bidder=" + cookieFamilyName
                 + "&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid="
-                + uidMacro;
+                + StringUtils.defaultString(uidMacro);
 
         return HttpUtil.validateUrl(externalUri) + redirectUrl;
     }

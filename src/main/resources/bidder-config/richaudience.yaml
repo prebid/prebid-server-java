@@ -4,16 +4,16 @@ adapters:
     meta-info:
       maintainer-email: partnerintegrations@richaudience.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 108
     usersync:
       cookie-family-name: richaudience
       iframe:
         url: https://sync.richaudience.com/74889303289e27f327ad0c6de7be7264/?consentString={{gdpr_consent}}&r=
-        uid-macro: [PDID]
+        uid-macro: '[PDID]'
         support-cors: false

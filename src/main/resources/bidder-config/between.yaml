@@ -4,14 +4,14 @@ adapters:
     meta-info:
       maintainer-email: buying@betweenx.com
       app-media-types:
-      - banner
+        - banner
       site-media-types:
-      - banner
+        - banner
       supported-vendors:
       vendor-id: 724
     usersync:
       cookie-family-name: between
       redirect:
         url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url=
-        uid-macro: ${USER_ID}
+        uid-macro: '${USER_ID}'
         support-cors: false

@@ -4,15 +4,15 @@ adapters:
     meta-info:
       maintainer-email: ExchangeTeam@pulsepoint.com
       app-media-types:
-      - banner
-      - video
-      - audio
-      - native
+        - banner
+        - video
+        - audio
+        - native
       site-media-types:
-      - banner
-      - video
-      - audio
-      - native
+        - banner
+        - video
+        - audio
+        - native
       supported-vendors:
       vendor-id: 81
     usersync:
