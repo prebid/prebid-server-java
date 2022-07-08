@@ -2,6 +2,7 @@ package org.prebid.server.bidder;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.handler.cookiesync.CookieSyncHandler;
 
 import java.util.List;
 
