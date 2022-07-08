@@ -19,6 +19,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
@@ -123,9 +124,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(any())).willReturn(true);
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
+                Usersyncer.of(RUBICON, null, redirectMethod()));
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
-                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.REDIRECT)));
+                Usersyncer.of(FACEBOOK, null, redirectMethod()));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -396,7 +397,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
         given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.IFRAME)));
+                Usersyncer.of(FACEBOOK, iframeMethod(), null));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -486,7 +487,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
         given(bidderCatalog.names()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
+                .willReturn(Usersyncer.of(RUBICON, null, redirectMethod()));
 
         setuidHandler = new SetuidHandler(
                 2000,
@@ -521,7 +522,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.IFRAME)));
+                Usersyncer.of(RUBICON, iframeMethod(), null));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -560,7 +561,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(bidderCatalog.names()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Usersyncer.of(RUBICON, singleMethodList(UsersyncMethodType.REDIRECT)));
+                .willReturn(Usersyncer.of(RUBICON, null, redirectMethod()));
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         setuidHandler = new SetuidHandler(
@@ -721,7 +722,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
 
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                Usersyncer.of(FACEBOOK, singleMethodList(UsersyncMethodType.REDIRECT)));
+                Usersyncer.of(FACEBOOK, null, redirectMethod()));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -788,7 +789,11 @@ public class SetuidHandlerTest extends VertxTest {
         return setuidEventCaptor.getValue();
     }
 
-    private List<Usersyncer.UsersyncMethod> singleMethodList(UsersyncMethodType methodType) {
-        return singletonList(Usersyncer.UsersyncMethod.of(methodType, null, null, false));
+    private static UsersyncMethod iframeMethod() {
+        return UsersyncMethod.of(UsersyncMethodType.IFRAME, null, null, false);
+    }
+
+    private static UsersyncMethod redirectMethod() {
+        return UsersyncMethod.of(UsersyncMethodType.REDIRECT, null, null, false);
     }
 }

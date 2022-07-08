@@ -9,17 +9,7 @@ public class Usersyncer {
 
     String cookieFamilyName;
 
-    List<UsersyncMethod> methods;
+    UsersyncMethod iframe;
 
-    @Value(staticConstructor = "of")
-    public static class UsersyncMethod {
-
-        UsersyncMethodType type;
-
-        String usersyncUrl;
-
-        String redirectUrl;
-
-        boolean supportCORS;
-    }
+    UsersyncMethod redirect;
 }

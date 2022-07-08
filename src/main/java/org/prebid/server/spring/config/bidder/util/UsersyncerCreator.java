@@ -1,11 +1,12 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.apache.commons.collections4.ListUtils;
+import org.prebid.server.bidder.UsersyncMethod;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -20,16 +21,27 @@ public class UsersyncerCreator {
 
     private static Usersyncer createAndValidate(UsersyncConfigurationProperties usersync, String externalUrl) {
         final String cookieFamilyName = usersync.getCookieFamilyName();
-        final List<Usersyncer.UsersyncMethod> usersyncMethods = ListUtils.emptyIfNull(usersync.getMethods()).stream()
-                .map(config ->
-                        Usersyncer.UsersyncMethod.of(
-                                config.getType(),
-                                Objects.requireNonNull(config.getUrl()),
-                                toRedirectUrl(cookieFamilyName, externalUrl, config.getUidMacro()),
-                                config.getSupportCors()))
-                .toList();
 
-        return Usersyncer.of(usersync.getCookieFamilyName(), usersyncMethods);
+        return Usersyncer.of(
+                cookieFamilyName,
+                toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName, externalUrl),
+                toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), cookieFamilyName, externalUrl));
+    }
+
+    private static UsersyncMethod toMethod(UsersyncMethodType type,
+                                           UsersyncMethodConfigurationProperties properties,
+                                           String cookieFamilyName,
+                                           String externalUrl) {
+
+        if (properties == null) {
+            return null;
+        }
+
+        return UsersyncMethod.of(
+                type,
+                Objects.requireNonNull(properties.getUrl()),
+                toRedirectUrl(cookieFamilyName, externalUrl, properties.getUidMacro()),
+                properties.getSupportCors());
     }
 
     private static String toRedirectUrl(String cookieFamilyName, String externalUri, String uidMacro) {

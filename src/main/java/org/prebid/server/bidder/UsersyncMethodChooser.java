@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class UsersyncMethodChooser {
 
@@ -24,8 +25,8 @@ public class UsersyncMethodChooser {
         return new UsersyncMethodChooser(filterSettings);
     }
 
-    public Usersyncer.UsersyncMethod choose(Usersyncer usersyncer, String bidder) {
-        return usersyncer.getMethods().stream()
+    public UsersyncMethod choose(Usersyncer usersyncer, String bidder) {
+        return Stream.of(usersyncer.getRedirect(), usersyncer.getIframe())
                 .filter(method -> methodValidAndAllowed(method, bidder))
                 .findFirst()
                 .orElse(null);
@@ -46,15 +47,15 @@ public class UsersyncMethodChooser {
         return filterMap;
     }
 
-    private boolean methodValidAndAllowed(Usersyncer.UsersyncMethod usersyncMethod, String bidder) {
+    private boolean methodValidAndAllowed(UsersyncMethod usersyncMethod, String bidder) {
         return methodValid(usersyncMethod) && methodAllowed(usersyncMethod, bidder);
     }
 
-    private boolean methodValid(Usersyncer.UsersyncMethod usersyncMethod) {
+    private boolean methodValid(UsersyncMethod usersyncMethod) {
         return usersyncMethod != null && StringUtils.isNotBlank(usersyncMethod.getUsersyncUrl());
     }
 
-    private boolean methodAllowed(Usersyncer.UsersyncMethod usersyncMethod, String bidder) {
+    private boolean methodAllowed(UsersyncMethod usersyncMethod, String bidder) {
         final CookieSyncRequest.MethodFilter filter = filters.get(usersyncMethod.getType());
 
         return filter == null || filter.getFilter() == null

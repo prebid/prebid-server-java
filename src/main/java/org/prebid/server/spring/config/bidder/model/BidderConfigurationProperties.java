@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 

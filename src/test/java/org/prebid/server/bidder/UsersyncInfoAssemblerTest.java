@@ -117,7 +117,7 @@ public class UsersyncInfoAssemblerTest {
         assertThat(result.getUrl()).isEqualTo("http://updated-url");
     }
 
-    private static Usersyncer.UsersyncMethod createUsersyncMethod(String usersyncUrl, String redirectUrl) {
-        return Usersyncer.UsersyncMethod.of(null, usersyncUrl, redirectUrl, false);
+    private static UsersyncMethod createUsersyncMethod(String usersyncUrl, String redirectUrl) {
+        return UsersyncMethod.of(null, usersyncUrl, redirectUrl, false);
     }
 }

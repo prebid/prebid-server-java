@@ -70,6 +70,12 @@ public class BidderCatalog {
         return new HashSet<>(bidderDepsMap.keySet());
     }
 
+    public Set<String> activeNames() {
+        return names().stream()
+                .filter(this::isActive)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Tells if given name corresponds to any of the registered bidders.
      */
