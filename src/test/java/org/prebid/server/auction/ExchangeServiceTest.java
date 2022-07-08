@@ -28,6 +28,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2460,6 +2461,44 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getSite)
                 .containsOnly(mergedSite);
+    }
+
+    @Test
+    public void shouldUseAppInPriorityOverSite() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.app(App.builder().id("appId").build()));
+
+        final Site mergedSite = Site.builder()
+                .id("siteId")
+                .page("testPage")
+                .keywords("keyword")
+                .build();
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        // when
+        exchangeService.holdAuction(auctionContext);
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidderRequest::getBidRequest)
+                .extracting(BidRequest::getApp, BidRequest::getSite)
+                .containsExactly(tuple(App.builder().id("appId").build(), null));
+        assertThat(auctionContext)
+                .extracting(AuctionContext::getDebugWarnings)
+                .asInstanceOf(InstanceOfAssertFactories.list(Site.class))
+                .asList()
+                .containsExactly("BidRequest contains app and site. Removed site object");
     }
 
     @Test
