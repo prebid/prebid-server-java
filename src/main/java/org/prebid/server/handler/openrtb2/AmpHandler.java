@@ -216,16 +216,29 @@ public class AmpHandler implements Handler<RoutingContext> {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        Map<String, JsonNode> targeting = new HashMap<>(seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+
+        final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
+        targeting.putAll(additionalTargeting);
 
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
+    }
+
+    private Map<String, JsonNode> extractAdditionalTargeting(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = bidResponse.getExt();
+
+        final ExtBidResponsePrebid prebid = extBidResponse != null ? extBidResponse.getPrebid() : null;
+
+        final Map<String, JsonNode> targeting = prebid != null ? prebid.getTargeting() : null;
+
+        return targeting != null ? targeting : Collections.emptyMap();
     }
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {

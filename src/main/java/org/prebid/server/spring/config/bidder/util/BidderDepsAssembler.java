@@ -15,6 +15,7 @@ import org.prebid.server.bidder.BidderInstanceDeps;
 import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -132,10 +133,10 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
         final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
         final MetaInfo aliasMetaInfo = aliasConfiguration.getMetaInfo();
-        final List<String> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
-        final List<String> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
-        final List<String> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
-        final List<String> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
+        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
+        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
+        final List<MediaType> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
+        final List<MediaType> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
                 || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {

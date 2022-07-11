@@ -681,6 +681,6 @@ public class BasicPriceFloorEnforcerTest {
                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
                 .map(bid -> BidderBid.builder().bid(bid).priceFloorInfo(priceFloorInfo).build())
                 .toList();
-        return BidderSeatBid.of(bidderBids, emptyList(), emptyList());
+        return BidderSeatBid.of(bidderBids);
     }
 }

@@ -193,7 +193,7 @@ public class UnicornBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetAddAccountIdPropertyToRequestExt() {
+    public void makeHttpRequestsShouldAddAccountIdPropertyToRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 

@@ -768,7 +768,7 @@ public class BidResponseCreator {
                 .map(ExtRequestPrebid::getPassthrough)
                 .orElse(null);
 
-        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough);
+        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough, null);
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,

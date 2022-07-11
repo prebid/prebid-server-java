@@ -46,3 +46,6 @@ CREATE TABLE stored_responses
     storedAuctionResponse varchar(1024),
     storedBidResponse varchar(1024)
 );
+
+-- set session wait timeout to 1 minute
+SET SESSION wait_timeout = 60000;
