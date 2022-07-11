@@ -76,17 +76,10 @@ class GroupResult<T> {
 
     private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
         switch (action) {
-            case reject:
-                applyReject(hookId);
-                break;
-            case update:
-                applyPayloadUpdate(hookId, payloadUpdate);
-                break;
-            case no_action:
-                break;
-            default:
-                throw new IllegalStateException(
-                        String.format("Unknown invocation action %s", action));
+            case reject -> applyReject(hookId);
+            case update -> applyPayloadUpdate(hookId, payloadUpdate);
+            case no_action -> {
+            }
         }
     }
 

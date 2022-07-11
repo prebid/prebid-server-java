@@ -1582,28 +1582,14 @@ public class ExchangeService {
      * Resolves {@link MetricName} by {@link BidderError.Type} value.
      */
     private static MetricName bidderErrorTypeToMetric(BidderError.Type errorType) {
-        final MetricName errorMetric;
-        switch (errorType) {
-            case bad_input:
-                errorMetric = MetricName.badinput;
-                break;
-            case bad_server_response:
-                errorMetric = MetricName.badserverresponse;
-                break;
-            case failed_to_request_bids:
-                errorMetric = MetricName.failedtorequestbids;
-                break;
-            case timeout:
-                errorMetric = MetricName.timeout;
-                break;
-            case invalid_bid:
-                errorMetric = MetricName.bid_validation;
-                break;
-            case generic:
-            default:
-                errorMetric = MetricName.unknown_error;
-        }
-        return errorMetric;
+        return switch (errorType) {
+            case bad_input -> MetricName.badinput;
+            case bad_server_response -> MetricName.badserverresponse;
+            case failed_to_request_bids -> MetricName.failedtorequestbids;
+            case timeout -> MetricName.timeout;
+            case invalid_bid -> MetricName.bid_validation;
+            case rejected_ipf, generic -> MetricName.unknown_error;
+        };
     }
 
     private AuctionContext enrichWithHooksDebugInfo(AuctionContext context) {

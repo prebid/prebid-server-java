@@ -1,7 +1,8 @@
 package org.prebid.server.bidder.algorix;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -13,8 +14,8 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -198,28 +199,23 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private AlgorixBidExt parseAlgorixBidExt(Bid bid) {
-        try {
-            return mapper.mapper().treeToValue(bid.getExt(), AlgorixBidExt.class);
-        } catch (IllegalArgumentException | JsonProcessingException error) {
-            return null;
-        }
-    }
-
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final AlgorixBidExt bidExt = parseAlgorixBidExt(bid);
-        if (Objects.nonNull(bidExt)) {
-            switch (bidExt.getMediaType()) {
-                case "banner":
-                    return BidType.banner;
-                case "native":
-                    return BidType.xNative;
-                case "video":
-                    return BidType.video;
-                default:
-                    break;
-            }
+        final ObjectNode bidExt = bid.getExt();
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
+        final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual()
+                ? mediaTypeNode.textValue()
+                : StringUtils.EMPTY;
+
+        final BidType bidType = switch (mediaType) {
+            case "banner" -> BidType.banner;
+            case "native" -> BidType.xNative;
+            case "video" -> BidType.video;
+            default -> null;
+        };
+        if (bidType != null) {
+            return bidType;
         }
+
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {

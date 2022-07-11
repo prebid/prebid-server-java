@@ -247,17 +247,13 @@ public class Tcf2Service {
                                             boolean wasDowngraded) {
 
         switch (purposeOneTreatmentInterpretation) {
-            case accessAllowed:
-                vendorPermissionsWithGvl.forEach(vendorPermission ->
-                        purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
-                break;
-            case noAccessAllowed:
+            case accessAllowed -> vendorPermissionsWithGvl.forEach(vendorPermission ->
+                    purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
+            case noAccessAllowed -> {
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
-                break;
-            case ignore:
-            default:
-                purposeOneStrategy.processTypePurposeStrategy(
-                        tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
+            }
+            case ignore -> purposeOneStrategy.processTypePurposeStrategy(
+                    tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
         }
     }
 
