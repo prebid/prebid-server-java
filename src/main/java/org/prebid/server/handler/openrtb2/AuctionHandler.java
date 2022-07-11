@@ -147,7 +147,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getBidResponse());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof final InvalidRequestException invalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
                 errorMessages = invalidRequestException.getMessages().stream()
