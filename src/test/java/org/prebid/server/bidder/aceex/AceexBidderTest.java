@@ -205,7 +205,7 @@ public class AceexBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                new ExtImpAceex("accountId")))))
+                                ExtImpAceex.of("accountId")))))
                 .build();
     }
 
