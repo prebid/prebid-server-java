@@ -34,7 +34,7 @@ class BidResponse implements ResponseModel {
         def bid = bidResponse.seatbid[0].bid[0]
         def lineItem = plansResponse.lineItems[0]
         bid.dealid = lineItem.dealId
-        if (lineItem.sizes[0] != null) {
+        if (lineItem.sizes) {
             bid.w = lineItem.sizes[0].w
             bid.h = lineItem.sizes[0].h
         }
