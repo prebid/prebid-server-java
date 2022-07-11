@@ -1294,7 +1294,7 @@ public class ExchangeService {
     private boolean isZeroNonDealBids(BigDecimal price, String dealId) {
         return price == null
                 || price.compareTo(BigDecimal.ZERO) < 0
-                || price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(dealId);
+                || (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(dealId));
     }
 
     private List<AuctionParticipation> validateAndAdjustBids(List<AuctionParticipation> auctionParticipations,

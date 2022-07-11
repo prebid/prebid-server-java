@@ -59,7 +59,7 @@ public class InterstitialProcessor {
         Integer maxHeight = firstFormat != null ? firstFormat.getH() : null;
         Integer maxWidth = firstFormat != null ? firstFormat.getW() : null;
 
-        if (maxHeight == null || maxWidth == null || maxHeight == 1 && maxWidth == 1) {
+        if (maxHeight == null || maxWidth == null || (maxHeight == 1 && maxWidth == 1)) {
             maxHeight = device.getH();
             maxWidth = device.getW();
         }

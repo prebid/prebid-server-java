@@ -371,8 +371,8 @@ public class Ortb2ImplicitParametersResolver {
                 : null;
 
         if (ObjectUtils.anyNotNull(updatedPage, updatedDomain, updatedPublisher, updatedSiteExt)) {
-            final boolean domainPresent = publisher != null && publisher.getDomain() != null
-                    || updatedPublisher != null && updatedPublisher.getDomain() != null;
+            final boolean domainPresent = (publisher != null && publisher.getDomain() != null)
+                    || (updatedPublisher != null && updatedPublisher.getDomain() != null);
 
             return (site == null ? Site.builder() : site.toBuilder())
                     // do not set page if domain was not parsed successfully

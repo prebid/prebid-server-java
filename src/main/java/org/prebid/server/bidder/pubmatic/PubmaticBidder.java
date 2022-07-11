@@ -252,7 +252,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static Banner assignSizesIfMissing(Banner banner) {
         final List<Format> format = banner.getFormat();
-        if (banner.getW() != null && banner.getH() != null || CollectionUtils.isEmpty(format)) {
+        if ((banner.getW() != null && banner.getH() != null) || CollectionUtils.isEmpty(format)) {
             return banner;
         }
 

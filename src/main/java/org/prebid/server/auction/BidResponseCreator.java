@@ -1246,8 +1246,8 @@ public class BidResponseCreator {
         final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
 
         String modifiedBidAdm = bid.getAdm();
-        if (videoCacheId != null && !requestCacheInfo.isReturnCreativeVideoBids()
-                || cacheId != null && !requestCacheInfo.isReturnCreativeBids()) {
+        if ((videoCacheId != null && !requestCacheInfo.isReturnCreativeVideoBids())
+                || (cacheId != null && !requestCacheInfo.isReturnCreativeBids())) {
             modifiedBidAdm = null;
         }
 

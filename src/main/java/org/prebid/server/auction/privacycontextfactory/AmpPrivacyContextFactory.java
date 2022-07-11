@@ -105,7 +105,7 @@ public class AmpPrivacyContextFactory {
 
     private String resolveIpAddress(Device device, Privacy privacy) {
         final boolean shouldBeMasked = Objects.equals(privacy.getCoppa(), 1)
-                || device != null && Objects.equals(device.getLmt(), 1);
+                || (device != null && Objects.equals(device.getLmt(), 1));
 
         final String ipV4Address = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ipV4Address)) {

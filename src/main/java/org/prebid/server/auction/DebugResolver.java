@@ -46,7 +46,7 @@ public class DebugResolver {
                     .add("Debug turned off for account");
         }
 
-        return debugOverride || debugEnabledForRequest && debugAllowedByAccount;
+        return debugOverride || (debugEnabledForRequest && debugAllowedByAccount);
     }
 
     private boolean isDebugOverridden(HttpRequestContext httpRequest) {
@@ -86,6 +86,6 @@ public class DebugResolver {
                     .add(String.format("Debug turned off for bidder: %s", bidder));
         }
 
-        return debugOverride || debugEnabled && debugAllowedByBidder;
+        return debugOverride || (debugEnabled && debugAllowedByBidder);
     }
 }

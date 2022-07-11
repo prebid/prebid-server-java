@@ -77,7 +77,7 @@ public class UsersyncMethodChooser {
     private boolean listMatchesAllBidders(JsonNode bidders) {
         return bidders == null
                 || bidders.isNull()
-                || bidders.isTextual() && Objects.equals(bidders.textValue(), CATCH_ALL_BIDDERS);
+                || (bidders.isTextual() && Objects.equals(bidders.textValue(), CATCH_ALL_BIDDERS));
     }
 
     private boolean listContainsBidder(JsonNode bidders, String bidder) {

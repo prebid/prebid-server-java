@@ -465,12 +465,12 @@ public class PrivacyEnforcementService {
 
             final User user = bidderToUser.get(bidder);
             boolean userIdRemoved = enforcement.isRemoveUserIds();
-            if (requestBlocked || userIdRemoved && !shouldMaskUser(user)) {
+            if (requestBlocked || (userIdRemoved && !shouldMaskUser(user))) {
                 userIdRemoved = false;
             }
 
             boolean geoMasked = enforcement.isMaskGeo();
-            if (requestBlocked || geoMasked && !shouldMaskGeo(user, device)) {
+            if (requestBlocked || (geoMasked && !shouldMaskGeo(user, device))) {
                 geoMasked = false;
             }
 
@@ -510,7 +510,7 @@ public class PrivacyEnforcementService {
      * Returns true if {@link User} or {@link Device} has {@link Geo} information that can be masked.
      */
     private static boolean shouldMaskGeo(User user, Device device) {
-        return user != null && user.getGeo() != null || device != null && device.getGeo() != null;
+        return (user != null && user.getGeo() != null) || (device != null && device.getGeo() != null);
     }
 
     /**

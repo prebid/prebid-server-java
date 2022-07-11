@@ -245,7 +245,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isOnlyOneSize(Integer width, Integer height, List<Format> formats) {
-        return CollectionUtils.isEmpty(formats) || formats.size() == 1 && isSameFormat(width, height, formats.get(0));
+        return CollectionUtils.isEmpty(formats) || (formats.size() == 1 && isSameFormat(width, height, formats.get(0)));
     }
 
     private static boolean isSameFormat(Integer width, Integer height, Format format) {

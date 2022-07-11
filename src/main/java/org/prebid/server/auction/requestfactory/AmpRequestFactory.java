@@ -725,11 +725,11 @@ public class AmpRequestFactory {
             final boolean typeSpecifiedAsTcf =
                     specifiedType == ConsentType.TCF_V1 || specifiedType == ConsentType.TCF_V2;
 
-            return isConsentStringPresent() && typeSpecifiedAsTcf || isTcf;
+            return (isConsentStringPresent() && typeSpecifiedAsTcf) || isTcf;
         }
 
         public boolean isCcpaCompatible() {
-            return isConsentStringPresent() && specifiedType == ConsentType.CCPA || isCcpa;
+            return (isConsentStringPresent() && specifiedType == ConsentType.CCPA) || isCcpa;
         }
 
         public boolean isValid() {
