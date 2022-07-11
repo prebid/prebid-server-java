@@ -369,7 +369,7 @@ public class TcfDefinerService {
                     logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
             case openrtb2web -> SITE_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
-            case video, cookiesync, setuid, default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
+            default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
         }
     }
