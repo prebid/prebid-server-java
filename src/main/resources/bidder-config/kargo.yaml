@@ -12,7 +12,7 @@ adapters:
       supported-vendors:
       vendor-id: 972
     usersync:
-      url: https://crb.kargo.com/api/v1/dsync/PrebidServer?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&r=
+      url: https://crb.kargo.com/api/v1/dsync/PrebidServer?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
       redirect-url: /setuid?bidder=kargo&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: kargo
       type: redirect
