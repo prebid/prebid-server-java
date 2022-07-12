@@ -35,7 +35,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = """
             %s is not configured properly on this Prebid Server deploy.
-            If you believe this should work, contact the company hosting the service
+            If you believe this should work, contact the company hosting the service \
             and tell them to check their configuration.""";
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -122,7 +122,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private Bidder<?> bidder(CFG configProperties) {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
-                : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
+                : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
     }
 
     private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
@@ -142,9 +142,9 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
                 || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {
 
-            throw new IllegalArgumentException(String.format(
-                    "Alias %s supports more capabilities (app: %s, site: %s) "
-                            + "than the core bidder %s (app: %s, site: %s)",
+            throw new IllegalArgumentException("""
+                    Alias %s supports more capabilities (app: %s, site: %s) \
+                    than the core bidder %s (app: %s, site: %s)""".formatted(
                     alias,
                     aliasAppMediaTypes,
                     aliasSiteMediaTypes,

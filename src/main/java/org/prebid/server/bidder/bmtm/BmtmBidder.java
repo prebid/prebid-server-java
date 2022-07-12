@@ -74,7 +74,7 @@ public class BmtmBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("For Imp ID %s Banner or Video is undefined", imp.getId()));
+            throw new PreBidException("For Imp ID %s Banner or Video is undefined".formatted(imp.getId()));
         }
     }
 

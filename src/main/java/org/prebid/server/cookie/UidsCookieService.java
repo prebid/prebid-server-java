@@ -52,8 +52,8 @@ public class UidsCookieService {
                              JacksonMapper mapper) {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
-            throw new IllegalArgumentException(String.format(
-                    "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
+            throw new IllegalArgumentException(
+                    "Configured cookie size is less than allowed minimum size of " + maxCookieSizeBytes);
         }
 
         this.optOutCookieName = optOutCookieName;

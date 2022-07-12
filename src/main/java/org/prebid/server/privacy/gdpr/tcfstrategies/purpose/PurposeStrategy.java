@@ -94,8 +94,7 @@ public abstract class PurposeStrategy {
             return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
-        throw new IllegalArgumentException(
-                String.format("Invalid type strategy provided. no/base/full != %s", purposeType));
+        throw new IllegalArgumentException("Invalid type strategy provided. no/base/full != " + purposeType);
     }
 
     protected Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,

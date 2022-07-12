@@ -94,7 +94,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null) {
-            throw new PreBidException(String.format("Fail on Imp.Id=%s: Adnuntius supports only Banner", imp.getId()));
+            throw new PreBidException("Fail on Imp.Id=%s: Adnuntius supports only Banner".formatted(imp.getId()));
         }
     }
 
@@ -102,7 +102,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADNUNTIUS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Unmarshalling error: %s", e.getMessage()));
+            throw new PreBidException("Unmarshalling error: %s".formatted(e.getMessage()));
         }
     }
 
@@ -257,7 +257,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         try {
             return Integer.valueOf(measure);
         } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Value of measure: %s can not be parsed.", measure));
+            throw new PreBidException("Value of measure: %s can not be parsed.".formatted(measure));
         }
     }
 

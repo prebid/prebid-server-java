@@ -153,7 +153,9 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
-        final String requestUri = String.format("%s?apptoken=%s&zoneid=%s", endpointUrl, impExt.getAppAuthToken(),
+        final String requestUri = "%s?apptoken=%s&zoneid=%s".formatted(
+                endpointUrl,
+                impExt.getAppAuthToken(),
                 impExt.getZoneId());
 
         return HttpRequest.<BidRequest>builder()

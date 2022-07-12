@@ -139,7 +139,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final String version = ObjectUtil.getIfNotNull(prebid, ExtAppPrebid::getVersion);
 
         return ObjectUtils.allNotNull(source, version)
-                ? String.format("%s-%s", source, version)
+                ? "%s-%s".formatted(source, version)
                 : null;
     }
 
@@ -244,7 +244,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final String key = appnexusKeyVal.getKey();
         final List<String> values = appnexusKeyVal.getValue();
         return CollectionUtils.isNotEmpty(values)
-                ? values.stream().map(value -> String.format("%s=%s", key, value))
+                ? values.stream().map(value -> "%s=%s".formatted(key, value))
                 : Stream.of(key);
     }
 
@@ -279,7 +279,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private String constructUrl(Set<String> ids, List<BidderError> errors) {
         validateMemberIds(ids, errors);
         return CollectionUtils.isNotEmpty(ids)
-                ? String.format("%s?member_id=%s", endpointUrl, ids.iterator().next())
+                ? "%s?member_id=%s".formatted(endpointUrl, ids.iterator().next())
                 : endpointUrl;
     }
 
@@ -486,7 +486,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             case 2 -> BidType.audio;
             case 3 -> BidType.xNative;
             default -> throw new PreBidException(
-                    String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
+                    "Unrecognized bid_ad_type in response from appnexus: %s".formatted(bidAdType));
         };
     }
 

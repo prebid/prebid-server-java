@@ -117,7 +117,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final ObjectNode bidExt = bid.getExt();
                 if (bidExt == null) {
-                    errors.add(BidderError.badServerResponse(String.format("Empty ext in bid %s", bid.getId())));
+                    errors.add(BidderError.badServerResponse("Empty ext in bid " + bid.getId()));
                     break;
                 }
 

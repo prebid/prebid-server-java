@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -57,7 +58,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static java.lang.String.format;
 import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -167,9 +167,12 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
+    private static String setResponseTime(Response response,
+                                          String expectedResponseJson,
+                                          String bidder,
                                           String responseTimePath) {
-        final Object val = response.path(format(responseTimePath, bidder));
+
+        final Object val = response.path(responseTimePath.formatted(bidder));
         final Integer responseTime = val instanceof Integer ? (Integer) val : null;
         if (responseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + bidder + "\\.response_time_ms }}\"",
@@ -348,15 +351,14 @@ public abstract class IntegrationTest extends VertxTest {
         private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
             lock.lock();
             try {
-                while (!dealsResponseOrder.peek().equals(id)) {
+                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
                     lockCondition.await();
                 }
                 TimeUnit.MILLISECONDS.sleep(delay);
                 dealsResponseOrder.poll();
                 lockCondition.signalAll();
             } catch (InterruptedException e) {
-                throw new RuntimeException(format("Failed on waiting to return bid request for lineItem id = %s",
-                        id));
+                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
             } finally {
                 lock.unlock();
             }

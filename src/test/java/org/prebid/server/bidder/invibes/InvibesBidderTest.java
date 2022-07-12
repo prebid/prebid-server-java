@@ -189,7 +189,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        BidderError.badInput(String.format("Banner not specified in impression with id: %s", IMP_ID)));
+                        BidderError.badInput("Banner not specified in impression with id: " + IMP_ID));
         assertThat(result.getValue()).isEmpty();
     }
 

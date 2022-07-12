@@ -203,7 +203,7 @@ public class TargetingKeywordsResolver {
     }
 
     private static String toPath(String value) {
-        return String.format("/%s", value.replaceAll("\\.", "/"));
+        return "/" + value.replaceAll("\\.", "/");
     }
 
     private static <T, U> U get(T target, Function<T, U> getter) {

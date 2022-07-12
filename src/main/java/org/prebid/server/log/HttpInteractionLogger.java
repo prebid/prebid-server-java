@@ -61,7 +61,7 @@ public class HttpInteractionLogger {
         try {
             return mapper.encodeToString(mapper.mapper().readTree(value));
         } catch (JsonProcessingException e) {
-            return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
+            return "Not parseable JSON passed: " + value.replaceAll("[\r\n]+", " ");
         }
     }
 

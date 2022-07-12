@@ -120,8 +120,8 @@ public class UnicornBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), UnicornImpExt.class);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "Error while decoding ext of imp with id: %s, error: %s ", imp.getId(), e.getMessage()));
+            throw new PreBidException("Error while decoding ext of imp with id: %s, error: %s "
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -134,7 +134,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 : null;
 
         if (StringUtils.isEmpty(storedRequestId)) {
-            throw new PreBidException(String.format("stored request id not found in imp: %s", imp.getId()));
+            throw new PreBidException("stored request id not found in imp: " + imp.getId());
         }
 
         return storedRequestId;

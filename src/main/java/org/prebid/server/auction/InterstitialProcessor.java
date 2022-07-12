@@ -65,9 +65,9 @@ public class InterstitialProcessor {
         }
 
         if (maxHeight == null || maxWidth == null) {
-            throw new InvalidRequestException(String.format(
-                    "Unable to read max interstitial size for Imp id=%s (No Device sizes and no Format objects)",
-                    imp.getId()));
+            throw new InvalidRequestException(
+                    "Unable to read max interstitial size for Imp id=%s (No Device sizes and no Format objects)"
+                            .formatted(imp.getId()));
         }
 
         final double minHeight = (double) maxHeight / 100 * minHeightPerc;

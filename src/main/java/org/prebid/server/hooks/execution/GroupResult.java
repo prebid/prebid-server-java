@@ -87,10 +87,8 @@ class GroupResult<T> {
     private void applyReject(HookId hookId) {
         if (!rejectAllowed) {
             conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to reject an entity on a stage that does not support "
-                                    + "rejection",
-                            hookId),
+                    "Hook implementation %s requested to reject an entity on a stage that does not support rejection"
+                            .formatted(hookId),
                     LOG_SAMPLING_RATE);
 
             throw new RejectionNotSupportedException("Rejection is not supported during this stage");
@@ -103,9 +101,8 @@ class GroupResult<T> {
     private void applyPayloadUpdate(HookId hookId, PayloadUpdate<T> payloadUpdate) {
         if (payloadUpdate == null) {
             conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to update an entity but not provided a payload update",
-                            hookId),
+                    "Hook implementation %s requested to update an entity but not provided a payload update"
+                            .formatted(hookId),
                     LOG_SAMPLING_RATE);
 
             throw new PayloadUpdateException("Payload update is missing in invocation result");
@@ -114,15 +111,12 @@ class GroupResult<T> {
         try {
             payload = payloadUpdate.apply(payload);
         } catch (Exception e) {
-            conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to update an entity but payload update has thrown an "
-                                    + "exception: %s",
-                            hookId,
-                            e),
+            conditionalLogger.error("""
+                            Hook implementation %s requested to update an entity \
+                            but payload update has thrown an exception: %s""".formatted(hookId, e),
                     LOG_SAMPLING_RATE);
 
-            throw new PayloadUpdateException(String.format("Payload update has thrown an exception: %s", e));
+            throw new PayloadUpdateException("Payload update has thrown an exception: " + e);
         }
     }
 

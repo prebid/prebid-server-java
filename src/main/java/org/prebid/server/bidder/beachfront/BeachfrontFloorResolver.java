@@ -75,14 +75,13 @@ public class BeachfrontFloorResolver {
                                                       String bidFloorCur) {
 
         final BidderError fallbackWarning = BidderError.badInput(
-                String.format(
-                        """
-                                The following error was received from the currency converter while \
-                                attempting to convert the imp.bidfloor value of %s from %s to USD:
-                                Currency service was unable to convert currency.
-                                The provided value of imp.ext.beachfront.bidfloor, %s \
-                                USD is being used as a fallback.""",
-                        impBidFloor, bidFloorCur, extImpBidFloor));
+                """
+                        The following error was received from the currency converter while \
+                        attempting to convert the imp.bidfloor value of %s from %s to USD: \
+                        Currency service was unable to convert currency.
+                        The provided value of imp.ext.beachfront.bidfloor, %s \
+                        USD is being used as a fallback."""
+                        .formatted(impBidFloor, bidFloorCur, extImpBidFloor));
 
         return BidFloorResult.fallbackWithWarning(Price.of(DEFAULT_BID_CURRENCY, extImpBidFloor), fallbackWarning);
     }
@@ -92,14 +91,13 @@ public class BeachfrontFloorResolver {
 
         return BidFloorResult.error(
                 BidderError.badInput(
-                        String.format(
-                                """
-                                        The following error was received from the currency converter while attempting \
-                                        to convert the imp.bidfloor value of %s from %s to USD:
-                                        Currency service was unable to convert currency.
-                                        A value of imp.ext.beachfront.bidfloor was not provided. \
-                                        The bid is being skipped.""",
-                                impBidFloor, bidFloorCur)));
+                        """
+                                The following error was received from the currency converter while attempting \
+                                to convert the imp.bidfloor value of %s from %s to USD: \
+                                Currency service was unable to convert currency.
+                                A value of imp.ext.beachfront.bidfloor was not provided. \
+                                The bid is being skipped."""
+                                .formatted(impBidFloor, bidFloorCur)));
     }
 
     private static BidFloorResult proceedWithHigherFloor(BigDecimal extImpBidFloor, BigDecimal convertedBidFloor) {

@@ -205,7 +205,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: %d".formatted(bidResponse.getSeatbid().size()));
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

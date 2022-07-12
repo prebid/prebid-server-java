@@ -116,7 +116,7 @@ public class CacheService {
     public String getEndpointHost() {
         final String host = endpointUrl.getHost();
         final int port = endpointUrl.getPort();
-        return port != -1 ? String.format("%s:%d", host, port) : host;
+        return port != -1 ? "%s:%d".formatted(host, port) : host;
     }
 
     public String getEndpointPath() {
@@ -150,7 +150,7 @@ public class CacheService {
                 .type(CachedDebugLog.CACHE_TYPE)
                 .value(new TextNode(videoCacheDebugLog.buildCacheBody()))
                 .expiry(videoCacheTtl != null ? videoCacheTtl : videoCacheDebugLog.getTtl())
-                .key(String.format("log_%s", hbCacheId))
+                .key("log_" + hbCacheId)
                 .build(), creativeSizeFromTextNode(value));
     }
 
@@ -514,7 +514,7 @@ public class CacheService {
 
     private static String resolveCustomCacheKey(String hbCacheId, String category) {
         return StringUtils.isNoneEmpty(category, hbCacheId)
-                ? String.format("%s_%s", category, hbCacheId)
+                ? "%s_%s".formatted(category, hbCacheId)
                 : null;
     }
 
@@ -552,14 +552,14 @@ public class CacheService {
                                                 long startTime) {
 
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code %d".formatted(statusCode));
         }
 
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = mapper.decodeValue(responseBody, BidCacheResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+            throw new PreBidException("Cannot parse response: " + responseBody, e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();

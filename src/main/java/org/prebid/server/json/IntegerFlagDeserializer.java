@@ -27,7 +27,7 @@ public class IntegerFlagDeserializer extends StdDeserializer<Integer> {
                         JsonToken.class,
                         JsonToken.VALUE_NUMBER_INT,
                         """
-                                Failed to parse field %s to Integer type with a reason:
+                                Failed to parse field %s to Integer type with a reason: \
                                 Expected type boolean or integer(`0` or `1`).""".formatted(parser.getCurrentName()));
                 // the previous method should have thrown
                 throw new AssertionError();

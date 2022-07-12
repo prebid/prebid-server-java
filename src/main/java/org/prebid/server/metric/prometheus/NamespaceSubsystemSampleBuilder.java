@@ -22,8 +22,8 @@ public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
         final Pattern prefixPattern = Pattern.compile(VALID_PREFIX_REGEX);
         if (!prefixPattern.matcher(prefix).matches()) {
-            throw new IllegalArgumentException(String.format(
-                    "Invalid prefix: %s, namespace and subsystem should match regex: %s", prefix, VALID_PREFIX_REGEX));
+            throw new IllegalArgumentException("Invalid prefix: %s, namespace and subsystem should match regex: %s"
+                    .formatted(prefix, VALID_PREFIX_REGEX));
         }
 
         delegate = mapperConfigs.isEmpty()

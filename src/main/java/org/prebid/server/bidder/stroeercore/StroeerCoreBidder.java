@@ -68,7 +68,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
 
                 price = convertBidFloor(bidRequest, imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("%s. Ignore imp id = %s.", e.getMessage(), imp.getId())));
+                errors.add(BidderError.badInput("%s. Ignore imp id = %s.".formatted(e.getMessage(), imp.getId())));
                 continue;
             }
 

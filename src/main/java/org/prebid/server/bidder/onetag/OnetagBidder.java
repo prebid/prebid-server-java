@@ -131,6 +131,6 @@ public class OnetagBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("The impression with ID %s is not present into the request", impId));
+        throw new PreBidException("The impression with ID %s is not present into the request".formatted(impId));
     }
 }

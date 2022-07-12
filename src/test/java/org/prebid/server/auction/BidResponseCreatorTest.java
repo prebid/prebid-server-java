@@ -1816,14 +1816,14 @@ public class BidResponseCreatorTest extends VertxTest {
         final ObjectNode bidder1Bid4Ext = extWithTargeting(bidder1, bidder1Bid4Targeting);
         final Bid expectedBidder1Bid4 = bidder1Bid4.toBuilder().ext(bidder1Bid4Ext).build();
 
-        final String bidderCodeForBidder1Bid2 = String.format("%s%s", codePrefix, 2);
+        final String bidderCodeForBidder1Bid2 = codePrefix + 2;
         final Map<String, String> bidder1Bid2Targeting = new HashMap<>();
         bidder1Bid2Targeting.put("hb_bidder_" + bidderCodeForBidder1Bid2, bidderCodeForBidder1Bid2);
         bidder1Bid2Targeting.put("hb_pb_" + bidderCodeForBidder1Bid2, "4.50");
         final ObjectNode bidder1Bid2Ext = extWithTargeting(bidderCodeForBidder1Bid2, bidder1Bid2Targeting);
         final Bid expectedBidder1Bid2 = bidder1Bid2.toBuilder().ext(bidder1Bid2Ext).build();
 
-        final String bidderCodeForBidder1Bid1 = String.format("%s%s", codePrefix, 3);
+        final String bidderCodeForBidder1Bid1 = codePrefix + 3;
         final Map<String, String> bidder1Bid1Targeting = new HashMap<>();
         bidder1Bid1Targeting.put("hb_bidder_" + bidderCodeForBidder1Bid1, bidderCodeForBidder1Bid1);
         bidder1Bid1Targeting.put("hb_pb_" + bidderCodeForBidder1Bid1, "3.50");

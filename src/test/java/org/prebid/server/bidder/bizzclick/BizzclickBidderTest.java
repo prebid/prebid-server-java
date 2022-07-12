@@ -45,7 +45,7 @@ public class BizzclickBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final String url = String.format(URL_TEMPLATE, URL_SOURCE_ID_MACRO, URL_ACCOUNT_ID_MACRO);
+        final String url = URL_TEMPLATE.formatted(URL_SOURCE_ID_MACRO, URL_ACCOUNT_ID_MACRO);
         bidder = new BizzclickBidder(url, jacksonMapper);
     }
 
@@ -211,8 +211,9 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly(String.format(URL_TEMPLATE,
-                        HttpUtil.encodeUrl("placement id"), HttpUtil.encodeUrl("account id")));
+                .containsExactly(URL_TEMPLATE.formatted(
+                        HttpUtil.encodeUrl("placement id"),
+                        HttpUtil.encodeUrl("account id")));
         assertThat(result.getErrors()).isEmpty();
     }
 

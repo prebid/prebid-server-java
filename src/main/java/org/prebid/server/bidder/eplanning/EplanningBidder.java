@@ -128,8 +128,7 @@ public class EplanningBidder implements Bidder<Void> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null) {
-            throw new PreBidException(String.format(
-                    "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId()));
+            throw new PreBidException("EPlanning only supports banner Imps. Ignoring Imp ID=" + imp.getId());
         }
     }
 
@@ -144,18 +143,18 @@ public class EplanningBidder implements Bidder<Void> {
         try {
             extImpEplanning = mapper.mapper().convertValue(imp.getExt(), EPLANNING_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException("Ignoring imp id=%s, error while decoding extImpBidder, err: %s"
+                    .formatted(imp.getId(), e.getMessage()));
         }
 
         if (extImpEplanning == null) {
-            throw new PreBidException(String.format(
-                    "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present",
-                    imp.getId()));
+            throw new PreBidException(
+                    "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present"
+                            .formatted(imp.getId()));
         }
 
         if (StringUtils.isBlank(extImpEplanning.getClientId())) {
-            throw new PreBidException(String.format("Ignoring imp id=%s, no ClientID present", imp.getId()));
+            throw new PreBidException("Ignoring imp id=%s, no ClientID present".formatted(imp.getId()));
         }
 
         return extImpEplanning;
@@ -166,14 +165,14 @@ public class EplanningBidder implements Bidder<Void> {
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
         if (bannerWidth != null && bannerHeight != null) {
-            return String.format(SIZE_FORMAT, bannerWidth, bannerHeight);
+            return SIZE_FORMAT.formatted(bannerWidth, bannerHeight);
         }
 
         final List<Format> bannerFormats = banner.getFormat();
 
         final Set<String> formattedBannerSizes = CollectionUtils.emptyIfNull(bannerFormats).stream()
                 .filter(format -> format.getH() != null && format.getW() != null)
-                .map(format -> String.format(SIZE_FORMAT, format.getW(), format.getH()))
+                .map(format -> SIZE_FORMAT.formatted(format.getW(), format.getH()))
                 .collect(Collectors.toSet());
 
         final List<String> prioritySizes = isMobile ? PRIORITY_SIZES_FOR_MOBILE : PRIORITY_SIZES_FOR_DESKTOP;
@@ -227,13 +226,13 @@ public class EplanningBidder implements Bidder<Void> {
                 ? app.getBundle()
                 : pageDomain;
 
-        final String uri = endpointUrl + String.format("/%s/%s/%s/%s", clientId, DFP_CLIENT_ID, requestTarget, SEC);
+        final String uri = "%s/%s/%s/%s/%s".formatted(endpointUrl, clientId, DFP_CLIENT_ID, requestTarget, SEC);
 
         final URIBuilder uriBuilder;
         try {
             uriBuilder = new URIBuilder(uri);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Invalid url: %s, error: %s", uri, e.getMessage()));
+            throw new PreBidException("Invalid url: %s, error: %s".formatted(uri, e.getMessage()));
         }
 
         uriBuilder
@@ -277,7 +276,7 @@ public class EplanningBidder implements Bidder<Void> {
         try {
             return new URL(url);
         } catch (MalformedURLException e) {
-            throw new PreBidException(String.format("Invalid url: %s", url), e);
+            throw new PreBidException("Invalid url: " + url, e);
         }
     }
 

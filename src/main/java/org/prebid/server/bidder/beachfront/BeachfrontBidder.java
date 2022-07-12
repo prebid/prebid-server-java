@@ -239,8 +239,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, error while decoding extImpBeachfront, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException("ignoring imp id=%s, error while decoding extImpBeachfront, err: %s"
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -377,7 +377,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split("\\.");
 
                 if (split.length > 1) {
-                    bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());
+                    bidRequestBuilder.app(app.toBuilder().domain("%s.%s".formatted(split[1], split[0])).build());
                 }
             }
 

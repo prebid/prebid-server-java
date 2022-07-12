@@ -501,9 +501,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else if (!bidderCatalog.isActive(bidder)) {
             return bidderStatusBuilder(bidder)
-                    .error(String.format("%s is not configured properly on this Prebid Server deploy. "
-                            + "If you believe this should work, contact the company hosting the service "
-                            + "and tell them to check their configuration.", bidder))
+                    .error(bidder + """
+                             is not configured properly on this Prebid Server deploy. \
+                            If you believe this should work, contact the company hosting \
+                            the service and tell them to check their configuration.""")
                     .build();
         } else if (biddersRejectedByTcf.contains(bidder)) {
             return bidderStatusBuilder(bidder)
@@ -601,8 +602,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                            Usersyncer.UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
-        final String url = String.format(
-                HOST_BIDDER_USERSYNC_URL_TEMPLATE,
+        final String url = HOST_BIDDER_USERSYNC_URL_TEMPLATE.formatted(
                 externalUrl,
                 cookieFamilyName,
                 HttpUtil.encodeUrl(hostCookieUid));
@@ -661,18 +661,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (error instanceof InvalidRequestException) {
             status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format("Invalid request format: %s", message);
+            body = "Invalid request format: " + message;
 
             metrics.updateUserSyncBadRequestMetric();
             BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             status = HttpResponseStatus.UNAUTHORIZED;
-            body = String.format("Unauthorized: %s", message);
+            body = "Unauthorized: " + message;
 
             metrics.updateUserSyncOptoutMetric();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format("Unexpected setuid processing error: %s", message);
+            body = "Unexpected setuid processing error: " + message;
 
             logger.warn(body, error);
         }

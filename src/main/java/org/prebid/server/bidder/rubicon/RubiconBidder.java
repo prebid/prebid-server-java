@@ -281,8 +281,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private BidderError impTypeErrorMessage(Imp imp) {
         final BidType type = resolveExpectedBidType(imp);
-        return BidderError.badInput(String.format("Impression with id %s rejected with invalid type `%s`."
-                + " Allowed types are banner and video.", imp.getId(), type != null ? type.name() : "unknown"));
+        return BidderError.badInput(
+                "Impression with id %s rejected with invalid type `%s`. Allowed types are banner and video."
+                        .formatted(imp.getId(), type != null ? type.name() : "unknown"));
     }
 
     private static BidType resolveExpectedBidType(Imp imp) {
@@ -373,7 +374,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
                         .build().toString();
             } catch (URISyntaxException e) {
-                throw new PreBidException(String.format("Cant add the tk_xint value for url: %s", tkXint), e);
+                throw new PreBidException("Cant add the tk_xint value for url: " + tkXint, e);
             }
         }
         return endpointUrl;
@@ -538,8 +539,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String bidFloorCurrency = imp.getBidfloorcur();
         if (StringUtils.isBlank(bidFloorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
-                errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
-                        imp.getId(), XAPI_CURRENCY)));
+                errors.add(BidderError.badInput("Imp `%s` floor provided with no currency, assuming %s"
+                        .formatted(imp.getId(), XAPI_CURRENCY)));
             }
             return XAPI_CURRENCY;
         }
@@ -553,8 +554,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         if (StringUtils.isBlank(floorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
-                errors.add(BidderError.badInput(String.format("Ipf for imp `%s` provided floor with no currency, "
-                        + "assuming %s", imp.getId(), XAPI_CURRENCY)));
+                errors.add(BidderError.badInput("Ipf for imp `%s` provided floor with no currency, assuming %s"
+                        .formatted(imp.getId(), XAPI_CURRENCY)));
             }
             return XAPI_CURRENCY;
         }
@@ -580,9 +581,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, XAPI_CURRENCY);
         } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
-                    bidFloorCurrency, XAPI_CURRENCY, imp.getId(), e.getMessage()));
+            throw new PreBidException(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s"
+                            .formatted(bidFloorCurrency, XAPI_CURRENCY, imp.getId(), e.getMessage()));
         }
     }
 
@@ -948,8 +949,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
         // log only 1% of cases to monitor how often video impressions does not have size id
         if (resolvedSizeId == null) {
-            MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
-                    + " impId = %s", referer, impId), 0.01d);
+            MISSING_VIDEO_SIZE_LOGGER.warn(
+                    "RP adapter: video request with no size_id. Referrer URL = %s, impId = %s"
+                            .formatted(referer, impId),
+                    0.01d);
         }
     }
 
@@ -1546,7 +1549,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Invalid ext passed in bid with id: %s", bidId));
+            throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
         }
     }
 

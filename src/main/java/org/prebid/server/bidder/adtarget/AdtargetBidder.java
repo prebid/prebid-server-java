@@ -55,8 +55,8 @@ public class AdtargetBidder implements Bidder<BidRequest> {
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceIdToImpsResult.getValue().entrySet()) {
-            final String url = String.format("%s?aid=%d", endpointUrl,
-                    ObjectUtils.defaultIfNull(sourceIdToImps.getKey(), 0));
+            final String url = "%s?aid=%d"
+                    .formatted(endpointUrl, ObjectUtils.defaultIfNull(sourceIdToImps.getKey(), 0));
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
@@ -93,21 +93,20 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADTARGET_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, error while decoding impExt, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException(
+                    "ignoring imp id=%s, error while decoding impExt, err: %s".formatted(imp.getId(), e.getMessage()));
         }
     }
 
     private static void validateImpression(Imp imp) {
         final String impId = imp.getId();
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, Adtarget supports only Video and Banner", impId));
+            throw new PreBidException("ignoring imp id=%s, Adtarget supports only Video and Banner".formatted(impId));
         }
 
         final ObjectNode impExt = imp.getExt();
         if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", impId));
+            throw new PreBidException("ignoring imp id=%s, extImpBidder is empty".formatted(impId));
         }
     }
 
@@ -165,7 +164,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
                 return imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
-        throw new PreBidException(String.format(
-                "ignoring bid id=%s, request doesn't contain any impression with id=%s", bidId, bidImpId));
+        throw new PreBidException(
+                "ignoring bid id=%s, request doesn't contain any impression with id=%s".formatted(bidId, bidImpId));
     }
 }

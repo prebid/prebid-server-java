@@ -134,7 +134,7 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = String.format("%s//%s:%d/%s?%s",
+            final String jdbcUrl = "%s//%s:%d/%s?%s".formatted(
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),

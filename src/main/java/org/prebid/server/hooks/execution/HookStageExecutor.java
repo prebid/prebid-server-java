@@ -280,8 +280,9 @@ public class HookStageExecutor {
                 StageWithHookType.forStage(stage));
 
         if (hook == null) {
-            throw new IllegalArgumentException(String.format(
-                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s", stage, hookId));
+            throw new IllegalArgumentException(
+                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s"
+                            .formatted(stage, hookId));
         }
     }
 

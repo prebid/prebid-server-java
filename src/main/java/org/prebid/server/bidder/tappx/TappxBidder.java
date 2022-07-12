@@ -97,7 +97,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         try {
             uriBuilder = new URIBuilder(baseUri);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
+            throw new PreBidException("Failed to build endpoint URL: " + e.getMessage());
         }
 
         if (!isNewEndpoint) {

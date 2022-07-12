@@ -119,8 +119,10 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
         }
 
         if (bidRequest.getUser() != null && StringUtils.isNotBlank(bidRequest.getUser().getBuyeruid())) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.COOKIE_HEADER, String.format("Nano=%s",
-                    bidRequest.getUser().getBuyeruid().trim()));
+            HttpUtil.addHeaderIfValueIsNotEmpty(
+                    headers,
+                    HttpUtil.COOKIE_HEADER,
+                    "Nano=" + bidRequest.getUser().getBuyeruid().trim());
         }
         return headers;
     }

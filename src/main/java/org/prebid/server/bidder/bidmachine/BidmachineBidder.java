@@ -83,17 +83,15 @@ public class BidmachineBidder implements Bidder<BidRequest> {
             final List<Format> format = banner.getFormat();
             if (format == null) {
                 throw new PreBidException("""
-                        Impression with id: %s
-                        has following error: Banner width and height is not provided and
-                        banner format is missing. At least one is required
-                        """.formatted(imp.getId()));
+                        Impression with id: %s has following error: \
+                        Banner width and height is not provided and banner format is missing. \
+                        At least one is required""".formatted(imp.getId()));
             }
             if (format.isEmpty()) {
                 throw new PreBidException("""
-                        Impression with id: %s has following error:
-                        Banner width and height is not provided and banner format array is empty.
-                        At least one is required
-                        """.formatted(imp.getId()));
+                        Impression with id: %s has following error: \
+                        Banner width and height is not provided and banner format array is empty. \
+                        At least one is required""".formatted(imp.getId()));
 
             }
         }
@@ -199,8 +197,8 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         final BidType bidType = getBidType(bid.getImpid(), imps);
         if (bidType == null) {
             errors.add(BidderError.badServerResponse(
-                    String.format("ignoring bid id=%s, request doesn't contain any valid "
-                            + "impression with id=%s", bid.getId(), bid.getImpid())));
+                    "ignoring bid id=%s, request doesn't contain any valid impression with id=%s"
+                            .formatted(bid.getId(), bid.getImpid())));
 
             return null;
         }

@@ -79,11 +79,11 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
         try {
             extImpMadvertise = mapper.mapper().convertValue(imp.getExt(), MADVERTISE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
+            throw new PreBidException("Missing bidder ext in impression with id: " + impId);
         }
 
         if (StringUtils.length(extImpMadvertise.getZoneId()) < ZONE_ID_MIN_LENGTH) {
-            throw new PreBidException(String.format("The minLength of zone ID is 7; ImpID=%s", impId));
+            throw new PreBidException("The minLength of zone ID is 7; ImpID=" + impId);
         }
         return extImpMadvertise;
     }

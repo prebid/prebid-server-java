@@ -34,7 +34,7 @@ public class ImplicitParametersExtractor {
                 : StringUtils.trimToNull(request.getHeaders().get(HttpUtil.REFERER_HEADER));
 
         return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
-                ? String.format("http://%s", url)
+                ? "http://" + url
                 : url;
     }
 
@@ -52,7 +52,7 @@ public class ImplicitParametersExtractor {
 
         if (domain == null) {
             // null means effective top level domain plus one couldn't be derived
-            throw new PreBidException(String.format("Cannot derive eTLD+1 for host %s", host));
+            throw new PreBidException("Cannot derive eTLD+1 for host " + host);
         }
 
         return domain;

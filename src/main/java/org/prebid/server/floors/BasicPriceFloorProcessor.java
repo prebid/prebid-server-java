@@ -130,13 +130,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 PriceFloorRulesValidator.validateRules(requestFloors, Integer.MAX_VALUE);
                 return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
             } catch (PreBidException e) {
-                errors.add(String.format("Failed to parse price floors from request,"
-                        + " with a reason : %s ", e.getMessage()));
+                errors.add("Failed to parse price floors from request, with a reason : %s ".formatted(e.getMessage()));
                 conditionalLogger.error(
-                        String.format("Failed to parse price floors from request with id: '%s',"
-                                        + " with a reason : %s ",
-                                bidRequest.getId(),
-                                e.getMessage()), 0.01d);
+                        "Failed to parse price floors from request with id: '%s', with a reason : %s "
+                                .formatted(bidRequest.getId(), e.getMessage()),
+                        0.01d);
             }
         }
 

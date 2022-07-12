@@ -86,7 +86,7 @@ public class StoredResponseProcessor {
 
         return applicationSettings.getStoredResponses(storedIds, timeout)
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
+                        "Stored response fetching failed with reason: " + exception.getMessage())))
                 .map(storedResponseDataResult -> StoredResponseResult.of(
                         requiredRequestImps,
                         convertToSeatBid(storedResponseDataResult, auctionStoredResponseToImpId),
@@ -96,6 +96,7 @@ public class StoredResponseProcessor {
 
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
                                                        Map<String, String> auctionStoredResponseToImpId) {
+
         return imps.stream()
                 .filter(imp -> !auctionStoredResponseToImpId.containsValue(imp.getId()))
                 .toList();
@@ -206,8 +207,8 @@ public class StoredResponseProcessor {
         try {
             return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format(
-                    "Error decoding bidRequest.imp.ext for impId = %s : %s", impId, e.getMessage()));
+            throw new InvalidRequestException(
+                    "Error decoding bidRequest.imp.ext for impId = %s : %s".formatted(impId, e.getMessage()));
         }
     }
 
@@ -225,8 +226,9 @@ public class StoredResponseProcessor {
             final String impId = storedIdToImpId.getValue();
             final String rowSeatBid = idToStoredResponses.get(id);
             if (rowSeatBid == null) {
-                throw new InvalidRequestException(String.format("Failed to fetch stored auction response for"
-                        + " impId = %s and storedAuctionResponse id = %s.", impId, id));
+                throw new InvalidRequestException(
+                        "Failed to fetch stored auction response for impId = %s and storedAuctionResponse id = %s."
+                                .formatted(impId, id));
             }
             final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
             validateStoredSeatBid(seatBids);
@@ -241,7 +243,7 @@ public class StoredResponseProcessor {
         try {
             return mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPE);
         } catch (IOException e) {
-            throw new InvalidRequestException(String.format("Can't parse Json for stored response with id %s", id));
+            throw new InvalidRequestException("Can't parse Json for stored response with id " + id);
         }
     }
 

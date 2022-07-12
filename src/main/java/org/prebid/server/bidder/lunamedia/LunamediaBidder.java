@@ -149,7 +149,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImps.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpLunamedia, imps);
 
-            final String url = String.format("%s%s", endpointUrl, extImpLunamedia.getPubid());
+            final String url = endpointUrl + extImpLunamedia.getPubid();
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
@@ -207,7 +207,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

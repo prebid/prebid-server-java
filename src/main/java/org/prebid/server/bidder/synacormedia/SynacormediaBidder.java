@@ -57,7 +57,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
             try {
                 extImpSynacormedia = parseAndValidateExtImp(imp.getExt());
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("Invalid Impression: %s", e.getMessage())));
+                errors.add(BidderError.badInput("Invalid Impression: " + e.getMessage()));
                 continue;
             }
 

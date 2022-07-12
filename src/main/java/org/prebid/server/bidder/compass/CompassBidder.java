@@ -147,6 +147,6 @@ public class CompassBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
+        throw new PreBidException("Failed to find impression for ID: '%s'".formatted(impId));
     }
 }

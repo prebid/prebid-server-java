@@ -93,8 +93,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
         final Integer zoneId = extImpAdkernel.getZoneId();
         if (zoneId == null || zoneId < 1) {
-            throw new PreBidException(String.format("Invalid zoneId value: %d. Ignoring imp id=%s",
-                    zoneId, imp.getId()));
+            throw new PreBidException("Invalid zoneId value: %d. Ignoring imp id=%s".formatted(zoneId, imp.getId()));
         }
 
         return extImpAdkernel;
@@ -124,9 +123,12 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
-                                                      BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
+                                                      BidRequest.BidRequestBuilder requestBuilder,
+                                                      Site site,
+                                                      App app) {
+
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = String.format(endpointTemplate, impExt.getZoneId());
+        final String uri = endpointTemplate.formatted(impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
@@ -172,7 +174,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: %d".formatted(bidResponse.getSeatbid().size()));
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

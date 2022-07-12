@@ -97,7 +97,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
         final String accountId = routingContext.request().getParam(ACCOUNT_PARAMETER);
         if (StringUtils.isEmpty(accountId)) {
             throw new IllegalArgumentException(
-                    String.format("Account '%s' is required query parameter and can't be empty", ACCOUNT_PARAMETER));
+                    "Account '%s' is required query parameter and can't be empty".formatted(ACCOUNT_PARAMETER));
         }
         return accountId;
     }
@@ -220,7 +220,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static void respondWithServerError(RoutingContext routingContext, String message, Throwable exception) {
         logger.error(message, exception);
         respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                String.format("%s: %s", message, exception.getMessage()));
+                "%s: %s".formatted(message, exception.getMessage()));
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {

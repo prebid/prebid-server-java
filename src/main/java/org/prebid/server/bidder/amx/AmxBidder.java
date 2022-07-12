@@ -57,7 +57,7 @@ public class AmxBidder implements Bidder<BidRequest> {
         try {
             uriBuilder = new URIBuilder(HttpUtil.validateUrl(Objects.requireNonNull(url)));
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(String.format("Invalid url: %s, error: %s", url, e.getMessage()));
+            throw new IllegalArgumentException("Invalid url: %s, error: %s".formatted(url, e.getMessage()));
         }
         return uriBuilder
                 .addParameter(VERSION_PARAM, ADAPTER_VERSION)

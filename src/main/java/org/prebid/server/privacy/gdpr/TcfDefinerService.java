@@ -248,7 +248,7 @@ public class TcfDefinerService {
     }
 
     private Future<TcfContext> logError(Throwable error, TcfContext tcfContext) {
-        final String message = String.format("Geolocation lookup failed: %s", error.getMessage());
+        final String message = "Geolocation lookup failed: " + error.getMessage();
         logger.warn(message);
         logger.debug(message, error);
 
@@ -346,18 +346,15 @@ public class TcfDefinerService {
             return TCString.decode(consentString);
         } catch (Exception e) {
             logWarn(consentString, e.getMessage(), requestLogInfo);
-            warnings.add(
-                    String.format(
-                            "Parsing consent string:\"%s\" - failed. %s",
-                            consentString, e.getMessage()));
+            warnings.add("Parsing consent string:\"%s\" - failed. %s".formatted(consentString, e.getMessage()));
             return null;
         }
     }
 
     private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
         if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
-            final String exceptionMessage = String.format("Parsing consent string:\"%s\" failed for undefined type "
-                    + "with exception %s", consent, message);
+            final String exceptionMessage = "Parsing consent string:\"%s\" failed for undefined type with exception %s"
+                    .formatted(consent, message);
             UNDEFINED_CORRUPT_CONSENT_LOGGER.info(exceptionMessage, 100);
             return;
         }
@@ -375,9 +372,8 @@ public class TcfDefinerService {
     }
 
     private static String logMessage(String consent, String type, RequestLogInfo requestLogInfo, String message) {
-        return String.format(
-                "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s",
-                consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
+        return "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s"
+                .formatted(consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
     }
 
     private static boolean isConsentValid(TCString consent) {

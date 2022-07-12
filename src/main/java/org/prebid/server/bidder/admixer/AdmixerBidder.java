@@ -79,7 +79,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         try {
             extImpAdmixer = mapper.mapper().convertValue(imp.getExt(), ADMIXER_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
+            throw new PreBidException("Wrong Admixer bidder ext in imp with id : " + imp.getId());
         }
         final String zoneId = extImpAdmixer.getZone();
 

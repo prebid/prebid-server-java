@@ -104,10 +104,9 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(ExtImpMobilefuse extImpMobilefuse) {
-        final String baseUrl = String.format("%s%s", endpointUrl,
-                Objects.toString(extImpMobilefuse.getPublisherId(), "0"));
+        final String baseUrl = endpointUrl + Objects.toString(extImpMobilefuse.getPublisherId(), "0");
         return "ext".equals(extImpMobilefuse.getTagidSrc())
-                ? String.format("%s%s", baseUrl, "&tagid_src=ext")
+                ? baseUrl + "&tagid_src=ext"
                 : baseUrl;
     }
 

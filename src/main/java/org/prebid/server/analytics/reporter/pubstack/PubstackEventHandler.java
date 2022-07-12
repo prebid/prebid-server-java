@@ -157,8 +157,7 @@ public class PubstackEventHandler {
 
             return obj.toByteArray();
         } catch (IOException e) {
-            throw new PreBidException(String.format("[pubstack] failed to compress, skip the events : %s",
-                    e.getMessage()));
+            throw new PreBidException("[pubstack] failed to compress, skip the events : " + e.getMessage());
         }
     }
 

@@ -286,7 +286,7 @@ public class AccountConfigReader {
 
             if (bidders == null && mediaTypes == null) {
                 throw new InvalidAccountConfigurationException(
-                        String.format("%s field in account configuration must contain at least one of %s or %s",
+                        "%s field in account configuration must contain at least one of %s or %s".formatted(
                                 CONDITIONS_FIELD,
                                 BIDDERS_FIELD,
                                 MEDIA_TYPE_FIELD));
@@ -317,10 +317,9 @@ public class AccountConfigReader {
                 specificBidderResults.size() > 0 ? specificBidderResults.get(0) : null,
                 catchAllBidderResults.size() > 0 ? catchAllBidderResults.get(0) : null);
         final List<String> warnings = debugEnabled && specificBidderResults.size() + catchAllBidderResults.size() > 1
-                ? Collections.singletonList(String.format(
-                "More than one conditions matches request. Bidder: %s, request media types: %s",
-                bidder,
-                actualMediaTypes))
+                ? Collections.singletonList(
+                "More than one conditions matches request. Bidder: %s, request media types: %s"
+                        .formatted(bidder, actualMediaTypes))
                 : null;
 
         return Result.of(value, warnings);
@@ -357,10 +356,8 @@ public class AccountConfigReader {
             final List<String> dealIds = typedArrayFrom(conditions, String.class, DEALIDS_FIELD);
 
             if (dealIds == null) {
-                throw new InvalidAccountConfigurationException(String.format(
-                        "%s field in account configuration must contain %s",
-                        CONDITIONS_FIELD,
-                        DEALIDS_FIELD));
+                throw new InvalidAccountConfigurationException(
+                        "%s field in account configuration must contain %s".formatted(CONDITIONS_FIELD, DEALIDS_FIELD));
             }
 
             if (dealIds.contains(dealid)) {
@@ -414,8 +411,7 @@ public class AccountConfigReader {
         }
 
         if (!node.isArray()) {
-            throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration is not an array", field));
+            throw new InvalidAccountConfigurationException(field + " field in account configuration is not an array");
         }
 
         return StreamUtil.asStream(node.elements())
@@ -447,13 +443,13 @@ public class AccountConfigReader {
             checker = JsonNode::isBoolean;
             converter = JsonNode::booleanValue;
         } else {
-            throw new IllegalArgumentException(String.format("Unsupported type: %s", type));
+            throw new IllegalArgumentException("Unsupported type: " + type);
         }
 
         final Boolean hasDesiredType = checker.apply(node);
         if (!hasDesiredType) {
             throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration has unexpected type. Expected %s", field, type));
+                    "%s field in account configuration has unexpected type. Expected %s".formatted(field, type));
         }
 
         return (T) converter.apply(node);
@@ -466,8 +462,7 @@ public class AccountConfigReader {
         }
 
         if (!child.isObject()) {
-            throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration is not an object", field));
+            throw new InvalidAccountConfigurationException(field + " field in account configuration is not an object");
         }
 
         return child;
@@ -481,7 +476,7 @@ public class AccountConfigReader {
 
         if (!child.isArray() || !StreamUtil.asStream(child.elements()).allMatch(JsonNode::isObject)) {
             throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration is not an array of objects", field));
+                    field + " field in account configuration is not an array of objects");
         }
 
         return child;
@@ -490,7 +485,7 @@ public class AccountConfigReader {
     private static <T> T requireNonNull(T object, String field) {
         if (object == null) {
             throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration is missing", field));
+                    field + " field in account configuration is missing");
         }
 
         return object;

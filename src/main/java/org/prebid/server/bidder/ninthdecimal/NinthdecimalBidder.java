@@ -205,7 +205,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

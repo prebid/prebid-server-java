@@ -54,8 +54,11 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
                 final ExtImpRhythmone parsedImpExt = parseAndValidateImpExt(imp);
 
                 if (composedUrl == null) {
-                    composedUrl = String.format("%s/%s/0/%s?z=%s&s2s=%s", endpointUrl, parsedImpExt.getPlacementId(),
-                            parsedImpExt.getPath(), parsedImpExt.getZone(), "true");
+                    composedUrl = "%s/%s/0/%s?z=%s&s2s=true".formatted(
+                            endpointUrl,
+                            parsedImpExt.getPlacementId(),
+                            parsedImpExt.getPath(),
+                            parsedImpExt.getZone());
                 }
                 final ExtImpRhythmone modifiedImpExt = parsedImpExt.toBuilder().s2s(true).build();
                 final Imp modifiedImp = imp.toBuilder().ext(impExtToObjectNode(modifiedImpExt)).build();
@@ -87,14 +90,14 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         try {
             impExt = mapper.mapper().convertValue(imp.getExt(), RHYTHMONE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ext data not provided in imp id=%s. Abort all Request", imp.getId()), e);
+            throw new PreBidException(
+                    "ext data not provided in imp id=%s. Abort all Request".formatted(imp.getId()), e);
         }
 
         if (StringUtils.isBlank(impExt.getPlacementId()) || StringUtils.isBlank(impExt.getZone())
                 || StringUtils.isBlank(impExt.getPath())) {
-            throw new PreBidException(String.format(
-                    "placementId | zone | path not provided in imp id=%s. Abort all Request", imp.getId()));
+            throw new PreBidException(
+                    "placementId | zone | path not provided in imp id=%s. Abort all Request".formatted(imp.getId()));
         }
         return impExt;
     }
@@ -104,7 +107,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         try {
             impExt = mapper.mapper().valueToTree(ExtPrebid.of(null, extImpRhythmone));
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
+            throw new PreBidException("Failed to create imp.ext with error: " + e.getMessage());
         }
         return impExt;
     }

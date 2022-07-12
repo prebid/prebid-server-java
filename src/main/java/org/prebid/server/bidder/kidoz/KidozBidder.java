@@ -162,6 +162,6 @@ public class KidozBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException("Failed to find impression " + impId);
     }
 }

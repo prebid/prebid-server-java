@@ -99,7 +99,7 @@ public class DealsPopulator {
         final String accountId = context.getAccount().getId();
         if (!accountHasDeals) {
             criteriaLogManager.log(
-                    logger, accountId, String.format("Account %s does not have deals", accountId), logger::debug);
+                    logger, accountId, "Account %s does not have deals".formatted(accountId), logger::debug);
 
             return Future.succeededFuture(context);
         }
@@ -148,8 +148,11 @@ public class DealsPopulator {
         for (int i = 0; i < compositeFuture.list().size(); i++) {
             final Object o = compositeFuture.resultAt(i);
             if (o == null) {
-                criteriaLogManager.log(logger, account, String.format("Deals processing error: %s",
-                        compositeFuture.cause(i)), logger::warn);
+                criteriaLogManager.log(
+                        logger,
+                        account,
+                        "Deals processing error: " + compositeFuture.cause(i),
+                        logger::warn);
                 continue;
             }
 
@@ -375,7 +378,7 @@ public class DealsPopulator {
 
             lineItems.forEach(lineItem -> criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(),
                     lineItem.getLineItemId(),
-                    String.format("LineItem %s is ready to be served", lineItem.getLineItemId()), logger::debug));
+                    "LineItem %s is ready to be served".formatted(lineItem.getLineItemId()), logger::debug));
 
             final Imp updatedImp = lineItems.isEmpty() ? imp : enrichImpWithDeals(imp, lineItems);
             isImpsUpdated |= imp != updatedImp;

@@ -127,7 +127,7 @@ public class MgidBidder implements Bidder<BidRequest> {
         final String placementId = impMgid.getPlacementId();
         final String impId = imp.getId();
 
-        return StringUtils.isBlank(placementId) ? impId : String.format("%s/%s", placementId, impId);
+        return StringUtils.isBlank(placementId) ? impId : "%s/%s".formatted(placementId, impId);
     }
 
     @Override

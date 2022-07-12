@@ -78,11 +78,8 @@ public class OpenWebBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OPENWEB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format(
-                            "ignoring imp id=%s, error while encoding impExt, err: %s",
-                            imp.getId(),
-                            e.getMessage()));
+            throw new PreBidException("ignoring imp id=%s, error while encoding impExt, err: %s"
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -120,7 +117,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(Integer sourceId) {
-        return String.format("%s?aid=%d", endpointUrl, sourceId);
+        return "%s?aid=%d".formatted(endpointUrl, sourceId);
     }
 
     @Override
@@ -174,9 +171,6 @@ public class OpenWebBidder implements Bidder<BidRequest> {
         }
 
         throw new PreBidException(
-                String.format(
-                        "ignoring bid id=%s, request doesn't contain any impression with id=%s",
-                        bidId,
-                        impId));
+                "ignoring bid id=%s, request doesn't contain any impression with id=%s".formatted(bidId, impId));
     }
 }

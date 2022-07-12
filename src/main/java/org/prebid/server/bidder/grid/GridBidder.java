@@ -105,7 +105,7 @@ public class GridBidder implements Bidder<BidRequest> {
         final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
         final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
         if (uid == null || uid == 0) {
-            throw new PreBidException(String.format("Empty uid in imp with id: %s", impId));
+            throw new PreBidException("Empty uid in imp with id: " + impId);
         }
     }
 
@@ -260,9 +260,9 @@ public class GridBidder implements Bidder<BidRequest> {
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
+                throw new PreBidException("Unknown impression type for ID: " + impId);
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
+        throw new PreBidException("Failed to find impression for ID: " + impId);
     }
 }

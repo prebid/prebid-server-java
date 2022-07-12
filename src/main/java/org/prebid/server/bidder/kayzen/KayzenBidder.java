@@ -66,7 +66,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), KAYZEN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
+            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
     }
 

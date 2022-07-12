@@ -70,14 +70,13 @@ public class DeepintentBidder implements Bidder<BidRequest> {
 
     private Banner buildImpBanner(Banner banner, String impId) {
         if (banner == null) {
-            throw new PreBidException(String.format("We need a Banner Object in "
-                    + "the request, imp : %s", impId));
+            throw new PreBidException("We need a Banner Object in the request, imp : " + impId);
         }
 
         if (banner.getW() == null && banner.getH() == null) {
             final List<Format> bannerFormats = banner.getFormat();
             if (CollectionUtils.isEmpty(banner.getFormat())) {
-                throw new PreBidException(String.format("At least one size is required, imp : %s", impId));
+                throw new PreBidException("At least one size is required, imp : " + impId);
             }
             final Format format = bannerFormats.get(0);
             return banner.toBuilder().w(format.getW()).h(format.getH()).build();
@@ -90,7 +89,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), DEEPINTENT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -155,6 +154,6 @@ public class DeepintentBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression with id: %s", impId));
+        throw new PreBidException("Failed to find impression with id: " + impId);
     }
 }

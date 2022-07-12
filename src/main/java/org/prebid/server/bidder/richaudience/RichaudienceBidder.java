@@ -101,7 +101,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) throws PreBidException {
         if (!isBannerSizesPresent(imp.getBanner())) {
-            throw new PreBidException(String.format("Banner W/H/Format is required. ImpId: %s", imp.getId()));
+            throw new PreBidException("Banner W/H/Format is required. ImpId: " + imp.getId());
         }
     }
 
@@ -114,7 +114,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Invalid ext. Imp.Id: %s", imp.getId()));
+            throw new PreBidException("Invalid ext. Imp.Id: " + imp.getId());
         }
     }
 

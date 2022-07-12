@@ -231,7 +231,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .containsExactly(
                         """
                                 The following error was received from the currency converter while \
-                                attempting to convert the imp.bidfloor value of 150 from UAH to USD:
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD: \
                                 Currency service was unable to convert currency.
                                 The provided value of imp.ext.beachfront.bidfloor, \
                                 1 USD is being used as a fallback.""");
@@ -321,7 +321,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .containsExactly(
                         """
                                 The following error was received from the currency converter while \
-                                attempting to convert the imp.bidfloor value of 150 from UAH to USD:
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD: \
                                 Currency service was unable to convert currency.
                                 A value of imp.ext.beachfront.bidfloor was not provided. \
                                 The bid is being skipped.""");

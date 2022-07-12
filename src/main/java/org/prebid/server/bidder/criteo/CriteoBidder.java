@@ -144,7 +144,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     private static String formatSizesAsString(Integer w, Integer h) {
-        return String.format("%sx%s", w, h);
+        return "%sx%s".formatted(w, h);
     }
 
     private static CriteoRequest createCriterioRequest(BidRequest bidRequest,
@@ -231,7 +231,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 headers,
                 HttpUtil.COOKIE_HEADER,
-                StringUtils.isNotEmpty(cookieId) ? String.format("uid=%s", cookieId) : null);
+                StringUtils.isNotEmpty(cookieId) ? "uid=" + cookieId : null);
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, criteoUser.getIp());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, criteoUser.getIpV6());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, criteoUser.getUserAgent());

@@ -39,7 +39,7 @@ public class Criteria {
 
     public void log(Criteria criteria, Logger logger, Object message, Consumer<Object> defaultLogger) {
         if (isMatched(criteria)) {
-            loggerLevel.accept(logger, String.format(TAGGED_MESSAGE_PATTERN, tag, message));
+            loggerLevel.accept(logger, TAGGED_MESSAGE_PATTERN.formatted(tag, message));
         } else {
             defaultLogger.accept(message);
         }
@@ -47,14 +47,14 @@ public class Criteria {
 
     public void logResponse(String bidResponse, Logger logger) {
         if (isMatchedToString(bidResponse)) {
-            loggerLevel.accept(logger, String.format(TAGGED_RESPONSE_PATTERN, tag, BID_RESPONSE, bidResponse));
+            loggerLevel.accept(logger, TAGGED_RESPONSE_PATTERN.formatted(tag, BID_RESPONSE, bidResponse));
         }
     }
 
     public void logResponseAndRequest(String bidResponse, String bidRequest, Logger logger) {
         if (isMatchedToString(bidResponse + bidRequest)) {
-            loggerLevel.accept(logger, String.format(TAGGED_RESPONSE_PATTERN, tag, BID_RESPONSE, bidResponse));
-            loggerLevel.accept(logger, String.format(TAGGED_RESPONSE_PATTERN, tag, RESOLVED_BID_REQUEST, bidRequest));
+            loggerLevel.accept(logger, TAGGED_RESPONSE_PATTERN.formatted(tag, BID_RESPONSE, bidResponse));
+            loggerLevel.accept(logger, TAGGED_RESPONSE_PATTERN.formatted(tag, RESOLVED_BID_REQUEST, bidRequest));
         }
     }
 

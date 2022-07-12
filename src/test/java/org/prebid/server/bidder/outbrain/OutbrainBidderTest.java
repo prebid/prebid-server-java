@@ -294,7 +294,7 @@ public class OutbrainBidderTest extends VertxTest {
         // then
         final String expectedAdm = jacksonMapper.encodeToString(Response.builder()
                 .eventtrackers(null)
-                .jstracker(String.format("<script src=\"%s\"></script>", jsUrl))
+                .jstracker("<script src=\"%s\"></script>".formatted(jsUrl))
                 .imptrackers(singletonList(impUrl))
                 .build());
 

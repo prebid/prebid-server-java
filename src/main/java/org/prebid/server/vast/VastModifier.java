@@ -111,8 +111,8 @@ public class VastModifier {
         } else if (wrapperTagIndex != -1) {
             return appendTrackingUrl(vastXml, vastUrlTracking, WRAPPER_CLOSE_TAG);
         }
-        throw new PreBidException(
-                String.format("VastXml does not contain neither InLine nor Wrapper for %s response", bidder));
+        throw new PreBidException("VastXml does not contain neither InLine nor Wrapper for %s response"
+                .formatted(bidder));
     }
 
     private static String appendTrackingUrl(String vastXml, String vastUrlTracking, String elementCloseTag) {

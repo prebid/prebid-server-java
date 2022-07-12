@@ -140,7 +140,7 @@ public class HttpBidderRequester {
 
         if (httpRequests.size() > 1) {
             logger.warn("""
-                            More than one request was created for stored response, when only single stored response
+                            More than one request was created for stored response, when only single stored response \
                             per bidder is supported for the moment. Request to real {0} bidder will be performed.""",
                     bidder);
             return false;
@@ -212,7 +212,7 @@ public class HttpBidderRequester {
 
             return obj.toByteArray();
         } catch (IOException e) {
-            throw new PreBidException(String.format("Failed to compress request : %s", e.getMessage()));
+            throw new PreBidException("Failed to compress request : " + e.getMessage());
         }
     }
 

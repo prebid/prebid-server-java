@@ -80,8 +80,8 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid imp with id=%s. Expected imp.banner or imp.video",
-                    imp.getId()));
+            throw new PreBidException(
+                    "Invalid imp with id=%s. Expected imp.banner or imp.video".formatted(imp.getId()));
         }
     }
 
@@ -94,7 +94,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         }
 
         if (adkernelAdnExt.getPubId() == null || adkernelAdnExt.getPubId() < 1) {
-            throw new PreBidException(String.format("Invalid pubId value. Ignoring imp id=%s", imp.getId()));
+            throw new PreBidException("Invalid pubId value. Ignoring imp id=%s".formatted(imp.getId()));
         }
         return adkernelAdnExt;
     }
@@ -221,7 +221,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: %d".formatted(bidResponse.getSeatbid().size()));
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

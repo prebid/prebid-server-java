@@ -139,8 +139,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static void validateMediaType(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
-                    + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
+            throw new PreBidException(
+                    "Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=" + imp.getId());
         }
     }
 
@@ -219,14 +219,14 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         if (adSlotParams.length != 2
                 || StringUtils.isEmpty(adSlotParams[0].trim())
                 || StringUtils.isEmpty(adSlotParams[1].trim())) {
-            throw new PreBidException(String.format("Invalid adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         impBuilder.tagid(adSlotParams[0]);
 
         final String[] adSize = adSlotParams[1].toLowerCase().split("x");
         if (adSize.length != 2) {
-            throw new PreBidException(String.format("Invalid size provided in adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid size provided in adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         final Integer width = parseAdSizeParam(adSize[0], "width", adSlot);
@@ -240,7 +240,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         try {
             return Integer.parseInt(number.trim());
         } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid %s provided in adSlot '%s'", paramName, adSlot));
+            throw new PreBidException("Invalid %s provided in adSlot '%s'".formatted(paramName, adSlot));
         }
     }
 

@@ -214,8 +214,7 @@ public class BidsBlocker {
     }
 
     private String debugEntryFor(int index, BlockingResult blockingResult) {
-        return String.format(
-                "Bid %d from bidder %s has been rejected, failed checks: %s",
+        return "Bid %d from bidder %s has been rejected, failed checks: %s".formatted(
                 index,
                 bidder,
                 blockingResult.getFailedChecks());

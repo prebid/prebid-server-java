@@ -135,9 +135,9 @@ public class IqzoneBidder implements Bidder<BidRequest> {
                 if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
+        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
     }
 }

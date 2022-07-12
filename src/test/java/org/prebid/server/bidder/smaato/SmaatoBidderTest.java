@@ -297,7 +297,7 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         BiFunction<Imp.ImpBuilder, Integer, Imp.ImpBuilder> resultCustomizer =
                 (builder, idx) -> builder
-                        .id(String.format("1_%d", idx))
+                        .id("1_" + idx)
                         .tagid("adbreakId")
                         .ext(null)
                         .video(Video.builder()

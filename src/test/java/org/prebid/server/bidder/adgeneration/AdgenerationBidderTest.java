@@ -325,7 +325,15 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<div id=\"apvad-123\"></div><script type=\"text/javascript\" id=\"apv\" src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script><script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"123\"}).load('vastxml'); })(); </script>beacon</body>";
+        final String adm = """
+                <div id="apvad-123"></div>
+                <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"123"}).load('vastxml');
+                })();
+                </script>
+                beacon</body>""";
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("123")

@@ -69,7 +69,7 @@ public class PangleBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), WrappedImpExtBidder.class);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("failed unmarshalling imp ext (err)%s", e.getMessage()));
+            throw new PreBidException("failed unmarshalling imp ext (err)" + e.getMessage());
         }
     }
 

@@ -83,7 +83,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
 
     private Imp createImp(ExtImpCpmStar extImpCpmStar, Imp imp) {
         if (extImpCpmStar == null) {
-            throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
+            throw new PreBidException("imp id=%s: bidder.ext is null".formatted(imp.getId()));
         }
         return imp.toBuilder().ext(mapper.mapper().valueToTree(extImpCpmStar)).build();
     }
@@ -120,7 +120,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             try {
                 bidderBids.add(BidderBid.of(bid, bidType(bid.getImpid(), imps), currency));
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("bid id=%s %s", bid.getId(), e.getMessage())));
+                errors.add(BidderError.badInput("bid id=%s %s".formatted(bid.getId(), e.getMessage())));
             }
         }
         return bidderBids;
@@ -136,6 +136,6 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("could not find valid impid=%s", impId));
+        throw new PreBidException("could not find valid impid=" + impId);
     }
 }

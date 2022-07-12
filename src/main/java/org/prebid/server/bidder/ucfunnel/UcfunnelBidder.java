@@ -63,7 +63,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final String requestUrl = String.format("%s/%s/request", endpointUrl, HttpUtil.encodeUrl(partnerId));
+        final String requestUrl = "%s/%s/request".formatted(endpointUrl, HttpUtil.encodeUrl(partnerId));
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()

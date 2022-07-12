@@ -95,9 +95,8 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             return currencyConversionService
                     .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
         } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
-                    bidFloorCur, BIDDER_CURRENCY, impId));
+            throw new PreBidException("Unable to convert provided bid floor currency from %s to %s for imp `%s`"
+                    .formatted(bidFloorCur, BIDDER_CURRENCY, impId));
         }
     }
 
@@ -116,7 +115,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                     .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Unable to decode the impression ext for id: %s", imp.getId()));
+            throw new PreBidException("Unable to decode the impression ext for id: " + imp.getId());
         }
     }
 
@@ -194,7 +193,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(
-                String.format("Failed to find a supported media type impression with ID: '%s'", impId));
+        throw new PreBidException("Failed to find a supported media type impression with ID: '%s'".formatted(impId));
     }
 }

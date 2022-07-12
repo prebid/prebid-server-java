@@ -2166,8 +2166,9 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.aliases.rubicon defines a no-op alias."
-                        + " Choose a different alias, or remove this entry");
+                .containsOnly("""
+                        request.ext.prebid.aliases.rubicon defines a no-op alias. \
+                        Choose a different alias, or remove this entry""");
     }
 
     @Test

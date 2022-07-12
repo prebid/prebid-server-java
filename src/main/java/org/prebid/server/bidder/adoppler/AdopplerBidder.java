@@ -134,7 +134,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("invalid body: %s", e.getMessage()));
+            throw new PreBidException("invalid body: " + e.getMessage());
         }
     }
 
@@ -160,7 +160,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         final String bidImpId = bid.getImpid();
 
         if (impTypes.get(bidImpId) == null) {
-            throw new PreBidException(String.format("unknown impId: %s", bidImpId));
+            throw new PreBidException("unknown impId: " + bidImpId);
         }
         if (impTypes.get(bidImpId) == BidType.video) {
             validateVideoBidExt(bid);

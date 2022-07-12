@@ -431,7 +431,7 @@ public class BidResponseCreator {
                 .findFirst()
                 // Should never occur. See ResponseBidValidator
                 .orElseThrow(
-                        () -> new PreBidException(String.format("Bid with impId %s doesn't have matched imp", impId)));
+                        () -> new PreBidException("Bid with impId %s doesn't have matched imp".formatted(impId)));
     }
 
     private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
@@ -700,7 +700,7 @@ public class BidResponseCreator {
             final boolean isFirstBid = i == 0;
             final String targetingBidderCode = isFirstBid
                     ? bidder
-                    : bidderCodePrefix == null ? null : String.format("%s%s", bidderCodePrefix, i + 1);
+                    : bidderCodePrefix == null ? null : "%s%s".formatted(bidderCodePrefix, i + 1);
 
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
             final TargetingInfo targetingInfo = TargetingInfo.builder()
@@ -1372,8 +1372,9 @@ public class BidResponseCreator {
                 responseAsset.getImg().setType(type);
             } else {
                 final Integer assetId = responseAsset.getId();
-                throw new PreBidException(String.format("Response has an Image asset with ID:'%s' present that doesn't "
-                        + "exist in the request", assetId != null ? assetId : StringUtils.EMPTY));
+                throw new PreBidException(
+                        "Response has an Image asset with ID:'%s' present that doesn't exist in the request"
+                                .formatted(assetId != null ? assetId : StringUtils.EMPTY));
             }
         }
         if (responseAsset.getData() != null) {
@@ -1382,8 +1383,9 @@ public class BidResponseCreator {
             if (type != null) {
                 responseAsset.getData().setType(type);
             } else {
-                throw new PreBidException(String.format("Response has a Data asset with ID:%s present that doesn't "
-                        + "exist in the request", responseAsset.getId()));
+                throw new PreBidException(
+                        "Response has a Data asset with ID:%s present that doesn't exist in the request"
+                                .formatted(responseAsset.getId()));
             }
         }
     }
@@ -1615,8 +1617,8 @@ public class BidResponseCreator {
         try {
             return mapper.mapper().treeToValue(priceGranularity, ExtPriceGranularity.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.prebid.targeting.pricegranularity: %s",
-                    e.getMessage()), e);
+            throw new PreBidException(
+                    "Error decoding bidRequest.prebid.targeting.pricegranularity: %s".formatted(e.getMessage()), e);
         }
     }
 

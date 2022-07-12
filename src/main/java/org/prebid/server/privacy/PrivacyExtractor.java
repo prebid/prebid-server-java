@@ -90,7 +90,7 @@ public class PrivacyExtractor {
             Ccpa.validateUsPrivacy(usPrivacy);
             return Ccpa.of(usPrivacy);
         } catch (PreBidException e) {
-            final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
+            final String message = "CCPA consent %s has invalid format: %s".formatted(usPrivacy, e.getMessage());
             logger.debug(message);
             if (errors != null) {
                 errors.add(message);

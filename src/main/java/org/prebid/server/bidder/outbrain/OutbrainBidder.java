@@ -89,7 +89,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OUTBRAIN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -209,7 +209,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             if (Objects.equals(currentMethod, IMAGE_TRACKER_METHOD)) {
                 imptrackers.add(eventTracker.getUrl());
             } else if (Objects.equals(currentMethod, JS_TRACKER_METHOD)) {
-                jstracker = String.format("<script src=\"%s\"></script>", eventTracker.getUrl());
+                jstracker = "<script src=\"%s\"></script>".formatted(eventTracker.getUrl());
             }
         }
 
@@ -230,6 +230,6 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find native/banner impression \"%s\"", impId));
+        throw new PreBidException("Failed to find native/banner impression \"%s\"".formatted(impId));
     }
 }

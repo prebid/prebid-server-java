@@ -86,7 +86,7 @@ public class TargetingService {
             return parseTargetingCategory(fieldName, field.getValue(), lineItemId);
         } else {
             throw new TargetingSyntaxException(
-                    String.format("Expected either boolean operator or targeting category, got %s", fieldName));
+                    "Expected either boolean operator or targeting category, got " + fieldName);
         }
     }
 
@@ -150,8 +150,7 @@ public class TargetingService {
         return switch (function) {
             case MATCHES -> new Matches(category, parseString(field.getValue()));
             case IN -> createInStringsFunction(category, field.getValue());
-            default ->
-                    throw new IllegalStateException(String.format("Unexpected string function %s", function.value()));
+            default -> throw new IllegalStateException("Unexpected string function " + function.value());
         };
     }
 
@@ -165,7 +164,7 @@ public class TargetingService {
             case MATCHES -> new Matches(category, parseString(functionValue));
             case IN -> parseTypedInFunction(category, functionValue);
             case INTERSECTS -> parseTypedIntersectsFunction(category, functionValue);
-            default -> throw new IllegalStateException(String.format("Unexpected typed function %s", function.value()));
+            default -> throw new IllegalStateException("Unexpected typed function " + function.value());
         };
     }
 
@@ -177,7 +176,7 @@ public class TargetingService {
             size = mapper.mapper().treeToValue(node, Size.class);
         } catch (JsonProcessingException e) {
             throw new TargetingSyntaxException(
-                    String.format("Exception occurred while parsing size: %s", e.getMessage()), e);
+                    "Exception occurred while parsing size: " + e.getMessage(), e);
         }
 
         if (size.getH() == null || size.getW() == null) {
@@ -211,7 +210,7 @@ public class TargetingService {
             region = mapper.mapper().treeToValue(node, GeoRegion.class);
         } catch (JsonProcessingException e) {
             throw new TargetingSyntaxException(
-                    String.format("Exception occurred while parsing geo region: %s", e.getMessage()), e);
+                    "Exception occurred while parsing geo region: " + e.getMessage(), e);
         }
 
         if (region.getLat() == null || region.getLon() == null || region.getRadiusMiles() == null) {
@@ -251,8 +250,7 @@ public class TargetingService {
         return switch (dataType) {
             case NUMBER -> integerCreator.apply(category, value);
             case STRING -> stringCreator.apply(category, value);
-            default ->
-                    throw new TargetingSyntaxException(String.format("Expected integer or string, got %s", dataType));
+            default -> throw new TargetingSyntaxException("Expected integer or string, got " + dataType);
         };
     }
 
@@ -274,7 +272,7 @@ public class TargetingService {
 
     private static void validateIsObject(JsonNode value) {
         if (!value.isObject()) {
-            throw new TargetingSyntaxException(String.format("Expected object, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected object, got " + value.getNodeType());
         }
     }
 
@@ -283,7 +281,7 @@ public class TargetingService {
 
         if (value.size() != 1) {
             throw new TargetingSyntaxException(
-                    String.format("Expected only one element in the object, got %d", value.size()));
+                    "Expected only one element in the object, got " + value.size());
         }
 
         return value.fields().next();
@@ -291,19 +289,19 @@ public class TargetingService {
 
     private static void validateIsArray(JsonNode value) {
         if (!value.isArray()) {
-            throw new TargetingSyntaxException(String.format("Expected array, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected array, got " + value.getNodeType());
         }
     }
 
     private static void validateIsString(JsonNode value) {
         if (!value.isTextual()) {
-            throw new TargetingSyntaxException(String.format("Expected string, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected string, got " + value.getNodeType());
         }
     }
 
     private static void validateIsInteger(JsonNode value) {
         if (!value.isInt()) {
-            throw new TargetingSyntaxException(String.format("Expected integer, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected integer, got " + value.getNodeType());
         }
     }
 
@@ -312,10 +310,10 @@ public class TargetingService {
         final String fieldName = field.getKey();
 
         if (!MatchingFunction.isMatchingFunction(fieldName)) {
-            throw new TargetingSyntaxException(String.format("Expected matching function, got %s", fieldName));
+            throw new TargetingSyntaxException("Expected matching function, got " + fieldName);
         } else if (MatchingFunction.fromString(fieldName) != function) {
             throw new TargetingSyntaxException(
-                    String.format("Expected %s matching function, got %s", function.value(), fieldName));
+                    "Expected %s matching function, got %s".formatted(function.value(), fieldName));
         }
 
         return field.getValue();
@@ -326,12 +324,12 @@ public class TargetingService {
         final String fieldName = field.getKey();
 
         if (!MatchingFunction.isMatchingFunction(fieldName)) {
-            throw new TargetingSyntaxException(String.format("Expected matching function, got %s", fieldName));
+            throw new TargetingSyntaxException("Expected matching function, got " + fieldName);
         }
 
         final MatchingFunction function = MatchingFunction.fromString(fieldName);
         if (!Arrays.asList(compatibleFunctions).contains(function)) {
-            throw new TargetingSyntaxException(String.format("Expected one of %s matching functions, got %s",
+            throw new TargetingSyntaxException("Expected one of %s matching functions, got %s".formatted(
                     Arrays.stream(compatibleFunctions).map(MatchingFunction::value).collect(Collectors.joining(", ")),
                     fieldName));
         }

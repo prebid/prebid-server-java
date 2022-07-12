@@ -84,7 +84,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
     private static void validateBannerSizes(Integer width, Integer height, List<Format> formats) {
         final boolean sizePresent = width != null && height != null;
         if (sizePresent && (width == 0 || height == 0)) {
-            throw new PreBidException(String.format("invalid sizes provided for Banner %s x %s", width, height));
+            throw new PreBidException("invalid sizes provided for Banner %s x %s".formatted(width, height));
         }
 
         if (!sizePresent && CollectionUtils.isEmpty(formats)) {
@@ -160,6 +160,6 @@ public class VidoomyBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException(String.format("Unknown ad unit code '%s'", impId));
+        throw new PreBidException("Unknown ad unit code '%s'".formatted(impId));
     }
 }

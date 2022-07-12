@@ -304,7 +304,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Unmatched impression id %s", impId));
+        throw new PreBidException("Unmatched impression id " + impId);
     }
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {

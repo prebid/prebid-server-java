@@ -92,13 +92,13 @@ public class BetweenBidder implements Bidder<BidRequest> {
         try {
             extImpBetween = mapper.mapper().convertValue(imp.getExt(), BETWEEN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
+            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
         if (StringUtils.isBlank(extImpBetween.getHost())) {
-            throw new PreBidException(String.format(missingParamErrorMessage, "host", imp.getId()));
+            throw new PreBidException(missingParamErrorMessage.formatted("host", imp.getId()));
         }
         if (StringUtils.isBlank(extImpBetween.getPublisherId())) {
-            throw new PreBidException(String.format(missingParamErrorMessage, "publisher_id", imp.getId()));
+            throw new PreBidException(missingParamErrorMessage.formatted("publisher_id", imp.getId()));
         }
         return extImpBetween;
     }

@@ -127,7 +127,7 @@ public class ApacdexBidder implements Bidder<BidRequest> {
 
         if (bidTypeNode == null || !bidTypeNode.isTextual()) {
             errors.add(BidderError.badServerResponse(
-                    String.format("Failed to parse bid media type for impression %s", bid.getImpid())));
+                    "Failed to parse bid media type for impression " + bid.getImpid()));
             return null;
         }
 
@@ -141,7 +141,7 @@ public class ApacdexBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(bidTypeNode, BidType.class);
         } catch (IllegalArgumentException ignore) {
-            errors.add(BidderError.badServerResponse(String.format("invalid BidType: %s", bidTypeNode.asText())));
+            errors.add(BidderError.badServerResponse("invalid BidType: " + bidTypeNode.asText()));
             return null;
         }
     }

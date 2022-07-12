@@ -137,6 +137,6 @@ public class AdmanBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression \"%s\"", impId));
+        throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
 }

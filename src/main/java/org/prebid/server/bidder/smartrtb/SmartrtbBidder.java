@@ -139,8 +139,8 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                         bidType = BidType.video;
                         break;
                     default:
-                        return Result.withError(BidderError.badServerResponse(String.format(
-                                "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
+                        return Result.withError(BidderError.badServerResponse(
+                                "Unsupported creative type %s.".formatted(smartrtbResponseExt.getFormat())));
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());

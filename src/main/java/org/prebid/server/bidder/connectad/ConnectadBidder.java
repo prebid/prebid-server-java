@@ -92,11 +92,11 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         try {
             extImpConnectAd = mapper.mapper().convertValue(imp.getExt(), CONNECTAD_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
         final Integer siteId = extImpConnectAd.getSiteId();
         if (siteId == null || siteId.equals(0)) {
-            throw new PreBidException(String.format("Impression id=%s, has no siteId present", imp.getId()));
+            throw new PreBidException("Impression id=%s, has no siteId present".formatted(imp.getId()));
         }
         return extImpConnectAd;
     }

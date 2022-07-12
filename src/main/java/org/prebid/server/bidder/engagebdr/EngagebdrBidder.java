@@ -75,7 +75,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
 
                 sspidToImp.computeIfAbsent(sspid, key -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("Ignoring imp id=%s, %s", imp.getId(), e.getMessage())));
+                errors.add(BidderError.badInput("Ignoring imp id=%s, %s".formatted(imp.getId(), e.getMessage())));
             }
         }
         return sspidToImp;
@@ -98,7 +98,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
             return mapper.mapper().convertValue(imp.getExt(),
                     ENGAGEBDR_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("error while decoding impExt, err: %s", e.getMessage()));
+            throw new PreBidException("error while decoding impExt, err: " + e.getMessage());
         }
     }
 

@@ -63,18 +63,15 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
     private static DealsAction dealsActionFrom(RoutingContext routingContext) {
         final String actionName = routingContext.request().getParam(ACTION_NAME_PARAM);
         if (StringUtils.isEmpty(actionName)) {
-            throw new InvalidRequestException(String.format(
-                    "Parameter '%s' is required and can't be empty",
-                    ACTION_NAME_PARAM));
+            throw new InvalidRequestException("Parameter '%s' is required and can't be empty"
+                    .formatted(ACTION_NAME_PARAM));
         }
 
         try {
             return DealsAction.valueOf(actionName.toUpperCase());
         } catch (IllegalArgumentException ignored) {
-            throw new InvalidRequestException(String.format(
-                    "Given '%s' parameter value '%s' is not among possible actions",
-                    ACTION_NAME_PARAM,
-                    actionName));
+            throw new InvalidRequestException("Given '%s' parameter value '%s' is not among possible actions"
+                    .formatted(ACTION_NAME_PARAM, actionName));
         }
     }
 

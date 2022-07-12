@@ -138,7 +138,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     private static <T> Future<T> failedIfNull(T value, String id, String errorPrefix) {
         return value != null
                 ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+                : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
     private Account toAccount(String source) {

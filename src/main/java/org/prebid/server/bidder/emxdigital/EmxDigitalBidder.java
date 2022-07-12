@@ -115,13 +115,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             tagidNumber = Integer.parseInt(bidder.getTagid());
         } catch (NumberFormatException e) {
             throw new PreBidException(
-                    String.format("tagid must be a String of numbers, ignoring imp id=%s",
-                            imp.getId()), e);
+                    "tagid must be a String of numbers, ignoring imp id=" + imp.getId(), e);
         }
 
         if (tagidNumber == 0) {
-            throw new PreBidException(String.format("tagid cant be 0, ignoring imp id=%s",
-                    imp.getId()));
+            throw new PreBidException("tagid cant be 0, ignoring imp id=" + imp.getId());
         }
 
         return bidder;
@@ -233,8 +231,8 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        return String.format("%s?t=%s&ts=%s&src=pbserver", endpointUrl, urlTimeout,
-                (int) Instant.now().getEpochSecond());
+        return "%s?t=%s&ts=%s&src=pbserver"
+                .formatted(endpointUrl, urlTimeout, (int) Instant.now().getEpochSecond());
     }
 
     @Override

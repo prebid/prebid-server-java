@@ -334,17 +334,15 @@ public class Tcf2Service {
             case EIGHT -> purposes.getP8();
             case NINE -> purposes.getP9();
             case TEN -> purposes.getP10();
-            default ->
-                    throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %s", tcfPurpose));
+            default -> throw new IllegalArgumentException("Illegal TCF code for purpose: " + tcfPurpose);
         };
     }
 
-    private SpecialFeature findSpecialFeatureById(int tcfSpecialFeaturesId, SpecialFeatures specialFeatures) {
-        return switch (tcfSpecialFeaturesId) {
+    private SpecialFeature findSpecialFeatureById(int specialFeatureId, SpecialFeatures specialFeatures) {
+        return switch (specialFeatureId) {
             case 1 -> specialFeatures.getSf1();
             case 2 -> specialFeatures.getSf2();
-            default -> throw new IllegalArgumentException(String.format("Illegal TCF code for special feature: %d",
-                    tcfSpecialFeaturesId));
+            default -> throw new IllegalArgumentException("Illegal TCF code for special feature: " + specialFeatureId);
         };
     }
 

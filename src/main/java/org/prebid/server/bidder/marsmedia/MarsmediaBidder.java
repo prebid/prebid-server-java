@@ -57,7 +57,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = String.format("%s%s%s", endpointUrl, "&zone=", firstImpZone);
+        final String uri = "%s&zone=%s".formatted(endpointUrl, firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
         return Result.withValue(HttpRequest.<BidRequest>builder()

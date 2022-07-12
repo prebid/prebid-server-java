@@ -49,8 +49,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             if (imp.getBanner() == null && imp.getVideo() == null) {
                 errors.add(BidderError.badInput(
-                        String.format("Gamoshi only supports banner and video media types. Ignoring imp id=%s",
-                                imp.getId())));
+                        "Gamoshi only supports banner and video media types. Ignoring imp id=" + imp.getId()));
                 continue;
             }
             validImps.add(processImp(imp));

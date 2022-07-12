@@ -99,13 +99,11 @@ public class BeintooBidder implements Bidder<BidRequest> {
         if (StringUtils.isNumeric(tagId)) {
             tagidNumber = Integer.parseInt(tagId);
         } else {
-            throw new PreBidException(String
-                    .format("tagid must be a String of numbers, ignoring imp id=%s", imp.getId()));
+            throw new PreBidException("tagid must be a String of numbers, ignoring imp id=" + imp.getId());
         }
 
         if (tagidNumber == 0) {
-            throw new PreBidException(String.format("tagid cant be 0, ignoring imp id=%s",
-                    imp.getId()));
+            throw new PreBidException("tagid cant be 0, ignoring imp id=" + imp.getId());
         }
 
         return extImpBeintoo;

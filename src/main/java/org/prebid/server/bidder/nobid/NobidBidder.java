@@ -93,6 +93,6 @@ public class NobidBidder implements Bidder<BidRequest> {
                 return imp.getBanner() == null && imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException("Failed to find impression " + impId);
     }
 }

@@ -239,9 +239,12 @@ public class LineItemService {
             targetingDefinition = targetingService.parseTargetingDefinition(lineItemMetaData.getTargeting(),
                     lineItemMetaData.getLineItemId());
         } catch (TargetingSyntaxException e) {
-            criteriaLogManager.log(logger, lineItemMetaData.getAccountId(), lineItemMetaData.getSource(),
+            criteriaLogManager.log(
+                    logger,
+                    lineItemMetaData.getAccountId(),
+                    lineItemMetaData.getSource(),
                     lineItemMetaData.getLineItemId(),
-                    String.format("Line item targeting parsing failed with a reason: %s", e.getMessage()),
+                    "Line item targeting parsing failed with a reason: " + e.getMessage(),
                     logger::warn);
             targetingDefinition = null;
         }
@@ -300,8 +303,11 @@ public class LineItemService {
                 .toList();
 
         if (accountsLineItems.isEmpty()) {
-            criteriaLogManager.log(logger, accountId,
-                    String.format("There are no line items for account %s", accountId), logger::debug);
+            criteriaLogManager.log(
+                    logger,
+                    accountId,
+                    "There are no line items for account " + accountId,
+                    logger::debug);
             return Collections.emptyList();
         }
 
@@ -343,22 +349,34 @@ public class LineItemService {
         final String source = lineItem.getSource();
         final String lineItemId = lineItem.getLineItemId();
         if (targetingDefinition == null) {
-            deepDebug(auctionContext, Category.targeting,
-                    String.format("Line Item %s targeting was not defined or has incorrect format",
-                            lineItemId), accountId, source, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.targeting,
+                    "Line Item %s targeting was not defined or has incorrect format".formatted(lineItemId),
+                    accountId,
+                    source,
+                    lineItemId);
             return false;
         }
 
         final boolean matched = targetingService.matchesTargeting(
                 auctionContext, imp, lineItem.getTargetingDefinition(), lineItem.getSource(), aliases);
         if (matched) {
-            deepDebug(auctionContext, Category.targeting,
-                    String.format("Line Item %s targeting matched imp with id %s", lineItemId, imp.getId()),
-                    accountId, source, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.targeting,
+                    "Line Item %s targeting matched imp with id %s".formatted(lineItemId, imp.getId()),
+                    accountId,
+                    source,
+                    lineItemId);
         } else {
-            deepDebug(auctionContext, Category.targeting,
-                    String.format("Line Item %s targeting did not match imp with id %s", lineItemId, imp.getId()),
-                    accountId, source, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.targeting,
+                    "Line Item %s targeting did not match imp with id %s".formatted(lineItemId, imp.getId()),
+                    accountId,
+                    source,
+                    lineItemId);
         }
         return matched;
     }
@@ -401,9 +419,14 @@ public class LineItemService {
             final String lineItemId = lineItem.getLineItemId();
             final String lineItemSource = lineItem.getSource();
             auctionContext.getTxnLog().lineItemsPacingDeferred().add(lineItemId);
-            deepDebug(auctionContext, Category.pacing, String.format("Matched Line Item %s for bidder %s does not"
-                            + " have unspent tokens to be served", lineItemId, lineItemSource),
-                    auctionContext.getAccount().getId(), lineItemSource, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.pacing,
+                    "Matched Line Item %s for bidder %s does not have unspent tokens to be served"
+                            .formatted(lineItemId, lineItemSource),
+                    auctionContext.getAccount().getId(),
+                    lineItemSource,
+                    lineItemId);
         }
         return hasUnspentTokens;
     }
@@ -417,21 +440,25 @@ public class LineItemService {
         final String lineItemId = lineItem.getLineItemId();
 
         if (ready) {
-            deepDebug(auctionContext, Category.pacing, String.format("Matched Line Item %s for bidder %s ready to "
-                            + "serve. relPriority %d", lineItemId, lineItemSource, lineItem.getRelativePriority()),
-                    accountId, lineItemSource, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.pacing,
+                    "Matched Line Item %s for bidder %s ready to serve. relPriority %d"
+                            .formatted(lineItemId, lineItemSource, lineItem.getRelativePriority()),
+                    accountId,
+                    lineItemSource,
+                    lineItemId);
         } else {
             txnLog.lineItemsPacingDeferred().add(lineItemId);
             deepDebug(
                     auctionContext,
                     Category.pacing,
-                    String.format(
-                            "Matched Line Item %s for bidder %s not ready to serve."
-                                    + " Will be ready at %s, current time is %s",
-                            lineItemId,
-                            lineItemSource,
-                            readyAt != null ? UTC_MILLIS_FORMATTER.format(readyAt) : "never",
-                            UTC_MILLIS_FORMATTER.format(now)),
+                    "Matched Line Item %s for bidder %s not ready to serve. Will be ready at %s, current time is %s"
+                            .formatted(
+                                    lineItemId,
+                                    lineItemSource,
+                                    readyAt != null ? UTC_MILLIS_FORMATTER.format(readyAt) : "never",
+                                    UTC_MILLIS_FORMATTER.format(now)),
                     accountId,
                     lineItemSource,
                     lineItemId);
@@ -461,12 +488,18 @@ public class LineItemService {
 
         if (frequencyCappedByIds == null) {
             txnLog.lineItemsMatchedTargetingFcapLookupFailed().add(lineItemId);
-            final String message = String.format("Failed to match fcap for Line Item %s bidder %s in a reason of bad "
-                    + "response from user data service", lineItemId, lineItemSource);
+            final String message = """
+                    Failed to match fcap for Line Item %s bidder %s in a reason of bad \
+                    response from user data service""".formatted(lineItemId, lineItemSource);
             deepDebug(auctionContext, Category.pacing, message, accountId, lineItemSource, lineItemId);
-            criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(), lineItemId,
-                    String.format("Failed to match fcap for lineItem %s in a reason of bad response from user"
-                            + " data service", lineItemId), logger::debug);
+            criteriaLogManager.log(
+                    logger,
+                    lineItem.getAccountId(),
+                    lineItem.getSource(),
+                    lineItemId,
+                    "Failed to match fcap for lineItem %s in a reason of bad response from user data service"
+                            .formatted(lineItemId),
+                    logger::debug);
 
             return false;
         } else if (!frequencyCappedByIds.isEmpty()) {
@@ -475,11 +508,11 @@ public class LineItemService {
             if (fcapIdOptional.isPresent()) {
                 final String fcapId = fcapIdOptional.get();
                 txnLog.lineItemsMatchedTargetingFcapped().add(lineItemId);
-                final String message = String.format("Matched Line Item %s for bidder %s is "
-                        + "frequency capped by fcap id %s.", lineItemId, lineItemSource, fcapId);
+                final String message = "Matched Line Item %s for bidder %s is frequency capped by fcap id %s."
+                        .formatted(lineItemId, lineItemSource, fcapId);
                 deepDebug(auctionContext, Category.pacing, message, accountId, lineItemSource, lineItemId);
-                criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(), lineItemId,
-                        message, logger::debug);
+                criteriaLogManager.log(
+                        logger, lineItem.getAccountId(), lineItem.getSource(), lineItemId, message, logger::debug);
                 return false;
             }
         }
@@ -530,19 +563,28 @@ public class LineItemService {
                 return result;
             }
             result.remove(lineItem);
-            deepDebug(auctionContext, Category.cleanup, String.format(
-                    "LineItem %s was dropped from imp with id %s because it was top match in another imp",
-                    lineItemId, imp.getId()), auctionContext.getAccount().getId(), lineItem.getSource(), lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.cleanup,
+                    "LineItem %s was dropped from imp with id %s because it was top match in another imp"
+                            .formatted(lineItemId, imp.getId()),
+                    auctionContext.getAccount().getId(),
+                    lineItem.getSource(),
+                    lineItemId);
         }
         return result;
     }
 
     private List<LineItem> cutLineItemsToDealMaxNumber(List<LineItem> resolvedLineItems) {
         resolvedLineItems.subList(maxDealsPerBidder, resolvedLineItems.size())
-                .forEach(lineItem -> criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(),
+                .forEach(lineItem -> criteriaLogManager.log(
+                        logger,
+                        lineItem.getAccountId(),
+                        lineItem.getSource(),
                         lineItem.getLineItemId(),
-                        String.format("LineItem %s was dropped by max deal per bidder limit %s",
-                                lineItem.getLineItemId(), maxDealsPerBidder), logger::debug));
+                        "LineItem %s was dropped by max deal per bidder limit %s"
+                                .formatted(lineItem.getLineItemId(), maxDealsPerBidder),
+                        logger::debug));
         return resolvedLineItems.subList(0, maxDealsPerBidder);
     }
 

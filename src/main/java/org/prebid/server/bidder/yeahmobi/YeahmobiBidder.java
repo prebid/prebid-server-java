@@ -64,7 +64,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
-        final String host = String.format("gw-%s-bid.yeahtargeter.com", extImpYeahmobi.getZoneId());
+        final String host = "gw-%s-bid.yeahtargeter.com".formatted(extImpYeahmobi.getZoneId());
         final String url = endpointUrl.replace("{{Host}}", host);
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
@@ -84,7 +84,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), YEAHMOBI_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 

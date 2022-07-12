@@ -90,8 +90,8 @@ public class GammaBidder implements Bidder<Void> {
 
     private static Imp modifyImp(Imp imp) {
         if (imp.getVideo() == null && imp.getBanner() == null) {
-            throw new PreBidException(String.format("Gamma only supports banner and video media types. "
-                    + "Ignoring imp id= %s", imp.getId()));
+            throw new PreBidException(
+                    "Gamma only supports banner and video media types. Ignoring imp id= " + imp.getId());
         }
 
         final Banner banner = imp.getBanner();
@@ -205,8 +205,7 @@ public class GammaBidder implements Bidder<Void> {
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBidsAndFillErrors(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(
-                    String.format("bad server response: %s", e.getMessage())));
+            return Result.withError(BidderError.badServerResponse("bad server response: " + e.getMessage()));
         }
     }
 

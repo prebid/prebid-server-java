@@ -112,9 +112,9 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
 
             return Price.of(BIDDER_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
-                    bidFloorCur, BIDDER_CURRENCY, impId));
+            throw new PreBidException(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`"
+                            .formatted(bidFloorCur, BIDDER_CURRENCY, impId));
         }
     }
 

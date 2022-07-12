@@ -136,6 +136,6 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Unknown impression type with id %s", impId));
+        throw new PreBidException("Unknown impression type with id " + impId);
     }
 }

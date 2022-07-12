@@ -162,8 +162,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() > 1) {
-            throw new PreBidException(String.format("Unexpected SeatBid! Must be only one but have: %d",
-                    bidResponse.getSeatbid().size()));
+            throw new PreBidException(
+                    "Unexpected SeatBid! Must be only one but have: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -217,9 +217,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
+        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
     }
 }

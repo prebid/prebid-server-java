@@ -113,14 +113,13 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                                                                      List<BidderError> errors, BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
-            final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
+            final String url = "%s?aid=%d".formatted(endpointUrl, sourceIdToImps.getKey());
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
             final byte[] bidRequestBody;
             try {
                 bidRequestBody = mapper.encodeToBytes(bidRequest);
             } catch (EncodeException e) {
-                errors.add(BidderError.badInput(
-                        String.format("error while encoding bidRequest, err: %s", e.getMessage())));
+                errors.add(BidderError.badInput("error while encoding bidRequest, err: %s".formatted(e.getMessage())));
                 return Result.withErrors(errors);
             }
             httpRequests.add(HttpRequest.<BidRequest>builder()
@@ -141,8 +140,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADTELLIGENT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, error while decoding impExt, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException(
+                    "ignoring imp id=%s, error while decoding impExt, err: %s".formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -152,13 +151,13 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     private void validateImpression(Imp imp) {
         final String impId = imp.getId();
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, Adtelligent supports only Video and Banner", impId));
+            throw new PreBidException(
+                    "ignoring imp id=%s, Adtelligent supports only Video and Banner".formatted(impId));
         }
 
         final ObjectNode impExt = imp.getExt();
         if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", impId));
+            throw new PreBidException("ignoring imp id=%s, extImpBidder is empty".formatted(impId));
         }
     }
 
@@ -214,8 +213,9 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             final Video video = idToImps.get(bidImpId).getVideo();
             bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
         } else {
-            errors.add(BidderError.badServerResponse(String.format(
-                    "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
+            errors.add(BidderError.badServerResponse(
+                    "ignoring bid id=%s, request doesn't contain any impression with id=%s"
+                            .formatted(bid.getId(), bidImpId)));
         }
     }
 }

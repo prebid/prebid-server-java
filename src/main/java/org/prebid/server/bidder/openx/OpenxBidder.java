@@ -111,8 +111,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isNotEmpty(notSupportedImps)) {
             errors.addAll(
                     notSupportedImps.stream()
-                            .map(imp -> String.format(
-                                    "OpenX only supports banner and video imps. Ignoring imp id=%s", imp.getId()))
+                            .map(imp -> "OpenX only supports banner and video imps. Ignoring imp id=" + imp.getId())
                             .map(BidderError::badInput)
                             .toList());
         }

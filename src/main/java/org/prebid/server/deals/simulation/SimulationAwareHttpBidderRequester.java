@@ -119,14 +119,14 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
     private Bid createBid(Imp imp, String dealId, String lineItemId) {
         final Double rate = bidRates.get(lineItemId);
         if (rate == null) {
-            throw new PreBidException(String.format("Bid rate for line item with id %s was not found", lineItemId));
+            throw new PreBidException("Bid rate for line item with id %s was not found".formatted(lineItemId));
         }
         final String impId = imp.getId();
         final LineItem lineItem = lineItemService.getLineItemById(lineItemId);
         final List<Format> sizes = getLineItemSizes(imp);
         return Math.random() < rate
                 ? Bid.builder()
-                .id(String.format(BID_ID_FORMAT, impId, lineItemId))
+                .id(BID_ID_FORMAT.formatted(impId, lineItemId))
                 .impid(impId)
                 .dealid(dealId)
                 .price(lineItem != null ? lineItem.getCpm() : DEFAULT_CPM)
@@ -157,8 +157,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
         try {
             return mapper.mapper().treeToValue(extDeal, ExtDeal.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(
-                    String.format("Error decoding bidRequest.imp.pmp.deal.ext: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding bidRequest.imp.pmp.deal.ext: " + e.getMessage(), e);
         }
     }
 

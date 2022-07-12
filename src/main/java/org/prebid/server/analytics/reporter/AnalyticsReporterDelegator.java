@@ -129,9 +129,8 @@ public class AnalyticsReporterDelegator {
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;
-                UNKNOWN_ADAPTERS_LOGGER.warn(
-                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'",
-                                unknownAdapterNames, refererUrl), 0.01);
+                UNKNOWN_ADAPTERS_LOGGER.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
+                        .formatted(unknownAdapterNames, refererUrl), 0.01);
             }
         }
     }

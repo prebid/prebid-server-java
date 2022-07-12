@@ -97,7 +97,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException error) {
-            throw new PreBidException(String.format("Impression Id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression Id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 

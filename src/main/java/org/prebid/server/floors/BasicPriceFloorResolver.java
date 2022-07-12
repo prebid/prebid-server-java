@@ -136,9 +136,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         try {
             return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
         } catch (PreBidException e) {
-            final String logMessage =
-                    String.format("Error occurred while resolving floor for imp: %s, cause: %s",
-                            imp.getId(), e.getMessage());
+            final String logMessage = "Error occurred while resolving floor for imp: %s, cause: %s"
+                    .formatted(imp.getId(), e.getMessage());
             if (warnings != null) {
                 warnings.add(logMessage);
             }
@@ -348,7 +347,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static List<String> sizeFromFormat(Format size) {
         final String sizeRuleKey = size != null
-                ? String.format("%dx%d", size.getW(), size.getH())
+                ? "%dx%d".formatted(size.getW(), size.getH())
                 : WILDCARD_CATCH_ALL;
 
         return Collections.singletonList(sizeRuleKey);

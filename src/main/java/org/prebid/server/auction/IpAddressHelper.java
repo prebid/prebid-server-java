@@ -30,9 +30,9 @@ public class IpAddressHelper {
 
     public IpAddressHelper(int ipv6AlwaysMaskBits, int ipv6AnonLeftMaskBits, List<String> ipv6LocalNetworks) {
         ipv6AlwaysMaskAddress =
-                toAddress(String.format("::/%d", validateIpv6AlwaysMaskBits(ipv6AlwaysMaskBits))).getNetworkMask();
+                toAddress("::/" + validateIpv6AlwaysMaskBits(ipv6AlwaysMaskBits)).getNetworkMask();
         ipv6AnonLeftMaskAddress =
-                toAddress(String.format("::/%d", validateIpv6AnonLeftMaskBits(ipv6AnonLeftMaskBits))).getNetworkMask();
+                toAddress("::/" + validateIpv6AnonLeftMaskBits(ipv6AnonLeftMaskBits)).getNetworkMask();
         ipv6LocalNetworkMaskAddresses = ipv6LocalNetworks.stream()
                 .map(this::toAddress)
                 .toList();
@@ -87,9 +87,8 @@ public class IpAddressHelper {
                 return ip;
             }
         }
-        return String.format("%s%s", maskedIp,
-                IntStream.range(0, 1).mapToObj(ignored -> "0")
-                        .collect(Collectors.joining(".", ".", "")));
+        return maskedIp + IntStream.range(0, 1).mapToObj(ignored -> "0")
+                .collect(Collectors.joining(".", ".", ""));
     }
 
     private String maskIpv6(IPAddress ipAddress) {

@@ -159,7 +159,6 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private void addMediaTypeParseError(List<BidderError> errors, String impId) {
-        final String errorMessage = String.format("Failed to parse impression %s mediatype", impId);
-        errors.add(BidderError.badServerResponse(errorMessage));
+        errors.add(BidderError.badServerResponse("Failed to parse impression %s mediatype".formatted(impId)));
     }
 }

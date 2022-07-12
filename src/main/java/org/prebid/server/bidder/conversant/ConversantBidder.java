@@ -113,11 +113,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
         try {
             extImp = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression[%d] missing ext.bidder object", impIndex));
+            throw new PreBidException("Impression[%d] missing ext.bidder object".formatted(impIndex));
         }
 
         if (StringUtils.isEmpty(extImp.getSiteId())) {
-            throw new PreBidException(String.format("Impression[%d] requires ext.bidder.site_id", impIndex));
+            throw new PreBidException("Impression[%d] requires ext.bidder.site_id".formatted(impIndex));
         }
         return extImp;
     }

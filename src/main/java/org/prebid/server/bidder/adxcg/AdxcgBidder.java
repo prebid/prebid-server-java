@@ -105,6 +105,6 @@ public class AdxcgBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find native/banner/video impression %s", impId));
+        throw new PreBidException("Failed to find native/banner/video impression " + impId);
     }
 }

@@ -83,7 +83,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
         try {
             extImp = mapper.mapper().convertValue(imp.getExt(), SILVERMOB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("error unmarshalling imp.ext.bidder: %s", e.getMessage()));
+            throw new PreBidException("error unmarshalling imp.ext.bidder: " + e.getMessage());
         }
         if (StringUtils.isBlank(extImp.getHost())) {
             throw new PreBidException("host is a required silvermob ext.imp param");
@@ -128,7 +128,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Error unmarshalling server Response: %s", e.getMessage()));
+            throw new PreBidException("Error unmarshalling server Response: " + e.getMessage());
         }
         if (bidResponse == null) {
             throw new PreBidException("Response in not present");

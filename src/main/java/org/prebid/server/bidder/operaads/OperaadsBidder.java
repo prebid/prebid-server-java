@@ -125,7 +125,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     private static String buildImpId(String originalId, BidType type) {
-        return String.format("%s:opa:%s", originalId, type.getName());
+        return "%s:opa:%s".formatted(originalId, type.getName());
     }
 
     private static Banner modifyBanner(Banner banner) {

@@ -124,7 +124,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(
-                    String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
+                    "Imp ID %s must have at least one of [Banner, Video] defined".formatted(imp.getId()));
         }
     }
 

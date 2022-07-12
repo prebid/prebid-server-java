@@ -642,7 +642,7 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 2)
                 .mapToObj(impIdSuffix -> givenImp(
                         imp -> imp
-                                .id(String.format("1_%d", impIdSuffix))
+                                .id("1_" + impIdSuffix)
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
                 .toList();
@@ -672,7 +672,7 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 15)
                 .mapToObj(impIdSuffix -> givenImp(
                         imp -> imp
-                                .id(String.format("1_%d", impIdSuffix))
+                                .id("1_" + impIdSuffix)
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
                 .toList();
@@ -704,7 +704,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 2)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
                 .toList();
@@ -736,7 +736,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
                 .toList();
@@ -768,7 +768,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(impIdSuffix % 2 == 0))))
                 .toList();
@@ -796,7 +796,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(false))))
                 .toList();

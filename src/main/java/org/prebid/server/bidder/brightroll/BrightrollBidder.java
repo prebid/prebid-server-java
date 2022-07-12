@@ -77,7 +77,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
+                .uri("%s?publisher=%s".formatted(endpointUrl, firstImpExtPublisher))
                 .body(mapper.encodeToBytes(updateBidRequest))
                 .headers(createHeaders(updateBidRequest.getDevice()))
                 .payload(updateBidRequest)
@@ -138,8 +138,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         if (imp.getBanner() != null || imp.getVideo() != null) {
             return true;
         } else {
-            errors.add(BidderError.badInput(String.format(
-                    "Brightroll only supports banner and video imps. Ignoring imp id=%s", imp.getId())));
+            errors.add(BidderError.badInput(
+                    "Brightroll only supports banner and video imps. Ignoring imp id=%s".formatted(imp.getId())));
             return false;
         }
     }

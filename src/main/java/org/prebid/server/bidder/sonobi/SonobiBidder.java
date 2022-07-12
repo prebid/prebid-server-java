@@ -137,6 +137,6 @@ public class SonobiBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
+        throw new PreBidException("Failed to find impression for ID: " + impId);
     }
 }

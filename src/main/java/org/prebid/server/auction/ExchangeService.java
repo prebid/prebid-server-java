@@ -388,8 +388,9 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                debugWarnings.add(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+                debugWarnings.add(
+                        "Invalid MultiBid: bidder %s and bidders %s specified. Only bidder %s will be used."
+                                .formatted(bidder, bidders, bidder));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
@@ -399,8 +400,9 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    debugWarnings.add(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
-                            + "will be skipped.", codePrefix, bidders));
+                    debugWarnings.add(
+                            "Invalid MultiBid: CodePrefix %s that was specified for bidders %s will be skipped."
+                                    .formatted(codePrefix, bidders));
                 }
 
                 bidders.forEach(currentBidder ->
@@ -419,13 +421,13 @@ public class ExchangeService {
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                                  List<String> debugWarnings) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            debugWarnings.add(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            debugWarnings.add("Invalid MultiBid: Bidder %s specified multiple times.".formatted(bidder));
             return;
         }
 
         if (maxBids == null) {
-            debugWarnings.add(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
-                    + "will be skipped.", bidder));
+            debugWarnings.add("Invalid MultiBid: MaxBids for bidder %s is not specified and will be skipped."
+                    .formatted(bidder));
             return;
         }
 
@@ -941,8 +943,7 @@ public class ExchangeService {
         try {
             return mapper.mapper().treeToValue(ext, ExtDeal.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(
-                    String.format("Error decoding bidRequest.imp.pmp.deal.ext: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding bidRequest.imp.pmp.deal.ext: " + e.getMessage(), e);
         }
     }
 
@@ -1015,7 +1016,7 @@ public class ExchangeService {
         try {
             return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding imp.ext.prebid: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
     }
 
@@ -1306,9 +1307,8 @@ public class ExchangeService {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
-                debugWarnings.add(String.format(
-                        "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        bid.getId()));
+                debugWarnings.add("Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
+                        .formatted(bid.getId()));
             } else {
                 validBids.add(bidderBid);
             }
@@ -1361,9 +1361,8 @@ public class ExchangeService {
 
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
-            errors.add(BidderError.badInput(
-                    String.format("Cur parameter contains more than one currency. %s will be used",
-                            requestCurrencies.get(0))));
+            errors.add(BidderError.badInput("Cur parameter contains more than one currency. %s will be used"
+                    .formatted(requestCurrencies.get(0))));
         }
 
         final List<BidderBid> bids = seatBid.getBids();

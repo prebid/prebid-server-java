@@ -64,8 +64,7 @@ public class YieldlabBidder implements Bidder<Void> {
             <VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI>
             <Impression></Impression>
             <Creatives></Creatives>
-            </Wrapper></Ad></VAST>
-            """;
+            </Wrapper></Ad></VAST>""";
 
     private final String endpointUrl;
     private final Clock clock;
@@ -137,13 +136,13 @@ public class YieldlabBidder implements Bidder<Void> {
         // for passing validation tests
         final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
 
-        final String updatedPath = String.format("%s/%s", endpointUrl, extImpYieldlab.getAdslotId());
+        final String updatedPath = "%s/%s".formatted(endpointUrl, extImpYieldlab.getAdslotId());
 
         final URIBuilder uriBuilder;
         try {
             uriBuilder = new URIBuilder(updatedPath);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Invalid url: %s, error: %s", updatedPath, e.getMessage()));
+            throw new PreBidException("Invalid url: %s, error: %s".formatted(updatedPath, e.getMessage()));
         }
 
         uriBuilder
@@ -246,7 +245,7 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER.toString(), String.format("id=%s", user.getBuyeruid()));
+            headers.add(HttpUtil.COOKIE_HEADER.toString(), "id=" + user.getBuyeruid());
         }
 
         return headers;
@@ -288,7 +287,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final Imp currentImp = bidRequest.getImp().get(currentImpIndex);
         if (currentImp == null) {
-            throw new PreBidException(String.format("Imp not present for id %s", currentImpIndex));
+            throw new PreBidException("Imp not present for id " + currentImpIndex);
         }
         final Bid.BidBuilder updatedBid = Bid.builder();
 
@@ -357,7 +356,7 @@ public class YieldlabBidder implements Bidder<Void> {
                                          ExtImpYieldlab extImp) {
         // for passing validation tests
         final int weekNumber = isDebugEnabled(bidRequest) ? 35 : Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        return String.format(CREATIVE_ID, extImp.getAdslotId(), yieldlabResponse.getPid(), weekNumber);
+        return CREATIVE_ID.formatted(extImp.getAdslotId(), yieldlabResponse.getPid(), weekNumber);
     }
 
     private static Integer resolveSizeParameter(String adSize, boolean isWidth) {
@@ -371,12 +370,11 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
-        return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
+        return AD_SOURCE_BANNER.formatted(makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
     private String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
-        return String.format(
-                VAST_MARKUP,
+        return VAST_MARKUP.formatted(
                 extImpYieldlab.getAdslotId(),
                 makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
@@ -404,7 +402,10 @@ public class YieldlabBidder implements Bidder<Void> {
                     .addParameter("consent", consent);
         }
 
-        return String.format(AD_SOURCE_URL, extImpYieldlab.getAdslotId(), extImpYieldlab.getSupplyId(),
-                yieldlabResponse.getAdSize(), uriBuilder.toString().replace("?", ""));
+        return AD_SOURCE_URL.formatted(
+                extImpYieldlab.getAdslotId(),
+                extImpYieldlab.getSupplyId(),
+                yieldlabResponse.getAdSize(),
+                uriBuilder.toString().replace("?", ""));
     }
 }

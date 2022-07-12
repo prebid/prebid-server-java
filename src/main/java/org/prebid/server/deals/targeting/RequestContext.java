@@ -207,8 +207,7 @@ public class RequestContext {
     public LookupResult<List<Size>> lookupSizes(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         if (type != TargetingCategory.Type.size) {
-            throw new TargetingSyntaxException(
-                    String.format("Unexpected category for fetching sizes for: %s", type));
+            throw new TargetingSyntaxException("Unexpected category for fetching sizes for: " + type);
         }
 
         final List<Format> formats = getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getFormat);
@@ -222,8 +221,7 @@ public class RequestContext {
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         if (type != TargetingCategory.Type.location) {
-            throw new TargetingSyntaxException(
-                    String.format("Unexpected category for fetching geo location for: %s", type));
+            throw new TargetingSyntaxException("Unexpected category for fetching geo location for: " + type);
         }
 
         final Geo geo = getIfNotNull(getIfNotNull(bidRequest, BidRequest::getDevice), Device::getGeo);

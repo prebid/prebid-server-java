@@ -711,8 +711,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format("Exception occurred during %s bidder schema processing: %s",
-                            bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
         }
     }
 }
