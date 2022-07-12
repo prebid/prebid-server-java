@@ -375,9 +375,9 @@ public class ApplicationTest extends IntegrationTest {
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
-                                                + "%26f%3Di"
+                                                + "%26f%3Db"
                                                 + "%26uid%3D%24UID",
-                                        UsersyncMethodType.REDIRECT, false))
+                                        UsersyncMethodType.IFRAME, false))
                                 .build());
     }
 

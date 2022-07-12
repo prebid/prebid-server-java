@@ -1637,9 +1637,10 @@ public class CookieSyncHandlerTest extends VertxTest {
                         false));
     }
 
-    private static Usersyncer createUsersyncer(String cookieFamilyName,
-                                               String usersyncUrl,
-                                               UsersyncMethodType type) {
+    private static Usersyncer createUsersyncer(String cookieFamilyName, String usersyncUrl, UsersyncMethodType type) {
+        if (type == null) {
+            return Usersyncer.of(cookieFamilyName, null, null);
+        }
 
         return switch (type) {
             case REDIRECT -> Usersyncer.of(

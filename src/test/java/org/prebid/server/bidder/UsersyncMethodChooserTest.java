@@ -6,8 +6,6 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UsersyncMethodChooserTest extends VertxTest {
@@ -256,7 +254,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.include),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
-        
+
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
                 .choose(usersyncer, BIDDER);
@@ -309,7 +307,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     public void shouldReturnNullWhenPrimaryHasNoUrl() {
         // given
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-        
+
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
                 .choose(iframeUsersyncer(null), BIDDER);
@@ -339,15 +337,11 @@ public class UsersyncMethodChooserTest extends VertxTest {
         return Usersyncer.of(null, iframeMethod(url), null);
     }
 
-    private Usersyncer redirectUsersyncer(String url) {
-        return Usersyncer.of(null, redirectMethod(url), null);
-    }
-    
     private UsersyncMethod iframeMethod(String url) {
-       return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
+        return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
     }
 
     private UsersyncMethod redirectMethod(String url) {
-        return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
+        return UsersyncMethod.of(UsersyncMethodType.REDIRECT, url, null, false);
     }
 }

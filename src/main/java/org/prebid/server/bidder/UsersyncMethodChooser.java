@@ -26,7 +26,7 @@ public class UsersyncMethodChooser {
     }
 
     public UsersyncMethod choose(Usersyncer usersyncer, String bidder) {
-        return Stream.of(usersyncer.getRedirect(), usersyncer.getIframe())
+        return Stream.of(usersyncer.getIframe(), usersyncer.getRedirect())
                 .filter(method -> methodValidAndAllowed(method, bidder))
                 .findFirst()
                 .orElse(null);
