@@ -74,6 +74,7 @@ class GroupResult<T> {
         return GroupExecutionOutcome.of(this.hookExecutionOutcomes());
     }
 
+    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
         switch (action) {
             case reject -> applyReject(hookId);

@@ -239,6 +239,7 @@ public class Tcf2Service {
         }
     }
 
+    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private void processPurposeOneTreatment(PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation,
                                             TCString tcfConsent,
                                             Purpose purposeOne,
