@@ -63,7 +63,6 @@ public class CriteriaManager {
             case error -> Logger::error;
             case fatal -> Logger::fatal;
             case debug -> Logger::debug;
-            default -> throw new IllegalArgumentException(String.format("Unknown LoggingLevel: %s", logLevel));
         };
     }
 

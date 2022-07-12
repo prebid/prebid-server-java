@@ -158,6 +158,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
     }
 
+    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private static Imp modifyImp(Imp imp, ExtImpFacebook extImpFacebook) {
         final BidType impType = resolveImpType(imp);
         if (impType == null) {
@@ -175,9 +176,8 @@ public class FacebookBidder implements Bidder<BidRequest> {
             case banner -> impBuilder.banner(modifyBanner(imp, impInstlEqOne));
             case video -> impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
             case xNative -> impBuilder.xNative(modifyNative(imp.getXNative()));
-            default -> {
+            case audio -> {
             }
-            // Do nothing for Audio
         }
         return impBuilder
                 .ext(null)

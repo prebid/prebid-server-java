@@ -78,6 +78,7 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
         }
     }
 
+    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private void handleDealsAction(DealsAction dealsAction) {
         switch (dealsAction) {
             case UPDATE_LINE_ITEMS -> plannerService.updateLineItemMetaData();
@@ -91,7 +92,6 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
             }
             case CREATE_REPORT -> deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
             case INVALIDATE_LINE_ITEMS -> lineItemService.invalidateLineItems();
-            default -> throw new IllegalStateException("Unexpected action value");
         }
     }
 

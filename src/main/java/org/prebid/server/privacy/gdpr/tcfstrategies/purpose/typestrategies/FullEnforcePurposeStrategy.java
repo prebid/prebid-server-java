@@ -169,12 +169,12 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                         RestrictionType restrictionType) {
 
         return switch (restrictionType) {
+            case NOT_ALLOWED -> false;
             case REQUIRE_CONSENT -> isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
             case REQUIRE_LEGITIMATE_INTEREST ->
                     isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
             case UNDEFINED ->
                     isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            default -> false;
         };
     }
 }

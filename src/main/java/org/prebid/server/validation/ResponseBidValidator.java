@@ -273,7 +273,7 @@ public class ResponseBidValidator {
                                                                    Consumer<MetricName> metricsRecorder,
                                                                    ConditionalLogger conditionalLogger,
                                                                    String message) throws ValidationException {
-        switch (enforcement) {
+        return switch (enforcement) {
             case enforce -> {
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
@@ -282,10 +282,10 @@ public class ResponseBidValidator {
             case warn -> {
                 metricsRecorder.accept(MetricName.warn);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
-                return Collections.singletonList(message);
+                yield Collections.singletonList(message);
             }
-            default -> throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
-        }
+            case skip -> throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
+        };
     }
 
     private static String getReferer(BidRequest bidRequest) {

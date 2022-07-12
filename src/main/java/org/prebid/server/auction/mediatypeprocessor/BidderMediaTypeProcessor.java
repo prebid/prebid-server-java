@@ -113,22 +113,13 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(MediaType.class)));
     }
 
+    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private static void removeMediaType(Imp.ImpBuilder impBuilder, MediaType mediaType) {
         switch (mediaType) {
-            case BANNER:
-                impBuilder.banner(null);
-                break;
-            case VIDEO:
-                impBuilder.video(null);
-                break;
-            case AUDIO:
-                impBuilder.audio(null);
-                break;
-            case NATIVE:
-                impBuilder.xNative(null);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid media type");
+            case BANNER -> impBuilder.banner(null);
+            case VIDEO -> impBuilder.video(null);
+            case AUDIO -> impBuilder.audio(null);
+            case NATIVE -> impBuilder.xNative(null);
         }
     }
 }
