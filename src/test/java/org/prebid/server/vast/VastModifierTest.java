@@ -349,11 +349,12 @@ public class VastModifierTest {
     }
 
     private static String modifiedAdm(String bidNurl) {
-        return "<VAST version=\"3.0\"><Ad><Wrapper>"
-                + "<AdSystem>prebid.org wrapper</AdSystem>"
-                + "<VASTAdTagURI><![CDATA[" + bidNurl + "]]></VASTAdTagURI>"
-                + "<Creatives></Creatives>"
-                + "</Wrapper></Ad></VAST>";
+        return """
+                <VAST version="3.0"><Ad><Wrapper>
+                <AdSystem>prebid.org wrapper</AdSystem>
+                <VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI>
+                <Creatives></Creatives>
+                </Wrapper></Ad></VAST>""".formatted(bidNurl);
     }
 
     private static EventsContext givenEventsContext(boolean accountEnabled) {

@@ -33,9 +33,10 @@ import java.util.function.Function;
 
 public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
-    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
-            + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
-            + "and tell them to check their configuration.";
+    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = """
+            %s is not configured properly on this Prebid Server deploy.
+            If you believe this should work, contact the company hosting the service
+            and tell them to check their configuration.""";
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

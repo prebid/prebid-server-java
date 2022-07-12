@@ -282,13 +282,15 @@ public class YieldlabBidderTest extends VertxTest {
 
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
-        final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
-                + "<AdSystem>Yieldlab</AdSystem>"
-                + "<VASTAdTagURI>"
-                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
-                + "1e1e-4cfd-8edc-7d32dc1a21e5 ]]>"
-                + "</VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
+        final String expectedAdm = """
+                <VAST version="2.0"><Ad id="12345"><Wrapper>
+                <AdSystem>Yieldlab</AdSystem>
+                <VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI>
+                <Impression></Impression>
+                <Creatives></Creatives>
+                </Wrapper></Ad></VAST>
+                """.formatted("https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s".formatted(timestamp)
+                + "&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)

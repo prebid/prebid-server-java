@@ -56,12 +56,13 @@ public class AdoceanBidder implements Bidder<Void> {
             };
     private static final String VERSION = "1.2.0";
     private static final int MAX_URI_LENGTH = 8000;
-    private static final String MEASUREMENT_CODE_TEMPLATE = " <script> +function() { "
-            + "var wu = \"%s\"; "
-            + "var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
-            + "if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } "
-            + "if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); "
-            + "</script> ";
+    private static final String MEASUREMENT_CODE_TEMPLATE = """
+             <script> +function() {
+            var wu = "%s";
+            var su = "%s".replace(/\\[TIMESTAMP\\]/, Date.now());
+            if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu }
+            if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }();
+            </script>""";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

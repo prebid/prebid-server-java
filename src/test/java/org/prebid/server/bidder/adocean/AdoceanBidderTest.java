@@ -344,12 +344,13 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = " <script> +function() { "
-                + "var wu = \"https://win-url.com\"; "
-                + "var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
-                + "if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } "
-                + "if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); "
-                + "</script>  <!-- code 1 --> ";
+        final String adm = """
+                 <script> +function() {
+                var wu = "%s";
+                var su = "%s".replace(/\\[TIMESTAMP\\]/, Date.now());
+                if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu }
+                if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }();
+                </script> <!-- code 1 -->\s""".formatted("https://win-url.com", "https://stats-url.com");
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
