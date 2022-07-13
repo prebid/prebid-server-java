@@ -1,9 +1,11 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -32,11 +34,14 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -954,6 +959,93 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(result.result().getErrors()).containsOnly(
                 "No stored Imp for stored id st2",
                 "No stored video found for Imp with id id1");
+    }
+
+    @Test
+    public void shouldPassSimilarMathematicalValueOfBidFloor() throws IOException {
+        // given
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("{}"));
+
+        storedRequestProcessor = new StoredRequestProcessor(
+                DEFAULT_TIMEOUT,
+                "path/to/default/request.json",
+                false,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .id("request-id")
+                .tmax(5000L)
+                .imp(Collections.singletonList(givenImp(impBuilder -> impBuilder
+                        .id("1")
+                        .video(Video.builder()
+                                .minduration(5)
+                                .maxduration(200)
+                                .build()
+                        )
+                        .bidfloor(new BigDecimal(190.0))
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("20220527"))
+                                        .build(),
+                                null)))
+                )))
+                .test(1)
+                .cur(Collections.singletonList("EUR"))
+                .app(App.builder()
+                        .name("My Great App")
+                        .bundle("my.bundle.app")
+                        .storeurl("https://app.com/my.bundle.app")
+                        .build())
+                .device(Device.builder()
+                        .ua("User Agent IT Test")
+                        .lmt(0)
+                        .ip("10.10.10.10")
+                        .model("My Model")
+                        .os("iOS")
+                        .osv("9")
+                        .carrier("My Carrier")
+                        .ifa(UUID.randomUUID().toString())
+                        .build())
+        );
+
+        final String storedImpJson = mapper.writeValueAsString(givenImp(builder -> builder
+                .video(Video.builder()
+                        .mimes(Arrays.asList("video/mp4"))
+                        .w(640)
+                        .h(480)
+                        .build()
+                )
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode()
+                                        .set("appnexus", mapper.createObjectNode()
+                                                .set("placement_id", mapper.convertValue(1234, JsonNode.class))))
+                                .build(),
+                        null)))
+        ));
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("20220527", storedImpJson),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        BidRequest result = bidRequestFuture.result();
+        assertThat(result.getImp().size()).isEqualTo(1);
+        assertThat(result.getImp().get(0).getVideo().getMimes().get(0)).isEqualTo("video/mp4");
+        assertThat(result.getImp().get(0).getVideo().getW()).isEqualTo(640);
+        assertThat(result.getImp().get(0).getVideo().getH()).isEqualTo(480);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
