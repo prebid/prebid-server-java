@@ -113,7 +113,6 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(MediaType.class)));
     }
 
-    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private static void removeMediaType(Imp.ImpBuilder impBuilder, MediaType mediaType) {
         switch (mediaType) {
             case BANNER -> impBuilder.banner(null);

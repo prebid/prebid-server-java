@@ -191,8 +191,6 @@ public class Metrics extends UpdatableMetrics {
                 case "video" -> incCounter(MetricName.imps_video, mediaTypeCount.getValue());
                 case "native" -> incCounter(MetricName.imps_native, mediaTypeCount.getValue());
                 case "audio" -> incCounter(MetricName.imps_audio, mediaTypeCount.getValue());
-                default -> {
-                }
                 // ignore unrecognized media types
             }
         }

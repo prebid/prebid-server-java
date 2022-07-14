@@ -11,8 +11,6 @@ import org.apache.http.conn.util.InetAddressUtils;
 import org.prebid.server.auction.model.IpAddress;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class IpAddressHelper {
 
@@ -78,17 +76,17 @@ public class IpAddressHelper {
         if (StringUtils.isBlank(ip) || !InetAddressUtils.isIPv4Address(ip)) {
             return ip;
         }
+
         String maskedIp = ip;
-        for (int i = 0; i < 1; i++) {
-            if (maskedIp.contains(".")) {
-                maskedIp = maskedIp.substring(0, maskedIp.lastIndexOf("."));
-            } else {
-                // ip is malformed
-                return ip;
-            }
+        final int lastDotIndex = maskedIp.lastIndexOf(".");
+        if (lastDotIndex != -1) {
+            maskedIp = maskedIp.substring(0, lastDotIndex);
+        } else {
+            // ip is malformed
+            return ip;
         }
-        return maskedIp + IntStream.range(0, 1).mapToObj(ignored -> "0")
-                .collect(Collectors.joining(".", ".", ""));
+
+        return maskedIp + ".0";
     }
 
     private String maskIpv6(IPAddress ipAddress) {

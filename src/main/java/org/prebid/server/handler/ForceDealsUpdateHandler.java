@@ -75,7 +75,6 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
         }
     }
 
-    @SuppressWarnings("checkstyle:MissingSwitchDefault")
     private void handleDealsAction(DealsAction dealsAction) {
         switch (dealsAction) {
             case UPDATE_LINE_ITEMS -> plannerService.updateLineItemMetaData();
