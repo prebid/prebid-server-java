@@ -102,7 +102,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADNUNTIUS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Unmarshalling error: %s".formatted(e.getMessage()));
+            throw new PreBidException("Unmarshalling error: " + e.getMessage());
         }
     }
 

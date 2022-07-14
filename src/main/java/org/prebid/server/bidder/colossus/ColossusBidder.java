@@ -147,6 +147,6 @@ public class ColossusBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException("Failed to find impression for ID: %s".formatted(impId));
+        throw new PreBidException("Failed to find impression for ID: " + impId);
     }
 }

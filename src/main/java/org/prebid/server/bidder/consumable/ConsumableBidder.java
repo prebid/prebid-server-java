@@ -152,7 +152,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER, "azk=%s".formatted(user.getBuyeruid().trim()));
+            headers.add(HttpUtil.COOKIE_HEADER, "azk=" + user.getBuyeruid().trim());
         }
 
         final Site site = request.getSite();

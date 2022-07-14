@@ -139,7 +139,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             return true;
         } else {
             errors.add(BidderError.badInput(
-                    "Brightroll only supports banner and video imps. Ignoring imp id=%s".formatted(imp.getId())));
+                    "Brightroll only supports banner and video imps. Ignoring imp id=" + imp.getId()));
             return false;
         }
     }

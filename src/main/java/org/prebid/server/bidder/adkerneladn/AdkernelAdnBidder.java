@@ -94,7 +94,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         }
 
         if (adkernelAdnExt.getPubId() == null || adkernelAdnExt.getPubId() < 1) {
-            throw new PreBidException("Invalid pubId value. Ignoring imp id=%s".formatted(imp.getId()));
+            throw new PreBidException("Invalid pubId value. Ignoring imp id=" + imp.getId());
         }
         return adkernelAdnExt;
     }
@@ -221,7 +221,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException("Invalid SeatBids count: %d".formatted(bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

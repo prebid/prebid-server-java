@@ -700,7 +700,7 @@ public class BidResponseCreator {
             final boolean isFirstBid = i == 0;
             final String targetingBidderCode = isFirstBid
                     ? bidder
-                    : bidderCodePrefix == null ? null : "%s%s".formatted(bidderCodePrefix, i + 1);
+                    : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
 
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
             final TargetingInfo targetingInfo = TargetingInfo.builder()
@@ -1618,7 +1618,7 @@ public class BidResponseCreator {
             return mapper.mapper().treeToValue(priceGranularity, ExtPriceGranularity.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(
-                    "Error decoding bidRequest.prebid.targeting.pricegranularity: %s".formatted(e.getMessage()), e);
+                    "Error decoding bidRequest.prebid.targeting.pricegranularity: " + e.getMessage(), e);
         }
     }
 

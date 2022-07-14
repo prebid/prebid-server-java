@@ -552,7 +552,7 @@ public class CacheService {
                                                 long startTime) {
 
         if (statusCode != 200) {
-            throw new PreBidException("HTTP status code %d".formatted(statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final BidCacheResponse bidCacheResponse;

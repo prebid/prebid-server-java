@@ -486,7 +486,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             case 2 -> BidType.audio;
             case 3 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unrecognized bid_ad_type in response from appnexus: %s".formatted(bidAdType));
+                    "Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
         };
     }
 

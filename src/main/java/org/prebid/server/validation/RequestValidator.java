@@ -207,14 +207,18 @@ public class RequestValidator {
         for (Map.Entry<String, Integer> aliasToGvlId : aliasGvlIds.entrySet()) {
 
             if (!aliases.containsKey(aliasToGvlId.getKey())) {
-                throw new ValidationException("request.ext.prebid.aliasgvlids. vendorId %s refers to"
-                        + " unknown bidder alias: %s", aliasToGvlId.getValue(), aliasToGvlId.getKey());
+                throw new ValidationException(
+                        "request.ext.prebid.aliasgvlids. vendorId %s refers to unknown bidder alias: %s",
+                        aliasToGvlId.getValue(),
+                        aliasToGvlId.getKey());
             }
 
             if (aliasToGvlId.getValue() < 1) {
-                throw new ValidationException("request.ext.prebid.aliasgvlids. "
-                        + "Invalid vendorId %s for alias: %s. Choose a different vendorId, or "
-                        + "remove this entry.", aliasToGvlId.getValue(), aliasToGvlId.getKey());
+                throw new ValidationException("""
+                        request.ext.prebid.aliasgvlids. Invalid vendorId %s for alias: %s. \
+                        Choose a different vendorId, or remove this entry.""",
+                        aliasToGvlId.getValue(),
+                        aliasToGvlId.getKey());
             }
         }
     }
