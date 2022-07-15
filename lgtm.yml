@@ -1,7 +1,6 @@
 extraction:
   java:
     index:
-      build_command:
-        - ./compile-main.sh
-        - ./compile-tests.sh
       java_version: 14
+      build_command:
+        - export JAVA_HOME=/usr/lib/jvm/java-14-openjdk-amd64 & export JAVACMD=$JAVA_HOME/bin/java && mvn verify -X -e
