@@ -1,4 +1,7 @@
 extraction:
   java:
     index:
+      build_command:
+        - ./compile-main.sh
+        - ./compile-tests.sh
       java_version: 14
