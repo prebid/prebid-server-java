@@ -6,4 +6,6 @@ import lombok.Value;
 public class ExtImpNextMillenium {
 
     String placementId;
+
+    String groupId;
 }
