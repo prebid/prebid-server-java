@@ -122,7 +122,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(mediaType), banner, null));
+                .containsExactly(BidderBid.of(givenBid(mediaType), banner, "USD"));
     }
 
     @Test
@@ -140,7 +140,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(objectNode), xNative, null));
+                .containsExactly(BidderBid.of(givenBid(objectNode), xNative, "USD"));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(objectNode), video, null));
+                .containsExactly(BidderBid.of(givenBid(objectNode), video, "USD"));
     }
 
     @Test
@@ -174,7 +174,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(null), banner, null));
+                .containsExactly(BidderBid.of(givenBid(null), banner, "USD"));
     }
 
     @Test
@@ -190,7 +190,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(null), video, null));
+                .containsExactly(BidderBid.of(givenBid(null), video, "USD"));
     }
 
     @Test
@@ -206,11 +206,11 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(null), xNative, null));
+                .containsExactly(BidderBid.of(givenBid(null), xNative, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnNullIfBidExtCannotBeParsedAndShouldGetMediaTypeFromImp()
+    public void makeBidsShouldShouldGetMediaTypeFromImpIfBidExtCannotBeParsed()
             throws JsonProcessingException {
         // given
         final ObjectNode objectNode = mapper.createObjectNode().set("adCodeType", mapper.createArrayNode());
@@ -224,7 +224,7 @@ public class AaxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(objectNode), video, null));
+                .containsExactly(BidderBid.of(givenBid(objectNode), video, "USD"));
     }
 
     @Test

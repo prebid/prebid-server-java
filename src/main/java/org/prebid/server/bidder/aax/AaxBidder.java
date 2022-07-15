@@ -1,6 +1,6 @@
 package org.prebid.server.bidder.aax;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -9,7 +9,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.aax.model.AaxResponseBidExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -32,6 +31,8 @@ public class AaxBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+
+    private static final String USD_CURRENCY = "USD";
 
     public AaxBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -72,17 +73,18 @@ public class AaxBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest,
                                              BidResponse bidResponse,
                                              List<BidderError> errorList) {
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errorList))
+                .map(bid -> resolveBidderBid(bid, bidRequest.getImp(), errorList))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid resolveBidderBid(Bid bid, String cur, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid resolveBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
         final BidType bidType;
         try {
             bidType = getBidType(bid, imps);
@@ -90,19 +92,20 @@ public class AaxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, cur);
+        return BidderBid.of(bid, bidType, USD_CURRENCY);
     }
 
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final AaxResponseBidExt aaxExtBid = bid.getExt() != null ? getMappedBidExt(bid.getExt()) : null;
-        final String adCodeType = aaxExtBid != null ? aaxExtBid.getAdCodeType() : null;
+        final JsonNode aaxExtBid = bid.getExt() != null ? bid.getExt().get("adCodeType") : null;
+        final String mediaType = aaxExtBid != null ? aaxExtBid.asText() : null;
+        final BidType bidTypeFromExt = mediaType != null ? bidTypeFromString(mediaType) : null;
 
-        if (adCodeType != null && getBidTypeByText(adCodeType) != null) {
-            return getBidTypeByText(adCodeType);
+        if (bidTypeFromExt != null) {
+            return bidTypeFromExt;
         }
 
         BidType bidType = null;
-        long countType = 0;
+        int countType = 0;
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {
@@ -120,31 +123,19 @@ public class AaxBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (countType == 1) {
-            return bidType;
+        if (countType != 1) {
+            throw new PreBidException(String.format("Unable to fetch mediaType in multi-format: %s", bid.getImpid()));
         }
 
-        throw new PreBidException(String.format("Unable to fetch mediaType in multi-format: %s", bid.getImpid()));
+        return bidType;
     }
 
-    private AaxResponseBidExt getMappedBidExt(ObjectNode objectNode) {
-        try {
-            return mapper.mapper().convertValue(objectNode, AaxResponseBidExt.class);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private BidType getBidTypeByText(String mediaType) {
-        switch (mediaType) {
-            case "banner":
-                return BidType.banner;
-            case "native":
-                return BidType.xNative;
-            case "video":
-                return BidType.video;
-            default:
-                return null;
-        }
+    private BidType bidTypeFromString(String mediaType) {
+        return switch (mediaType) {
+            case "banner" -> BidType.banner;
+            case "native" -> BidType.xNative;
+            case "video" -> BidType.video;
+            default -> null;
+        };
     }
 }
