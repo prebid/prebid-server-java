@@ -33,7 +33,7 @@ public class CpmRange {
      * Formats {@link BigDecimal} value with a given precision and return it's string representation.
      */
     public static String format(BigDecimal value, Integer precision) {
-        final String format = String.format("%%.%sf", precision);
+        final String format = "%%.%sf".formatted(precision);
         return String.format(LOCALE, format, value);
     }
 

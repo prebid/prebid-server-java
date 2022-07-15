@@ -85,7 +85,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -2032,7 +2031,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().id("bidId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-alpha",
@@ -2043,7 +2042,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adid("adId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-beta",
@@ -2054,7 +2053,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().cid("cid").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-beta",
@@ -2065,7 +2064,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adm("adm").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2187,7 +2186,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().id("bidId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-alpha",
@@ -2198,7 +2197,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adid("adId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-beta",
@@ -2209,7 +2208,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().cid("cid").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-beta",
@@ -2220,7 +2219,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adm("adm").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(

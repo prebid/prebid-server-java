@@ -12,7 +12,6 @@ import org.prebid.server.cache.proto.request.PutObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Class was created to compare complex Json object when ordering of inner array is not predetermined.
@@ -59,14 +58,14 @@ public class BidCacheRequestPattern extends StringValuePattern {
                 private List<PutObject> updateKeysWithUuid(List<PutObject> actual, List<PutObject> expected) {
                     final List<PutObject> requiredUuidKeyUpdate = expected.stream()
                             .filter(putObject -> putObject.getKey() != null && putObject.getKey().endsWith("{{uuid}}"))
-                            .collect(Collectors.toList());
+                            .toList();
 
                     final List<PutObject> result =
                             new ArrayList<>(CollectionUtils.disjunction(expected, requiredUuidKeyUpdate));
 
                     result.addAll(requiredUuidKeyUpdate.stream()
                             .map(requiredUuidKeyPutObject -> updatedWithKey(requiredUuidKeyPutObject, actual))
-                            .collect(Collectors.toList()));
+                            .toList());
                     return result;
                 }
 

@@ -18,8 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -191,7 +191,7 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().w(200).h(100)
-                                .format(singletonList(Format.builder().w(200).h(100).build())).build())
+                                        .format(singletonList(Format.builder().w(200).h(100).build())).build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                         .at(1)
@@ -456,7 +456,11 @@ public class BrightrollBidderTest extends VertxTest {
                         .bid(singletonList(Bid.builder().impid("impId1").build())).build()))
                 .build());
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().banner(Banner.builder().build()).video(Video.builder().build()).id("impId1").build()))
+                        Imp.builder()
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .id("impId1")
+                                .build()))
                 .build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
@@ -530,7 +534,7 @@ public class BrightrollBidderTest extends VertxTest {
                         .bid(singletonList(Bid.builder().impid("impId1").build())).build()))
                 .build());
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").build()))
+                        Imp.builder().id("impId1").build()))
                 .build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);

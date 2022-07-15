@@ -10,8 +10,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -54,8 +54,8 @@ public class MedianetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-            .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-            .containsExactly(bidRequest);
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .containsExactly(bidRequest);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class MedianetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                    && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
     }
 
     @Test
@@ -119,27 +119,27 @@ public class MedianetBidderTest extends VertxTest {
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,
             Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-            .cur("USD")
-            .seatbid(singletonList(SeatBid.builder()
-                .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                .build()))
-            .build();
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
     }
 
     private static BidderCall<BidRequest> sampleHttpCall(BidRequest bidRequest, String body) {
         return BidderCall.succeededHttp(
-            HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-            HttpResponse.of(200, null, body),
-            null);
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 
     private static BidRequest givenBidRequest() {
         return BidRequest.builder()
                 .id("request_id")
                 .imp(singletonList(Imp.builder()
-                    .id("imp_id")
-                    .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
-                    .build()))
+                        .id("imp_id")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .build()))
                 .build();
     }
 }

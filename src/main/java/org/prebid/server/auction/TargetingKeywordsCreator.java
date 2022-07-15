@@ -250,7 +250,7 @@ public class TargetingKeywordsCreator {
      */
     private static String sizeFrom(Integer width, Integer height) {
         return width != null && width != 0 && height != null && height != 0
-                ? String.format("%sx%s", width, height)
+                ? "%sx%s".formatted(width, height)
                 : null;
     }
 
@@ -301,7 +301,7 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(String.format("%s_%s", prefix, bidder));
+                keys.add("%s_%s".formatted(prefix, bidder));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {

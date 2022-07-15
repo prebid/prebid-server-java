@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class LineItem {
 
@@ -205,7 +204,7 @@ public class LineItem {
     private static List<String> extractFcapIds(LineItemMetaData metaData) {
         return CollectionUtils.emptyIfNull(metaData.getFrequencyCaps()).stream()
                 .map(FrequencyCap::getFcapId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void updateOrAdvanceActivePlan(ZonedDateTime now, boolean isPlannerResponsive, DeliveryPlan currentPlan) {

@@ -10,8 +10,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class NextMilleniumBidder implements Bidder<BidRequest> {
 
@@ -72,7 +71,7 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillenium> extImps) {
         return extImps.stream()
                 .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillenium ext) {
@@ -121,6 +120,6 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

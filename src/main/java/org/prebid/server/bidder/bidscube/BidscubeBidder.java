@@ -11,8 +11,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class BidscubeBidder implements Bidder<BidRequest> {
 
@@ -105,7 +104,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> constructBidderBid(bid, bidResponse, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {

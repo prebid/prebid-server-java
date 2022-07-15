@@ -11,8 +11,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.aja.proto.ExtImpAja;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AjaBidder implements Bidder<BidRequest> {
 
@@ -85,7 +84,7 @@ public class AjaBidder implements Bidder<BidRequest> {
                     .getBidder();
         } catch (IllegalArgumentException e) {
             errors.add(BidderError.badInput(
-                    String.format("Failed to unmarshal ext.bidder impID: %s err: %s", imp.getId(), e.getMessage())));
+                    "Failed to unmarshal ext.bidder impID: %s err: %s".formatted(imp.getId(), e.getMessage())));
         }
         return null;
     }
@@ -124,7 +123,7 @@ public class AjaBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors, bidResponse.getCur()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         return Result.of(bidderBids, errors);
     }
 
@@ -148,6 +147,6 @@ public class AjaBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Response received for unexpected type of bid bidID: %s", bidId));
+        throw new PreBidException("Response received for unexpected type of bid bidID: " + bidId);
     }
 }

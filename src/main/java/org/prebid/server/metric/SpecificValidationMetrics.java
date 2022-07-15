@@ -18,10 +18,10 @@ class SpecificValidationMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     private static String createPrefix(String prefix, String validation) {
-        return String.format("%s.%s", prefix, validation);
+        return "%s.%s".formatted(prefix, validation);
     }
 }

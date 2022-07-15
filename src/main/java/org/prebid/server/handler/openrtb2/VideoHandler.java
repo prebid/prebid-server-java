@@ -142,7 +142,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = errorMessages.stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
+                        .map(msg -> "Invalid request format: " + msg)
                         .collect(Collectors.joining("\n"));
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
@@ -151,7 +151,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(errorMessage);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
-                body = String.format("Unauthorised: %s", errorMessage);
+                body = "Unauthorised: " + errorMessage;
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
@@ -160,7 +160,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 
@@ -198,7 +198,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private VideoEvent updateEventWithDebugCacheMessage(VideoEvent videoEvent, String cacheKey) {
         final List<String> errors = new ArrayList<>();
-        errors.add(String.format("[Debug cache ID: %s]", cacheKey));
+        errors.add("[Debug cache ID: %s]".formatted(cacheKey));
         errors.addAll(videoEvent.getErrors());
         return videoEvent.toBuilder().errors(errors).build();
     }

@@ -25,11 +25,11 @@ class AdapterMetrics extends UpdatableMetrics {
     }
 
     private static String createAdapterSuffix(String prefix) {
-        return String.format("%s.adapter", prefix);
+        return prefix + ".adapter";
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     AdapterTypeMetrics forAdapter(String adapterType) {

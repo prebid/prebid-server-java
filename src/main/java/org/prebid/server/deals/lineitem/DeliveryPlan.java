@@ -60,9 +60,8 @@ public class DeliveryPlan {
                 .filter(token -> token.getUnspent() > 0)
                 .findFirst()
                 .map(DeliveryToken::getPriorityClass)
-                .orElseThrow(() -> new PreBidException(String.format(
-                        "Class with not spent tokens was not found for plan with id %s",
-                        deliverySchedule.getPlanId())));
+                .orElseThrow(() -> new PreBidException(
+                        "Class with not spent tokens was not found for plan with id " + deliverySchedule.getPlanId()));
     }
 
     /**

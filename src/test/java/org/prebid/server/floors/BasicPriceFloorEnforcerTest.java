@@ -32,7 +32,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
@@ -663,7 +662,7 @@ public class BasicPriceFloorEnforcerTest {
         }
         return Arrays.stream(impCustomizers)
                 .map(impCustomizer -> impCustomizer.apply(Imp.builder().id("impId")).build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @SafeVarargs
@@ -681,7 +680,7 @@ public class BasicPriceFloorEnforcerTest {
         final List<BidderBid> bidderBids = Arrays.stream(bidCustomizers)
                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
                 .map(bid -> BidderBid.builder().bid(bid).priceFloorInfo(priceFloorInfo).build())
-                .collect(Collectors.toList());
+                .toList();
         return BidderSeatBid.of(bidderBids);
     }
 }
