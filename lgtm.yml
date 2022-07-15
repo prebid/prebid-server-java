@@ -1,6 +1,5 @@
 extraction:
   java:
     index:
-      java_version: 14
-      build_command:
-        - export JAVA_HOME=/usr/lib/jvm/java-14-openjdk-amd64 & export JAVACMD=$JAVA_HOME/bin/java && mvn verify -X -e
+      java_version: "11"
+      build_command: ./gradlew --init-script .github/workflows/codeql-analysis.init.gradle -S -Dorg.gradle.java.home=/usr/lib/jvm/java-11-openjdk-amd64 --max-workers=1 --no-scan testClasses
