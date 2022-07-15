@@ -94,10 +94,10 @@ public class VastModifier {
     private static String resolveVastXmlFrom(String bidAdm, String bidNurl) {
         return StringUtils.isEmpty(bidAdm) && bidNurl != null
                 ? """
-                <VAST version="3.0"><Ad><Wrapper>
-                <AdSystem>prebid.org wrapper</AdSystem>
-                <VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI>
-                <Creatives></Creatives>
+                <VAST version="3.0"><Ad><Wrapper>\
+                <AdSystem>prebid.org wrapper</AdSystem>\
+                <VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI>\
+                <Creatives></Creatives>\
                 </Wrapper></Ad></VAST>""".formatted(bidNurl)
                 : bidAdm;
     }
