@@ -1,8 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
-import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Rubicon
 
@@ -14,10 +12,9 @@ class ImpExt {
     @Deprecated
     Rubicon rubicon
     @Deprecated
-    @JsonProperty("appnexus")
-    AppNexus appNexus
     ImpExtContext context
     ImpExtContextData data
+    String tid
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {
