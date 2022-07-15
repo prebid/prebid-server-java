@@ -363,14 +363,13 @@ public class AmpRequestFactory {
         final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
             throw new InvalidRequestException(
-                    String.format("data for tag_id='%s' does not define the required imp array.", tagId));
+                    "data for tag_id='%s' does not define the required imp array.".formatted(tagId));
         }
 
         final int impSize = imps.size();
         if (impSize > 1) {
             throw new InvalidRequestException(
-                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed", tagId,
-                            impSize));
+                    "data for tag_id '%s' includes %d imp elements. Only one is allowed".formatted(tagId, impSize));
         }
 
         if (bidRequest.getApp() != null) {
@@ -467,7 +466,7 @@ public class AmpRequestFactory {
                     : null;
             return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
+            throw new InvalidRequestException("Error reading targeting json " + e.getMessage());
         }
     }
 
@@ -475,8 +474,8 @@ public class AmpRequestFactory {
         if (jsonNodeTargeting.isObject()) {
             return (ObjectNode) jsonNodeTargeting;
         } else {
-            throw new InvalidRequestException(String.format("Error decoding targeting, expected type is `object` "
-                    + "but was %s", jsonNodeTargeting.getNodeType().name()));
+            throw new InvalidRequestException("Error decoding targeting, expected type is `object` but was "
+                    + jsonNodeTargeting.getNodeType().name());
         }
     }
 
@@ -486,7 +485,7 @@ public class AmpRequestFactory {
                     ? Targeting.empty()
                     : mapper.mapper().treeToValue(targetingNode, Targeting.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding targeting from url: " + e.getMessage());
         }
     }
 
@@ -589,11 +588,11 @@ public class AmpRequestFactory {
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else if (height != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             updatedFormats = Collections.emptyList();
         }

@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class VideoResponseFactory {
 
@@ -79,7 +78,7 @@ public class VideoResponseFactory {
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             return Collections.emptyList();
         }
@@ -146,7 +145,7 @@ public class VideoResponseFactory {
     private static List<ExtAdPod> adPodsWithErrors(List<PodError> podErrors) {
         return podErrors.stream()
                 .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {

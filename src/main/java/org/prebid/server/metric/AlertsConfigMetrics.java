@@ -13,6 +13,6 @@ public class AlertsConfigMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String account) {
-        return metricName -> String.format("alerts.account_config.%s.%s", account, metricName.toString());
+        return metricName -> "alerts.account_config.%s.%s".formatted(account, metricName);
     }
 }

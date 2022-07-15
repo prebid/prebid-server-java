@@ -37,11 +37,11 @@ class AccountMetrics extends UpdatableMetrics {
     }
 
     private static String createPrefix(String account) {
-        return String.format("account.%s", account);
+        return "account." + account;
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     AdapterMetrics adapter() {

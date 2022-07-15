@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -282,7 +281,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .map(impId -> Bid.builder().impid(impId).build())
                 .map(Collections::singletonList)
                 .map(bids -> SeatBid.builder().bid(bids).build())
-                .collect(Collectors.toList());
+                .toList();
         return mapper.writeValueAsString(BidResponse.builder().seatbid(seatBids).build());
     }
 }

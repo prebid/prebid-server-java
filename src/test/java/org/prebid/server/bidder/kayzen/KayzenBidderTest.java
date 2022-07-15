@@ -13,8 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -24,7 +24,6 @@ import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -208,7 +207,7 @@ public class KayzenBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBidderBidIfBannerAndVideoAndNativeIsAbsentInRequestImp()
-        throws JsonProcessingException {
+            throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -238,15 +237,15 @@ public class KayzenBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(Arrays.stream(impCustomizers).map(KayzenBidderTest::givenImp).collect(Collectors.toList())))
+                        .imp(Arrays.stream(impCustomizers).map(KayzenBidderTest::givenImp).toList()))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKayzen.of("zoneId", "exchange")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKayzen.of("zoneId", "exchange")))))
                 .build();
     }
 

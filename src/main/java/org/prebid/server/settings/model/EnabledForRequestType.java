@@ -28,17 +28,12 @@ public class EnabledForRequestType {
         if (requestType == null) {
             return null;
         }
-        switch (requestType) {
-            case openrtb2web:
-                return pbjs;
-            case openrtb2app:
-                return app;
-            case amp:
-                return amp;
-            case video:
-                return video;
-            default:
-                return null;
-        }
+        return switch (requestType) {
+            case openrtb2web -> pbjs;
+            case openrtb2app -> app;
+            case amp -> amp;
+            case video -> video;
+            default -> null;
+        };
     }
 }

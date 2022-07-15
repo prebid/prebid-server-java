@@ -53,8 +53,8 @@ public class CachedDebugLog {
         try {
             this.extBidResponse = response != null ? jacksonMapper.encodeToString(response) : StringUtils.EMPTY;
         } catch (EncodeException ex) {
-            final String errorMessage = String.format("Unable to marshal response ext for debugging with a reason: %s",
-                    ex.getMessage());
+            final String errorMessage = "Unable to marshal response ext for debugging with a reason: "
+                    + ex.getMessage();
             this.extBidResponse = errorMessage;
             throw new PreBidException(errorMessage);
         }
@@ -85,7 +85,7 @@ public class CachedDebugLog {
             extBidResponse = "No response or errors created";
             return;
         }
-        extBidResponse = String.format("%s\nErrors:\n%s",
+        extBidResponse = "%s\nErrors:\n%s".formatted(
                 StringUtils.isBlank(extBidResponse) ? StringUtils.EMPTY : extBidResponse,
                 String.join("\n", errors));
     }
@@ -94,14 +94,14 @@ public class CachedDebugLog {
         final String resolvedResponse = prepareValueToPublish(extBidResponse, "Response");
         final String resoledRequest = prepareValueToPublish(request, "Request");
         final String resolvedHeaders = prepareValueToPublish(headers, "Headers");
-        return String.format("%s<Log>\n%s\n%s\n%s\n</Log>", XML_HEADER, resoledRequest, resolvedResponse,
-                resolvedHeaders);
+        return "%s<Log>\n%s\n%s\n%s\n</Log>"
+                .formatted(XML_HEADER, resoledRequest, resolvedResponse, resolvedHeaders);
     }
 
     private String prepareValueToPublish(String value, String fieldName) {
-        return String.format("<%s>%s</%s>", fieldName, value != null
-                        ? escapeNonXmlSymbols(value)
-                        : StringUtils.EMPTY,
+        return "<%s>%s</%s>".formatted(
+                fieldName,
+                value != null ? escapeNonXmlSymbols(value) : StringUtils.EMPTY,
                 fieldName);
     }
 

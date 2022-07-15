@@ -13,8 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -228,7 +228,7 @@ public class RhythmoneBidderTest extends VertxTest {
             Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -241,13 +241,13 @@ public class RhythmoneBidderTest extends VertxTest {
             Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        extCustomizer.apply(ExtImpRhythmone.builder())
-                                .placementId("placementId")
-                                .path("somePath")
-                                .zone("zone1")
-                                .build()))))
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                extCustomizer.apply(ExtImpRhythmone.builder())
+                                        .placementId("placementId")
+                                        .path("somePath")
+                                        .zone("zone1")
+                                        .build()))))
                 .build();
     }
 

@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class VideoRequestValidator {
 
@@ -87,7 +86,7 @@ public class VideoRequestValidator {
         } else {
             final List<String> notBlankMimes = mimes.stream()
                     .filter(StringUtils::isNotBlank)
-                    .collect(Collectors.toList());
+                    .toList();
             if (CollectionUtils.isEmpty(notBlankMimes)) {
                 throw new InvalidRequestException(
                         "request missing required field: Video.Mimes, mime types contains empty strings only");
@@ -104,7 +103,7 @@ public class VideoRequestValidator {
         final List<PodError> podErrors = validateEachPod(pods);
         final List<Integer> errorPodIds = podErrors.stream()
                 .map(PodError::getPodId)
-                .collect(Collectors.toList());
+                .toList();
 
         final List<Pod> validPods = new ArrayList<>();
         for (int i = 0; i < pods.size(); i++) {

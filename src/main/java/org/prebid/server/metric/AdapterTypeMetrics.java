@@ -53,15 +53,15 @@ class AdapterTypeMetrics extends UpdatableMetrics {
     }
 
     private static String createAdapterPrefix(String adapterType) {
-        return String.format("adapter.%s", adapterType);
+        return "adapter." + adapterType;
     }
 
     private static String createAdapterPrefix(String adapterPrefix, String adapterType) {
-        return String.format("%s.%s", adapterPrefix, adapterType);
+        return "%s.%s".formatted(adapterPrefix, adapterType);
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     RequestTypeMetrics requestType(MetricName requestType) {

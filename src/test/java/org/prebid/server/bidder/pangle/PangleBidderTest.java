@@ -16,8 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -487,7 +487,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", "2", "2"),
+                                        "token", "2", "2"),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -498,7 +498,7 @@ public class PangleBidderTest extends VertxTest {
         // then
         final ObjectNode expectedExt = mapper
                 .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                        "token", "2", "2"),
+                                "token", "2", "2"),
                         1, true, NetworkIds.of("2", "2")));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -515,7 +515,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", null, "1"),
+                                        "token", null, "1"),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -535,7 +535,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", "1", null),
+                                        "token", "1", null),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -555,7 +555,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", null, null),
+                                        "token", null, null),
                                 null, true, null)))
                         .build()))
                 .build();
@@ -579,7 +579,7 @@ public class PangleBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -590,7 +590,7 @@ public class PangleBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPangle.of("token", null, null))))
                 .build();

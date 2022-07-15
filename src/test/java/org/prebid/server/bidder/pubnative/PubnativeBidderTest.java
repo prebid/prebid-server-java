@@ -19,8 +19,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -530,8 +530,8 @@ public class PubnativeBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {
 
         return requestModifier.apply(BidRequest.builder()
-                .device(Device.builder().os("OS").build())
-                .imp(singletonList(givenImp(impModifier))))
+                        .device(Device.builder().os("OS").build())
+                        .imp(singletonList(givenImp(impModifier))))
                 .build();
     }
 
@@ -541,8 +541,8 @@ public class PubnativeBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
-                .banner(Banner.builder().h(1).w(1).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPubnative.of(1, "auth")))))
+                        .banner(Banner.builder().h(1).w(1).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPubnative.of(1, "auth")))))
                 .build();
     }
 
