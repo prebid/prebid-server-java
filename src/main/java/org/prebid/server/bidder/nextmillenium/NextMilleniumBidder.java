@@ -124,11 +124,9 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
     }
 
     private static String formatSize(Integer w, Integer h) {
-        if (w == null || h == null) {
-            return null;
-        }
-
-        return "%dx%d".formatted(w, h);
+        return w != null && h != null
+                ? "%dx%d".formatted(w, h)
+                : null;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
