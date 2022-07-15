@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -566,7 +565,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should request to bidder with header Content-Encoding = gzip when adapters.BIDDER.endpoint-compression = gzip"() {
         given: "PBS with adapter configuration"
         def compressionType = GZIP.value
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled": "true",
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"             : "true",
                                                        "adapters.generic.endpoint-compression": compressionType])
 
         and: "Default bid request"
@@ -582,7 +581,7 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpoint-compression = none"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled": "true",
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"             : "true",
                                                        "adapters.generic.endpoint-compression": NONE.value])
 
         and: "Default bid request"
@@ -594,5 +593,19 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should not contain header Content-Encoding"
         assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
                         ?.get(CONTENT_ENCODING_HEADER)
+    }
+
+    def "PBS should not treat reserved imp[].ext.tid object as a bidder"() {
+        given: "Default basic BidRequest with imp[].ext.tid object"
+        def bidRequest = BidRequest.defaultBidRequest
+        def tid = PBSUtils.getRandomString()
+        bidRequest.imp.first().ext.tid = tid
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "imp[].ext.tid object should be passed to a bidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp?.first()?.ext?.tid == tid
     }
 }
