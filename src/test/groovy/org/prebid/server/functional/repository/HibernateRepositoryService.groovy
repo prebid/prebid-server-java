@@ -47,6 +47,7 @@ class HibernateRepositoryService {
         properties.setProperty("hibernate.connection.driver_class", driver)
         properties.setProperty("hibernate.show_sql", "false")
         properties.setProperty("hibernate.format_sql", "false")
+        properties.setProperty("hibernate.c3p0.checkoutTimeout", "5000")
 
         def configuration = new Configuration()
         configuration.addAnnotatedClass(Account)
