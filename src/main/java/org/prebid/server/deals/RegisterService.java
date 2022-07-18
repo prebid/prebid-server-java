@@ -95,8 +95,8 @@ public class RegisterService implements Initializable, Suspendable {
      * Creates Authorization header value from username and password.
      */
     private static String authHeader(String username, String password) {
-        return String.format(BASIC_AUTH_PATTERN, Base64.getEncoder().encodeToString((username + ':' + password)
-                .getBytes()));
+        return BASIC_AUTH_PATTERN
+                .formatted(Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
     }
 
     @Override
@@ -151,7 +151,7 @@ public class RegisterService implements Initializable, Suspendable {
     private void handleRegister(AsyncResult<HttpClientResponse> asyncResult) {
         if (asyncResult.failed()) {
             final Throwable cause = asyncResult.cause();
-            final String errorMessage = String.format("Error occurred while registering with the Planner: %s", cause);
+            final String errorMessage = "Error occurred while registering with the Planner: " + cause;
             alert(errorMessage, logger::warn);
         } else {
             final HttpClientResponse response = asyncResult.result();
@@ -163,8 +163,8 @@ public class RegisterService implements Initializable, Suspendable {
                 }
                 alertHttpService.resetAlertCount(PBS_REGISTER_CLIENT_ERROR);
             } else {
-                final String errorMessage = String.format("Planner responded with non-successful code %s,"
-                        + " response: %s", statusCode, responseBody);
+                final String errorMessage = "Planner responded with non-successful code %s, response: %s"
+                        .formatted(statusCode, responseBody);
                 alert(errorMessage, logger::warn);
             }
         }
@@ -174,7 +174,7 @@ public class RegisterService implements Initializable, Suspendable {
         try {
             return mapper.decodeValue(responseBody, AdminCentralResponse.class);
         } catch (DecodeException e) {
-            String errorMessage = String.format("Cannot parse register response: %s", responseBody);
+            String errorMessage = "Cannot parse register response: " + responseBody;
             alert(errorMessage, logger::warn);
             throw new PreBidException(errorMessage, e);
         }

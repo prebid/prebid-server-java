@@ -153,9 +153,10 @@ public class HttpInteractionLoggerTest extends VertxTest {
     @Test
     public void maybeLogOpenrtb2AuctionShouldLogOneLineBodyFromContext() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("{\n"
-                + "  \"param\": \"value\"\n"
-                + "}");
+        given(routingContext.getBodyAsString()).willReturn("""
+                {
+                  "param": "value"
+                }""");
         final AuctionContext givenAuctionContext =
                 givenAuctionContext(accountBuilder -> accountBuilder.id("123"));
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);

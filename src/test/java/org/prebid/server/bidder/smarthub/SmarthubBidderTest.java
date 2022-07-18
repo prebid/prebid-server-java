@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -239,7 +238,7 @@ public class SmarthubBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.stream(bidCustomizers)
                                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder()).build())
-                                .collect(Collectors.toList()))
+                                .toList())
                         .build()))
                 .ext(ExtBidResponse.builder().build())
                 .build();

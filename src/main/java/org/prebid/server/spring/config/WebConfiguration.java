@@ -71,8 +71,7 @@ public class WebConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean
-    // TODO: remove support for properties with http prefix after transition period
+    @Bean // TODO: remove support for properties with http prefix after transition period
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,

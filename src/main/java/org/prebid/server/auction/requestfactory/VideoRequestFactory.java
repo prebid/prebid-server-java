@@ -147,8 +147,7 @@ public class VideoRequestFactory {
         }
 
         if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException(String.format("Request size exceeded max size of %d bytes.",
-                    maxRequestSize));
+            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;

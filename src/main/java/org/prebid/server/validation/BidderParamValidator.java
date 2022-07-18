@@ -108,7 +108,7 @@ public class BidderParamValidator {
         try {
             result = SCHEMA_FACTORY.getSchema(schema);
         } catch (JsonSchemaException e) {
-            throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
+            throw new IllegalArgumentException("Couldn't parse %s bidder schema".formatted(bidder), e);
         }
         return result;
     }
@@ -123,10 +123,10 @@ public class BidderParamValidator {
         try {
             result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder, mapper);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), e);
+            throw new IllegalArgumentException("Couldn't find %s json schema at %s".formatted(bidder, path), e);
         } catch (IOException | RuntimeException e) {
             throw new IllegalArgumentException(
-                    String.format("Failed to load %s json schema at %s", bidder, path), e);
+                    "Failed to load %s json schema at %s".formatted(bidder, path), e);
         }
         return result;
     }
@@ -137,11 +137,11 @@ public class BidderParamValidator {
             try {
                 result = mapper.mapper().readTree(content);
             } catch (IOException | JsonSchemaException e) {
-                throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
+                throw new IllegalArgumentException("Couldn't parse %s bidder schema".formatted(bidder), e);
             }
         } else {
             throw new IllegalArgumentException(
-                    String.format("Couldn't parse %s bidder schema. File is empty", bidder));
+                    "Couldn't parse %s bidder schema. File is empty".formatted(bidder));
         }
         return result;
     }

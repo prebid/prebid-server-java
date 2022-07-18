@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -168,7 +167,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         final List<PriceFloorModelGroup> modelGroups = Arrays.stream(modelGroupBuilders)
                 .map(modelGroupBuilder -> modelGroupBuilder.apply(validModelGroupBuilder).build())
-                .collect(Collectors.toList());
+                .toList();
 
         return givenPriceFloorRulesWithData(dataBuilder -> dataBuilder.modelGroups(modelGroups));
     }

@@ -20,8 +20,8 @@ import org.prebid.server.bidder.eplanning.model.HbResponse;
 import org.prebid.server.bidder.eplanning.model.HbResponseAd;
 import org.prebid.server.bidder.eplanning.model.HbResponseSpace;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -548,7 +548,7 @@ public class EplanningBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -558,10 +558,10 @@ public class EplanningBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:")))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:")))))
                 .build();
     }
 

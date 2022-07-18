@@ -49,15 +49,15 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
                 }
             }
             if (!hasDatabaseFile) {
-                return Future.failedFuture(String.format("Database file %s not found in %s archive", DATABASE_FILE_NAME,
-                        dataFilePath));
+                return Future.failedFuture("Database file %s not found in %s archive"
+                        .formatted(DATABASE_FILE_NAME, dataFilePath));
             }
 
             databaseReader = new DatabaseReader.Builder(tarInput).fileMode(Reader.FileMode.MEMORY).build();
             return Future.succeededFuture();
         } catch (IOException e) {
             return Future.failedFuture(
-                    String.format("IO Exception occurred while trying to read an archive/db file: %s", e.getMessage()));
+                    "IO Exception occurred while trying to read an archive/db file: " + e.getMessage());
         }
     }
 

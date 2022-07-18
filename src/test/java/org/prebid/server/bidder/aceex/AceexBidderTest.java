@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -27,7 +27,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -194,7 +193,7 @@ public class AceexBidderTest extends VertxTest {
                         .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build())
                         .imp(impCustomizers.stream()
                                 .map(AceexBidderTest::givenImp)
-                                .collect(Collectors.toList())))
+                                .toList()))
                 .build();
     }
 

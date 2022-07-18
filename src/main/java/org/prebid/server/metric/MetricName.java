@@ -167,7 +167,6 @@ public enum MetricName {
     delivery_request_successful,
     delivery_request_time;
 
-
     private final String name;
 
     MetricName(String name) {

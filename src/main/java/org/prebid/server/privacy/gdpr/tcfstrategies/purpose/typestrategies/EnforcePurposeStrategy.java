@@ -7,7 +7,6 @@ import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 public abstract class EnforcePurposeStrategy {
 
@@ -65,6 +64,6 @@ public abstract class EnforcePurposeStrategy {
 
         return vendorPermissionWithGvls.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

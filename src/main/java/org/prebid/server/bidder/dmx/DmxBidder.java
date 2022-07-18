@@ -22,8 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.dmx.model.DmxPublisherExtId;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -111,7 +111,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         final String urlParameter = StringUtils.isNotBlank(updatedSellerId)
                 ? "?sellerid=" + HttpUtil.encodeUrl(updatedSellerId)
                 : "";
-        final String uri = String.format("%s%s", endpointUrl, urlParameter);
+        final String uri = endpointUrl + urlParameter;
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -314,11 +314,11 @@ public class DmxBidder implements Bidder<BidRequest> {
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .map(imp -> imp.getVideo() != null ? BidType.video : BidType.banner)
                 .findFirst()
-                .orElseThrow(() -> new PreBidException(String.format("Failed to find impression %s", impId)));
+                .orElseThrow(() -> new PreBidException("Failed to find impression " + impId));
     }
 
     private static String getAdm(Bid bid) {
-        final String wrappedNurl = String.format(IMP, bid.getNurl());
+        final String wrappedNurl = IMP.formatted(bid.getNurl());
         return bid.getAdm().replaceFirst(SEARCH, wrappedNurl);
     }
 }

@@ -48,7 +48,6 @@ import javax.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -135,7 +134,7 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = String.format("%s//%s:%d/%s?%s",
+            final String jdbcUrl = "%s//%s:%d/%s?%s".formatted(
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),
@@ -329,7 +328,7 @@ public class SettingsConfiguration {
                                     jdbcApplicationSettings,
                                     httpApplicationSettings)
                             .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+                            .toList();
 
             return new CompositeApplicationSettings(applicationSettingsList);
         }

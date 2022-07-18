@@ -31,8 +31,8 @@ public class AaxConfiguration {
 
     @Bean
     BidderDeps aaxBidderDeps(BidderConfigurationProperties aaxConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                             @NotBlank @Value("${external-url}") String externalUrl,
+                             JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(aaxConfigurationProperties)

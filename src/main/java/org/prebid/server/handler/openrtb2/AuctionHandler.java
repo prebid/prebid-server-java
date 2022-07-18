@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class AuctionHandler implements Handler<RoutingContext> {
 
@@ -148,16 +147,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getBidResponse());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
                 final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
-                conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);
+                conditionalLogger.info("%s, Referer: %s".formatted(message, referer), 0.01);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
@@ -174,7 +172,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -196,7 +194,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

@@ -24,11 +24,11 @@ class ValidationMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     private static String createPrefix(String prefix) {
-        return String.format("%s.validation", prefix);
+        return prefix + ".validation";
     }
 
     SpecificValidationMetrics size() {

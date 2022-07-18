@@ -25,21 +25,12 @@ class UpdatableMetrics {
         this.nameCreator = nameCreator;
         metricNames = new EnumMap<>(MetricName.class);
 
-        switch (counterType) {
-            case flushingCounter:
-                incrementer = (registry, metricName, value) ->
-                        registry.counter(metricName, ResettingCounter::new).inc(value);
-                break;
-            case counter:
-                incrementer = (registry, metricName, value) -> registry.counter(metricName).inc(value);
-                break;
-            case meter:
-                incrementer = (registry, metricName, value) -> registry.meter(metricName).mark(value);
-                break;
-            default:
-                // to satisfy compiler
-                throw new IllegalStateException("Should never happen");
-        }
+        incrementer = switch (counterType) {
+            case flushingCounter -> (registry, metricName, value) ->
+                    registry.counter(metricName, ResettingCounter::new).inc(value);
+            case counter -> (registry, metricName, value) -> registry.counter(metricName).inc(value);
+            case meter -> (registry, metricName, value) -> registry.meter(metricName).mark(value);
+        };
     }
 
     /**

@@ -11,8 +11,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.tappx.model.TappxBidderExt;
@@ -34,7 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
@@ -98,7 +97,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         try {
             uriBuilder = new URIBuilder(baseUri);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
+            throw new PreBidException("Failed to build endpoint URL: " + e.getMessage());
         }
 
         if (!isNewEndpoint) {
@@ -184,7 +183,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

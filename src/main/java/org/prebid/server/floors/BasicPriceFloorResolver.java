@@ -136,9 +136,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         try {
             return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
         } catch (PreBidException e) {
-            final String logMessage =
-                    String.format("Error occurred while resolving floor for imp: %s, cause: %s",
-                            imp.getId(), e.getMessage());
+            final String logMessage = "Error occurred while resolving floor for imp: %s, cause: %s"
+                    .formatted(imp.getId(), e.getMessage());
             if (warnings != null) {
                 warnings.add(logMessage);
             }
@@ -179,7 +178,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return schema.getFields().stream()
                 .map(field -> toFieldValues(field, bidRequest, imp, mediaType, format))
                 .map(BasicPriceFloorResolver::prepareFieldValues)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> toFieldValues(PriceFloorField field,
@@ -192,32 +191,20 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 ? Collections.singletonList(mediaType)
                 : mediaTypesFromImp(imp);
 
-        switch (field) {
-            case siteDomain:
-                return siteDomainFromRequest(bidRequest);
-            case pubDomain:
-                return pubDomainFromRequest(bidRequest);
-            case domain:
-                return domainFromRequest(bidRequest);
-            case bundle:
-                return bundleFromRequest(bidRequest);
-            case channel:
-                return channelFromRequest(bidRequest);
-            case mediaType:
-                return mediaTypeToRuleKey(resolvedMediaTypes);
-            case size:
-                return sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
-            case gptSlot:
-                return gptAdSlotFromImp(imp);
-            case pbAdSlot:
-                return pbAdSlotFromImp(imp);
-            case country:
-                return countryFromRequest(bidRequest);
-            case deviceType:
-                return resolveDeviceTypeFromRequest(bidRequest);
-            default:
-                throw new IllegalStateException("Unknown field type");
-        }
+        return switch (field) {
+            case siteDomain -> siteDomainFromRequest(bidRequest);
+            case pubDomain -> pubDomainFromRequest(bidRequest);
+            case domain -> domainFromRequest(bidRequest);
+            case bundle -> bundleFromRequest(bidRequest);
+            case channel -> channelFromRequest(bidRequest);
+            case mediaType -> mediaTypeToRuleKey(resolvedMediaTypes);
+            case size ->
+                    sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
+            case gptSlot -> gptAdSlotFromImp(imp);
+            case pbAdSlot -> pbAdSlotFromImp(imp);
+            case country -> countryFromRequest(bidRequest);
+            case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
+        };
     }
 
     private static List<ImpMediaType> mediaTypesFromImp(Imp imp) {
@@ -360,7 +347,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static List<String> sizeFromFormat(Format size) {
         final String sizeRuleKey = size != null
-                ? String.format("%dx%d", size.getW(), size.getH())
+                ? "%dx%d".formatted(size.getW(), size.getH())
                 : WILDCARD_CATCH_ALL;
 
         return Collections.singletonList(sizeRuleKey);
@@ -432,7 +419,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final List<String> preparedFieldValues = CollectionUtils.emptyIfNull(fieldValues).stream()
                 .filter(StringUtils::isNotEmpty)
                 .map(String::toLowerCase)
-                .collect(Collectors.toList());
+                .toList();
 
         if (CollectionUtils.isEmpty(preparedFieldValues)) {
             return Collections.singletonList(WILDCARD_CATCH_ALL);
@@ -590,14 +577,14 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return IntStream.range(0, desiredRuleKey.size())
                     .filter(i -> desiredRuleKey.get(i).get(0).equals(WILDCARD_CATCH_ALL))
                     .boxed()
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         private Iterator<String> createIterator(int wildcardNum, List<List<String>> desiredRuleKey, String delimiter) {
             final int ruleSegmentsNum = desiredRuleKey.size();
 
             return asStream(CombinatoricsUtils.combinationsIterator(ruleSegmentsNum, wildcardNum))
-                    .map(combination -> IntStream.of(combination).boxed().collect(Collectors.toList()))
+                    .map(combination -> IntStream.of(combination).boxed().toList())
                     .filter(combination -> combination.containsAll(implicitWildcardIndexes))
                     .sorted(Comparator.comparingInt(combination -> calculateWeight(combination, ruleSegmentsNum)))
                     .flatMap(combination -> combinationToCandidate(combination, desiredRuleKey, delimiter).stream())
@@ -623,7 +610,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                     .boxed()
                     .map(position -> candidatesForPosition(position, desiredRuleKey, biggestRuleKeySize))
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
+                    .toList();
 
             for (final int positionToReplace : combination) {
                 candidates.forEach(candidate -> candidate.set(positionToReplace, WILDCARD_CATCH_ALL));
@@ -640,7 +627,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return desiredRuleKey.get(multPosition).stream()
                     .flatMap(ruleKey -> IntStream.range(0, biggestRuleKeySize)
                             .mapToObj(i -> candidateForPosition(desiredRuleKey, ruleKey, multPosition, i)))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         private static List<String> candidateForPosition(List<List<String>> desiredRuleKey,
@@ -656,7 +643,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                             return getLastOrNext(desiredRuleKey.get(index), position);
                         }
                     })
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toCollection(ArrayList::new));
         }
 
         private static String getLastOrNext(List<String> ruleKeys, int index) {

@@ -96,7 +96,7 @@ public class HttpBidderRequestEnricher {
 
     private static String createNameVersionRecord(String name, String version) {
         return StringUtils.isNoneEmpty(name, version)
-                ? String.format("%s/%s", name, version)
+                ? "%s/%s".formatted(name, version)
                 : null;
     }
 

@@ -54,15 +54,15 @@ public class LineItemUtil {
         return CollectionUtils.isEmpty(deals)
                 ? null
                 : deals.stream()
-                        .filter(Objects::nonNull)
-                        .filter(deal -> Objects.equals(deal.getId(), bid.getDealid())) // find deal by ID
-                        .map(Deal::getExt)
-                        .filter(Objects::nonNull)
-                        .map((ObjectNode ext) -> dealExt(ext, mapper))
-                        .filter(Objects::nonNull)
-                        .map(ExtDeal::getLine)
-                        .findFirst()
-                        .orElse(null);
+                .filter(Objects::nonNull)
+                .filter(deal -> Objects.equals(deal.getId(), bid.getDealid())) // find deal by ID
+                .map(Deal::getExt)
+                .filter(Objects::nonNull)
+                .map((ObjectNode ext) -> dealExt(ext, mapper))
+                .filter(Objects::nonNull)
+                .map(ExtDeal::getLine)
+                .findFirst()
+                .orElse(null);
     }
 
     private static ExtDeal dealExt(JsonNode ext, JacksonMapper mapper) {

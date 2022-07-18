@@ -448,7 +448,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
-                .collect(Collectors.toList());
+                .toList();
 
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
@@ -502,9 +502,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else if (!bidderCatalog.isActive(bidder)) {
             return bidderStatusBuilder(bidder)
-                    .error(String.format("%s is not configured properly on this Prebid Server deploy. "
-                            + "If you believe this should work, contact the company hosting the service "
-                            + "and tell them to check their configuration.", bidder))
+                    .error(bidder + """
+                             is not configured properly on this Prebid Server deploy. \
+                            If you believe this should work, contact the company hosting \
+                            the service and tell them to check their configuration.""")
                     .build();
         } else if (biddersRejectedByTcf.contains(bidder)) {
             return bidderStatusBuilder(bidder)
@@ -601,8 +602,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                            UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
-        final String url = String.format(
-                HOST_BIDDER_USERSYNC_URL_TEMPLATE,
+        final String url = HOST_BIDDER_USERSYNC_URL_TEMPLATE.formatted(
                 externalUrl,
                 cookieFamilyName,
                 HttpUtil.encodeUrl(hostCookieUid));
@@ -643,12 +643,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final List<BidderUsersyncStatus> allowedStatuses = bidderStatuses.stream()
                 .filter(status -> StringUtils.isEmpty(status.getError()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(allowedStatuses);
 
         final List<BidderUsersyncStatus> rejectedStatuses = bidderStatuses.stream()
                 .filter(status -> StringUtils.isNotEmpty(status.getError()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(rejectedStatuses);
 
         return ListUtils.union(allowedStatuses, rejectedStatuses).subList(0, limit);
@@ -661,18 +661,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (error instanceof InvalidRequestException) {
             status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format("Invalid request format: %s", message);
+            body = "Invalid request format: " + message;
 
             metrics.updateUserSyncBadRequestMetric();
             BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             status = HttpResponseStatus.UNAUTHORIZED;
-            body = String.format("Unauthorized: %s", message);
+            body = "Unauthorized: " + message;
 
             metrics.updateUserSyncOptoutMetric();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format("Unexpected setuid processing error: %s", message);
+            body = "Unexpected setuid processing error: " + message;
 
             logger.warn(body, error);
         }

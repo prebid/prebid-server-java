@@ -32,23 +32,14 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
     Class<TYPE> hookType();
 
     static StageWithHookType<? extends Hook<?, ? extends InvocationContext>> forStage(Stage stage) {
-        switch (stage) {
-            case entrypoint:
-                return ENTRYPOINT;
-            case raw_auction_request:
-                return RAW_AUCTION_REQUEST;
-            case processed_auction_request:
-                return PROCESSED_AUCTION_REQUEST;
-            case bidder_request:
-                return BIDDER_REQUEST;
-            case raw_bidder_response:
-                return RAW_BIDDER_RESPONSE;
-            case processed_bidder_response:
-                return PROCESSED_BIDDER_RESPONSE;
-            case auction_response:
-                return AUCTION_RESPONSE;
-            default:
-                throw new IllegalStateException(String.format("Unknown stage %s", stage));
-        }
+        return switch (stage) {
+            case entrypoint -> ENTRYPOINT;
+            case raw_auction_request -> RAW_AUCTION_REQUEST;
+            case processed_auction_request -> PROCESSED_AUCTION_REQUEST;
+            case bidder_request -> BIDDER_REQUEST;
+            case raw_bidder_response -> RAW_BIDDER_RESPONSE;
+            case processed_bidder_response -> PROCESSED_BIDDER_RESPONSE;
+            case auction_response -> AUCTION_RESPONSE;
+        };
     }
 }

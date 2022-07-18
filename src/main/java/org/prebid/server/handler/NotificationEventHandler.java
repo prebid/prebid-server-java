@@ -12,8 +12,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
@@ -82,7 +82,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             bytes = ResourceUtil.readByteArrayFromClassPath(TRACKING_PIXEL_PNG);
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format("Failed to load pixel image at %s", TRACKING_PIXEL_PNG), e);
+                    "Failed to load pixel image at " + TRACKING_PIXEL_PNG, e);
         }
         return TrackingPixel.of(PNG_CONTENT_TYPE, bytes);
     }
@@ -154,7 +154,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
             if (!eventsEnabledForAccount && eventsEnabledForRequest) {
                 respondWithUnauthorized(routingContext,
-                        String.format("Account '%s' doesn't support events", account.getId()));
+                        "Account '%s' doesn't support events".formatted(account.getId()));
                 return;
             }
 
@@ -209,7 +209,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private static void respondWithServerError(RoutingContext routingContext, String message, Throwable exception) {
         logger.warn(message, exception);
-        final String body = String.format("%s: %s", message, exception.getMessage());
+        final String body = "%s: %s".formatted(message, exception.getMessage());
         respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, body);
     }
 

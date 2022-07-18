@@ -172,7 +172,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
         if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
-            throw new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
+            throw new InvalidRequestException("\"bidder\" query param is " + cookieNameError);
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
@@ -311,14 +311,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (error instanceof InvalidRequestException) {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format("Invalid request format: %s", message);
+            body = "Invalid request format: " + message;
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED;
-            body = String.format("Unauthorized: %s", message);
+            body = "Unauthorized: " + message;
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format("Unexpected setuid processing error: %s", message);
+            body = "Unexpected setuid processing error: " + message;
             logger.warn(body, error);
         }
 

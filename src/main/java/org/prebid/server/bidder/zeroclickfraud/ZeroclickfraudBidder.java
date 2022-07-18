@@ -11,8 +11,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
@@ -63,7 +62,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
         final List<HttpRequest<BidRequest>> httpRequests = extToImps.entrySet().stream()
                 .map(entry -> makeHttpRequest(entry.getKey(), entry.getValue(), bidRequest))
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(httpRequests, Collections.emptyList());
     }
@@ -128,7 +127,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

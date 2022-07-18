@@ -257,12 +257,12 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::isConsentValid,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
                 .containsExactly(true, "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
                         true, null, null, null);
         assertThat(result.result().getConsent()).isNotNull();
@@ -282,11 +282,11 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
                 .containsExactly(true, "consent", null, true, "ip");
 
         verifyNoInteractions(geoLocationService);
@@ -311,11 +311,11 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
                 .containsExactly(true, consentString, geoInfo, true, "ip-masked");
 
         verify(ipAddressHelper).maskIpv4(eq("ip"));
@@ -349,11 +349,11 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
                 .containsExactly(false, null, null, null, "ip");
 
         verify(metrics).updateGeoLocationMetric(false);
@@ -384,11 +384,11 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
                 .containsExactly(false, null, null, null, null);
 
         verifyNoInteractions(geoLocationService);
@@ -405,9 +405,9 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::isConsentValid)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid)
                 .containsExactly(true, "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA", true);
     }
 
@@ -420,9 +420,9 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::isInGdprScope,
-                TcfContext::getConsentString,
-                TcfContext::isConsentValid)
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid)
                 .containsExactly(true, "invalid", false);
     }
 

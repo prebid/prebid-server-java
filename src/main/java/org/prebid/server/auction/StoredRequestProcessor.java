@@ -201,14 +201,14 @@ public class StoredRequestProcessor {
             final String storedId = storedIdToImpIdEntry.getKey();
             final String storedImp = storedIdToStoredImp.get(storedId);
             if (storedImp == null) {
-                errors.add(String.format("No stored Imp for stored id %s", storedId));
+                errors.add("No stored Imp for stored id " + storedId);
                 continue;
             }
 
             final String impId = storedIdToImpIdEntry.getValue();
             final Video video = parseVideoFromImp(storedImp);
             if (video == null) {
-                errors.add(String.format("No stored video found for Imp with id %s", impId));
+                errors.add("No stored video found for Imp with id " + impId);
                 continue;
             }
 

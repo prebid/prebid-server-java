@@ -99,7 +99,7 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
                 .map(this::toResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Result toResult(AnalyticsResult analyticsResult) {
