@@ -31,8 +31,8 @@ public class UsersyncInfoAssemblerTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url/redirect=http%3A%2F%2Flocalhost%3A8000%2F" +
-                        "setuid%3Fgdpr%3D%7B%7Bgdpr%7D%7D?gdpr={{gdpr}}&f=i");
+                "http://url/redirect=http%3A%2F%2Flocalhost%3A8000%2F"
+                        + "setuid%3Fgdpr%3D%7B%7Bgdpr%7D%7D?gdpr={{gdpr}}&f=i");
     }
 
     @Test
@@ -102,8 +102,8 @@ public class UsersyncInfoAssemblerTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url/1/consent%241?redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26" +
-                        "gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26f%3Di%26uid%3D%24UID");
+                "http://url/1/consent%241?redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26"
+                        + "gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26f%3Di%26uid%3D%24UID");
     }
 
     @Test

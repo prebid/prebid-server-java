@@ -37,7 +37,6 @@ public class UsersyncUtilTest {
     public void enrichUsersyncUrlWithFormatShouldAddFormat() {
         // given and when
         final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("//url", UsersyncMethodType.IFRAME);
-        ;
 
         // then
         assertThat(url).isEqualTo("//url?f=b");
@@ -46,8 +45,8 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUsersyncUrlWithFormatShouldAppendFormat() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1", UsersyncMethodType.REDIRECT);
-        ;
+        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat(
+                "http://url?param1=value1", UsersyncMethodType.REDIRECT);
 
         // then
         assertThat(url).isEqualTo("http://url?param1=value1&f=i");

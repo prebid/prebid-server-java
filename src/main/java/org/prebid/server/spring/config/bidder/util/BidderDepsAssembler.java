@@ -118,8 +118,8 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private Usersyncer usersyncer(CFG configProperties) {
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-        final boolean usersyncPresent = usersync != null &&
-                ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
+        final boolean usersyncPresent = usersync != null
+                && ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
         return configProperties.getEnabled() && usersyncPresent ? usersyncerCreator.apply(usersync) : null;
     }
 

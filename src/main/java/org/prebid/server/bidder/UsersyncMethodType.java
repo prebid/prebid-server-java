@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 public enum UsersyncMethodType {
+
     IFRAME("iframe", "b"),
     REDIRECT("redirect", "i");
 
