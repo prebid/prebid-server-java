@@ -73,8 +73,9 @@ public class UsersyncInfoAssembler {
         redirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
                 ? resolveQueryParams(redirectUrl)
                 : HttpUtil.encodeUrl(redirectUrl);
+        usersyncUrl = usersyncUrl.replace(UsersyncInfo.REDIRECT_URL_PLACEHOLDER, redirectUrl);
 
-        return UsersyncInfo.of(usersyncUrl + redirectUrl, type, supportCORS);
+        return UsersyncInfo.of(usersyncUrl, type, supportCORS);
     }
 
     private static String resolveQueryParams(String redirectUrl) {
