@@ -794,8 +794,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "url", null);
-        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "url", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "url", UsersyncMethodType.IFRAME);
+        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "url", UsersyncMethodType.IFRAME);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
