@@ -44,10 +44,11 @@ class HibernateRepositoryService {
         properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect")
         properties.setProperty("hibernate.connection.username", user)
         properties.setProperty("hibernate.connection.password", pass)
+        properties.setProperty("hibernate.connection.pool_size", "5")
         properties.setProperty("hibernate.connection.driver_class", driver)
         properties.setProperty("hibernate.show_sql", "false")
         properties.setProperty("hibernate.format_sql", "false")
-        properties.setProperty("hibernate.c3p0.checkoutTimeout", "5000")
+        properties.setProperty("hibernate.c3p0.timeout", "1800")
 
         def configuration = new Configuration()
         configuration.addAnnotatedClass(Account)
