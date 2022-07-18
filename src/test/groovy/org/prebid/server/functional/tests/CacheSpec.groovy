@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 
 class CacheSpec extends BaseSpec {
 
@@ -68,6 +69,7 @@ class CacheSpec extends BaseSpec {
         assert metrics["account.${accountId}.prebid_cache.requests.ok" as String] == 1
     }
 
+    @Retry(condition = { prebidCache.requestCount == 0 })
     def "PBS should cache bids when targeting is specified"() {
         given: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest
