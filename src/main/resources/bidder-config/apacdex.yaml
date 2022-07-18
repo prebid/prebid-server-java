@@ -5,11 +5,9 @@ adapters:
     aliases:
       quantumdex:
         usersync:
-          redirect-url: /setuid?bidder=quantumdex&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=[UID]
           cookie-family-name: quantumdex
       valueimpression:
         usersync:
-          redirect-url: /setuid?bidder=valueimpression&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=[UID]
           cookie-family-name: valueimpression
     meta-info:
       maintainer-email: support@apacdex.com

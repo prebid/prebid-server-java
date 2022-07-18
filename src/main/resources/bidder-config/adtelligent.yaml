@@ -9,8 +9,6 @@ adapters:
           maintainer-email: support@mediafuse.com
           vendor-id: 411
         usersync:
-          url:
-          redirect-url:
           cookie-family-name: mediafuse
       viewdeos:
         enabled: false
@@ -19,8 +17,6 @@ adapters:
           maintainer-email: contact@viewdeos.com
           vendor-id: 924
         usersync:
-          url:
-          redirect-url:
           cookie-family-name: viewdeos
       streamkey:
         enabled: false
@@ -33,8 +29,6 @@ adapters:
             - video
           vendor-id: 0
         usersync:
-          url:
-          redirect-url:
           cookie-family-name: streamkey
       janet:
         enabled: false
@@ -49,8 +43,6 @@ adapters:
             - video
           vendor-id: 0
           usersync:
-            url:
-            redirect-url:
             cookie-family-name: janet
       pgam:
         enabled: false
@@ -59,8 +51,6 @@ adapters:
           maintainer-email: ppatel@pgammedia.com
           vendor-id: 0
         usersync:
-          url:
-          redirect-url:
           cookie-family-name: pgam
     meta-info:
       maintainer-email: hb@adtelligent.com
