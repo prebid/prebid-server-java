@@ -70,12 +70,13 @@ public class UsersyncInfoAssembler {
     }
 
     public UsersyncInfo assemble() {
-        redirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
+        final String resolvedRedirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
                 ? resolveQueryParams(redirectUrl)
                 : HttpUtil.encodeUrl(redirectUrl);
-        usersyncUrl = usersyncUrl.replace(UsersyncInfo.REDIRECT_URL_PLACEHOLDER, redirectUrl);
+        final String resolvedUsersyncUrl = usersyncUrl.replace(
+                UsersyncInfo.REDIRECT_URL_PLACEHOLDER, resolvedRedirectUrl);
 
-        return UsersyncInfo.of(usersyncUrl, type, supportCORS);
+        return UsersyncInfo.of(resolvedUsersyncUrl, type, supportCORS);
     }
 
     private static String resolveQueryParams(String redirectUrl) {
