@@ -16,7 +16,6 @@ adapters:
     usersync:
       cookie-family-name: improvedigital
       redirect:
-        url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '{PUB_USER_ID}'
+        url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
-
+        uid-macro: '{PUB_USER_ID}'

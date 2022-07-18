@@ -15,6 +15,6 @@ adapters:
     usersync:
       cookie-family-name: sovrn
       redirect:
-        url: https://ap.lijit.com/pixel?redir=
-        uid-macro: '$UID'
+        url: https://ap.lijit.com/pixel?redir={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

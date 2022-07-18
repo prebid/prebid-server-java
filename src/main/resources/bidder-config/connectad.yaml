@@ -12,5 +12,5 @@ adapters:
     usersync:
       cookie-family-name: connectad
       iframe:
-        url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+        url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
         support-cors: false

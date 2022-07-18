@@ -17,6 +17,6 @@ adapters:
     usersync:
       cookie-family-name: colossus
       redirect:
-        url: https://sync.colossusssp.com/pbs.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: '[UID]'
+        url: https://sync.colossusssp.com/pbs.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
         support-cors: false
+        uid-macro: '[UID]'

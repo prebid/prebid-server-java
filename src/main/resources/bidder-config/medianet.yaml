@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: medianet
       redirect:
-        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect=
-        uid-macro: '<vsid>'
+        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect={{redirect_url}}
         support-cors: false
+        uid-macro: '<vsid>'

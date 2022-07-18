@@ -22,6 +22,6 @@ adapters:
     usersync:
       cookie-family-name: adf
       redirect:
-        url: https://cm.adform.net/cookie?redirect_url=
-        uid-macro: '$UID'
+        url: https://cm.adform.net/cookie?redirect_url={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

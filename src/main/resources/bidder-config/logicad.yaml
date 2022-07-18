@@ -12,6 +12,6 @@ adapters:
     usersync:
       cookie-family-name: logicad
       redirect:
-        url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru=
-        uid-macro: '$UID'
+        url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

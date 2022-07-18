@@ -12,6 +12,6 @@ adapters:
     usersync:
       cookie-family-name: lockerdome
       redirect:
-        url: https://lockerdome.com/usync/prebidserver?redirect=
-        uid-macro: '{{uid}}'
+        url: https://lockerdome.com/usync/prebidserver?redirect={{redirect_url}}
         support-cors: false
+        uid-macro: '{{uid}}'

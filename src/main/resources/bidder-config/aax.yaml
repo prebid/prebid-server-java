@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: aax
       redirect:
-        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect=
-        uid-macro: '<vsid>'
+        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect={{redirect_url}}
         support-cors: false
+        uid-macro: '<vsid>'

@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: krushmedia
       redirect:
-        url: https://cs.krushmedia.com/4e4abdd5ecc661643458a730b1aa927d.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: '[uid]'
+        url: https://cs.krushmedia.com/4e4abdd5ecc661643458a730b1aa927d.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
         support-cors: false
+        uid-macro: '[uid]'

@@ -12,5 +12,5 @@ adapters:
     usersync:
       cookie-family-name: gumgum
       iframe:
-        url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+        url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false

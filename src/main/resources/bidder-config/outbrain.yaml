@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: outbrain
       redirect:
-        url: https://prebidtest.zemanta.com/usersync/prebidtest?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-        uid-macro: '__ZUID__'
+        url: https://prebidtest.zemanta.com/usersync/prebidtest?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
         support-cors: false
+        uid-macro: '__ZUID__'

@@ -24,10 +24,10 @@ adapters:
     usersync:
       cookie-family-name: apacdex
       iframe:
-        url: https://sync.quantumdex.io/usersync/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '[UID]'
+        url: https://sync.quantumdex.io/usersync/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '[UID]'
       redirect:
-        url: https://sync.quantumdex.io/getuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '[UID]'
+        url: https://sync.quantumdex.io/getuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '[UID]'

@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: bidmyadz
       redirect:
-        url: https://cookie-sync.bidmyadz.com/c0f68227d14ed938c6c49f3967cbe9bc?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&red=
-        uid-macro: '[UID]'
+        url: https://cookie-sync.bidmyadz.com/c0f68227d14ed938c6c49f3967cbe9bc?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&red={{redirect_url}}
         support-cors: false
+        uid-macro: '[UID]'

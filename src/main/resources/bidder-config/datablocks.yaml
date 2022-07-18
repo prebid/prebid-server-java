@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: datablocks
       redirect:
-        url: https://sync.v5prebid.datablocks.net/s2ssync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '${uid}'
+        url: https://sync.v5prebid.datablocks.net/s2ssync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '${uid}'

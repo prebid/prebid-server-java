@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: acuityads
       redirect:
-        url: https://cs.admanmedia.com/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: '[UID]'
+        url: https://cs.admanmedia.com/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
         support-cors: false
+        uid-macro: '[UID]'

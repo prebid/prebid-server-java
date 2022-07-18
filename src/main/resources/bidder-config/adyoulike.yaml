@@ -13,10 +13,10 @@ adapters:
     usersync:
       cookie-family-name: adyoulike
       iframe:
-        url: https://visitor.omnitagjs.com/visitor/isync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-        uid-macro: '[BUYER_USERID]'
+        url: https://visitor.omnitagjs.com/visitor/isync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
         support-cors: false
+        uid-macro: '[BUYER_USERID]'
       redirect:
-        url: https://visitor.omnitagjs.com/visitor/bsync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-        uid-macro: '[BUYER_USERID]'
+        url: https://visitor.omnitagjs.com/visitor/bsync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
         support-cors: false
+        uid-macro: '[BUYER_USERID]'

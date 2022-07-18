@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: richaudience
       iframe:
-        url: https://sync.richaudience.com/74889303289e27f327ad0c6de7be7264/?consentString={{gdpr_consent}}&r=
-        uid-macro: '[PDID]'
+        url: https://sync.richaudience.com/74889303289e27f327ad0c6de7be7264/?consentString={{gdpr_consent}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '[PDID]'

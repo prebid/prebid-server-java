@@ -16,5 +16,5 @@ adapters:
     usersync:
       cookie-family-name: amx
       redirect:
-        url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+        url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
         support-cors: false

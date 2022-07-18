@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: adot
       redirect:
-        url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '{amob_user_id}'
+        url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '{amob_user_id}'

@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: cpmstar
       redirect:
-        url: https://server.cpmstar.com/usersync.aspx?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-        uid-macro: '$UID'
+        url: https://server.cpmstar.com/usersync.aspx?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

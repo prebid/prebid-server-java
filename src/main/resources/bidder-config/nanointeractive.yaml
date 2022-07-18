@@ -12,6 +12,6 @@ adapters:
     usersync:
       cookie-family-name: nanointeractive
       redirect:
-        url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-        uid-macro: '$UID'
+        url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

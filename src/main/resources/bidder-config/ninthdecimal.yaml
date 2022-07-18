@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: ninthdecimal
       iframe:
-        url: https://rtb.ninthdecimal.com/xp/user-sync?acctid={aid}&&redirect=
-        uid-macro: '$UID'
+        url: https://rtb.ninthdecimal.com/xp/user-sync?acctid={aid}&&redirect={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'

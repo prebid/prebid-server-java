@@ -15,9 +15,9 @@ adapters:
     usersync:
       cookie-family-name: brightroll
       redirect:
-        url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-        uid-macro: '$UID'
+        url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
         support-cors: false
+        uid-macro: '$UID'
     accounts:
       - id: ACCOUNT
         bid_floor:

@@ -12,6 +12,6 @@ adapters:
     usersync:
       cookie-family-name: deepintent
       iframe:
-        url: https://match.deepintent.com/usersync/136?id=unk&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-        uid-macro: '${DI_USER_ID}'
+        url: https://match.deepintent.com/usersync/136?id=unk&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
         support-cors: false
+        uid-macro: '${DI_USER_ID}'

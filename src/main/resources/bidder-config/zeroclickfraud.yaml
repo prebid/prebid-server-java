@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: zeroclickfraud
       iframe:
-        url: https://s.0cf.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-        uid-macro: '${uid}'
+        url: https://s.0cf.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
         support-cors: false
+        uid-macro: '${uid}'
