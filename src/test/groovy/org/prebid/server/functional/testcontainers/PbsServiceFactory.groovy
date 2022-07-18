@@ -36,9 +36,7 @@ class PbsServiceFactory {
                 remove([(container.key): container.value])
             }
             def pbsContainer = new PrebidServerContainer(config)
-            logger.info("[START CONTAINER] --- "+pbsContainer.logs)
             pbsContainer.start()
-            logger.info("[END CONTAINER] --- "+pbsContainer.logs)
             containers.put(config, pbsContainer)
             return new PrebidServerService(pbsContainer)
         }
