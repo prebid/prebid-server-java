@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.aax;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -19,6 +20,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +81,7 @@ public class AaxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bid, bidRequest.getImp(), errorList))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -96,46 +99,50 @@ public class AaxBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final JsonNode aaxExtBid = bid.getExt() != null ? bid.getExt().get("adCodeType") : null;
-        final String mediaType = aaxExtBid != null ? aaxExtBid.asText() : null;
-        final BidType bidTypeFromExt = mediaType != null ? bidTypeFromString(mediaType) : null;
-
-        if (bidTypeFromExt != null) {
-            return bidTypeFromExt;
-        }
-
-        BidType bidType = null;
-        int countType = 0;
-        for (Imp imp : imps) {
-            if (imp.getId().equals(bid.getImpid())) {
-                if (imp.getBanner() != null) {
-                    countType++;
-                    bidType = BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    countType++;
-                    bidType = BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    countType++;
-                    bidType = BidType.xNative;
-                }
-            }
-        }
-
-        if (countType != 1) {
-            throw new PreBidException(String.format("Unable to fetch mediaType in multi-format: %s", bid.getImpid()));
-        }
-
-        return bidType;
+        return ObjectUtil.firstNonNull(
+                () -> bidTypeFromExt(bid.getExt()),
+                () -> bidTypeFromImp(bid.getImpid(), imps));
     }
 
-    private BidType bidTypeFromString(String mediaType) {
-        return switch (mediaType) {
+    private static BidType bidTypeFromExt(ObjectNode bidExt) {
+        final JsonNode bidTypeNode = bidExt != null ? bidExt.get("adCodeType") : null;
+        final String bidType = bidTypeNode != null ? bidTypeNode.textValue() : null;
+        if (bidType == null) {
+            return null;
+        }
+
+        return switch (bidType) {
             case "banner" -> BidType.banner;
             case "native" -> BidType.xNative;
             case "video" -> BidType.video;
             default -> null;
         };
+    }
+
+    private static BidType bidTypeFromImp(String impId, List<Imp> imps) {
+        BidType bidType = null;
+        int counter = 0;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    counter++;
+                    bidType = BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    counter++;
+                    bidType = BidType.video;
+                }
+                if (imp.getXNative() != null) {
+                    counter++;
+                    bidType = BidType.xNative;
+                }
+            }
+        }
+
+        if (counter != 1) {
+            throw new PreBidException(String.format("Unable to fetch mediaType in multi-format: %s", impId));
+        }
+
+        return bidType;
     }
 }
