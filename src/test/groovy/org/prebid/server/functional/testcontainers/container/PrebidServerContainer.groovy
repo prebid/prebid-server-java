@@ -41,7 +41,6 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
         withConfig(customConfig)
-        withStartupAttempts(5)
     }
 
     private void withFixedPorts() {

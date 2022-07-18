@@ -1,13 +1,9 @@
 package org.prebid.server.functional.testcontainers
 
-import io.vertx.core.logging.Logger
-import io.vertx.core.logging.LoggerFactory
-import org.prebid.server.auction.ExchangeService
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.SystemProperties
-import org.testcontainers.containers.output.OutputFrame
 
 import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
 
@@ -16,7 +12,6 @@ class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
     private static final int MAX_CONTAINER_COUNT = maxContainerCount
-    private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
 
     private final NetworkServiceContainer networkServiceContainer
 

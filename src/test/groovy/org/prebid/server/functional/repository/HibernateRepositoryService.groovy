@@ -48,7 +48,6 @@ class HibernateRepositoryService {
         properties.setProperty("hibernate.show_sql", "false")
         properties.setProperty("hibernate.format_sql", "false")
 
-
         def configuration = new Configuration()
         configuration.addAnnotatedClass(Account)
         configuration.addAnnotatedClass(S2sConfig)
