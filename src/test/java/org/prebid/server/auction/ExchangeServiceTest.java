@@ -2464,7 +2464,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseAppInPriorityOverSite() {
+    public void shouldRemoveSiteObjectIfBothSiteAndAppPresentAfterFpdStage() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
