@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.nextmillenium.NextMilleniumBidder;
+import org.prebid.server.bidder.nextmillennium.NextMillenniumBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/nextmillenium.yaml", factory = YamlPropertySourceFactory.class)
-public class NextMilleniumConfiguration {
+@PropertySource(value = "classpath:/bidder-config/nextmillennium.yaml", factory = YamlPropertySourceFactory.class)
+public class NextMillenniumConfiguration {
 
-    private static final String BIDDER_NAME = "nextmillenium";
+    private static final String BIDDER_NAME = "nextmillennium";
 
-    @Bean("nextmilleniumConfigurationProperties")
-    @ConfigurationProperties("adapters.nextmillenium")
+    @Bean("nextMillenniumConfigurationProperties")
+    @ConfigurationProperties("adapters.nextmillennium")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps nextmilleniumBidderDeps(BidderConfigurationProperties nextmilleniumConfigurationProperties,
-                                       @NotBlank @Value("${external-url}") String externalUrl,
-                                       JacksonMapper mapper) {
+    BidderDeps nextMillenniumBidderDeps(BidderConfigurationProperties nextMillenniumConfigurationProperties,
+                                        @NotBlank @Value("${external-url}") String externalUrl,
+                                        JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(nextmilleniumConfigurationProperties)
+                .withConfig(nextMillenniumConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new NextMilleniumBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new NextMillenniumBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
