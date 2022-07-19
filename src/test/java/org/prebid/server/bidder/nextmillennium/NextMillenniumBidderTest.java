@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.nextmillenium;
+package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
-import org.prebid.server.proto.openrtb.ext.request.nextmillenium.ExtImpNextMillenium;
+import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.Collections;
@@ -36,20 +36,27 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-public class NextMilleniumBidderTest extends VertxTest {
+public class NextMillenniumBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/";
 
-    private NextMilleniumBidder nextMilleniumBidder;
+    private NextMillenniumBidder nextMillenniumBidder;
+
+    private static Imp givenImpWithExt(UnaryOperator<Imp.ImpBuilder> impCustomizer,
+                                       ExtImpNextMillennium extImpNextMillennium) {
+
+        return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
+                ExtPrebid.of(null, extImpNextMillennium))))::apply);
+    }
 
     @Before
     public void setUp() {
-        nextMilleniumBidder = new NextMilleniumBidder(ENDPOINT_URL, jacksonMapper);
+        nextMillenniumBidder = new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new NextMilleniumBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new NextMillenniumBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -57,11 +64,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.id("id"),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, null)));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -76,11 +83,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.test(1),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, null)));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -95,11 +102,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of("placement1", null)),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of("placement2", null)));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", null)),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", null)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -117,11 +124,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, "group2")));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1")),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -147,13 +154,13 @@ public class NextMilleniumBidderTest extends VertxTest {
                                 .w(5)
                                 .h(6)
                                 .build()),
-                        ExtImpNextMillenium.of(null, "group1")),
+                        ExtImpNextMillennium.of(null, "group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillenium.of(null, "group2")));
+                        ExtImpNextMillennium.of(null, "group2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -173,15 +180,15 @@ public class NextMilleniumBidderTest extends VertxTest {
                 identity(),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillenium.of(null, "group1")),
+                        ExtImpNextMillennium.of(null, "group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(1).h(2).build()))
                                 .build()),
-                        ExtImpNextMillenium.of(null, "group2")));
+                        ExtImpNextMillennium.of(null, "group2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,11 +206,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.app(App.builder().domain("appDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of(null, "group2")));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1")),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,11 +228,11 @@ public class NextMilleniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().domain("siteDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of("placement1", "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillenium.of("placement2", "group2")));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", "group1")),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", "group2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -246,7 +253,7 @@ public class NextMilleniumBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty()
@@ -265,7 +272,7 @@ public class NextMilleniumBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = nextMilleniumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = nextMillenniumBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -283,11 +290,17 @@ public class NextMilleniumBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = nextMilleniumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = nextMillenniumBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
     }
 
     @Test
@@ -298,7 +311,7 @@ public class NextMilleniumBidderTest extends VertxTest {
                 mapper.createArrayNode().toString());
 
         // when
-        final Result<List<BidderBid>> result = nextMilleniumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = nextMillenniumBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty()
@@ -307,19 +320,6 @@ public class NextMilleniumBidderTest extends VertxTest {
                     assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
                 });
 
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Imp... imps) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
-    }
-
-    private static Imp givenImpWithExt(UnaryOperator<Imp.ImpBuilder> impCustomizer,
-                                       ExtImpNextMillenium extImpNextMillenium) {
-
-        return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
-                ExtPrebid.of(null, extImpNextMillenium))))::apply);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
