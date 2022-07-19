@@ -11,7 +11,7 @@ adapters:
       vendor-id: 1060
     usersync:
       url: https://cookies.nextmillmedia.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=nextmillenium&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[NMUID]
+      redirect-url: /setuid?bidder=nextmillennium&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[NMUID]
       cookie-family-name: nextmillennium
       type: iframe
       support-cors: false
