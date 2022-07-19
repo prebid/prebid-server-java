@@ -28,6 +28,9 @@ import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -548,6 +551,22 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
+    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "auction.filter-imp-media-type",
+            name = "enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    MediaTypeProcessor noOpMediaTypeProcessor() {
+        return new NoOpMediaTypeProcessor();
+    }
+
+    @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
@@ -632,6 +651,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
+            MediaTypeProcessor mediaTypeProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
@@ -658,6 +678,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
+                mediaTypeProcessor,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,

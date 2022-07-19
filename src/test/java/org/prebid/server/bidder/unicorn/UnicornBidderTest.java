@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -193,7 +193,7 @@ public class UnicornBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetAddAccountIdPropertyToRequestExt() {
+    public void makeHttpRequestsShouldAddAccountIdPropertyToRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
