@@ -661,6 +661,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 new JsonObject()
                         .put("url", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")
-                        .put("max_pool_size", 10)), metrics, clock);
+                        .put("max_pool_size", 10)
+                        .put("max_pool_size", 10)
+                        .put("provider_class", "io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider")),
+                metrics, clock);
     }
 }

@@ -141,14 +141,20 @@ public class SettingsConfiguration {
                     storedRequestsDatabaseProperties.getDbname(),
                     storedRequestsDatabaseProperties.getType().jdbcUrlSuffix);
 
+            final boolean isHikariCPDataSourcePool = storedRequestsDatabaseProperties.getProviderClass()
+                    .equals("HikariCPDataSourceProvider");
+            final String providerClassPool = String.format("io.vertx.ext.jdbc.spi.impl.%s",
+                    storedRequestsDatabaseProperties.getProviderClass());
+
             return JDBCClient.createShared(vertx, new JsonObject()
-                    .put("url", jdbcUrl)
+                    .put(isHikariCPDataSourcePool ? "jdbcUrl" : "url", jdbcUrl)
                     .put("user", storedRequestsDatabaseProperties.getUser())
                     .put("password", storedRequestsDatabaseProperties.getPassword())
                     .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
                     .put("initial_pool_size", storedRequestsDatabaseProperties.getPoolSize())
                     .put("min_pool_size", storedRequestsDatabaseProperties.getPoolSize())
-                    .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize()));
+                    .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize())
+                    .put("provider_class", providerClassPool));
         }
 
         @Component
@@ -174,12 +180,16 @@ public class SettingsConfiguration {
             private String user;
             @NotBlank
             private String password;
+            @NotBlank
+            private String providerClass;
         }
 
         @AllArgsConstructor
         private enum DbType {
             postgres("org.postgresql.Driver", "jdbc:postgresql:", "ssl=false&socketTimeout=1&tcpKeepAlive=true"),
-            mysql("com.mysql.cj.jdbc.Driver", "jdbc:mysql:", "useSSL=false&socketTimeout=1000&tcpKeepAlive=true");
+            mysql("com.mysql.cj.jdbc.Driver",
+                    "jdbc:mysql:",
+                    "allowPublicKeyRetrieval=true&useSSL=false&socketTimeout=1000&tcpKeepAlive=true");
 
             private final String jdbcDriver;
             private final String jdbcUrlPrefix;
