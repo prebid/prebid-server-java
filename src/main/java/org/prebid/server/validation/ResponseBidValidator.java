@@ -366,8 +366,9 @@ public class ResponseBidValidator {
 
         if (bidSizeNotInFormats(bid, lineItemSizes)) {
             throw new ValidationException(
-                    "Bid \"%s\" has 'w' and 'h' not matched to Line Item. Bid "
-                            + "dimensions: '%dx%d', Line Item sizes: '%s'",
+                    """
+                            Bid "%s" has 'w' and 'h' not matched to Line Item. \
+                            Bid dimensions: '%dx%d', Line Item sizes: '%s'""",
                     bidId, bid.getW(), bid.getH(), formatSizes(lineItemSizes));
         }
     }
