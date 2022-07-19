@@ -12,6 +12,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
@@ -19,6 +20,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -88,9 +90,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
@@ -149,6 +148,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
     private static final String DFP_ADUNIT_CODE_FIELD = "dfp_ad_unit_code";
+    private static final String STYPE_FIELD = "stype";
+    private static final String RTI_PARTNER_FIELD = "rtiPartner";
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
@@ -1037,17 +1038,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String userId = user != null ? user.getId() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String resolvedId = userId == null ? resolveUserId(extUser) : null;
-        final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
+        final List<Eid> extUserEids = extUser != null ? extUser.getEids() : null;
         final String userBuyeruid = user != null ? user.getBuyeruid() : null;
         final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(extUserEids);
-        final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
+        final Map<String, List<Eid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
                 : null;
         final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
                 ? extractExtUserTpIds(sourceToUserEidExt)
                 : null;
         final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
-        final List<ExtUserEid> resolvedExtUserEids = hasStypeToRemove
+        final List<Eid> resolvedExtUserEids = hasStypeToRemove
                 ? prepareExtUserEids(extUserEids)
                 : extUserEids;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
@@ -1090,8 +1091,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String resolveUserId(ExtUser extUser) {
-        final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
+    private static String resolveUserId(ExtUser extUser) {
+        final List<Eid> extUserEids = extUser != null ? extUser.getEids() : null;
         return CollectionUtils.emptyIfNull(extUserEids)
                 .stream()
                 .map(extUserEid -> getIdFromFirstUuidWithStypePpuid(extUserEid.getUids()))
@@ -1100,78 +1101,85 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private String getIdFromFirstUuidWithStypePpuid(List<ExtUserEidUid> extUserEidUids) {
+    private static String getIdFromFirstUuidWithStypePpuid(List<Uid> extUserEidUids) {
         return CollectionUtils.emptyIfNull(extUserEidUids).stream()
                 .filter(Objects::nonNull)
                 .filter(extUserEidUid -> Objects.equals(PPUID_STYPE, getUserEidUidStype(extUserEidUid)))
-                .map(ExtUserEidUid::getId)
+                .map(Uid::getId)
                 .findFirst()
                 .orElse(null);
     }
 
-    private String getUserEidUidStype(ExtUserEidUid extUserEidUid) {
-        final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
-        return extUserEidUidExt != null ? extUserEidUidExt.getStype() : null;
+    private static String getUserEidUidStype(Uid uid) {
+        final ObjectNode uidExt = uid != null ? uid.getExt() : null;
+        final JsonNode stype = uidExt != null ? uidExt.path(STYPE_FIELD) : null;
+        return stype != null && !stype.isMissingNode()
+                ? stype.asText()
+                : null;
     }
 
-    private boolean hasStypeToRemove(List<ExtUserEid> extUserEids) {
+    private static boolean hasStypeToRemove(List<Eid> extUserEids) {
         return CollectionUtils.emptyIfNull(extUserEids).stream()
                 .filter(Objects::nonNull)
-                .map(ExtUserEid::getUids)
+                .map(Eid::getUids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(ExtUserEidUid::getExt)
+                .map(RubiconBidder::getUserEidUidStype)
                 .filter(Objects::nonNull)
-                .map(ExtUserEidUidExt::getStype)
                 .anyMatch(STYPE_TO_REMOVE::contains);
     }
 
-    private List<ExtUserEid> prepareExtUserEids(List<ExtUserEid> extUserEids) {
+    private static List<Eid> prepareExtUserEids(List<Eid> extUserEids) {
         return CollectionUtils.emptyIfNull(extUserEids).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::prepareExtUserEid)
                 .collect(Collectors.toList());
     }
 
-    private static ExtUserEid prepareExtUserEid(ExtUserEid extUserEid) {
-        final List<ExtUserEidUid> extUserEidUids = CollectionUtils.emptyIfNull(extUserEid.getUids()).stream()
+    private static Eid prepareExtUserEid(Eid extUserEid) {
+        final List<Uid> extUserEidUids = CollectionUtils.emptyIfNull(extUserEid.getUids()).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::cleanExtUserEidUidStype)
                 .collect(Collectors.toList());
-        return ExtUserEid.of(extUserEid.getSource(), extUserEid.getId(), extUserEidUids, extUserEid.getExt());
+        return Eid.of(extUserEid.getSource(), extUserEidUids, extUserEid.getExt());
     }
 
-    private static ExtUserEidUid cleanExtUserEidUidStype(ExtUserEidUid extUserEidUid) {
-        final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
-        return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
-                ? extUserEidUid
-                : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
-                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
+    private static Uid cleanExtUserEidUidStype(Uid extUserEidUid) {
+        final ObjectNode extUserEidUidExt = extUserEidUid.getExt();
+        if (extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(getUserEidUidStype(extUserEidUid))) {
+            return extUserEidUid;
+        }
+
+        final ObjectNode extUserEidUidExtCopy = extUserEidUidExt.deepCopy();
+        extUserEidUidExtCopy.remove(STYPE_FIELD);
+
+        return Uid.of(
+                extUserEidUid.getId(),
+                extUserEidUid.getAtype(),
+                extUserEidUidExtCopy);
     }
 
-    private static String resolveBuyeruidFromEids(List<ExtUserEid> eids) {
+    private static String resolveBuyeruidFromEids(List<Eid> eids) {
         return CollectionUtils.emptyIfNull(eids).stream()
                 .filter(Objects::nonNull)
                 .filter(eid -> SOURCE_RUBICON.equals(eid.getSource()))
-                .map(ExtUserEid::getUids)
+                .map(Eid::getUids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .filter(RubiconBidder::validateExtUserEidUidForUserBuyeruid)
-                .map(ExtUserEidUid::getId)
+                .map(Uid::getId)
                 .findFirst()
                 .orElse(null);
 
     }
 
-    private static boolean validateExtUserEidUidForUserBuyeruid(ExtUserEidUid uid) {
-        final ExtUserEidUidExt uidExt = ObjectUtil.getIfNotNull(uid, ExtUserEidUid::getExt);
-        final String uidExtStype = ObjectUtil.getIfNotNull(uidExt, ExtUserEidUidExt::getStype);
-
+    private static boolean validateExtUserEidUidForUserBuyeruid(Uid uid) {
+        final String uidExtStype = getUserEidUidStype(uid);
         return StringUtils.equalsAny(uidExtStype, PPUID_STYPE, OTHER_STYPE);
     }
 
-    private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
+    private static Map<String, List<Eid>> specialExtUserEids(List<Eid> eids) {
         if (CollectionUtils.isEmpty(eids)) {
             return null;
         }
@@ -1179,13 +1187,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(),
                         ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
                 .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
-                .collect(Collectors.groupingBy(ExtUserEid::getSource));
+                .collect(Collectors.groupingBy(Eid::getSource));
     }
 
     /**
      * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpIdRubicon}s for supported vendors.
      */
-    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(Map<String, List<ExtUserEid>> specialExtUserEids) {
+    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(Map<String, List<Eid>> specialExtUserEids) {
         final List<ExtUserTpIdRubicon> result = new ArrayList<>();
 
         specialExtUserEids.getOrDefault(ADSERVER_EID, Collections.emptyList()).stream()
@@ -1205,31 +1213,38 @@ public class RubiconBidder implements Bidder<BidRequest> {
     /**
      * Extracts {@link ExtUserTpIdRubicon} for AdServer.
      */
-    private static ExtUserTpIdRubicon extUserTpIdForAdServer(ExtUserEidUid adServerEidUid) {
-        final ExtUserEidUidExt ext = adServerEidUid != null ? adServerEidUid.getExt() : null;
-        return ext != null && Objects.equals(ext.getRtiPartner(), "TDID")
+    private static ExtUserTpIdRubicon extUserTpIdForAdServer(Uid adServerEidUid) {
+        return Objects.equals(getUserEidUidRtiPartner(adServerEidUid), "TDID")
                 ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
+                : null;
+    }
+
+    private static String getUserEidUidRtiPartner(Uid uid) {
+        final ObjectNode uidExt = uid != null ? uid.getExt() : null;
+        final JsonNode rtiPartner = uidExt != null ? uidExt.path(RTI_PARTNER_FIELD) : null;
+        return rtiPartner != null && !rtiPartner.isMissingNode()
+                ? rtiPartner.asText()
                 : null;
     }
 
     /**
      * Extracts {@link ExtUserTpIdRubicon} for Liveintent.
      */
-    private static ExtUserTpIdRubicon extUserTpIdForLiveintent(ExtUserEidUid adServerEidUid) {
+    private static ExtUserTpIdRubicon extUserTpIdForLiveintent(Uid adServerEidUid) {
         final String id = adServerEidUid != null ? adServerEidUid.getId() : null;
         return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user,
                                               ExtImpRubicon rubiconImpExt,
-                                              Map<String, List<ExtUserEid>> sourceToUserEidExt) {
+                                              Map<String, List<Eid>> sourceToUserEidExt) {
 
         final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, rubiconImpExt.getVisitor(), user);
 
         return target != null ? RubiconUserExtRp.of(target) : null;
     }
 
-    private JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt,
+    private JsonNode rubiconUserExtRpTarget(Map<String, List<Eid>> sourceToUserEidExt,
                                             ObjectNode visitor,
                                             User user) {
 
@@ -1259,7 +1274,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
     }
 
-    private static void copyLiveintentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
+    private static void copyLiveintentSegment(Map<String, List<Eid>> sourceToUserEidExt, ObjectNode result) {
         if (sourceToUserEidExt != null && CollectionUtils.isNotEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
             final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
             final JsonNode segment = ext != null ? ext.get("segments") : null;
@@ -1300,11 +1315,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return taxonomyName != null && taxonomyName.isInt() && segtaxValues.contains(taxonomyName.intValue());
     }
 
-    private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
-        final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
-        for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
+    private static String extractLiverampId(Map<String, List<Eid>> sourceToUserEidExt) {
+        final List<Eid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
+        for (Eid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
             return extUserEid.getUids().stream()
-                    .map(ExtUserEidUid::getId)
+                    .map(Uid::getId)
                     .filter(StringUtils::isNotEmpty)
                     .findFirst()
                     .orElse(null);

@@ -9,7 +9,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
  * that apply to the request. See Section 7.5 for more details on the
  * flags supporting Coppa, GDPR and CCPA.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Regs {
 

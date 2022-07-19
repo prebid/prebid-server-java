@@ -2,6 +2,7 @@ package org.prebid.server.auction.versionconverter;
 
 import org.prebid.server.auction.versionconverter.down.BidRequestOrtb26To25Converter;
 import org.prebid.server.auction.versionconverter.up.BidRequestOrtb25To26Converter;
+import org.prebid.server.json.JacksonMapper;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -11,13 +12,13 @@ public class BidRequestOrtbVersionConverterFactory {
     private final Map<OrtbVersion, BidRequestOrtbVersionConverter> upConverters;
     private final Map<OrtbVersion, BidRequestOrtbVersionConverter> downConverters;
 
-    public BidRequestOrtbVersionConverterFactory() {
+    public BidRequestOrtbVersionConverterFactory(JacksonMapper jacksonMapper) {
         upConverters = Map.of(
                 OrtbVersion.ORTB_2_5, BidRequestOrtbVersionConverter.identity(),
                 OrtbVersion.ORTB_2_6, createChain(new BidRequestOrtb25To26Converter()));
 
         downConverters = Map.of(
-                OrtbVersion.ORTB_2_5, createChain(new BidRequestOrtb26To25Converter()),
+                OrtbVersion.ORTB_2_5, createChain(new BidRequestOrtb26To25Converter(jacksonMapper)),
                 OrtbVersion.ORTB_2_6, BidRequestOrtbVersionConverter.identity());
     }
 
