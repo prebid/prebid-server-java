@@ -77,7 +77,7 @@ public class ContextRunner {
         try {
             if (!completionLatch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException(
-                        String.format("Action has not completed within defined timeout %d ms", timeoutMs));
+                        "Action has not completed within defined timeout %d ms".formatted(timeoutMs));
             } else if (actionFailed.get()) {
                 throw new RuntimeException("Action failed");
             }

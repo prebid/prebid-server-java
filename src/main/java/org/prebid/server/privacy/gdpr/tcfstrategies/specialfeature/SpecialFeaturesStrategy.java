@@ -52,6 +52,6 @@ public abstract class SpecialFeaturesStrategy {
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptyList()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                        bidderNameExceptions.contains(vendorPermission.getBidderName()));
+                bidderNameExceptions.contains(vendorPermission.getBidderName()));
     }
 }

@@ -86,10 +86,10 @@ public class RemoteFileSyncer {
             if (props == null || !props.isDirectory()) {
                 fileSystem.mkdirsBlocking(dirPath);
             } else if (!Files.isWritable(Paths.get(dirPath))) {
-                throw new PreBidException(String.format("No write permissions for directory: %s", dirPath));
+                throw new PreBidException("No write permissions for directory: " + dirPath);
             }
         } catch (FileSystemException | InvalidPathException e) {
-            throw new PreBidException(String.format("Cannot create directory for file: %s", filePath), e);
+            throw new PreBidException("Cannot create directory for file: " + filePath, e);
         }
     }
 
@@ -113,7 +113,7 @@ public class RemoteFileSyncer {
             if (async.succeeded()) {
                 promise.complete(async.result());
             } else {
-                promise.fail(String.format("Cant check if file exists %s", filePath));
+                promise.fail("Cant check if file exists " + filePath);
             }
         });
         return promise.future();
@@ -158,7 +158,7 @@ public class RemoteFileSyncer {
                 promise.complete();
             }
         } else {
-            promise.fail(new PreBidException(String.format("Cant check if file exists %s", filePath)));
+            promise.fail(new PreBidException("Cant check if file exists " + filePath));
         }
     }
 
@@ -167,8 +167,8 @@ public class RemoteFileSyncer {
         if (removalResult.failed()) {
             final Throwable cause = removalResult.cause();
             promise.fail(new PreBidException(
-                    String.format("Corrupted file %s cant be deleted. Please check permission or delete manually.",
-                            saveFilePath), cause));
+                    "Corrupted file %s cant be deleted. Please check permission or delete manually."
+                            .formatted(saveFilePath), cause));
         } else {
             logger.info("Existing file {0} cant be processed by service, try to download after removal",
                     serviceCause, saveFilePath);
@@ -268,7 +268,7 @@ public class RemoteFileSyncer {
                     .onComplete(retryResult -> handleRetryResult(retryInterval, next, retryResult, receivedPromise));
         } else {
             cleanUp(tmpFilePath).onComplete(ignore -> receivedPromise.fail(new PreBidException(
-                    String.format("File sync failed after %s retries", this.retryCount - retryCount))));
+                    "File sync failed after %d retries".formatted(this.retryCount - retryCount))));
         }
     }
 
@@ -353,7 +353,7 @@ public class RemoteFileSyncer {
                 }
             });
         } else {
-            isNeedToUpdate.fail(String.format("ContentLength is invalid: %s", contentLengthParameter));
+            isNeedToUpdate.fail("ContentLength is invalid: " + contentLengthParameter);
         }
     }
 }

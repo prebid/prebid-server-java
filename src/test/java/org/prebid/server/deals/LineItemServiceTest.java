@@ -1630,8 +1630,8 @@ public class LineItemServiceTest extends VertxTest {
 
         // then
         final TxnLog expectedTxnLog = TxnLog.create();
-        expectedTxnLog.lineItemsMatchedWholeTargeting().addAll(singletonList("id5"));
-        expectedTxnLog.lineItemsPacingDeferred().addAll(singletonList("id5"));
+        expectedTxnLog.lineItemsMatchedWholeTargeting().add("id5");
+        expectedTxnLog.lineItemsPacingDeferred().add("id5");
         assertThat(auctionContext.getTxnLog()).isEqualTo(expectedTxnLog);
     }
 

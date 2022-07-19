@@ -58,7 +58,7 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
         try {
             return mapper.mapper().readValue(content, VendorListV2.class);
         } catch (IOException e) {
-            final String message = String.format("Cannot parse vendor list from: %s", content);
+            final String message = "Cannot parse vendor list from: " + content;
 
             logger.error(message, e);
             throw new PreBidException(message, e);

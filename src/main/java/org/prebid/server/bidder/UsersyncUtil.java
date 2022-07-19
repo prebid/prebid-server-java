@@ -32,14 +32,11 @@ public class UsersyncUtil {
     }
 
     private static String resolveFormatValueByType(String type) {
-        switch (type) {
-            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
-                return IMG_FORMAT;
-            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
-                return BLANK_FORMAT;
-            default:
-                return StringUtils.EMPTY; // never should happen
-        }
+        return switch (type) {
+            case Usersyncer.UsersyncMethod.REDIRECT_TYPE -> IMG_FORMAT;
+            case Usersyncer.UsersyncMethod.IFRAME_TYPE -> BLANK_FORMAT;
+            default -> StringUtils.EMPTY; // never should happen
+        };
     }
 
     private static boolean hasTwoOrMoreParameters(String url) {

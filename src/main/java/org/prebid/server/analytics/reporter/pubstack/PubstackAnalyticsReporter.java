@@ -143,15 +143,14 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     private PubstackConfig processRemoteConfigurationResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: HTTP status code %d",
-                    statusCode));
+            throw new PreBidException("[pubstack] Failed to fetch config, reason: HTTP status code " + statusCode);
         }
         final String body = response.getBody();
         try {
             return jacksonMapper.decodeValue(body, PubstackConfig.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: failed to parse"
-                    + " response: %s", body), e);
+            throw new PreBidException(
+                    "[pubstack] Failed to fetch config, reason: failed to parse response: " + body, e);
         }
     }
 
@@ -179,8 +178,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         try {
             return HttpUtil.validateUrl(endpoint + CONFIG_URL_SUFFIX + scopeId);
         } catch (IllegalArgumentException e) {
-            final String message = String.format("[pubstack] Failed to create remote config server url for endpoint:"
-                    + " %s", endpoint);
+            final String message = "[pubstack] Failed to create remote config server url for endpoint: " + endpoint;
             logger.error(message);
             throw new PreBidException(message);
         }
@@ -190,8 +188,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         try {
             return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + "/" + eventType.name());
         } catch (IllegalArgumentException e) {
-            final String message = String.format("[pubstack] Failed to create event report url for endpoint: %s",
-                    endpoint);
+            final String message = "[pubstack] Failed to create event report url for endpoint: " + endpoint;
             logger.error(message);
             throw new PreBidException(message);
         }

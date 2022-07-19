@@ -15,7 +15,7 @@ class PrivacyMetrics extends UpdatableMetrics {
 
     PrivacyMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("privacy.%s", metricName.toString()));
+                metricName -> "privacy." + metricName);
         usPrivacyMetrics = new USPrivacyMetrics(metricRegistry, counterType, "privacy");
         tcfMetrics = new TcfMetrics(metricRegistry, counterType, "privacy");
     }
@@ -36,7 +36,7 @@ class PrivacyMetrics extends UpdatableMetrics {
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.usp.%s", prefix, metricName.toString());
+            return metricName -> "%s.usp.%s".formatted(prefix, metricName);
         }
     }
 }

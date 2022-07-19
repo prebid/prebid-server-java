@@ -13,8 +13,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
@@ -139,8 +139,8 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                         bidType = BidType.video;
                         break;
                     default:
-                        return Result.withError(BidderError.badServerResponse(String.format(
-                                "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
+                        return Result.withError(BidderError.badServerResponse(
+                                "Unsupported creative type %s.".formatted(smartrtbResponseExt.getFormat())));
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());

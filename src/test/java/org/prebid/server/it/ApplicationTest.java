@@ -674,7 +674,7 @@ public class ApplicationTest extends IntegrationTest {
         if (listOfFiles != null) {
             return Arrays.stream(listOfFiles)
                     .map(s -> s.substring(0, s.indexOf('.')))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return Collections.emptyList();
     }
@@ -711,8 +711,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format("Exception occurred during %s bidder schema processing: %s",
-                            bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
         }
     }
 }

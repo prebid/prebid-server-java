@@ -70,7 +70,6 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Configuration
 public class DealsConfiguration {
@@ -836,7 +835,7 @@ public class DealsConfiguration {
         public org.prebid.server.deals.model.UserDetailsProperties toComponentProperties() {
             final List<org.prebid.server.deals.model.UserIdRule> componentUserIds = getUserIds().stream()
                     .map(DealsConfiguration.UserIdRule::toComponentProperties)
-                    .collect(Collectors.toList());
+                    .toList();
 
             return org.prebid.server.deals.model.UserDetailsProperties.of(
                     getUserDetailsEndpoint(), getWinEventEndpoint(), getTimeout(), componentUserIds);

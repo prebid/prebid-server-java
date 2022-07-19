@@ -1,10 +1,10 @@
-package org.prebid.server.bidder.algorix.model;
+package org.prebid.server.bidder.kargo.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
-public class AlgorixBidExt {
+@Value
+public class KargoExtBid {
 
     @JsonProperty("mediaType")
     String mediaType;

@@ -38,8 +38,8 @@ public class AdyoulikeConfiguration {
                 .withConfig(adyoulikeConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdyoulikeBidder(config.getEndpoint(),
-                                                             currencyConversionService,
-                                                             mapper))
+                        currencyConversionService,
+                        mapper))
                 .assemble();
     }
 }

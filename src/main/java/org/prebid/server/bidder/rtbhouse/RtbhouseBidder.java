@@ -7,8 +7,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class RtbhouseBidder implements Bidder<BidRequest> {
 
@@ -65,6 +64,6 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

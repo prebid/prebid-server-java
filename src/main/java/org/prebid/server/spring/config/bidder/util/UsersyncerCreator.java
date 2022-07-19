@@ -25,10 +25,9 @@ public class UsersyncerCreator {
 
         if (StringUtils.isBlank(usersyncer.getPrimaryMethod().getUsersyncUrl())
                 && usersyncer.getSecondaryMethod() != null) {
-            throw new IllegalArgumentException(String.format(
-                    "Invalid usersync configuration: primary method is missing while secondary is present. "
-                            + "Configuration: %s",
-                    usersync));
+            throw new IllegalArgumentException("""
+                    Invalid usersync configuration: primary method is missing \
+                    while secondary is present. Configuration:""" + usersync);
         }
 
         return usersyncer;

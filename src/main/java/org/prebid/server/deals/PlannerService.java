@@ -120,8 +120,7 @@ public class PlannerService implements Suspendable {
     protected List<LineItemMetaData> processLineItemMetaDataResponse(HttpClientResponse response, long startTime) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("Failed to fetch data from Planner, HTTP status code %d",
-                    statusCode));
+            throw new PreBidException("Failed to fetch data from Planner, HTTP status code " + statusCode);
         }
 
         final String body = response.getBody();
@@ -142,7 +141,7 @@ public class PlannerService implements Suspendable {
 
             return lineItemMetaData;
         } catch (DecodeException e) {
-            final String errorMessage = String.format("Cannot parse response: %s", body);
+            final String errorMessage = "Cannot parse response: " + body;
             throw new PreBidException(errorMessage, e);
         }
     }
@@ -160,8 +159,8 @@ public class PlannerService implements Suspendable {
      * Creates Authorization header value from username and password.
      */
     private static String authHeader(String username, String password) {
-        return String.format(BASIC_AUTH_PATTERN, Base64.getEncoder().encodeToString((username + ':' + password)
-                .getBytes()));
+        return BASIC_AUTH_PATTERN
+                .formatted(Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
     }
 
     /**
@@ -169,8 +168,14 @@ public class PlannerService implements Suspendable {
      */
     private static String buildPlannerMetaDataUrl(String plannerMetaDataUrl, String pbsHostname, String pbsRegion,
                                                   String pbsVendor) {
-        return String.format("%s?%s=%s&%s=%s&%s=%s", plannerMetaDataUrl, INSTANCE_ID_PARAMETER, pbsHostname,
-                REGION_PARAMETER, pbsRegion, VENDOR_PARAMETER, pbsVendor);
+        return "%s?%s=%s&%s=%s&%s=%s".formatted(
+                plannerMetaDataUrl,
+                INSTANCE_ID_PARAMETER,
+                pbsHostname,
+                REGION_PARAMETER,
+                pbsRegion,
+                VENDOR_PARAMETER,
+                pbsVendor);
     }
 
     /**
@@ -216,8 +221,7 @@ public class PlannerService implements Suspendable {
     }
 
     private void handleFailedInitialization(AsyncResult<List<LineItemMetaData>> plannerResponse) {
-        final String message = String.format("Failed to retrieve line items from GP. Reason: %s",
-                plannerResponse.cause().getMessage());
+        final String message = "Failed to retrieve line items from GP. Reason: " + plannerResponse.cause().getMessage();
         alertHttpService.alertWithPeriod(SERVICE_NAME, PBS_PLANNER_CLIENT_ERROR, AlertPriority.MEDIUM, message);
         logger.warn(message);
         isPlannerResponsive.set(false);
