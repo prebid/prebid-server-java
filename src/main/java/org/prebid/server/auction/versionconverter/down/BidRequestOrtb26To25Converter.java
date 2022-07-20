@@ -213,11 +213,12 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Content content = site.getContent();
         final Content modifiedContent = modifyContent(content);
 
-        return ObjectUtils.anyNotNull(site.getCattax(), modifiedPublisher, modifiedContent)
+        return ObjectUtils.anyNotNull(site.getCattax(), modifiedPublisher, modifiedContent, site.getKwarray())
                 ? site.toBuilder()
                 .cattax(null)
                 .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
                 .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
+                .kwarray(null)
                 .build()
                 : null;
     }
@@ -241,6 +242,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         return ObjectUtils.anyNotNull(
                 modifiedProducer,
                 content.getCattax(),
+                content.getKwarray(),
                 content.getLangb(),
                 content.getNetwork(),
                 content.getChannel())
@@ -248,6 +250,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 ? content.toBuilder()
                 .producer(modifiedProducer != null ? nullIfEmpty(modifiedProducer) : producer)
                 .cattax(null)
+                .kwarray(null)
                 .langb(null)
                 .network(null)
                 .channel(null)
@@ -291,11 +294,12 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Content content = app.getContent();
         final Content modifiedContent = modifyContent(content);
 
-        return ObjectUtils.anyNotNull(app.getCattax(), modifiedPublisher, modifiedContent)
+        return ObjectUtils.anyNotNull(app.getCattax(), modifiedPublisher, modifiedContent, app.getKwarray())
                 ? app.toBuilder()
                 .cattax(null)
                 .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
                 .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
+                .kwarray(null)
                 .build()
                 : null;
     }
@@ -318,13 +322,24 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final String consent = user.getConsent();
-        final List<Eid> eids = user.getEids();
+        final ExtUser extUser = user.getExt();
+        final ExtUser modifiedExtUser = modifyUserExt(extUser, user.getConsent(), user.getEids());
+
+        return ObjectUtils.anyNotNull(user.getKwarray(), modifiedExtUser)
+                ? user.toBuilder()
+                .kwarray(null)
+                .consent(null)
+                .eids(null)
+                .ext(modifiedExtUser != null ? modifiedExtUser : extUser)
+                .build()
+                : null;
+    }
+
+    private static ExtUser modifyUserExt(ExtUser extUser, String consent, List<Eid> eids) {
         if (consent == null && CollectionUtils.isEmpty(eids)) {
             return null;
         }
 
-        final ExtUser extUser = user.getExt();
         final ExtUser modifiedExtUser = Optional.ofNullable(extUser)
                 .map(ExtUser::toBuilder)
                 .orElseGet(ExtUser::builder)
@@ -333,11 +348,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .build();
         copyProperties(extUser, modifiedExtUser);
 
-        return user.toBuilder()
-                .consent(null)
-                .eids(null)
-                .ext(modifiedExtUser)
-                .build();
+        return modifiedExtUser;
     }
 
     private static void copyProperties(FlexibleExtension source, FlexibleExtension target) {
