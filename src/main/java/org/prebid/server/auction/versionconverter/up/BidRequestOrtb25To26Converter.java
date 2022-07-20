@@ -11,21 +11,26 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverter;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConverter {
 
-    private static final JsonPointer IMP_EXT_PREBID_REWARDED = JsonPointer.valueOf("/prebid/is_rewarded_inventory");
+    private static final String PREBID_FIELD = "prebid";
+    private static final String IS_REWARDED_INVENTORY_FIELD = "is_rewarded_inventory";
+    private static final JsonPointer IMP_EXT_PREBID_REWARDED = JsonPointer.valueOf(
+            "/" + PREBID_FIELD + "/" + IS_REWARDED_INVENTORY_FIELD);
 
     @Override
     public BidRequest convert(BidRequest bidRequest) {
@@ -70,38 +75,93 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final Integer rewarded = resolveImpRewarded(imp);
+        final ObjectNode extImp = imp.getExt();
+        if (extImp == null) {
+            return null;
+        }
 
-        return rewarded != null
+        final Integer rewarded = imp.getRwdd();
+        final Integer resolvedRewarded = resolveImpRewarded(rewarded, extImp);
+
+        final ObjectNode resolvedExtImp = resolveImpExt(extImp);
+
+        return ObjectUtils.anyNotNull(resolvedRewarded, resolvedExtImp)
                 ? imp.toBuilder()
-                .rwdd(rewarded)
+                .rwdd(resolvedRewarded != null ? resolvedRewarded : rewarded)
+                .ext(resolvedExtImp != null ? resolvedExtImp : extImp)
                 .build()
                 : null;
     }
 
-    private static Integer resolveImpRewarded(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (imp.getRwdd() != null || impExt == null || impExt.isEmpty()) {
+    private static Integer resolveImpRewarded(Integer rewarded, ObjectNode extImp) {
+        if (rewarded != null) {
             return null;
         }
 
-        final JsonNode rewardedNode = impExt.at(IMP_EXT_PREBID_REWARDED);
+        final JsonNode rewardedNode = extImp.at(IMP_EXT_PREBID_REWARDED);
         return rewardedNode.isIntegralNumber()
                 ? rewardedNode.asInt()
                 : null;
     }
 
-    private static Source moveSourceData(Source source) {
-        if (source == null || source.getSchain() != null) {
+    private static ObjectNode resolveImpExt(ObjectNode extImp) {
+        final JsonNode rewardedNode = extImp.at(IMP_EXT_PREBID_REWARDED);
+        if (!rewardedNode.isIntegralNumber()) {
             return null;
         }
 
-        final SupplyChain extSupplyChain = ObjectUtil.getIfNotNull(source.getExt(), ExtSource::getSchain);
-        return extSupplyChain != null
+        final ObjectNode modifiedExtImp = extImp.deepCopy();
+        ((ObjectNode) modifiedExtImp.get(PREBID_FIELD)).remove(IS_REWARDED_INVENTORY_FIELD);
+
+        return modifiedExtImp;
+    }
+
+    private static Source moveSourceData(Source source) {
+        if (source == null) {
+            return null;
+        }
+
+        final ExtSource extSource = source.getExt();
+        if (extSource == null) {
+            return null;
+        }
+
+        final SupplyChain supplyChain = source.getSchain();
+        final SupplyChain resolvedSupplyChain = supplyChain == null ? extSource.getSchain() : null;
+
+        final ExtSource resolvedExtSource = resolveSourceExt(extSource);
+
+        return ObjectUtils.anyNotNull(resolvedSupplyChain, resolvedExtSource)
                 ? source.toBuilder()
-                .schain(extSupplyChain)
+                .schain(resolvedSupplyChain != null ? resolvedSupplyChain : supplyChain)
+                .ext(resolvedExtSource != null ? nullIfEmpty(resolvedExtSource) : extSource)
                 .build()
                 : null;
+    }
+
+    private static ExtSource resolveSourceExt(ExtSource extSource) {
+        if (extSource.getSchain() == null) {
+            return null;
+        }
+
+        final ExtSource modifiedExtSource = ExtSource.of(null);
+        copyProperties(extSource, modifiedExtSource);
+
+        return modifiedExtSource;
+    }
+
+    private static void copyProperties(FlexibleExtension source, FlexibleExtension target) {
+        Optional.ofNullable(source)
+                .map(FlexibleExtension::getProperties)
+                .ifPresent(target::addProperties);
+    }
+
+    private static <T extends FlexibleExtension> T nullIfEmpty(T ext) {
+        return nullIfEmpty(ext, MapUtils.isEmpty(ext.getProperties()));
+    }
+
+    private static <T> T nullIfEmpty(T object, boolean isEmpty) {
+        return isEmpty ? null : object;
     }
 
     private static Regs moveRegsData(Regs regs) {
@@ -109,25 +169,45 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs regsExt = regs.getExt();
-        final boolean regsExtIsNotNull = regsExt != null;
+        final ExtRegs extRegs = regs.getExt();
+        if (extRegs == null) {
+            return null;
+        }
 
         final Integer gdpr = regs.getGdpr();
-        final Integer resolvedGdpr = gdpr == null && regsExtIsNotNull
-                ? regsExt.getGdpr()
+        final Integer resolvedGdpr = gdpr == null
+                ? extRegs.getGdpr()
                 : null;
 
         final String usPrivacy = regs.getUsPrivacy();
-        final String resolvedUsPrivacy = usPrivacy == null && regsExtIsNotNull
-                ? regsExt.getUsPrivacy()
+        final String resolvedUsPrivacy = usPrivacy == null
+                ? extRegs.getUsPrivacy()
                 : null;
 
-        return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy)
+        final ExtRegs resolvedExtRegs = resolveRegsExt(extRegs);
+
+        return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy, resolvedExtRegs)
                 ? regs.toBuilder()
                 .gdpr(resolvedGdpr != null ? resolvedGdpr : gdpr)
                 .usPrivacy(resolvedUsPrivacy != null ? resolvedUsPrivacy : usPrivacy)
+                .ext(resolvedExtRegs != null ? nullIfEmpty(resolvedExtRegs) : extRegs)
                 .build()
                 : null;
+    }
+
+    private static ExtRegs resolveRegsExt(ExtRegs extRegs) {
+        if (extRegs == null || allNull(extRegs.getGdpr(), extRegs.getUsPrivacy())) {
+            return null;
+        }
+
+        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null);
+        copyProperties(extRegs, modifiedExtRegs);
+
+        return modifiedExtRegs;
+    }
+
+    private static boolean allNull(Object... objects) {
+        return !ObjectUtils.anyNotNull(objects);
     }
 
     private static User moveUserData(User user) {
@@ -135,24 +215,50 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtUser userExt = user.getExt();
-        final boolean userExtIsNotNull = userExt != null;
+        final ExtUser extUser = user.getExt();
+        if (extUser == null) {
+            return null;
+        }
 
         final String consent = user.getConsent();
-        final String resolvedConsent = consent == null && userExtIsNotNull
-                ? userExt.getConsent()
+        final String resolvedConsent = consent == null
+                ? extUser.getConsent()
                 : null;
 
         final List<Eid> eids = user.getEids();
-        final List<Eid> resolvedEids = CollectionUtils.isEmpty(eids) && userExtIsNotNull
-                ? userExt.getEids()
-                : null;
+        final List<Eid> resolvedEids = resolveUserEids(eids, extUser);
 
-        return ObjectUtils.anyNotNull(resolvedConsent, resolvedEids)
+        final ExtUser resolvedExtUser = resolveUserExt(extUser);
+
+        return ObjectUtils.anyNotNull(resolvedConsent, resolvedEids, resolvedExtUser)
                 ? user.toBuilder()
                 .consent(resolvedConsent != null ? resolvedConsent : consent)
                 .eids(resolvedEids != null ? resolvedEids : eids)
+                .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser, resolvedExtUser.isEmpty()) : extUser)
                 .build()
                 : null;
+    }
+
+    private static List<Eid> resolveUserEids(List<Eid> eids, ExtUser extUser) {
+        if (CollectionUtils.isNotEmpty(eids)) {
+            return null;
+        }
+
+        final List<Eid> extEids = extUser.getEids();
+        return CollectionUtils.isNotEmpty(extEids) ? extEids : null;
+    }
+
+    private static ExtUser resolveUserExt(ExtUser extUser) {
+        if (extUser == null || allNull(extUser.getConsent(), extUser.getEids())) {
+            return null;
+        }
+
+        final ExtUser modifiedExtUser = extUser.toBuilder()
+                .consent(null)
+                .eids(null)
+                .build();
+        copyProperties(extUser, modifiedExtUser);
+
+        return modifiedExtUser;
     }
 }

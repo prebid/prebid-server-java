@@ -95,7 +95,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -662,25 +661,27 @@ public class ExchangeService {
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
         final List<Eid> userEids = extractUserEids(user);
         final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
-        final boolean shouldUpdateUserEids = extUser != null
-                && allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
+        final boolean shouldUpdateUserEids = allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
         final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
-        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid || shouldUpdateUserEids;
+        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid;
         final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
-        if (updatedBuyerUid != null || shouldUpdateUserExt || shouldCleanData) {
+        if (updatedBuyerUid != null || shouldUpdateUserEids || shouldUpdateUserExt || shouldCleanData) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
                 userBuilder.buyeruid(updatedBuyerUid);
+            }
+
+            if (shouldUpdateUserEids) {
+                userBuilder.eids(nullIfEmpty(allowedUserEids));
             }
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
                         .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
                         .data(shouldCleanExtData ? null : extUser.getData())
-                        .eids(shouldUpdateUserEids ? nullIfEmpty(allowedUserEids) : userEids)
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
             }
@@ -710,13 +711,8 @@ public class ExchangeService {
                 : null;
     }
 
-    /**
-     * Extracts {@link List<Eid>} from {@link User}.
-     * Returns null if user or its extension is null.
-     */
     private List<Eid> extractUserEids(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        return extUser != null ? extUser.getEids() : null;
+        return user != null ? user.getEids() : null;
     }
 
     /**
@@ -726,7 +722,7 @@ public class ExchangeService {
                                          Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
-                .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder))
+                .filter(userEid -> isUserEidAllowed(userEid.getSource(), eidPermissions, bidder))
                 .collect(Collectors.toList());
     }
 
@@ -1099,11 +1095,9 @@ public class ExchangeService {
             return receivedSource;
         }
 
-        final ExtSource extSource = ExtSource.of(bidderSchain);
-
         return receivedSource == null
-                ? Source.builder().ext(extSource).build()
-                : receivedSource.toBuilder().ext(extSource).build();
+                ? Source.builder().schain(bidderSchain).build()
+                : receivedSource.toBuilder().schain(bidderSchain).build();
     }
 
     /**

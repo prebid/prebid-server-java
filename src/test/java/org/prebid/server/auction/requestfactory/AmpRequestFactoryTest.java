@@ -48,7 +48,6 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -1184,7 +1183,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 
@@ -1203,7 +1202,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 
@@ -1305,7 +1304,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.builder().ext(ExtRegs.of(1, null)).build());
+                .isEqualTo(Regs.builder().gdpr(1).build());
     }
 
     @Test
@@ -1377,7 +1376,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.builder().ext(ExtRegs.of(0, null)).build());
+                .isEqualTo(Regs.builder().gdpr(0).build());
     }
 
     @Test
@@ -1392,7 +1391,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1N--")).build());
+                .isEqualTo(Regs.builder().usPrivacy("1N--").build());
     }
 
     @Test
@@ -1407,7 +1406,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1Y-N")).build());
+                .isEqualTo(Regs.builder().usPrivacy("1Y-N").build());
     }
 
     @Test
@@ -1424,7 +1423,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.builder().ext(ExtRegs.of(null, "1Y-N")).build());
+                .isEqualTo(Regs.builder().usPrivacy("1Y-N").build());
     }
 
     @Test
