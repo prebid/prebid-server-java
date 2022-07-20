@@ -3,6 +3,7 @@ package org.prebid.server.auction.versionconverter.down;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
@@ -15,6 +16,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverter;
@@ -107,15 +109,77 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     }
 
     private Imp modifyImp(Imp imp) {
+        final Video video = imp.getVideo();
+        final Video modifiedVideo = modifyVideo(video);
+
+        final Audio audio = imp.getAudio();
+        final Audio modifiedAudio = modifyAudio(audio);
+
         final ObjectNode impExt = imp.getExt();
         final ObjectNode modifiedImpExt = modifyImpExt(impExt, imp.getRwdd());
 
-        return ObjectUtils.anyNotNull(imp.getSsai(), modifiedImpExt)
+        return ObjectUtils.anyNotNull(modifiedVideo, modifiedAudio, imp.getSsai(), modifiedImpExt)
                 ? imp.toBuilder()
+                .video(modifiedVideo != null ? modifiedVideo : video)
+                .audio(modifiedAudio != null ? modifiedAudio : audio)
                 .rwdd(null)
                 .ssai(null)
                 .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
                 .build()
+                : null;
+    }
+
+    private static Video modifyVideo(Video video) {
+        if (video == null) {
+            return null;
+        }
+
+        return ObjectUtils.anyNotNull(
+                video.getMaxseq(),
+                video.getPoddur(),
+                video.getPodid(),
+                video.getPodseq(),
+                video.getRqddurs(),
+                video.getSlotinpod(),
+                video.getMincpmpersec())
+
+                ? video.toBuilder()
+                .maxseq(null)
+                .poddur(null)
+                .podid(null)
+                .podseq(null)
+                .rqddurs(null)
+                .slotinpod(null)
+                .mincpmpersec(null)
+                .build()
+
+                : null;
+    }
+
+    private static Audio modifyAudio(Audio audio) {
+        if (audio == null) {
+            return null;
+        }
+
+        return ObjectUtils.anyNotNull(
+                audio.getPoddur(),
+                audio.getRqddurs(),
+                audio.getPodid(),
+                audio.getPodseq(),
+                audio.getSlotinpod(),
+                audio.getMincpmpersec(),
+                audio.getMaxseq())
+
+                ? audio.toBuilder()
+                .poddur(null)
+                .rqddurs(null)
+                .podid(null)
+                .podseq(null)
+                .slotinpod(null)
+                .mincpmpersec(null)
+                .maxseq(null)
+                .build()
+
                 : null;
     }
 
