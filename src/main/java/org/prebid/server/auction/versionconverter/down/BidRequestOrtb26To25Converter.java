@@ -21,7 +21,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConverter {
@@ -62,7 +61,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     private List<Imp> moveImpsData(List<Imp> imps) {
         final List<Imp> modifiedImps = imps.stream()
                 .map(this::moveImpData)
-                .collect(Collectors.toList());
+                .toList();
 
         if (modifiedImps.stream().allMatch(Objects::isNull)) {
             return null;
@@ -70,7 +69,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
         return IntStream.range(0, imps.size())
                 .mapToObj(i -> ObjectUtils.defaultIfNull(modifiedImps.get(i), imps.get(i)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Imp moveImpData(Imp imp) {
