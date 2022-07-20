@@ -238,14 +238,21 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Producer producer = content.getProducer();
         final Producer modifiedProducer = modifyProducer(producer);
 
-        return ObjectUtils.anyNotNull(modifiedProducer, content.getCattax(), content.getLangb())
+        return ObjectUtils.anyNotNull(
+                modifiedProducer,
+                content.getCattax(),
+                content.getLangb(),
+                content.getNetwork(),
+                content.getChannel())
+
                 ? content.toBuilder()
-                .producer(modifiedProducer != null
-                        ? nullIfEmpty(modifiedProducer, EMPTY_PRODUCER.equals(producer))
-                        : producer)
+                .producer(modifiedProducer != null ? nullIfEmpty(modifiedProducer) : producer)
                 .cattax(null)
                 .langb(null)
+                .network(null)
+                .channel(null)
                 .build()
+
                 : null;
     }
 
@@ -255,6 +262,10 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .cattax(null)
                 .build()
                 : null;
+    }
+
+    private static Producer nullIfEmpty(Producer producer) {
+        return nullIfEmpty(producer, EMPTY_PRODUCER.equals(producer));
     }
 
     private static Publisher nullIfEmpty(Publisher publisher) {
