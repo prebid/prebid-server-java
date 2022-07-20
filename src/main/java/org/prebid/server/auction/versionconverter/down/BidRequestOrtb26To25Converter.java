@@ -37,30 +37,36 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     @Override
     public BidRequest convert(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
-        final List<Imp> modifiedImps = moveImpsData(imps);
-
-        final Source source = bidRequest.getSource();
-        final Source modifiedSource = moveSourceData(source);
-
-        final Regs regs = bidRequest.getRegs();
-        final Regs modifiedRegs = moveRegsData(regs);
+        final List<Imp> modifiedImps = modifyImps(imps);
 
         final User user = bidRequest.getUser();
-        final User modifiedUser = moveUserData(user);
+        final User modifiedUser = modifyUser(user);
 
-        return ObjectUtils.anyNotNull(modifiedImps, modifiedSource, modifiedRegs, modifiedUser)
+        final Source source = bidRequest.getSource();
+        final Source modifiedSource = modifySource(source);
+
+        final Regs regs = bidRequest.getRegs();
+        final Regs modifiedRegs = modifyRegs(regs);
+
+        return ObjectUtils.anyNotNull(
+                modifiedUser,
+                modifiedImps,
+                modifiedSource,
+                modifiedRegs)
+
                 ? bidRequest.toBuilder()
                 .imp(modifiedImps != null ? modifiedImps : imps)
+                .user(modifiedUser != null ? modifiedUser : user)
                 .source(modifiedSource != null ? modifiedSource : source)
                 .regs(modifiedRegs != null ? modifiedRegs : regs)
-                .user(modifiedUser != null ? modifiedUser : user)
                 .build()
+
                 : bidRequest;
     }
 
-    private List<Imp> moveImpsData(List<Imp> imps) {
+    private List<Imp> modifyImps(List<Imp> imps) {
         final List<Imp> modifiedImps = imps.stream()
-                .map(this::moveImpData)
+                .map(this::modifyImp)
                 .toList();
 
         if (modifiedImps.stream().allMatch(Objects::isNull)) {
@@ -72,7 +78,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .toList();
     }
 
-    private Imp moveImpData(Imp imp) {
+    private Imp modifyImp(Imp imp) {
         final Integer rewarded = imp.getRwdd();
         if (rewarded == null) {
             return null;
@@ -99,53 +105,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         return copy;
     }
 
-    private static Source moveSourceData(Source source) {
-        if (source == null) {
-            return null;
-        }
-
-        final SupplyChain supplyChain = source.getSchain();
-        if (supplyChain == null) {
-            return null;
-        }
-
-        final ExtSource extSource = ExtSource.of(supplyChain);
-        copyProperties(source.getExt(), extSource);
-
-        return source.toBuilder()
-                .schain(null)
-                .ext(extSource)
-                .build();
-    }
-
-    private static void copyProperties(FlexibleExtension source, FlexibleExtension target) {
-        Optional.ofNullable(source)
-                .map(FlexibleExtension::getProperties)
-                .ifPresent(target::addProperties);
-    }
-
-    private static Regs moveRegsData(Regs regs) {
-        if (regs == null) {
-            return null;
-        }
-
-        final Integer gdpr = regs.getGdpr();
-        final String usPrivacy = regs.getUsPrivacy();
-        if (gdpr == null && usPrivacy == null) {
-            return null;
-        }
-
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
-        copyProperties(regs.getExt(), extRegs);
-
-        return regs.toBuilder()
-                .gdpr(null)
-                .usPrivacy(null)
-                .ext(extRegs)
-                .build();
-    }
-
-    private static User moveUserData(User user) {
+    private static User modifyUser(User user) {
         if (user == null) {
             return null;
         }
@@ -169,6 +129,52 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .consent(null)
                 .eids(null)
                 .ext(modifiedExtUser)
+                .build();
+    }
+
+    private static void copyProperties(FlexibleExtension source, FlexibleExtension target) {
+        Optional.ofNullable(source)
+                .map(FlexibleExtension::getProperties)
+                .ifPresent(target::addProperties);
+    }
+
+    private static Source modifySource(Source source) {
+        if (source == null) {
+            return null;
+        }
+
+        final SupplyChain supplyChain = source.getSchain();
+        if (supplyChain == null) {
+            return null;
+        }
+
+        final ExtSource extSource = ExtSource.of(supplyChain);
+        copyProperties(source.getExt(), extSource);
+
+        return source.toBuilder()
+                .schain(null)
+                .ext(extSource)
+                .build();
+    }
+
+    private static Regs modifyRegs(Regs regs) {
+        if (regs == null) {
+            return null;
+        }
+
+        final Integer gdpr = regs.getGdpr();
+        final String usPrivacy = regs.getUsPrivacy();
+        if (gdpr == null && usPrivacy == null) {
+            return null;
+        }
+
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
+        copyProperties(regs.getExt(), extRegs);
+
+        return regs.toBuilder()
+                .gdpr(null)
+                .usPrivacy(null)
+                .ext(extRegs)
                 .build();
     }
 }
