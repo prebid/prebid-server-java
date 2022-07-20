@@ -13,7 +13,9 @@ public class UsersyncInfoAssemblerTest {
     public void assembleUsersyncInfoShouldAppendRedirectUrlToUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncMethod("http://url/redirect=", "http://localhost:8000redirectUrl"))
+                .from(createUsersyncMethod(
+                        "http://url/redirect={{redirect_url}}",
+                        "http://localhost:8000redirectUrl"))
                 .assemble();
 
         // then
@@ -25,7 +27,7 @@ public class UsersyncInfoAssemblerTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
                 .from(createUsersyncMethod(
-                        "http://url/redirect=",
+                        "http://url/redirect={{redirect_url}}",
                         "http://localhost:8000/setuid?gdpr={{gdpr}}?gdpr={{gdpr}}"))
                 .assemble();
 
@@ -94,7 +96,7 @@ public class UsersyncInfoAssemblerTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
                 .from(createUsersyncMethod(
-                        "http://url/{{gdpr}}/{{gdpr_consent}}?redir=",
+                        "http://url/{{gdpr}}/{{gdpr_consent}}?redir={{redirect_url}}",
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                 + "&us_privacy={{us_privacy}}&uid=$UID"))
                 .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
