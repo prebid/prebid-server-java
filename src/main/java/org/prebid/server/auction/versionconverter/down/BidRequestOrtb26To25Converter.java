@@ -290,8 +290,13 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     }
 
     private static Device modifyDevice(Device device) {
-        return device != null && device.getLangb() != null
+        if (device == null) {
+            return null;
+        }
+
+        return ObjectUtils.anyNotNull(device.getSua(), device.getLangb())
                 ? device.toBuilder()
+                .sua(null)
                 .langb(null)
                 .build()
                 : null;
