@@ -51,12 +51,14 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         return ObjectUtils.anyNotNull(
                 modifiedUser,
                 modifiedImps,
+                bidRequest.getWlangb(),
                 modifiedSource,
                 modifiedRegs)
 
                 ? bidRequest.toBuilder()
                 .imp(modifiedImps != null ? modifiedImps : imps)
                 .user(modifiedUser != null ? modifiedUser : user)
+                .wlangb(null)
                 .source(modifiedSource != null ? modifiedSource : source)
                 .regs(modifiedRegs != null ? modifiedRegs : regs)
                 .build()
