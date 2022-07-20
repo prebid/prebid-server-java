@@ -2,10 +2,14 @@ package org.prebid.server.auction.versionconverter.down;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
@@ -17,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +44,15 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final List<Imp> imps = bidRequest.getImp();
         final List<Imp> modifiedImps = modifyImps(imps);
 
+        final Site site = bidRequest.getSite();
+        final Site modifiedSite = modifySite(site);
+
+        final App app = bidRequest.getApp();
+        final App modifiedApp = modifyApp(app);
+
+        final Device device = bidRequest.getDevice();
+        final Device modifiedDevice = modifyDevice(device);
+
         final User user = bidRequest.getUser();
         final User modifiedUser = modifyUser(user);
 
@@ -49,14 +63,20 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Regs modifiedRegs = modifyRegs(regs);
 
         return ObjectUtils.anyNotNull(
-                modifiedUser,
                 modifiedImps,
+                modifiedSite,
+                modifiedApp,
+                modifiedDevice,
+                modifiedUser,
                 bidRequest.getWlangb(),
                 modifiedSource,
                 modifiedRegs)
 
                 ? bidRequest.toBuilder()
                 .imp(modifiedImps != null ? modifiedImps : imps)
+                .site(modifiedSite != null ? modifiedSite : site)
+                .app(modifiedApp != null ? modifiedApp : app)
+                .device(modifiedDevice != null ? modifiedDevice : device)
                 .user(modifiedUser != null ? modifiedUser : user)
                 .wlangb(null)
                 .source(modifiedSource != null ? modifiedSource : source)
@@ -105,6 +125,52 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         ((ObjectNode) prebidNode).put(IS_REWARDED_INVENTORY_FIELD, rewarded);
 
         return copy;
+    }
+
+    private static Site modifySite(Site site) {
+        final Content content = ObjectUtil.getIfNotNull(site, Site::getContent);
+        final Content clearedContent = modifyContent(content);
+
+        return ObjectUtils.anyNotNull(clearedContent)
+                ? site.toBuilder()
+                .content(nullIfContentEmpty(clearedContent))
+                .build()
+                : null;
+    }
+
+    private static Content nullIfContentEmpty(Content content) {
+        return nullIfEmpty(content, content.isEmpty());
+    }
+
+    private static <T> T nullIfEmpty(T object, boolean isEmpty) {
+        return isEmpty ? null : object;
+    }
+
+    private static Content modifyContent(Content content) {
+        return content != null && content.getLangb() != null
+                ? content.toBuilder()
+                .langb(null)
+                .build()
+                : null;
+    }
+
+    private static App modifyApp(App app) {
+        final Content content = ObjectUtil.getIfNotNull(app, App::getContent);
+        final Content clearedContent = modifyContent(content);
+
+        return ObjectUtils.anyNotNull(clearedContent)
+                ? app.toBuilder()
+                .content(nullIfContentEmpty(clearedContent))
+                .build()
+                : null;
+    }
+
+    private static Device modifyDevice(Device device) {
+        return device != null && device.getLangb() != null
+                ? device.toBuilder()
+                .langb(null)
+                .build()
+                : null;
     }
 
     private static User modifyUser(User user) {
