@@ -107,18 +107,23 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     }
 
     private Imp modifyImp(Imp imp) {
-        final Integer rewarded = imp.getRwdd();
+        final ObjectNode impExt = imp.getExt();
+        final ObjectNode modifiedImpExt = modifyImpExt(impExt, imp.getRwdd());
+
+        return ObjectUtils.anyNotNull(imp.getSsai(), modifiedImpExt)
+                ? imp.toBuilder()
+                .rwdd(null)
+                .ssai(null)
+                .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
+                .build()
+                : null;
+    }
+
+    private ObjectNode modifyImpExt(ObjectNode impExt, Integer rewarded) {
         if (rewarded == null) {
             return null;
         }
 
-        return imp.toBuilder()
-                .rwdd(null)
-                .ext(modifyImpExt(imp.getExt(), rewarded))
-                .build();
-    }
-
-    private ObjectNode modifyImpExt(ObjectNode impExt, Integer rewarded) {
         final ObjectNode copy = Optional.ofNullable(impExt)
                 .map(ObjectNode::deepCopy)
                 .orElseGet(mapper.mapper()::createObjectNode);
