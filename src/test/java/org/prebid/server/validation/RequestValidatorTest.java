@@ -1456,8 +1456,11 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings())
                 .containsExactly(
-                        "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
-                                + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                        """
+                                WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: \
+                                request.imp[0].ext.prebid.bidder.rubicon failed validation.
+                                errorMessage1
+                                errorMessage2""",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -2150,8 +2153,9 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.aliases.rubicon defines a no-op alias."
-                        + " Choose a different alias, or remove this entry");
+                .containsOnly("""
+                        request.ext.prebid.aliases.rubicon defines a no-op alias. \
+                        Choose a different alias, or remove this entry""");
     }
 
     @Test

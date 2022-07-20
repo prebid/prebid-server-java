@@ -12,6 +12,6 @@ public class BidderCardinalityMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(Integer cardinality) {
-        return metricName -> String.format("bidder-cardinality.%d.%s", cardinality, metricName.toString());
+        return metricName -> "bidder-cardinality.%d.%s".formatted(cardinality, metricName);
     }
 }

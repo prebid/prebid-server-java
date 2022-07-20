@@ -13,15 +13,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -240,9 +239,9 @@ public class SaLunamediaBidderTest extends VertxTest {
     private static BidResponse givenBidResponses(List<Function<Bid.BidBuilder, Bid.BidBuilder>> bidCustomizers) {
         return BidResponse.builder()
                 .seatbid(bidCustomizers.stream().map(customizer -> SeatBid.builder()
-                        .bid(singletonList(customizer.apply(Bid.builder()).build()))
-                        .build())
-                        .collect(Collectors.toList()))
+                                .bid(singletonList(customizer.apply(Bid.builder()).build()))
+                                .build())
+                        .toList())
                 .build();
     }
 

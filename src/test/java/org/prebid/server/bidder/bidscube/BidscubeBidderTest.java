@@ -13,8 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -208,10 +208,10 @@ public class BidscubeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
-                                givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
-                                givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, null)))),
-                                givenBid("213", null)
+                                        givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
+                                        givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
+                                                ExtPrebid.of(null, null)))),
+                                        givenBid("213", null)
                                 )
                         ).build());
 
@@ -247,7 +247,7 @@ public class BidscubeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -257,9 +257,9 @@ public class BidscubeBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("someId")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("someId")))))
                 .build();
     }
 

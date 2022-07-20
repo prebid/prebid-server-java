@@ -175,7 +175,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
-                    String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
+                    "Critical error while unpacking AMP targets: " + e.getMessage(), e);
         }
 
         // Need to extract the targeting parameters from the response, as those are all that
@@ -285,17 +285,18 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
 
-                conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
+                conditionalLogger.info(
+                        "%s, Referer: %s"
+                                .formatted(message, routingContext.request().headers().get(HttpUtil.REFERER_HEADER)),
+                        100);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
@@ -312,7 +313,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -326,7 +327,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 logger.error("Critical error while running the auction", exception);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

@@ -292,8 +292,8 @@ public class Ortb2RequestFactory {
                 && blacklistedAccounts.contains(accountId)) {
 
             throw new BlacklistedAccountException(
-                    String.format("Prebid-server has blacklisted Account ID: %s, please "
-                            + "reach out to the prebid server host.", accountId));
+                    "Prebid-server has blacklisted Account ID: %s, please reach out to the prebid server host."
+                            .formatted(accountId));
         }
         return accountId;
     }
@@ -350,8 +350,7 @@ public class Ortb2RequestFactory {
     }
 
     private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
-        return String.format(
-                "%s, Url: %s and Referer: %s",
+        return "%s, Url: %s and Referer: %s".formatted(
                 message,
                 httpRequest.getAbsoluteUri(),
                 httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
@@ -375,7 +374,7 @@ public class Ortb2RequestFactory {
     private Future<Account> responseForUnknownAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorized account id: %s", accountId), accountId))
+                "Unauthorized account id: " + accountId, accountId))
                 : Future.succeededFuture(Account.empty(accountId));
     }
 
@@ -384,7 +383,7 @@ public class Ortb2RequestFactory {
 
         return account.getStatus() == AccountStatus.inactive
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Account %s is inactive", accountId), accountId))
+                "Account %s is inactive".formatted(accountId), accountId))
                 : Future.succeededFuture(account);
     }
 

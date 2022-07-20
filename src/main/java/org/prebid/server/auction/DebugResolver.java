@@ -83,7 +83,7 @@ public class DebugResolver {
 
         if (debugEnabled && !debugOverride && !debugAllowedByBidder) {
             auctionContext.getDebugWarnings()
-                    .add(String.format("Debug turned off for bidder: %s", bidder));
+                    .add("Debug turned off for bidder: " + bidder);
         }
 
         return debugOverride || (debugEnabled && debugAllowedByBidder);

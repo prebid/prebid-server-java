@@ -37,8 +37,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.bidder.model.Result;
@@ -282,8 +282,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private BidderError impTypeErrorMessage(Imp imp) {
         final BidType type = resolveExpectedBidType(imp);
-        return BidderError.badInput(String.format("Impression with id %s rejected with invalid type `%s`."
-                + " Allowed types are banner and video.", imp.getId(), type != null ? type.name() : "unknown"));
+        return BidderError.badInput(
+                "Impression with id %s rejected with invalid type `%s`. Allowed types are banner and video."
+                        .formatted(imp.getId(), type != null ? type.name() : "unknown"));
     }
 
     private static BidType resolveExpectedBidType(Imp imp) {
@@ -374,7 +375,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
                         .build().toString();
             } catch (URISyntaxException e) {
-                throw new PreBidException(String.format("Cant add the tk_xint value for url: %s", tkXint), e);
+                throw new PreBidException("Cant add the tk_xint value for url: " + tkXint, e);
             }
         }
         return endpointUrl;
@@ -539,8 +540,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String bidFloorCurrency = imp.getBidfloorcur();
         if (StringUtils.isBlank(bidFloorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
-                errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
-                        imp.getId(), XAPI_CURRENCY)));
+                errors.add(BidderError.badInput("Imp `%s` floor provided with no currency, assuming %s"
+                        .formatted(imp.getId(), XAPI_CURRENCY)));
             }
             return XAPI_CURRENCY;
         }
@@ -554,8 +555,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         if (StringUtils.isBlank(floorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
-                errors.add(BidderError.badInput(String.format("Ipf for imp `%s` provided floor with no currency, "
-                        + "assuming %s", imp.getId(), XAPI_CURRENCY)));
+                errors.add(BidderError.badInput("Ipf for imp `%s` provided floor with no currency, assuming %s"
+                        .formatted(imp.getId(), XAPI_CURRENCY)));
             }
             return XAPI_CURRENCY;
         }
@@ -581,9 +582,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, XAPI_CURRENCY);
         } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
-                    bidFloorCurrency, XAPI_CURRENCY, imp.getId(), e.getMessage()));
+            throw new PreBidException(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s"
+                            .formatted(bidFloorCurrency, XAPI_CURRENCY, imp.getId(), e.getMessage()));
         }
     }
 
@@ -837,7 +838,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StreamSupport.stream(booleanArray.spliterator(), false)
                 .map(JsonNode::booleanValue)
                 .map(value -> Boolean.toString(value))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -847,7 +848,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> vendorsUrls = metrics.stream()
                 .filter(this::isMetricSupported)
                 .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
-                .collect(Collectors.toList());
+                .toList();
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
     }
 
@@ -949,8 +950,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
         // log only 1% of cases to monitor how often video impressions does not have size id
         if (resolvedSizeId == null) {
-            MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
-                    + " impId = %s", referer, impId), 0.01d);
+            MISSING_VIDEO_SIZE_LOGGER.warn(
+                    "RP adapter: video request with no size_id. Referrer URL = %s, impId = %s"
+                            .formatted(referer, impId),
+                    0.01d);
         }
     }
 
@@ -1017,7 +1020,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
                 .sorted(RubiconSize.comparator())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (validRubiconSizeIds.isEmpty()) {
             // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits (PR #1003)
@@ -1133,14 +1136,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return CollectionUtils.emptyIfNull(extUserEids).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::prepareExtUserEid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Eid prepareExtUserEid(Eid extUserEid) {
         final List<Uid> extUserEidUids = CollectionUtils.emptyIfNull(extUserEid.getUids()).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::cleanExtUserEidUidStype)
-                .collect(Collectors.toList());
+                .toList();
         return Eid.of(extUserEid.getSource(), extUserEidUids, extUserEid.getExt());
     }
 
@@ -1301,7 +1304,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(segments -> segments.stream()
                         .map(Segment::getId))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (CollectionUtils.isNotEmpty(iabValue)) {
             final ArrayNode iab = target.putArray("iab");
@@ -1453,7 +1456,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(lineItem -> createLineItemBidRequest(lineItem, bidRequest, singleImp))
                 .map((BidRequest request) -> createHttpRequest(request, uri))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidRequest createLineItemBidRequest(ExtDealLine lineItem, BidRequest bidRequest, Imp imp) {
@@ -1516,7 +1519,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
                 .map(bid -> createBidderBid(bid, idToRubiconImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
@@ -1528,7 +1531,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<Bid> updatedBids = seatBid.getBid().stream()
                 .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
@@ -1561,7 +1564,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Invalid ext passed in bid with id: %s", bidId));
+            throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
         }
     }
 

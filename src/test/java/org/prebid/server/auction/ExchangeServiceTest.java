@@ -158,7 +158,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
@@ -293,7 +292,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .requestBidder(bidderAndUser.getKey())
                                         .user(bidderAndUser.getValue())
                                         .build())
-                                .collect(Collectors.toList())));
+                                .toList()));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any()))
                 .willReturn(Future.succeededFuture(emptyList()));

@@ -6,26 +6,24 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 0.01,
-          "adid": "adid001",
-          "cid": "cid001",
-          "crid": "crid001",
+          "price": 3.33,
+          "crid": "creativeId",
           "ext": {
+            "origbidcpm": 3.33,
             "prebid": {
               "type": "banner"
-            },
-            "origbidcpm": 0.01
+            }
           }
         }
       ],
-      "seat": "nextmillenium",
+      "seat": "kargo",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "nextmillenium": "{{ nextmillenium.response_time_ms }}"
+      "kargo": "{{ kargo.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

@@ -26,7 +26,7 @@ public class InterstitialProcessorTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
+                                .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
                         .build()))
                 .device(Device.builder()
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
@@ -101,7 +101,7 @@ public class InterstitialProcessorTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
+                                .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
                         .build()))
                 .device(Device.builder()
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))

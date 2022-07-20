@@ -28,8 +28,8 @@ import org.prebid.server.bidder.beachfront.model.BeachfrontSize;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
@@ -52,7 +52,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BeachfrontBidder implements Bidder<Void> {
@@ -240,8 +239,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, error while decoding extImpBeachfront, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException("ignoring imp id=%s, error while decoding extImpBeachfront, err: %s"
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -378,7 +377,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split("\\.");
 
                 if (split.length > 1) {
-                    bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());
+                    bidRequestBuilder.app(app.toBuilder().domain("%s.%s".formatted(split[1], split[0])).build());
                 }
             }
 
@@ -460,7 +459,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .filter(Objects::nonNull)
                 .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
                 .map(bid -> BidderBid.of(bid, BidType.banner, BeachfrontFloorResolver.DEFAULT_BID_CURRENCY))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -511,7 +510,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
         return updatedBids.stream()
                 .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<Bid> updateNurlVideoBids(List<Bid> bids, List<Imp> imps) {
@@ -535,7 +534,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static List<Bid> updateVideoBids(List<Bid> bids) {
         return bids.stream()
                 .map(bid -> bid.toBuilder().id(bid.getImpid() + "AdmVideo").build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String getCrId(String nurl) {
@@ -546,7 +545,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private List<BidderBid> postProcessBidderBids(List<BidderBid> bidderBids) {
         return bidderBids.stream()
                 .map(this::updateBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid updateBidderBid(BidderBid bidderBid) {

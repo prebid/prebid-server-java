@@ -1,17 +1,17 @@
 adapters:
-  nextmillenium:
-    endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
+  automatad:
+    endpoint: https://s2s.atmtd.com
     meta-info:
-      maintainer-email: appdevs@nextmillennium.io
+      maintainer-email: tech@automatad.com
       app-media-types:
         - banner
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 1060
+      vendor-id: 0
     usersync:
       url:
       redirect-url:
-      cookie-family-name: nextmillennium
+      cookie-family-name: automatad
       type: redirect
       support-cors: false

@@ -53,25 +53,17 @@ public class CriteriaManager {
         try {
             logLevel = LogLevel.valueOf(rawLogLevel.toLowerCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Invalid LoggingLevel: %s", rawLogLevel));
+            throw new IllegalArgumentException("Invalid LoggingLevel: " + rawLogLevel);
         }
 
-        switch (logLevel) {
-            case info:
-                return Logger::info;
-            case warn:
-                return Logger::warn;
-            case trace:
-                return Logger::trace;
-            case error:
-                return Logger::error;
-            case fatal:
-                return Logger::fatal;
-            case debug:
-                return Logger::debug;
-            default:
-                throw new IllegalArgumentException(String.format("Unknown LoggingLevel: %s", logLevel));
-        }
+        return switch (logLevel) {
+            case info -> Logger::info;
+            case warn -> Logger::warn;
+            case trace -> Logger::trace;
+            case error -> Logger::error;
+            case fatal -> Logger::fatal;
+            case debug -> Logger::debug;
+        };
     }
 
     private enum LogLevel {

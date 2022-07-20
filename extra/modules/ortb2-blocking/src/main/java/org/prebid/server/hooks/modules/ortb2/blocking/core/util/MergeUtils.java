@@ -26,7 +26,7 @@ public interface MergeUtils {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         return !warnings.isEmpty() ? warnings : null;
     }

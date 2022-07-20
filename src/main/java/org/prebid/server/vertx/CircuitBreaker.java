@@ -136,14 +136,9 @@ public class CircuitBreaker {
     }
 
     public boolean isOpen() {
-        switch (breaker.state()) {
-            case OPEN:
-            case HALF_OPEN:
-                return true;
-            case CLOSED:
-                return false;
-            default:
-                throw new IllegalStateException("Should never happen");
-        }
+        return switch (breaker.state()) {
+            case OPEN, HALF_OPEN -> true;
+            case CLOSED -> false;
+        };
     }
 }

@@ -27,8 +27,8 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
@@ -623,7 +622,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(10).build())))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
@@ -643,10 +642,10 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 2)
                 .mapToObj(impIdSuffix -> givenImp(
                         imp -> imp
-                                .id(String.format("1_%d", impIdSuffix))
+                                .id("1_" + impIdSuffix)
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -673,10 +672,10 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 15)
                 .mapToObj(impIdSuffix -> givenImp(
                         imp -> imp
-                                .id(String.format("1_%d", impIdSuffix))
+                                .id("1_" + impIdSuffix)
                                 .banner(Banner.builder().build()),
                         ext -> ext.placementId(10).generateAdPodId(true)))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -705,10 +704,10 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 2)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -737,10 +736,10 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(true))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -769,10 +768,10 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(impIdSuffix % 2 == 0))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -797,10 +796,10 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
                         .mapToObj(impIdSuffix -> givenImp(
                                 imp -> imp
-                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
                                 ext -> ext.placementId(10).generateAdPodId(false))))
-                .collect(Collectors.toList());
+                .toList();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()

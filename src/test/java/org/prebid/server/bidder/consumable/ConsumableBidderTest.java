@@ -23,8 +23,9 @@ import org.prebid.server.bidder.consumable.model.ConsumableDecision;
 import org.prebid.server.bidder.consumable.model.ConsumablePlacement;
 import org.prebid.server.bidder.consumable.model.ConsumablePricing;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -329,11 +330,11 @@ public class ConsumableBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer)))
-                .regs(Regs.builder().ext(ExtRegs.of(1, null)).build())
-                .user(User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
-                        .build()))
+                        .imp(singletonList(givenImp(impCustomizer)))
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build())
+                        .user(User.builder()
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build()))
                 .build();
     }
 
@@ -343,12 +344,12 @@ public class ConsumableBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("firstImp")
-                .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(120).h(90).build()))
-                        .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpConsumable.of(111, 222, 333, "unit_name")))))
+                        .id("firstImp")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(120).h(90).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConsumable.of(111, 222, 333, "unit_name")))))
                 .build();
     }
 

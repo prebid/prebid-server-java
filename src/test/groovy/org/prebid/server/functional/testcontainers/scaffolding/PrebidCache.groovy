@@ -73,7 +73,7 @@ class PrebidCache extends NetworkScaffolding {
         def putsSize = jsonNode.get("puts").size()
         def cacheObjects = Stream.generate(CacheObject::getDefaultCacheObject)
                 .limit(putsSize)
-                .collect(Collectors.toList())
+                .toList()
         encode(new PrebidCacheResponse(responses: cacheObjects))
     }
 }

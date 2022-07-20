@@ -32,22 +32,20 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     public <T> Future<Void> processEvent(T event) {
         final LogEvent<?> logEvent;
 
-        if (event instanceof AmpEvent) {
-            logEvent = LogEvent.of("/openrtb2/amp", ((AmpEvent) event).getBidResponse());
-        } else if (event instanceof AuctionEvent) {
-            logEvent = LogEvent.of("/openrtb2/auction", ((AuctionEvent) event).getBidResponse());
-        } else if (event instanceof CookieSyncEvent) {
-            logEvent = LogEvent.of("/cookie_sync", ((CookieSyncEvent) event).getBidderStatus());
-        } else if (event instanceof NotificationEvent) {
-            final NotificationEvent notificationEvent = (NotificationEvent) event;
+        if (event instanceof AmpEvent ampEvent) {
+            logEvent = LogEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
+        } else if (event instanceof AuctionEvent auctionEvent) {
+            logEvent = LogEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
+        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
+            logEvent = LogEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
+        } else if (event instanceof NotificationEvent notificationEvent) {
             logEvent = LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-        } else if (event instanceof SetuidEvent) {
-            final SetuidEvent setuidEvent = (SetuidEvent) event;
+        } else if (event instanceof SetuidEvent setuidEvent) {
             logEvent = LogEvent.of(
                     "/setuid",
                     setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess());
-        } else if (event instanceof VideoEvent) {
-            logEvent = LogEvent.of("/openrtb2/video", ((VideoEvent) event).getBidResponse());
+        } else if (event instanceof VideoEvent videoEvent) {
+            logEvent = LogEvent.of("/openrtb2/video", videoEvent.getBidResponse());
         } else {
             logEvent = LogEvent.of("unknown", null);
         }

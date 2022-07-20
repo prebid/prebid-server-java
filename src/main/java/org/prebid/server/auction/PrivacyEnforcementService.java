@@ -353,7 +353,7 @@ public class PrivacyEnforcementService {
                         .user(maskCoppaUser(bidderAndUser.getValue()))
                         .device(maskCoppaDevice(device))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private User maskCoppaUser(User user) {
@@ -534,7 +534,7 @@ public class PrivacyEnforcementService {
                         bidderUserEntry.getKey(),
                         isLmtEnabled,
                         bidderToEnforcement))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

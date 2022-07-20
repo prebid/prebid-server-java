@@ -472,10 +472,11 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.result().getData().getCachedDebugLog().buildCacheBody())
-                .containsSequence("<Request>{\"device\":{\"ua\":\"123\"}}</Request>\n"
-                        + "<Response></Response>\n"
-                        + "<Headers>header1: value1\n"
-                        + "</Headers>");
+                .containsSequence("""
+                        <Request>{"device":{"ua":"123"}}</Request>
+                        <Response></Response>
+                        <Headers>header1: value1
+                        </Headers>""");
     }
 
     private void prepareMinimumSuccessfulConditions() throws JsonProcessingException {
