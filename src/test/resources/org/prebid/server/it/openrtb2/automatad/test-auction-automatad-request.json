@@ -8,8 +8,8 @@
         "h": 250
       },
       "ext": {
-        "nextmillenium": {
-          "placement_id": "placement_id"
+        "automatad": {
+          "exampleProperty": "exampleProperty"
         }
       }
     }

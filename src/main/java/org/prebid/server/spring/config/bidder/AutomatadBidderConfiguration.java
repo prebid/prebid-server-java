@@ -1,13 +1,12 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.aax.AaxBidder;
+import org.prebid.server.bidder.GenericBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.util.HttpUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,31 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/aax.yaml", factory = YamlPropertySourceFactory.class)
-public class AaxConfiguration {
+@PropertySource(value = "classpath:/bidder-config/automatad.yaml", factory = YamlPropertySourceFactory.class)
+public class AutomatadBidderConfiguration {
 
-    private static final String BIDDER_NAME = "aax";
-    private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
+    private static final String BIDDER_NAME = "automatad";
 
-    @Bean("aaxConfigurationProperties")
-    @ConfigurationProperties("adapters.aax")
+    @Bean("automatadConfigurationProperties")
+    @ConfigurationProperties("adapters.automatad")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps aaxBidderDeps(BidderConfigurationProperties aaxConfigurationProperties,
-                             @NotBlank @Value("${external-url}") String externalUrl,
-                             JacksonMapper mapper) {
+    BidderDeps automatadBidderDeps(BidderConfigurationProperties automatadConfigurationProperties,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(aaxConfigurationProperties)
+                .withConfig(automatadConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AaxBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
+                .bidderCreator(config -> new GenericBidder(config.getEndpoint(), mapper))
                 .assemble();
-    }
-
-    private String resolveEndpoint(String configEndpoint, String externalUrl) {
-        return configEndpoint.replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
     }
 }
