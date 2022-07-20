@@ -8,6 +8,8 @@ import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Producer;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -21,7 +23,6 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +33,9 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
     private static final String PREBID_FIELD = "prebid";
     private static final String IS_REWARDED_INVENTORY_FIELD = "is_rewarded_inventory";
+
+    private static final Producer EMPTY_PRODUCER = Producer.builder().build();
+    private static final Publisher EMPTY_PUBLISHER = Publisher.builder().build();
 
     private final JacksonMapper mapper;
 
@@ -69,6 +73,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedDevice,
                 modifiedUser,
                 bidRequest.getWlangb(),
+                bidRequest.getCattax(),
                 modifiedSource,
                 modifiedRegs)
 
@@ -79,6 +84,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .device(modifiedDevice != null ? modifiedDevice : device)
                 .user(modifiedUser != null ? modifiedUser : user)
                 .wlangb(null)
+                .cattax(null)
                 .source(modifiedSource != null ? modifiedSource : source)
                 .regs(modifiedRegs != null ? modifiedRegs : regs)
                 .build()
@@ -128,17 +134,65 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
     }
 
     private static Site modifySite(Site site) {
-        final Content content = ObjectUtil.getIfNotNull(site, Site::getContent);
-        final Content clearedContent = modifyContent(content);
+        if (site == null) {
+            return null;
+        }
 
-        return ObjectUtils.anyNotNull(clearedContent)
+        final Publisher publisher = site.getPublisher();
+        final Publisher modifiedPublisher = modifyPublisher(publisher);
+
+        final Content content = site.getContent();
+        final Content modifiedContent = modifyContent(content);
+
+        return ObjectUtils.anyNotNull(site.getCattax(), modifiedPublisher, modifiedContent)
                 ? site.toBuilder()
-                .content(nullIfContentEmpty(clearedContent))
+                .cattax(null)
+                .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
+                .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
                 .build()
                 : null;
     }
 
-    private static Content nullIfContentEmpty(Content content) {
+    private static Publisher modifyPublisher(Publisher publisher) {
+        return publisher != null && publisher.getCattax() != null
+                ? publisher.toBuilder()
+                .cattax(null)
+                .build()
+                : null;
+    }
+
+    private static Content modifyContent(Content content) {
+        if (content == null) {
+            return null;
+        }
+
+        final Producer producer = content.getProducer();
+        final Producer modifiedProducer = modifyProducer(producer);
+
+        return ObjectUtils.anyNotNull(modifiedProducer, content.getCattax(), content.getLangb())
+                ? content.toBuilder()
+                .producer(modifiedProducer != null
+                        ? nullIfEmpty(modifiedProducer, EMPTY_PRODUCER.equals(producer))
+                        : producer)
+                .cattax(null)
+                .langb(null)
+                .build()
+                : null;
+    }
+
+    private static Producer modifyProducer(Producer producer) {
+        return producer != null && producer.getCattax() != null
+                ? producer.toBuilder()
+                .cattax(null)
+                .build()
+                : null;
+    }
+
+    private static Publisher nullIfEmpty(Publisher publisher) {
+        return nullIfEmpty(publisher, EMPTY_PUBLISHER.equals(publisher));
+    }
+
+    private static Content nullIfEmpty(Content content) {
         return nullIfEmpty(content, content.isEmpty());
     }
 
@@ -146,21 +200,22 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         return isEmpty ? null : object;
     }
 
-    private static Content modifyContent(Content content) {
-        return content != null && content.getLangb() != null
-                ? content.toBuilder()
-                .langb(null)
-                .build()
-                : null;
-    }
-
     private static App modifyApp(App app) {
-        final Content content = ObjectUtil.getIfNotNull(app, App::getContent);
-        final Content clearedContent = modifyContent(content);
+        if (app == null) {
+            return null;
+        }
 
-        return ObjectUtils.anyNotNull(clearedContent)
+        final Publisher publisher = app.getPublisher();
+        final Publisher modifiedPublisher = modifyPublisher(publisher);
+
+        final Content content = app.getContent();
+        final Content modifiedContent = modifyContent(content);
+
+        return ObjectUtils.anyNotNull(app.getCattax(), modifiedPublisher, modifiedContent)
                 ? app.toBuilder()
-                .content(nullIfContentEmpty(clearedContent))
+                .cattax(null)
+                .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
+                .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
                 .build()
                 : null;
     }

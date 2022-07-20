@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * distributed through different publishers and thus when the producer and
  * publisher are not necessarily the same entity.
  */
+@Builder(toBuilder = true)
 @Value
 public class Producer {
 
@@ -20,7 +22,9 @@ public class Producer {
      */
     String id;
 
-    /** Content producer or originator name (e.g., “Warner Bros”). */
+    /**
+     * Content producer or originator name (e.g., “Warner Bros”).
+     */
     String name;
 
     /**
@@ -36,9 +40,13 @@ public class Producer {
      */
     List<String> cat;
 
-    /** Highest level domain of the content producer (e.g., “producer.com”). */
+    /**
+     * Highest level domain of the content producer (e.g., “producer.com”).
+     */
     String domain;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }
