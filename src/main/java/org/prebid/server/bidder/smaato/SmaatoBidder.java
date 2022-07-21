@@ -418,7 +418,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return switch (markupType) {
             case SMT_AD_TYPE_IMG -> extractAdmImage(adm);
             case SMT_ADTYPE_RICHMEDIA -> extractAdmRichMedia(adm);
-            case SMT_ADTYPE_VIDEO -> markupType;
+            case SMT_ADTYPE_VIDEO -> adm;
             default -> throw new PreBidException("Unknown markup type " + markupType);
         };
     }
