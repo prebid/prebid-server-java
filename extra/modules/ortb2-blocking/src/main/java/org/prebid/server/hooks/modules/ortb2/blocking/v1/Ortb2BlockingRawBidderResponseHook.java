@@ -29,7 +29,6 @@ import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook {
 
@@ -41,9 +40,8 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public Future<InvocationResult<BidderResponsePayload>> call(
-            BidderResponsePayload bidderResponsePayload,
-            BidderInvocationContext invocationContext) {
+    public Future<InvocationResult<BidderResponsePayload>> call(BidderResponsePayload bidderResponsePayload,
+                                                                BidderInvocationContext invocationContext) {
 
         final ExecutionResult<BlockedBids> blockedBidsResult = BidsBlocker
                 .create(
@@ -64,10 +62,11 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                         .warnings(blockedBidsResult.getWarnings())
                         .debugMessages(blockedBidsResult.getDebugMessages())
                         .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()));
+
         if (blockedBidsResult.hasValue()) {
             final ResponseUpdater responseUpdater = ResponseUpdater.create(blockedBidsResult.getValue());
-            resultBuilder.payloadUpdate(payload ->
-                    BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
+            resultBuilder
+                    .payloadUpdate(payload -> BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
         }
 
         return Future.succeededFuture(resultBuilder.build());
@@ -79,9 +78,8 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     }
 
     private static BlockedAttributes blockedAttributesFrom(BidderInvocationContext invocationContext) {
-        final Object moduleContext = invocationContext.moduleContext();
-        return moduleContext instanceof ModuleContext
-                ? ((ModuleContext) moduleContext).blockedAttributesFor(invocationContext.bidder())
+        return invocationContext.moduleContext() instanceof ModuleContext moduleContext
+                ? moduleContext.blockedAttributesFor(invocationContext.bidder())
                 : null;
     }
 

@@ -20,18 +20,16 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
     private static final String CODE = "ortb2-blocking-bidder-request";
 
     @Override
-    public Future<InvocationResult<BidderRequestPayload>> call(
-            BidderRequestPayload bidderRequestPayload,
-            BidderInvocationContext invocationContext) {
+    public Future<InvocationResult<BidderRequestPayload>> call(BidderRequestPayload bidderRequestPayload,
+                                                               BidderInvocationContext invocationContext) {
 
-        final ExecutionResult<BlockedAttributes> blockedAttributesResult =
-                BlockedAttributesResolver
-                        .create(
-                                bidderRequestPayload.bidRequest(),
-                                invocationContext.bidder(),
-                                invocationContext.accountConfig(),
-                                invocationContext.debugEnabled())
-                        .resolve();
+        final ExecutionResult<BlockedAttributes> blockedAttributesResult = BlockedAttributesResolver
+                .create(
+                        bidderRequestPayload.bidRequest(),
+                        invocationContext.bidder(),
+                        invocationContext.accountConfig(),
+                        invocationContext.debugEnabled())
+                .resolve();
 
         final InvocationResultImpl.InvocationResultImplBuilder<BidderRequestPayload> resultBuilder =
                 InvocationResultImpl.<BidderRequestPayload>builder()
@@ -41,12 +39,12 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
                                 : InvocationAction.no_action)
                         .warnings(blockedAttributesResult.getWarnings())
                         .errors(blockedAttributesResult.getErrors());
+
         if (blockedAttributesResult.hasValue()) {
             final BlockedAttributes blockedAttributes = blockedAttributesResult.getValue();
             final RequestUpdater requestUpdater = RequestUpdater.create(blockedAttributes);
             resultBuilder
-                    .payloadUpdate(payload ->
-                            BidderRequestPayloadImpl.of(requestUpdater.update(payload.bidRequest())))
+                    .payloadUpdate(payload -> BidderRequestPayloadImpl.of(requestUpdater.update(payload.bidRequest())))
                     .moduleContext(moduleContext(invocationContext, blockedAttributes));
         }
 
@@ -58,14 +56,12 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
         return CODE;
     }
 
-    private static ModuleContext moduleContext(
-            BidderInvocationContext invocationContext, BlockedAttributes blockedAttributes) {
+    private static ModuleContext moduleContext(BidderInvocationContext invocationContext,
+                                               BlockedAttributes blockedAttributes) {
 
-        final Object moduleContext = invocationContext.moduleContext();
         final String bidder = invocationContext.bidder();
-
-        return moduleContext instanceof ModuleContext
-                ? ((ModuleContext) moduleContext).with(bidder, blockedAttributes)
+        return invocationContext.moduleContext() instanceof ModuleContext moduleContext
+                ? moduleContext.with(bidder, blockedAttributes)
                 : ModuleContext.create(bidder, blockedAttributes);
     }
 }

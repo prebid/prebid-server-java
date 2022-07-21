@@ -16,11 +16,10 @@ public class BlockedAttributesResolver {
     private final ObjectNode accountConfig;
     private final boolean debugEnabled;
 
-    private BlockedAttributesResolver(
-            BidRequest bidRequest,
-            String bidder,
-            ObjectNode accountConfig,
-            boolean debugEnabled) {
+    private BlockedAttributesResolver(BidRequest bidRequest,
+                                      String bidder,
+                                      ObjectNode accountConfig,
+                                      boolean debugEnabled) {
 
         this.bidRequest = bidRequest;
         this.bidder = bidder;
@@ -28,11 +27,10 @@ public class BlockedAttributesResolver {
         this.debugEnabled = debugEnabled;
     }
 
-    public static BlockedAttributesResolver create(
-            BidRequest bidRequest,
-            String bidder,
-            ObjectNode accountConfig,
-            boolean debugEnabled) {
+    public static BlockedAttributesResolver create(BidRequest bidRequest,
+                                                   String bidder,
+                                                   ObjectNode accountConfig,
+                                                   boolean debugEnabled) {
 
         return new BlockedAttributesResolver(
                 Objects.requireNonNull(bidRequest),
@@ -45,8 +43,8 @@ public class BlockedAttributesResolver {
         final AccountConfigReader accountConfigReader = AccountConfigReader.create(accountConfig, bidder, debugEnabled);
 
         try {
-            final Result<BlockedAttributes> blockedAttributesResult =
-                    accountConfigReader.blockedAttributesFor(bidRequest);
+            final Result<BlockedAttributes> blockedAttributesResult = accountConfigReader
+                    .blockedAttributesFor(bidRequest);
 
             return ExecutionResult.<BlockedAttributes>builder()
                     .value(blockedAttributesResult.getValue())

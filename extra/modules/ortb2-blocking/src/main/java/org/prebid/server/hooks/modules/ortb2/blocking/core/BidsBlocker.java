@@ -42,12 +42,11 @@ public class BidsBlocker {
     private final BlockedAttributes blockedAttributes;
     private final boolean debugEnabled;
 
-    private BidsBlocker(
-            List<BidderBid> bids,
-            String bidder,
-            ObjectNode accountConfig,
-            BlockedAttributes blockedAttributes,
-            boolean debugEnabled) {
+    private BidsBlocker(List<BidderBid> bids,
+                        String bidder,
+                        ObjectNode accountConfig,
+                        BlockedAttributes blockedAttributes,
+                        boolean debugEnabled) {
 
         this.bids = bids;
         this.bidder = bidder;
@@ -56,12 +55,11 @@ public class BidsBlocker {
         this.debugEnabled = debugEnabled;
     }
 
-    public static BidsBlocker create(
-            List<BidderBid> bids,
-            String bidder,
-            ObjectNode accountConfig,
-            BlockedAttributes blockedAttributes,
-            boolean debugEnabled) {
+    public static BidsBlocker create(List<BidderBid> bids,
+                                     String bidder,
+                                     ObjectNode accountConfig,
+                                     BlockedAttributes blockedAttributes,
+                                     boolean debugEnabled) {
 
         return new BidsBlocker(
                 Objects.requireNonNull(bids),
@@ -100,8 +98,8 @@ public class BidsBlocker {
     }
 
     private Result<BlockingResult> isBlocked(BidderBid bidderBid, AccountConfigReader accountConfigReader) {
-        final Result<ResponseBlockingConfig> blockingConfigResult =
-                accountConfigReader.responseBlockingConfigFor(bidderBid);
+        final Result<ResponseBlockingConfig> blockingConfigResult = accountConfigReader
+                .responseBlockingConfigFor(bidderBid);
         final ResponseBlockingConfig blockingConfig = blockingConfigResult.getValue();
 
         final BlockingResult blockingResult = BlockingResult.of(
@@ -135,8 +133,7 @@ public class BidsBlocker {
                 blockedAttributeValues(BlockedAttributes::getBapp));
     }
 
-    private AttributeCheckResult<Integer> checkBattr(
-            BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
+    private AttributeCheckResult<Integer> checkBattr(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
 
         return checkAttribute(
                 bidderBid.getBid().getAttr(),
@@ -144,8 +141,9 @@ public class BidsBlocker {
                 blockedAttributeValues(BlockedAttributes::getBattr, bidderBid.getBid().getImpid()));
     }
 
-    private <T> AttributeCheckResult<T> checkAttribute(
-            List<T> attribute, BidAttributeBlockingConfig<T> blockingConfig, List<T> blockedAttributeValues) {
+    private <T> AttributeCheckResult<T> checkAttribute(List<T> attribute,
+                                                       BidAttributeBlockingConfig<T> blockingConfig,
+                                                       List<T> blockedAttributeValues) {
 
         if (blockingConfig == null || !blockingConfig.isEnforceBlocks()) {
             return AttributeCheckResult.succeeded();
@@ -171,8 +169,9 @@ public class BidsBlocker {
         return AttributeCheckResult.succeeded();
     }
 
-    private AttributeCheckResult<String> checkAttribute(
-            String attribute, BidAttributeBlockingConfig<String> blockingConfig, List<String> blockedAttributeValues) {
+    private AttributeCheckResult<String> checkAttribute(String attribute,
+                                                        BidAttributeBlockingConfig<String> blockingConfig,
+                                                        List<String> blockedAttributeValues) {
 
         if (blockingConfig == null
                 || !blockingConfig.isEnforceBlocks()
@@ -182,8 +181,8 @@ public class BidsBlocker {
             return AttributeCheckResult.succeeded();
         }
 
-        final boolean blocked =
-                blockedAttributeValues.contains(attribute) && !blockingConfig.getAllowedValues().contains(attribute);
+        final boolean blocked = blockedAttributeValues.contains(attribute)
+                && !blockingConfig.getAllowedValues().contains(attribute);
 
         return blocked
                 ? AttributeCheckResult.failed(Collections.singletonList(attribute))
@@ -200,10 +199,7 @@ public class BidsBlocker {
         return blockedAttributeValues != null ? blockedAttributeValues.get(impId) : null;
     }
 
-    private List<String> debugMessages(
-            Set<Integer> blockedBidIndexes,
-            List<Result<BlockingResult>> blockedBidResults) {
-
+    private List<String> debugMessages(Set<Integer> blockedBidIndexes, List<Result<BlockingResult>> blockedBidResults) {
         if (!debugEnabled) {
             return null;
         }
@@ -276,18 +272,16 @@ public class BidsBlocker {
 
         AttributeCheckResult<Integer> battrCheckResult;
 
-        public static BlockingResult of(
-                String impId,
-                AttributeCheckResult<String> badvCheckResult,
-                AttributeCheckResult<String> bcatCheckResult,
-                AttributeCheckResult<String> bappCheckResult,
-                AttributeCheckResult<Integer> battrCheckResult) {
+        public static BlockingResult of(String impId,
+                                        AttributeCheckResult<String> badvCheckResult,
+                                        AttributeCheckResult<String> bcatCheckResult,
+                                        AttributeCheckResult<String> bappCheckResult,
+                                        AttributeCheckResult<Integer> battrCheckResult) {
 
-            final boolean blocked =
-                    badvCheckResult.isFailed()
-                            || bcatCheckResult.isFailed()
-                            || bappCheckResult.isFailed()
-                            || battrCheckResult.isFailed();
+            final boolean blocked = badvCheckResult.isFailed()
+                    || bcatCheckResult.isFailed()
+                    || bappCheckResult.isFailed()
+                    || battrCheckResult.isFailed();
 
             return of(
                     impId,
