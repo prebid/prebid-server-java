@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.triplelift.model.TripleliftInnerExt;
@@ -117,7 +117,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final ObjectNode bidExt = bid.getExt();
                 if (bidExt == null) {
-                    errors.add(BidderError.badServerResponse(String.format("Empty ext in bid %s", bid.getId())));
+                    errors.add(BidderError.badServerResponse("Empty ext in bid " + bid.getId()));
                     break;
                 }
 

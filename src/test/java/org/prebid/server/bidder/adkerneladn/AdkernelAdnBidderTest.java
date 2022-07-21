@@ -19,8 +19,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -409,7 +409,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
                     ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -431,10 +431,13 @@ public class AdkernelAdnBidderTest extends VertxTest {
                     ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .video(Video.builder().build())
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
+                        .id("123")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(
+                                        null,
+                                        extCustomizer.apply(ExtImpAdkernelAdn.builder()
+                                                .pubId(50357)).build()))))
                 .build();
     }
 

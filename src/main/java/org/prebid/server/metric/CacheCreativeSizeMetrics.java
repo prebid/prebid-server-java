@@ -13,6 +13,6 @@ public class CacheCreativeSizeMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.creative_size.%s", prefix, metricName.toString());
+        return metricName -> "%s.creative_size.%s".formatted(prefix, metricName);
     }
 }

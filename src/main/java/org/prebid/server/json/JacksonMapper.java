@@ -44,7 +44,7 @@ public class JacksonMapper {
         try {
             return mapper.readValue(str, clazz);
         } catch (JsonProcessingException e) {
-            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()));
+            throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()));
         }
     }
 
@@ -52,7 +52,7 @@ public class JacksonMapper {
         try {
             return mapper.readValue(bytes, clazz);
         } catch (IOException e) {
-            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()));
+            throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()));
         }
     }
 
@@ -60,7 +60,7 @@ public class JacksonMapper {
         try {
             return mapper.readValue(str, type);
         } catch (JsonProcessingException e) {
-            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()), e);
+            throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()), e);
         }
     }
 
@@ -68,7 +68,7 @@ public class JacksonMapper {
         try {
             return mapper.readValue((InputStream) new ByteBufInputStream(buf.getByteBuf()), clazz);
         } catch (IOException e) {
-            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()), e);
+            throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()), e);
         }
     }
 
@@ -76,7 +76,7 @@ public class JacksonMapper {
         try {
             return mapper.readValue(new ByteBufInputStream(buf.getByteBuf()), type);
         } catch (IOException e) {
-            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()), e);
+            throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()), e);
         }
     }
 

@@ -13,6 +13,6 @@ public class PriceFloorMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("price-floors.%s.%s", prefix, metricName.toString());
+        return metricName -> "price-floors.%s.%s".formatted(prefix, metricName);
     }
 }

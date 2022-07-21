@@ -122,8 +122,7 @@ public class AuctionRequestFactory {
         }
 
         if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException(
-                    String.format("Request size exceeded max size of %d bytes.", maxRequestSize));
+            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;
@@ -146,7 +145,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.mapper().readTree(body);
         } catch (IOException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
     }
 
@@ -154,7 +153,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
     }
 

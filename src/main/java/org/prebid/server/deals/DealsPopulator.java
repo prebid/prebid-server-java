@@ -54,7 +54,6 @@ import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -100,7 +99,7 @@ public class DealsPopulator {
         final String accountId = context.getAccount().getId();
         if (!accountHasDeals) {
             criteriaLogManager.log(
-                    logger, accountId, String.format("Account %s does not have deals", accountId), logger::debug);
+                    logger, accountId, "Account %s does not have deals".formatted(accountId), logger::debug);
 
             return Future.succeededFuture(context);
         }
@@ -149,8 +148,11 @@ public class DealsPopulator {
         for (int i = 0; i < compositeFuture.list().size(); i++) {
             final Object o = compositeFuture.resultAt(i);
             if (o == null) {
-                criteriaLogManager.log(logger, account, String.format("Deals processing error: %s",
-                        compositeFuture.cause(i)), logger::warn);
+                criteriaLogManager.log(
+                        logger,
+                        account,
+                        "Deals processing error: " + compositeFuture.cause(i),
+                        logger::warn);
                 continue;
             }
 
@@ -333,7 +335,7 @@ public class DealsPopulator {
                 .map(userDataElement -> Data.builder()
                         .id(userDataElement.getName())
                         .segment(makeSegments(userDataElement.getSegment())).build())
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -344,7 +346,7 @@ public class DealsPopulator {
         return segments != null
                 ? segments.stream()
                 .map(segment -> Segment.builder().id(segment.getId()).build())
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -376,7 +378,7 @@ public class DealsPopulator {
 
             lineItems.forEach(lineItem -> criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(),
                     lineItem.getLineItemId(),
-                    String.format("LineItem %s is ready to be served", lineItem.getLineItemId()), logger::debug));
+                    "LineItem %s is ready to be served".formatted(lineItem.getLineItemId()), logger::debug));
 
             final Imp updatedImp = lineItems.isEmpty() ? imp : enrichImpWithDeals(imp, lineItems);
             isImpsUpdated |= imp != updatedImp;
@@ -404,7 +406,7 @@ public class DealsPopulator {
     private Imp enrichImpWithDeals(Imp imp, List<LineItem> lineItems) {
         final List<Deal> deals = lineItems.stream()
                 .map(lineItem -> toDeal(imp, lineItem))
-                .collect(Collectors.toList());
+                .toList();
 
         return impWithPopulatedDeals(imp, deals);
     }
@@ -428,7 +430,7 @@ public class DealsPopulator {
             final List<Format> matchedSizes = lineItemSizes.stream()
                     .filter(size -> formatsContainLineItemSize(formats, size))
                     .map(size -> Format.builder().w(size.getW()).h(size.getH()).build())
-                    .collect(Collectors.toList());
+                    .toList();
             lineSizes = CollectionUtils.isNotEmpty(matchedSizes) ? matchedSizes : null;
         } else {
             lineSizes = null;
@@ -454,7 +456,7 @@ public class DealsPopulator {
         final List<Deal> existingDeals = ListUtils.emptyIfNull(pmp != null ? pmp.getDeals() : null);
 
         final List<Deal> combinedDeals = Stream.concat(existingDeals.stream(), deals.stream())
-                .collect(Collectors.toList());
+                .toList();
 
         final Pmp.PmpBuilder pmpBuilder = pmp != null ? pmp.toBuilder() : Pmp.builder();
         final Pmp updatedPmp = pmpBuilder.deals(combinedDeals).build();

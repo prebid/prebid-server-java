@@ -23,10 +23,10 @@ class RequestTypeMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix, MetricName requestType) {
-        return metricName -> String.format("%s.%s.type.%s", prefix, metricName.toString(), requestType.toString());
+        return metricName -> "%s.%s.type.%s".formatted(prefix, metricName, requestType);
     }
 
     private static String createTcfPrefix(String prefix, MetricName requestType) {
-        return String.format("%s.%s", prefix, requestType.toString());
+        return "%s.%s".formatted(prefix, requestType);
     }
 }

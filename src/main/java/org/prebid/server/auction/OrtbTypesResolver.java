@@ -233,8 +233,8 @@ public class OrtbTypesResolver {
 
                 normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, warnings);
             } else {
-                warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
-                        nodePrefix, nodeName, containerNode.getNodeType().name()));
+                warnings.add("%s%s field ignored. Expected type is object, but was `%s`."
+                        .formatted(nodePrefix, nodeName, containerNode.getNodeType().name()));
                 return null;
             }
         }
@@ -251,8 +251,12 @@ public class OrtbTypesResolver {
         }
     }
 
-    private JsonNode toFirstElementTextNode(ObjectNode containerNode, String fieldName, String containerName,
-                                            String nodePrefix, List<String> warnings) {
+    private JsonNode toFirstElementTextNode(ObjectNode containerNode,
+                                            String fieldName,
+                                            String containerName,
+                                            String nodePrefix,
+                                            List<String> warnings) {
+
         final JsonNode node = containerNode.get(fieldName);
         if (node == null || node.isNull() || node.isTextual()) {
             return node;
@@ -263,9 +267,10 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray && !arrayNode.isEmpty()) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is"
-                    + " string, but was an array of strings. Converted to string by taking first element "
-                    + "of array.", nodePrefix, containerName, fieldName));
+            warnings.add("""
+                    Incorrect type for first party data field %s%s.%s, expected is string, \
+                    but was an array of strings. Converted to string by taking first element of array."""
+                    .formatted(nodePrefix, containerName, fieldName));
             return new TextNode(arrayNode.get(0).asText());
         } else {
             warnForExpectedStringArrayType(fieldName, containerName, warnings, nodePrefix, node.getNodeType());
@@ -273,8 +278,12 @@ public class OrtbTypesResolver {
         }
     }
 
-    private JsonNode toCommaSeparatedTextNode(ObjectNode containerNode, String fieldName, String containerName,
-                                              String nodePrefix, List<String> warnings) {
+    private JsonNode toCommaSeparatedTextNode(ObjectNode containerNode,
+                                              String fieldName,
+                                              String containerName,
+                                              String nodePrefix,
+                                              List<String> warnings) {
+
         final JsonNode node = containerNode.get(fieldName);
         if (node == null || node.isNull() || node.isTextual()) {
             return node;
@@ -285,9 +294,11 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
-                    + "string, but was an array of strings. Converted to string by separating values with "
-                    + "comma.", nodePrefix, containerName, fieldName));
+            warnings.add("""
+                    Incorrect type for first party data field %s%s.%s, expected is string, \
+                    but was an array of strings. Converted to string by separating values with comma."""
+                    .formatted(nodePrefix, containerName, fieldName));
+
             return new TextNode(StreamSupport.stream(arrayNode.spliterator(), false)
                     .map(jsonNode -> (TextNode) jsonNode)
                     .map(TextNode::textValue)
@@ -321,9 +332,10 @@ public class OrtbTypesResolver {
         if (ext != null && ext.isObject()) {
             ((ObjectNode) ext).set(DATA, data);
         } else if (ext != null && !ext.isObject()) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
-                            + "object, but was %s. Replaced with object",
-                    nodePrefix, containerName, EXT, ext.getNodeType()));
+            warnings.add("""
+                    Incorrect type for first party data field %s%s.%s, \
+                    expected is object, but was %s. Replaced with object"""
+                    .formatted(nodePrefix, containerName, EXT, ext.getNodeType()));
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         } else {
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
@@ -332,8 +344,12 @@ public class OrtbTypesResolver {
 
     private void warnForExpectedStringArrayType(String fieldName, String containerName, List<String> warnings,
                                                 String nodePrefix, JsonNodeType nodeType) {
-        warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
-                        + " was `%s`. Failed to convert to correct type.", nodePrefix, containerName, fieldName,
+        warnings.add("""
+                Incorrect type for first party data field %s%s.%s, expected strings, \
+                but was `%s`. Failed to convert to correct type.""".formatted(
+                nodePrefix,
+                containerName,
+                fieldName,
                 nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
     }
 
@@ -346,14 +362,17 @@ public class OrtbTypesResolver {
         if (CollectionUtils.isNotEmpty(resolverWarning)) {
             warnings.addAll(updateWithWarningPrefix(resolverWarning));
             // log only 1% of cases
-            ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
-                    String.join("\n", resolverWarning),
-                    StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
-                    containerName, containerValue), 0.01);
+            ORTB_TYPES_RESOLVING_LOGGER.warn(
+                    "WARNINGS: %s. \n Referer = %s and %s = %s".formatted(
+                            String.join("\n", resolverWarning),
+                            StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
+                            containerName,
+                            containerValue),
+                    0.01);
         }
     }
 
     private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
-        return resolverWarning.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
+        return resolverWarning.stream().map(warning -> "WARNING: " + warning).toList();
     }
 }

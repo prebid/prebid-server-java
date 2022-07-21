@@ -187,21 +187,11 @@ public class Metrics extends UpdatableMetrics {
     void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
         for (Map.Entry<String, Long> mediaTypeCount : countPerMediaType.entrySet()) {
             switch (mediaTypeCount.getKey()) {
-                case "banner":
-                    incCounter(MetricName.imps_banner, mediaTypeCount.getValue());
-                    break;
-                case "video":
-                    incCounter(MetricName.imps_video, mediaTypeCount.getValue());
-                    break;
-                case "native":
-                    incCounter(MetricName.imps_native, mediaTypeCount.getValue());
-                    break;
-                case "audio":
-                    incCounter(MetricName.imps_audio, mediaTypeCount.getValue());
-                    break;
-                default:
-                    // ignore unrecognized media types
-                    break;
+                case "banner" -> incCounter(MetricName.imps_banner, mediaTypeCount.getValue());
+                case "video" -> incCounter(MetricName.imps_video, mediaTypeCount.getValue());
+                case "native" -> incCounter(MetricName.imps_native, mediaTypeCount.getValue());
+                case "audio" -> incCounter(MetricName.imps_audio, mediaTypeCount.getValue());
+                // ignore unrecognized media types
             }
         }
     }

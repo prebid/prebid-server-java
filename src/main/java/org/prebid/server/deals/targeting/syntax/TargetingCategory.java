@@ -53,23 +53,16 @@ public class TargetingCategory {
             }
         }
 
-        throw new IllegalArgumentException(String.format("Unrecognized targeting category: %s", candidate));
+        throw new IllegalArgumentException("Unrecognized targeting category: " + candidate);
     }
 
     private static TargetingCategory parseDynamicCategory(String candidate, Type type) {
-        switch (type) {
-            case deviceGeoExt:
-            case deviceExt:
-            case userSegment:
-            case userFirstPartyData:
-            case siteFirstPartyData:
-                return parseByTypeAttribute(candidate, type);
-            case bidderParam:
-                return parseBidderParam(candidate, type);
-            default:
-                throw new IllegalStateException(
-                        String.format("Unexpected dynamic targeting category type %s", type));
-        }
+        return switch (type) {
+            case deviceGeoExt, deviceExt, userSegment, userFirstPartyData, siteFirstPartyData ->
+                    parseByTypeAttribute(candidate, type);
+            case bidderParam -> parseBidderParam(candidate, type);
+            default -> throw new IllegalStateException("Unexpected dynamic targeting category type " + type);
+        };
     }
 
     private static TargetingCategory parseByTypeAttribute(String candidate, Type type) {
@@ -82,8 +75,7 @@ public class TargetingCategory {
         if (candidatePath.matches(BIDDER_PARAM_PATH_PATTERN)) {
             return new TargetingCategory(type, candidatePath);
         } else {
-            throw new TargetingSyntaxException(
-                    String.format("BidderParam path is incorrect: %s", candidatePath));
+            throw new TargetingSyntaxException("BidderParam path is incorrect: " + candidatePath);
         }
     }
 
@@ -129,7 +121,7 @@ public class TargetingCategory {
                     .filter(value -> value.attribute.equals(attribute))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
-                            String.format("Unrecognized targeting category type: %s", attribute)));
+                            "Unrecognized targeting category type: " + attribute));
         }
     }
 }

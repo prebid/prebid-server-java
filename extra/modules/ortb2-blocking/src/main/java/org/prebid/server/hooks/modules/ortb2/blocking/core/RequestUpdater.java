@@ -47,7 +47,7 @@ public class RequestUpdater {
 
         return imps.stream()
             .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private Imp updateImp(

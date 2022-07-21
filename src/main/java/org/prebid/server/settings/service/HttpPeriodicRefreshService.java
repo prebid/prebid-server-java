@@ -130,7 +130,7 @@ public class HttpPeriodicRefreshService implements Initializable {
     private HttpRefreshResponse processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final String body = response.getBody();
@@ -138,7 +138,7 @@ public class HttpPeriodicRefreshService implements Initializable {
         try {
             refreshResponse = mapper.decodeValue(body, HttpRefreshResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException("Cannot parse response: " + body, e);
         }
 
         return refreshResponse;
@@ -155,8 +155,8 @@ public class HttpPeriodicRefreshService implements Initializable {
             try {
                 jsonAsString = mapper.mapper().writeValueAsString(entry.getValue());
             } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error parsing %s json for id: %s with message: %s", type, id,
-                        e.getMessage()));
+                throw new PreBidException("Error parsing %s json for id: %s with message: %s"
+                        .formatted(type, id, e.getMessage()));
             }
             result.put(id, jsonAsString);
         }

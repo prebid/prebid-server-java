@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -74,7 +74,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderAccountIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("", "testSourceId", "testHost")))));
 
         // when
@@ -89,7 +89,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderSourceIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("testAccountId", "", "testHost")))));
 
         // when
@@ -103,7 +103,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderHostParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("testAccountId", "testSourceId", "")))));
 
         // when
@@ -337,7 +337,7 @@ public class SmartyAdsBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -347,10 +347,10 @@ public class SmartyAdsBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
                 .build();
     }
 

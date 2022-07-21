@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -832,7 +831,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     private static BidRequest bidRequestWithDeals(String... ids) {
         final List<Imp> impsWithDeals = Arrays.stream(ids)
                 .map(HttpBidderRequesterTest::impWithDeal)
-                .collect(Collectors.toList());
+                .toList();
         return BidRequest.builder().imp(impsWithDeals).build();
     }
 

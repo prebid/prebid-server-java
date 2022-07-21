@@ -15,8 +15,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -325,7 +325,15 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<div id=\"apvad-123\"></div><script type=\"text/javascript\" id=\"apv\" src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script><script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"123\"}).load('vastxml'); })(); </script>beacon</body>";
+        final String adm = """
+                <div id="apvad-123"></div>
+                <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"123"}).load('vastxml');
+                })();
+                </script>
+                beacon</body>""";
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("123")

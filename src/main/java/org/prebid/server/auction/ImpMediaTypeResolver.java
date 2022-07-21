@@ -2,7 +2,6 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -15,18 +14,12 @@ public class ImpMediaTypeResolver {
     }
 
     public static ImpMediaType resolve(String bidImpId, List<Imp> imps, BidType bidType) {
-        switch (bidType) {
-            case banner:
-                return ImpMediaType.banner;
-            case xNative:
-                return ImpMediaType.xNative;
-            case audio:
-                return ImpMediaType.audio;
-            case video:
-                return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
-            default:
-                throw new PreBidException("BidType not present for bidderBid");
-        }
+        return switch (bidType) {
+            case banner -> ImpMediaType.banner;
+            case xNative -> ImpMediaType.xNative;
+            case audio -> ImpMediaType.audio;
+            case video -> resolveBidAdjustmentVideoMediaType(bidImpId, imps);
+        };
     }
 
     private static ImpMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {

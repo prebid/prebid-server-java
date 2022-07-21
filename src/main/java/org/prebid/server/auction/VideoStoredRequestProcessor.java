@@ -120,7 +120,7 @@ public class VideoStoredRequestProcessor {
                 .map(storedData -> toBidRequestWithPodErrors(storedData, videoRequest, storedBidRequestId))
 
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))));
+                        "Stored request fetching failed: " + exception.getMessage())));
     }
 
     private static BidRequest readBidRequest(String defaultBidRequestPath,
@@ -256,7 +256,7 @@ public class VideoStoredRequestProcessor {
                     continue;
                 }
                 final Imp imp = storedImp.toBuilder()
-                        .id(String.format("%d_%d", pod.getPodId(), i))
+                        .id("%d_%d".formatted(pod.getPodId(), i))
                         .video(updateVideo(video, minDuration, maxDuration))
                         .build();
                 imps.add(imp);

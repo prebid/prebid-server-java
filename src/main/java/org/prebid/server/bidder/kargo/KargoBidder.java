@@ -83,14 +83,11 @@ public class KargoBidder implements Bidder<BidRequest> {
             return BidType.banner;
         }
 
-        switch (mediaType) {
-            case "video":
-                return BidType.video;
-            case "native":
-                return BidType.xNative;
-            default:
-                return BidType.banner;
-        }
+        return switch (mediaType) {
+            case "video" -> BidType.video;
+            case "native" -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 
     private KargoExtBid getMappedBidExt(ObjectNode objectNode) {

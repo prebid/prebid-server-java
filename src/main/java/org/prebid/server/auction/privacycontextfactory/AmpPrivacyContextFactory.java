@@ -59,13 +59,13 @@ public class AmpPrivacyContextFactory {
         final Account account = auctionContext.getAccount();
 
         return tcfDefinerService.resolveTcfContext(
-                strippedPrivacy,
-                resolveAlpha2CountryCode(device),
-                resolveIpAddress(device, strippedPrivacy),
-                extractGdprConfig(account),
-                requestType,
-                requestLogInfo(requestType, bidRequest, account.getId()),
-                timeout)
+                        strippedPrivacy,
+                        resolveAlpha2CountryCode(device),
+                        resolveIpAddress(device, strippedPrivacy),
+                        extractGdprConfig(account),
+                        requestType,
+                        requestLogInfo(requestType, bidRequest, account.getId()),
+                        timeout)
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }

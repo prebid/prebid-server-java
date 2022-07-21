@@ -109,137 +109,111 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
-        switch (type) {
-            case domain:
-                return lookupResult(
-                        getIfNotNull(bidRequest.getSite(), Site::getDomain),
-                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
-            case publisherDomain:
-                return lookupResult(
-                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
-            case referrer:
-                return lookupResult(getIfNotNull(bidRequest.getSite(), Site::getPage));
-            case appBundle:
-                return lookupResult(getIfNotNull(bidRequest.getApp(), App::getBundle));
-            case adslot:
-                return lookupResult(
-                        impReader.readFromExt(imp, "context.data.pbadslot", RequestContext::nodeToString),
-                        impReader.readFromExt(imp, "context.data.adserver.adslot", RequestContext::nodeToString),
-                        impReader.readFromExt(imp, "data.pbadslot", RequestContext::nodeToString),
-                        impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString));
-            case deviceGeoExt:
-                final Geo geo = getIfNotNull(bidRequest.getDevice(), Device::getGeo);
-                return lookupResult(geoReader.readFromExt(geo, path, RequestContext::nodeToString));
-            case deviceExt:
-                return lookupResult(
-                        deviceReader.readFromExt(bidRequest.getDevice(), path, RequestContext::nodeToString));
-            case bidderParam:
-                return lookupResult(
-                        impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToString));
-            case userFirstPartyData:
-                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class)
-                        .orElse(getFirstPartyDataFromRequestExt(
-                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToString));
-            case siteFirstPartyData:
-                return getSiteFirstPartyData(path, RequestContext::nodeToString);
-            default:
-                return LookupResult.empty();
-        }
+        return switch (type) {
+            case domain -> lookupResult(
+                    getIfNotNull(bidRequest.getSite(), Site::getDomain),
+                    getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
+            case publisherDomain -> lookupResult(getIfNotNull(
+                    getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
+            case referrer -> lookupResult(getIfNotNull(bidRequest.getSite(), Site::getPage));
+            case appBundle -> lookupResult(getIfNotNull(bidRequest.getApp(), App::getBundle));
+            case adslot -> lookupResult(
+                    impReader.readFromExt(imp, "context.data.pbadslot", RequestContext::nodeToString),
+                    impReader.readFromExt(imp, "context.data.adserver.adslot", RequestContext::nodeToString),
+                    impReader.readFromExt(imp, "data.pbadslot", RequestContext::nodeToString),
+                    impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString));
+            case deviceGeoExt -> lookupResult(geoReader.readFromExt(
+                    getIfNotNull(bidRequest.getDevice(), Device::getGeo), path, RequestContext::nodeToString));
+            case deviceExt -> lookupResult(
+                    deviceReader.readFromExt(bidRequest.getDevice(), path, RequestContext::nodeToString));
+            case bidderParam -> lookupResult(
+                    impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToString));
+            case userFirstPartyData ->
+                    userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class)
+                            .orElse(getFirstPartyDataFromRequestExt(
+                                    ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToString));
+            case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToString);
+            default -> LookupResult.empty();
+        };
     }
 
     public LookupResult<Integer> lookupInteger(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
-        switch (type) {
-            case pagePosition:
-                return lookupResult(getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getPos));
-            case dow:
-                return lookupResult(
-                        getIfNotNull(
-                                getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
-                                ExtUserTime::getUserdow));
-            case hour:
-                return lookupResult(
-                        getIfNotNull(
-                                getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
-                                ExtUserTime::getUserhour));
-            case deviceGeoExt:
-                final Geo geo = getIfNotNull(bidRequest.getDevice(), Device::getGeo);
-                return lookupResult(geoReader.readFromExt(geo, path, RequestContext::nodeToInteger));
-            case bidderParam:
-                return lookupResult(
-                        impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToInteger));
-            case userFirstPartyData:
-                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class)
-                        .orElse(getFirstPartyDataFromRequestExt(
-                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToInteger));
-            case siteFirstPartyData:
-                return getSiteFirstPartyData(path, RequestContext::nodeToInteger);
-            default:
-                return LookupResult.empty();
-        }
+        return switch (type) {
+            case pagePosition -> lookupResult(getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getPos));
+            case dow -> lookupResult(getIfNotNull(
+                    getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
+                    ExtUserTime::getUserdow));
+            case hour -> lookupResult(getIfNotNull(
+                    getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
+                    ExtUserTime::getUserhour));
+            case deviceGeoExt -> lookupResult(geoReader.readFromExt(
+                    getIfNotNull(bidRequest.getDevice(), Device::getGeo), path, RequestContext::nodeToInteger));
+            case bidderParam -> lookupResult(
+                    impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToInteger));
+            case userFirstPartyData ->
+                    userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class)
+                            .orElse(getFirstPartyDataFromRequestExt(
+                                    ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToInteger));
+            case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToInteger);
+            default -> LookupResult.empty();
+        };
     }
 
     public LookupResult<List<String>> lookupStrings(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
-        switch (type) {
-            case mediaType:
-                return lookupResult(getMediaTypes());
-            case bidderParam:
-                return lookupResult(
-                        impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfStrings));
-            case userSegment:
-                return lookupResult(getSegments(category));
-            case userFirstPartyData:
+        return switch (type) {
+            case mediaType -> lookupResult(getMediaTypes());
+            case bidderParam -> lookupResult(
+                    impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfStrings));
+            case userSegment -> lookupResult(getSegments(category));
+            case userFirstPartyData -> {
                 final User user = bidRequest.getUser();
-                return lookupResult(
+                yield lookupResult(
                         listOfNonNulls(userReader.readFromObject(user, path, String.class)),
                         userReader.readFromExt(user, path, RequestContext::nodeToListOfStrings))
                         .orElse(getFirstPartyDataFromRequestExt(
                                 ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToListOfStrings));
-            case siteFirstPartyData:
-                return getSiteFirstPartyData(path, RequestContext::nodeToListOfStrings);
-            default:
-                return LookupResult.empty();
-        }
+            }
+            case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToListOfStrings);
+            default -> LookupResult.empty();
+        };
     }
 
     public LookupResult<List<Integer>> lookupIntegers(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
-        switch (type) {
-            case bidderParam:
-                return lookupResult(
-                        impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfIntegers));
-            case userFirstPartyData:
+        return switch (type) {
+            case bidderParam -> lookupResult(
+                    impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfIntegers));
+            case userFirstPartyData -> {
                 final User user = bidRequest.getUser();
-                return lookupResult(
+                yield lookupResult(
                         listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
                         userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers))
                         .orElse(getFirstPartyDataFromRequestExt(
                                 ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToListOfIntegers));
-            case siteFirstPartyData:
-                return getSiteFirstPartyData(path, RequestContext::nodeToListOfIntegers);
-            default:
-                return LookupResult.empty();
-        }
+            }
+            case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToListOfIntegers);
+            default -> LookupResult.empty();
+        };
     }
 
     public LookupResult<List<Size>> lookupSizes(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         if (type != TargetingCategory.Type.size) {
-            throw new TargetingSyntaxException(
-                    String.format("Unexpected category for fetching sizes for: %s", type));
+            throw new TargetingSyntaxException("Unexpected category for fetching sizes for: " + type);
         }
 
         final List<Format> formats = getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getFormat);
         final List<Size> sizes = ListUtils.emptyIfNull(formats).stream()
                 .map(format -> Size.of(format.getW(), format.getH()))
-                .collect(Collectors.toList());
+                .toList();
 
         return !sizes.isEmpty() ? LookupResult.ofValue(sizes) : LookupResult.empty();
     }
@@ -247,8 +221,7 @@ public class RequestContext {
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         if (type != TargetingCategory.Type.location) {
-            throw new TargetingSyntaxException(
-                    String.format("Unexpected category for fetching geo location for: %s", type));
+            throw new TargetingSyntaxException("Unexpected category for fetching geo location for: " + type);
         }
 
         final Geo geo = getIfNotNull(getIfNotNull(bidRequest, BidRequest::getDevice), Device::getGeo);
@@ -271,7 +244,7 @@ public class RequestContext {
     private static <T> List<T> listOfNonNulls(T... candidates) {
         return Stream.of(candidates)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <S, T> T getIfNotNull(S source, Function<S, T> getter) {
@@ -310,7 +283,7 @@ public class RequestContext {
                 .map(siteNode -> siteNode.at("/ext/data" + toJsonPointer(path)))
                 .map(valueExtractor)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean validateBidderConfig(ExtRequestPrebidBidderConfig bidderConfig) {
@@ -342,7 +315,7 @@ public class RequestContext {
                 .flatMap(data -> ListUtils.emptyIfNull(data.getSegment()).stream())
                 .map(Segment::getId)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return !segments.isEmpty() ? segments : null;
     }
@@ -382,7 +355,7 @@ public class RequestContext {
         return StreamUtil.asStream(node.spliterator())
                 .map(valueExtractor)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static class AttributeReader<T> {
