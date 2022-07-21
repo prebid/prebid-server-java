@@ -1,13 +1,24 @@
 package org.prebid.server.auction.versionconverter.down;
 
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Channel;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Network;
+import com.iab.openrtb.request.Producer;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.UserAgent;
+import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -15,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -152,6 +164,83 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(User::getExt)
                             .isEqualTo(expectedUserExt);
                 });
+    }
+
+    @Test
+    public void convertShouldRemoveFieldsThatAreNotInOrtb25() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .imp(singletonList(givenImp(imp -> imp
+                        .video(Video.builder()
+                                .maxseq(1)
+                                .poddur(1)
+                                .podid(1)
+                                .podseq(1)
+                                .rqddurs(singletonList(1))
+                                .slotinpod(1)
+                                .mincpmpersec(BigDecimal.ONE)
+                                .build())
+                        .audio(Audio.builder()
+                                .poddur(1)
+                                .rqddurs(singletonList(1))
+                                .podid(1)
+                                .podseq(1)
+                                .slotinpod(1)
+                                .mincpmpersec(BigDecimal.ONE)
+                                .maxseq(1)
+                                .build())
+                        .ssai(1))))
+                .site(Site.builder()
+                        .cattax(1)
+                        .publisher(Publisher.builder().cattax(1).build())
+                        .content(Content.builder()
+                                .producer(Producer.builder().cattax(1).build())
+                                .cattax(1)
+                                .kwarray(singletonList("kwarray"))
+                                .langb("langb")
+                                .network(Network.builder().build())
+                                .channel(Channel.builder().build())
+                                .build())
+                        .kwarray(singletonList("kwarray"))
+                        .build())
+                .app(App.builder()
+                        .cattax(1)
+                        .publisher(Publisher.builder().cattax(1).build())
+                        .content(Content.builder()
+                                .producer(Producer.builder().cattax(1).build())
+                                .cattax(1)
+                                .kwarray(singletonList("kwarray"))
+                                .langb("langb")
+                                .network(Network.builder().build())
+                                .channel(Channel.builder().build())
+                                .build())
+                        .kwarray(singletonList("kwarray"))
+                        .build())
+                .device(Device.builder().sua(UserAgent.builder().build()).langb("langb").build())
+                .user(User.builder().kwarray(singletonList("kwarray")).build())
+                .wlangb(singletonList("wlangb"))
+                .cattax(1));
+
+        // when
+        final BidRequest result = converter.convert(bidRequest);
+
+        // then
+        assertThat(result).satisfies(request -> {
+            assertThat(result.getImp())
+                    .hasSize(1)
+                    .allSatisfy(imp -> {
+                        assertThat(imp.getVideo()).isEqualTo(Video.builder().build());
+                        assertThat(imp.getAudio()).isEqualTo(Audio.builder().build());
+                        assertThat(imp.getSsai()).isNull();
+                    });
+
+            assertThat(request.getSite()).isEqualTo(Site.builder().build());
+            assertThat(request.getApp()).isEqualTo(App.builder().build());
+            assertThat(request.getDevice()).isEqualTo(Device.builder().build());
+            assertThat(request.getUser()).isEqualTo(User.builder().build());
+            assertThat(request.getWlangb()).isNull();
+            assertThat(request.getCattax()).isNull();
+        });
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

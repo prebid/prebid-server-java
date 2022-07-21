@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -13,6 +14,7 @@ import lombok.Value;
  * field while domain and id can be used for reporting and targeting
  * purposes. See 7.6 for further examples.
  */
+@Builder
 @Value
 public class Channel {
 

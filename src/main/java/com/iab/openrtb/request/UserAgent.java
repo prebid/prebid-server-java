@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
  * This is because the device.ua may contain a frozen or reduced user agent string
  * due to deprecation of user agent strings by browsers.
  */
+@Builder
 @Value
 public class UserAgent {
 
