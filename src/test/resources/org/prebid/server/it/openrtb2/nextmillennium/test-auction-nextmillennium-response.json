@@ -18,14 +18,14 @@
           }
         }
       ],
-      "seat": "nextmillenium",
+      "seat": "nextmillennium",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "nextmillenium": "{{ nextmillenium.response_time_ms }}"
+      "nextmillennium" : "{{ nextmillennium.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
