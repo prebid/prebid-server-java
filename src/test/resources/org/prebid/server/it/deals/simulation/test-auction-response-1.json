@@ -99,6 +99,12 @@
                     "line": {
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
+                      "sizes": [
+                         {
+                           "w": 300,
+                           "h": 250
+                         }
+                       ],
                       "bidder": "rubicon"
                     }
                   }
