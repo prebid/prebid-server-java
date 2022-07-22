@@ -101,7 +101,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                                         singletonList(Format.builder().w(100).h(100).build()), null))))
                                 .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
         final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
@@ -134,7 +134,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                                 .build())).build()).build(),
                         Imp.builder().id("impId2").build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
         final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
@@ -167,7 +167,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null, null, null))))
                                 .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
         final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
@@ -200,7 +200,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                                 .ext(mapper.createObjectNode().set("line", new IntNode(5)))
                                 .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when and then
         assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))
@@ -217,7 +217,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                         Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
                                 .id("dealId1").build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
         final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
@@ -244,7 +244,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null, null, null))))
                                 .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
         assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))

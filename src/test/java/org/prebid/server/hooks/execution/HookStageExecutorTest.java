@@ -1937,10 +1937,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future1 = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, BidRequest.builder().build()),
+                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderRequestPayload>> future2 = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder2", null, BidRequest.builder().build()),
+                BidderRequest.of("bidder2", null, null, BidRequest.builder().build()),
                 auctionContext);
 
         // then
@@ -1988,7 +1988,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, BidRequest.builder().build()),
+                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
@@ -2353,7 +2353,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, BidRequest.builder().build()),
+                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
                 AuctionContext.builder()
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)

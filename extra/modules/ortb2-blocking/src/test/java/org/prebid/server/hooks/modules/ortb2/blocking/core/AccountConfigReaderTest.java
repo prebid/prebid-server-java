@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -1138,13 +1139,11 @@ class AccountConfigReaderTest {
         assertThat(reader.responseBlockingConfigFor(bid())).satisfies(result -> {
             assertThat(result.getValue()).isEqualTo(ResponseBlockingConfig.builder()
                     .badv(BidAttributeBlockingConfig.of(
-                            false, false, new HashSet<>(asList("domain1.com", "domain2.com", "domain3.com"))))
-                    .bcat(BidAttributeBlockingConfig.of(
-                            false, false, new HashSet<>(asList("cat1", "cat2", "cat3"))))
-                    .bapp(BidAttributeBlockingConfig.of(
-                            false, false, new HashSet<>(asList("app1", "app2", "app3"))))
-                    .battr(BidAttributeBlockingConfig.of(
-                            false, false, new HashSet<>(asList(1, 2, 3))))
+                            false, false, Set.of("domain1.com", "domain2.com", "domain3.com")))
+                    .bcat(BidAttributeBlockingConfig.of(false, false, Set.of("cat1", "cat2", "cat3")))
+                    .cattax(BidAttributeBlockingConfig.of(false, true, emptySet()))
+                    .bapp(BidAttributeBlockingConfig.of(false, false, Set.of("app1", "app2", "app3")))
+                    .battr(BidAttributeBlockingConfig.of(false, false, Set.of(1, 2, 3)))
                     .build());
             assertThat(result.getMessages()).isNull();
         });

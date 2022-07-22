@@ -622,6 +622,7 @@ public class BasicPriceFloorEnforcerTest {
                 .bidderRequest(BidderRequest.of(
                         "bidder",
                         null,
+                        null,
                         bidRequestCustomizer.apply(BidRequest.builder()
                                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                                 .floors(PriceFloorRules.builder()

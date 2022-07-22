@@ -455,6 +455,6 @@ public class HttpInteractionLoggerTest extends VertxTest {
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()).build();
 
-        return BidderRequest.of("bidderName", null, bidRequest);
+        return BidderRequest.of("bidderName", null, null, bidRequest);
     }
 }

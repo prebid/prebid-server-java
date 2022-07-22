@@ -40,6 +40,7 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -279,6 +280,7 @@ public class ExchangeService {
                 .map(auctionParticipation -> updateRequestMetric(
                         auctionParticipation, uidsCookie, aliases, account, requestTypeMetric))
                 .map(bidderRequests -> maybeLogBidderInteraction(receivedContext, bidderRequests))
+
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
@@ -836,6 +838,8 @@ public class ExchangeService {
                     .build();
         }
 
+        final OrtbVersion ortbVersion = bidderSupportedOrtbVersion(bidder, bidderAliases);
+
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
 
@@ -857,7 +861,7 @@ public class ExchangeService {
                 ? impBidderToStoredBidResponse.get(imps.get(0).getId()).get(bidder)
                 : null;
 
-        final BidderRequest bidderRequest = BidderRequest.of(bidder, storedBidResponse, bidRequest.toBuilder()
+        final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
@@ -866,7 +870,13 @@ public class ExchangeService {
                 .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
-                .build());
+                .build();
+
+        final BidderRequest bidderRequest = BidderRequest.of(
+                bidder,
+                ortbVersion,
+                storedBidResponse,
+                modifiedBidRequest);
 
         return AuctionParticipation.builder()
                 .bidder(bidder)
@@ -874,6 +884,10 @@ public class ExchangeService {
                 .requestBlocked(false)
                 .analyticsBlocked(blockedAnalyticsByTcf)
                 .build();
+    }
+
+    private OrtbVersion bidderSupportedOrtbVersion(String bidder, BidderAliases aliases) {
+        return bidderCatalog.bidderInfoByName(aliases.resolveBidder(bidder)).getOrtbVersion();
     }
 
     /**
@@ -1263,8 +1277,8 @@ public class ExchangeService {
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
-        final BidRequest convertedBidRequest = ortbVersionConversionManager.convertToBidderSupportedVersion(
-                mediaTypeProcessingResult.getBidRequest(), resolvedBidderName);
+        final BidRequest convertedBidRequest = ortbVersionConversionManager.convertFromAuctionSupportedVersion(
+                mediaTypeProcessingResult.getBidRequest(), bidderRequest.getOrtbVersion());
 
         final BidderRequest modifiedBidderRequest = bidderRequest.with(convertedBidRequest);
 
