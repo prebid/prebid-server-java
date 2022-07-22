@@ -21,7 +21,7 @@ import java.util.List;
  * those types. However, any given bid for the impression must conform to one of
  * the offered types.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Audio {
 
