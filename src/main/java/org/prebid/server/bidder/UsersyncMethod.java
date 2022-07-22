@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Value;
 
 @Value
-@Builder(toBuilder = true)
+@Builder
 public class UsersyncMethod {
 
     UsersyncMethodType type;
@@ -16,8 +16,4 @@ public class UsersyncMethod {
     boolean supportCORS;
 
     UsersyncFormat formatOverride;
-
-    public UsersyncMethod withUsersyncUrl(String usersyncUrl) {
-        return toBuilder().usersyncUrl(usersyncUrl).build();
-    }
 }
