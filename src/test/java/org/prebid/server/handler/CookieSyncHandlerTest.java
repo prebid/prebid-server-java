@@ -444,11 +444,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         appnexusUsersyncer = Usersyncer.of(
                 APPNEXUS_COOKIE,
                 null,
-                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://adnxsexample.com", null, false));
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("http://adnxsexample.com")
+                        .supportCORS(false)
+                        .build());
         rubiconUsersyncer = Usersyncer.of(
                 RUBICON,
                 null,
-                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "http://rubiconexample.com", null, false));
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("http://rubiconexample.com")
+                        .supportCORS(false)
+                        .build());
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -934,8 +942,16 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         rubiconUsersyncer = Usersyncer.of(
                 RUBICON,
-                UsersyncMethod.of(UsersyncMethodType.IFRAME, "iframe-url", null, false),
-                UsersyncMethod.of(UsersyncMethodType.REDIRECT, "redirect-url", null, false));
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.IFRAME)
+                        .usersyncUrl("iframe-url")
+                        .supportCORS(false)
+                        .build(),
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("redirect-url")
+                        .supportCORS(false)
+                        .build());
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -1623,22 +1639,22 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = Usersyncer.of(
                 RUBICON,
                 null,
-                UsersyncMethod.of(
-                        UsersyncMethodType.REDIRECT,
-                        "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
-                        null,
-                        false));
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}")
+                        .supportCORS(false)
+                        .build());
     }
 
     private void givenDefaultAppnexusUsersyncer() {
         appnexusUsersyncer = Usersyncer.of(
                 APPNEXUS_COOKIE,
                 null,
-                UsersyncMethod.of(
-                        UsersyncMethodType.REDIRECT,
-                        "http://rubiconexample.com",
-                        null,
-                        false));
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("http://rubiconexample.com")
+                        .supportCORS(false)
+                        .build());
     }
 
     private static Usersyncer createUsersyncer(String cookieFamilyName, String usersyncUrl, UsersyncMethodType type) {
@@ -1646,11 +1662,15 @@ public class CookieSyncHandlerTest extends VertxTest {
             return Usersyncer.of(cookieFamilyName, null, null);
         }
 
+        final UsersyncMethod usersyncMethod = UsersyncMethod.builder()
+                .type(type)
+                .usersyncUrl(usersyncUrl)
+                .supportCORS(false)
+                .build();
+
         return switch (type) {
-            case REDIRECT -> Usersyncer.of(
-                    cookieFamilyName, null, UsersyncMethod.of(type, usersyncUrl, null, false));
-            case IFRAME -> Usersyncer.of(
-                    cookieFamilyName, UsersyncMethod.of(type, usersyncUrl, null, false), null);
+            case REDIRECT -> Usersyncer.of(cookieFamilyName, null, usersyncMethod);
+            case IFRAME -> Usersyncer.of(cookieFamilyName, usersyncMethod, null);
         };
     }
 

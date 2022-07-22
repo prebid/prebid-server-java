@@ -338,10 +338,18 @@ public class UsersyncMethodChooserTest extends VertxTest {
     }
 
     private UsersyncMethod iframeMethod(String url) {
-        return UsersyncMethod.of(UsersyncMethodType.IFRAME, url, null, false);
+        return emptyMethod(url).toBuilder().type(UsersyncMethodType.IFRAME).build();
     }
 
     private UsersyncMethod redirectMethod(String url) {
-        return UsersyncMethod.of(UsersyncMethodType.REDIRECT, url, null, false);
+        return emptyMethod(url).toBuilder().type(UsersyncMethodType.REDIRECT).build();
+    }
+
+    private UsersyncMethod emptyMethod(String url) {
+        return UsersyncMethod.builder()
+                .usersyncUrl(url)
+                .redirectUrl(null)
+                .supportCORS(false)
+                .build();
     }
 }

@@ -19,7 +19,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.UsersyncInfoAssembler;
+import org.prebid.server.bidder.UsersyncInfoBuilder;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.bidder.UsersyncUtil;
@@ -73,10 +73,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
     private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
-
-    // Probably this should be moved to config since hardcoding of "uid" param is not ideal
-    private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
-            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -585,12 +581,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                         String uidFromHostCookieToSet,
                                         Privacy privacy) {
 
-        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncMethod);
+        final UsersyncInfoBuilder usersyncInfoBuilder = UsersyncInfoBuilder.from(usersyncMethod);
 
         return (uidFromHostCookieToSet == null
-                ? usersyncInfoAssembler
-                : usersyncInfoAssembler
-                .withUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet)))
+                ? usersyncInfoBuilder
+                : usersyncInfoBuilder
+                .withUsersyncUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet)))
+                .withRedirectUrl(null)
                 .withPrivacy(privacy)
                 .assemble();
     }
@@ -602,12 +599,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                            UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
-        final String url = HOST_BIDDER_USERSYNC_URL_TEMPLATE.formatted(
+        final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
                 externalUrl,
                 cookieFamilyName,
                 HttpUtil.encodeUrl(hostCookieUid));
 
-        return UsersyncUtil.enrichUsersyncUrlWithFormat(url, usersyncMethod.getType());
+        return UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod));
     }
 
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,

@@ -7,12 +7,12 @@ import org.prebid.server.proto.response.UsersyncInfo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UsersyncInfoAssemblerTest {
+public class UsersyncInfoBuilderTest {
 
     @Test
     public void assembleUsersyncInfoShouldAppendRedirectUrlToUsersyncUrl() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
                         "http://url/redirect={{redirect_url}}",
                         "http://localhost:8000redirectUrl"))
@@ -25,7 +25,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleUsersyncInfoShouldAppendEncodedRedirectUrlAndNotEncodedQueryParamsToUsersyncUrl() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
                         "http://url/redirect={{redirect_url}}",
                         "http://localhost:8000/setuid?gdpr={{gdpr}}?gdpr={{gdpr}}"))
@@ -40,7 +40,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleUsersyncInfoShouldIgnoreRedirectUrlIfNotDefined() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url/redirect=", null))
                 .assemble();
 
@@ -51,7 +51,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleWithPrivacyShouldCreatePrivacyAwareUsersyncInfo() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy={{us_privacy}}",
@@ -67,7 +67,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleWithPrivacyShouldTolerateMissingPrivacyParamsUsersyncInfo() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy%3D{{us_privacy}}",
@@ -82,7 +82,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleWithPrivacyShouldIgnorePrivacyParamsIfTheyAreMissingInUrl() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url?redir=a%3Db", null))
                 .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
                 .assemble();
@@ -94,7 +94,7 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleWithPrivacyUsersyncInfoShouldPopulateWithPrivacyRedirectAndUsersyncUrl() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
                         "http://url/{{gdpr}}/{{gdpr_consent}}?redir={{redirect_url}}",
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
@@ -111,9 +111,9 @@ public class UsersyncInfoAssemblerTest {
     @Test
     public void assembleWithUrlUsersyncInfoShouldUpdateUsersyncUrl() {
         // given and when
-        final UsersyncInfo result = UsersyncInfoAssembler
+        final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url", null))
-                .withUrl("http://updated-url")
+                .withUsersyncUrl("http://updated-url")
                 .assemble();
 
         // then
@@ -121,6 +121,11 @@ public class UsersyncInfoAssemblerTest {
     }
 
     private static UsersyncMethod createUsersyncMethod(String usersyncUrl, String redirectUrl) {
-        return UsersyncMethod.of(UsersyncMethodType.REDIRECT, usersyncUrl, redirectUrl, false);
+        return UsersyncMethod.builder()
+                .type(UsersyncMethodType.REDIRECT)
+                .usersyncUrl(usersyncUrl)
+                .redirectUrl(redirectUrl)
+                .supportCORS(false)
+                .build();
     }
 }

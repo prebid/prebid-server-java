@@ -788,10 +788,10 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     private static UsersyncMethod iframeMethod() {
-        return UsersyncMethod.of(UsersyncMethodType.IFRAME, null, null, false);
+        return UsersyncMethod.builder().type(UsersyncMethodType.IFRAME).supportCORS(false).build();
     }
 
     private static UsersyncMethod redirectMethod() {
-        return UsersyncMethod.of(UsersyncMethodType.REDIRECT, null, null, false);
+        return UsersyncMethod.builder().type(UsersyncMethodType.REDIRECT).supportCORS(false).build();
     }
 }

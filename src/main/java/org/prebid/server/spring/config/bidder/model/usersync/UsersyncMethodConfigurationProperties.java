@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder.model.usersync;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.bidder.UsersyncFormat;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
@@ -19,4 +20,6 @@ public class UsersyncMethodConfigurationProperties {
 
     @NotNull
     Boolean supportCors;
+
+    UsersyncFormat formatOverride;
 }

@@ -70,26 +70,31 @@ public class UsersyncerCreatorTest {
         config.setIframe(iframeConfig);
         config.setRedirect(redirectConfig);
 
-        // when and then
-        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config)).isEqualTo(
-                Usersyncer.of(
-                        "rubicon",
-                        UsersyncMethod.of(
-                                UsersyncMethodType.IFRAME,
-                                "//usersync-url-iframe?uid=",
-                                """
-                                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro-iframe\
-                                        """,
-                                true),
-                        UsersyncMethod.of(
-                                UsersyncMethodType.REDIRECT,
-                                "//usersync-url-redirect?u=",
-                                """
-                                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}\
-                                        &uid=uid-macro-redirect\
-                                        """,
-                                false)));
+        // when
+        final Usersyncer result = UsersyncerCreator.create("http://localhost:8000").apply(config);
+
+        // then
+        final UsersyncMethod expectedIframeMethod = UsersyncMethod.builder()
+                .type(UsersyncMethodType.IFRAME)
+                .usersyncUrl("//usersync-url-iframe?uid=")
+                .redirectUrl("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro-iframe\
+                        """)
+                .supportCORS(true)
+                .build();
+
+        final UsersyncMethod expectedRedirectMethod = UsersyncMethod.builder()
+                .type(UsersyncMethodType.REDIRECT)
+                .usersyncUrl("//usersync-url-redirect?u=")
+                .redirectUrl("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}\
+                        &uid=uid-macro-redirect\
+                        """)
+                .supportCORS(false)
+                .build();
+
+        assertThat(result).isEqualTo(Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
     }
 }

@@ -2,13 +2,13 @@ package org.prebid.server.bidder;
 
 public enum UsersyncMethodType {
 
-    IFRAME("iframe", "b"),
-    REDIRECT("redirect", "i");
+    IFRAME("iframe", UsersyncFormat.BLINK),
+    REDIRECT("redirect", UsersyncFormat.PIXEL);
 
     public final String name;
-    public final String format;
+    public final UsersyncFormat format;
 
-    UsersyncMethodType(String name, String format) {
+    UsersyncMethodType(String name, UsersyncFormat format) {
         this.name = name;
         this.format = format;
     }

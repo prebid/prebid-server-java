@@ -6,50 +6,36 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.HttpUtil;
 
-public class UsersyncInfoAssembler {
+public class UsersyncInfoBuilder {
 
     private String usersyncUrl;
     private String redirectUrl;
     private UsersyncMethodType type;
     private Boolean supportCORS;
 
-    public static UsersyncInfoAssembler from(UsersyncMethod usersyncMethod) {
-        final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
-        usersyncInfoAssembler.usersyncUrl = usersyncMethod.getUsersyncUrl();
-        usersyncInfoAssembler.redirectUrl = UsersyncUtil.enrichUsersyncUrlWithFormat(
+    public static UsersyncInfoBuilder from(UsersyncMethod usersyncMethod) {
+        final UsersyncInfoBuilder usersyncInfoBuilder = new UsersyncInfoBuilder();
+        usersyncInfoBuilder.usersyncUrl = StringUtils.defaultString(usersyncMethod.getUsersyncUrl());
+        usersyncInfoBuilder.redirectUrl = UsersyncUtil.enrichUrlWithFormat(
                 StringUtils.stripToEmpty(usersyncMethod.getRedirectUrl()),
-                usersyncMethod.getType());
-        usersyncInfoAssembler.type = usersyncMethod.getType();
-        usersyncInfoAssembler.supportCORS = usersyncMethod.isSupportCORS();
-        return usersyncInfoAssembler;
+                UsersyncUtil.resolveFormat(usersyncMethod));
+        usersyncInfoBuilder.type = usersyncMethod.getType();
+        usersyncInfoBuilder.supportCORS = usersyncMethod.isSupportCORS();
+
+        return usersyncInfoBuilder;
     }
 
-    /**
-     * Updates with already fully build usersync url with possible redirection.
-     * Erased redirect url, as usersync url is already completed
-     */
-    public UsersyncInfoAssembler withUrl(String usersyncUrl) {
-        this.usersyncUrl = usersyncUrl;
-        this.redirectUrl = StringUtils.EMPTY;
+    public UsersyncInfoBuilder withUsersyncUrl(String usersyncUrl) {
+        this.usersyncUrl = StringUtils.defaultString(usersyncUrl);
         return this;
     }
 
-    /**
-     * Updates url to be GDPR-aware. It will replace:
-     * <p>
-     * {{gdpr}} -- with the "gdpr" string (should be either "0", "1", or "")
-     * {{gdpr_consent}} -- with the Raw base64 URL-encoded GDPR Vendor Consent string.
-     * {{us_privacy}} -- with the URL-encoded "us_privacy" string.
-     * <p>
-     * For example, the template:
-     * //some-domain.com/getuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback=prebid-server-domain.com%2Fsetuid%3Fbidder%3Dadnxs%26gdpr={{gdpr}}%26gdpr_consent={{gdpr_consent}}%26us_privacy={{us_privacy}}%26uid%3D%24UID
-     * <p>
-     * would evaluate to:
-     * //some-domain.com/getuid?gdpr=&gdpr_consent=BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw&us_privacy=1YN&callback=prebid-server-domain.com%2Fsetuid%3Fbidder%3Dadnxs%26gdpr=%26gdpr_consent=BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw%26us_privacy=1YN%26%26uid%3D%24UID
-     * <p>
-     * if the "gdpr" arg was empty, and the consent arg was "BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw"
-     */
-    public UsersyncInfoAssembler withPrivacy(Privacy privacy) {
+    public UsersyncInfoBuilder withRedirectUrl(String redirectUrl) {
+        this.redirectUrl = StringUtils.defaultString(redirectUrl);
+        return this;
+    }
+
+    public UsersyncInfoBuilder withPrivacy(Privacy privacy) {
         final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
         final String consent = ObjectUtils.defaultIfNull(privacy.getConsentString(), "");
         final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa().getUsPrivacy(), "");
@@ -59,6 +45,7 @@ public class UsersyncInfoAssembler {
         final String encodedConsent = HttpUtil.encodeUrl(consent);
         final String encodedUsPrivacy = HttpUtil.encodeUrl(ccpa);
         usersyncUrl = updateUrlWithPrivacy(usersyncUrl, encodedGdpr, encodedConsent, encodedUsPrivacy);
+
         return this;
     }
 
@@ -73,6 +60,7 @@ public class UsersyncInfoAssembler {
         final String resolvedRedirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
                 ? resolveQueryParams(redirectUrl)
                 : HttpUtil.encodeUrl(redirectUrl);
+
         final String resolvedUsersyncUrl = usersyncUrl.replace(
                 UsersyncInfo.REDIRECT_URL_PLACEHOLDER, resolvedRedirectUrl);
 

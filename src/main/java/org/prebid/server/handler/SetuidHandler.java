@@ -19,6 +19,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncFormat;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
@@ -299,8 +300,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private boolean shouldRespondWithPixel(String format, UsersyncMethodType syncType) {
-        return StringUtils.equals(format, UsersyncMethodType.REDIRECT.format)
-                || (!StringUtils.equals(format, UsersyncMethodType.IFRAME.format)
+        return StringUtils.equals(format, UsersyncFormat.PIXEL.name)
+                || (!StringUtils.equals(format, UsersyncFormat.BLINK.name)
                 && syncType == UsersyncMethodType.REDIRECT);
     }
 
