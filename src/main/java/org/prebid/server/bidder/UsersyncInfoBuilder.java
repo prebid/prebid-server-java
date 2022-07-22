@@ -25,17 +25,17 @@ public class UsersyncInfoBuilder {
         return usersyncInfoBuilder;
     }
 
-    public UsersyncInfoBuilder withUsersyncUrl(String usersyncUrl) {
+    public UsersyncInfoBuilder usersyncUrl(String usersyncUrl) {
         this.usersyncUrl = StringUtils.defaultString(usersyncUrl);
         return this;
     }
 
-    public UsersyncInfoBuilder withRedirectUrl(String redirectUrl) {
+    public UsersyncInfoBuilder redirectUrl(String redirectUrl) {
         this.redirectUrl = StringUtils.defaultString(redirectUrl);
         return this;
     }
 
-    public UsersyncInfoBuilder withPrivacy(Privacy privacy) {
+    public UsersyncInfoBuilder privacy(Privacy privacy) {
         final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
         final String consent = ObjectUtils.defaultIfNull(privacy.getConsentString(), "");
         final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa().getUsPrivacy(), "");

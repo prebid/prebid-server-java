@@ -584,12 +584,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final UsersyncInfoBuilder usersyncInfoBuilder = UsersyncInfoBuilder.from(usersyncMethod);
         if (uidFromHostCookieToSet != null) {
             usersyncInfoBuilder
-                    .withUsersyncUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet))
-                    .withRedirectUrl(null);
+                    .usersyncUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet))
+                    .redirectUrl(null);
         }
 
         return usersyncInfoBuilder
-                .withPrivacy(privacy)
+                .privacy(privacy)
                 .build();
     }
 

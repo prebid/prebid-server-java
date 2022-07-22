@@ -56,7 +56,7 @@ public class UsersyncInfoBuilderTest {
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy={{us_privacy}}",
                         null))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
+                .privacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
                 .build();
 
         // then
@@ -72,7 +72,7 @@ public class UsersyncInfoBuilderTest {
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy%3D{{us_privacy}}",
                         null))
-                .withPrivacy(Privacy.of(null, null, Ccpa.EMPTY, null))
+                .privacy(Privacy.of(null, null, Ccpa.EMPTY, null))
                 .build();
 
         // then
@@ -84,7 +84,7 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url?redir=a%3Db", null))
-                .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
+                .privacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
                 .build();
 
         // then
@@ -99,7 +99,7 @@ public class UsersyncInfoBuilderTest {
                         "http://url/{{gdpr}}/{{gdpr_consent}}?redir={{redirect_url}}",
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                 + "&us_privacy={{us_privacy}}&uid=$UID"))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
+                .privacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
                 .build();
 
         // then
@@ -113,7 +113,7 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url", null))
-                .withUsersyncUrl("http://updated-url")
+                .usersyncUrl("http://updated-url")
                 .build();
 
         // then
