@@ -16,7 +16,7 @@ public class UsersyncInfoBuilderTest {
                 .from(createUsersyncMethod(
                         "http://url/redirect={{redirect_url}}",
                         "http://localhost:8000redirectUrl"))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url/redirect=http%3A%2F%2Flocalhost%3A8000redirectUrl%3Ff%3Di");
@@ -29,7 +29,7 @@ public class UsersyncInfoBuilderTest {
                 .from(createUsersyncMethod(
                         "http://url/redirect={{redirect_url}}",
                         "http://localhost:8000/setuid?gdpr={{gdpr}}?gdpr={{gdpr}}"))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
@@ -42,7 +42,7 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url/redirect=", null))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url/redirect=");
@@ -57,7 +57,7 @@ public class UsersyncInfoBuilderTest {
                                 + "%26us_privacy={{us_privacy}}",
                         null))
                 .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
@@ -73,7 +73,7 @@ public class UsersyncInfoBuilderTest {
                                 + "%26us_privacy%3D{{us_privacy}}",
                         null))
                 .withPrivacy(Privacy.of(null, null, Ccpa.EMPTY, null))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D");
@@ -85,7 +85,7 @@ public class UsersyncInfoBuilderTest {
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url?redir=a%3Db", null))
                 .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=a%3Db");
@@ -100,7 +100,7 @@ public class UsersyncInfoBuilderTest {
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                 + "&us_privacy={{us_privacy}}&uid=$UID"))
                 .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
@@ -114,7 +114,7 @@ public class UsersyncInfoBuilderTest {
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url", null))
                 .withUsersyncUrl("http://updated-url")
-                .assemble();
+                .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://updated-url");

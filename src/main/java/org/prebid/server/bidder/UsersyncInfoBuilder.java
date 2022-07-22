@@ -56,7 +56,7 @@ public class UsersyncInfoBuilder {
                 .replace(UsersyncInfo.US_PRIVACY_PLACEHOLDER, usPrivacy);
     }
 
-    public UsersyncInfo assemble() {
+    public UsersyncInfo build() {
         final String resolvedRedirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
                 ? resolveQueryParams(redirectUrl)
                 : HttpUtil.encodeUrl(redirectUrl);

@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
