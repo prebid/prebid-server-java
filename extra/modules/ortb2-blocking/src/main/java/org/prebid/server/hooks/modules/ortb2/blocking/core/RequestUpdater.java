@@ -26,11 +26,13 @@ public class RequestUpdater {
     public BidRequest update(BidRequest bidRequest) {
         final List<String> blockedAdomain = blockedAttributes.getBadv();
         final List<String> blockedAdvCat = blockedAttributes.getBcat();
+        final Integer cattax = bidRequest.getCattax();
         final List<String> blockedApp = blockedAttributes.getBapp();
 
         return bidRequest.toBuilder()
                 .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : bidRequest.getBadv())
                 .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : bidRequest.getBcat())
+                .cattax(cattax != null ? cattax : blockedAttributes.getCattaxComplement())
                 .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : bidRequest.getBapp())
                 .imp(updateImps(bidRequest.getImp()))
                 .build();

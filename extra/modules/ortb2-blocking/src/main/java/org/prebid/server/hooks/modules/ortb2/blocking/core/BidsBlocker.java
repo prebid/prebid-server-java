@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.core;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -35,6 +36,8 @@ public class BidsBlocker {
     private static final String BCAT_FIELD = "bcat";
     private static final String BUNDLE_FIELD = "bundle";
     private static final String ATTR_FIELD = "attr";
+
+    private static final Integer DEFAULT_BLOCKED_CATTAX_COMPLEMENT = 1;
 
     private final List<BidderBid> bids;
     private final String bidder;
@@ -106,6 +109,7 @@ public class BidsBlocker {
                 bidderBid.getBid().getImpid(),
                 checkBadv(bidderBid, blockingConfig),
                 checkBcat(bidderBid, blockingConfig),
+                checkCattax(bidderBid, blockingConfig),
                 checkBapp(bidderBid, blockingConfig),
                 checkBattr(bidderBid, blockingConfig));
 
@@ -124,6 +128,20 @@ public class BidsBlocker {
                 bidderBid.getBid().getCat(),
                 blockingConfig.getBcat(),
                 blockedAttributeValues(BlockedAttributes::getBcat));
+    }
+
+    private AttributeCheckResult<Integer> checkCattax(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
+        final Integer cattax = bidderBid.getBid().getCattax();
+        if (cattax == null) {
+            return AttributeCheckResult.succeeded();
+        }
+
+        return checkAttributeComplement(
+                cattax,
+                blockingConfig.getCattax(),
+                ObjectUtils.defaultIfNull(
+                        blockedAttributeValues(BlockedAttributes::getCattaxComplement),
+                        DEFAULT_BLOCKED_CATTAX_COMPLEMENT));
     }
 
     private AttributeCheckResult<String> checkBapp(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
@@ -189,6 +207,21 @@ public class BidsBlocker {
                 : AttributeCheckResult.succeeded();
     }
 
+    private AttributeCheckResult<Integer> checkAttributeComplement(Integer attribute,
+                                                                   BidAttributeBlockingConfig<Integer> blockingConfig,
+                                                                   Integer blockedAttributeComplementValue) {
+
+        if (blockingConfig == null || !blockingConfig.isEnforceBlocks()) {
+            return AttributeCheckResult.succeeded();
+        }
+
+        final boolean blocked = !blockedAttributeComplementValue.equals(attribute);
+
+        return blocked
+                ? AttributeCheckResult.failed(Collections.singletonList(attribute))
+                : AttributeCheckResult.succeeded();
+    }
+
     private <T> T blockedAttributeValues(Function<BlockedAttributes, T> getter) {
         return blockedAttributes != null ? getter.apply(blockedAttributes) : null;
     }
@@ -240,6 +273,10 @@ public class BidsBlocker {
         if (bcatResult.isFailed()) {
             values.put(BCAT_FIELD, bcatResult.getFailedValues());
         }
+        final AttributeCheckResult<Integer> cattaxResult = blockingResult.getCattaxCheckResult();
+        if (cattaxResult.isFailed()) {
+            values.put(BCAT_FIELD, cattaxResult.getFailedValues());
+        }
         final AttributeCheckResult<String> bappResult = blockingResult.getBappCheckResult();
         if (bappResult.isFailed()) {
             values.put(BUNDLE_FIELD, bappResult.getFailedValues().get(0));
@@ -257,6 +294,7 @@ public class BidsBlocker {
 
         private static final String BADV_ATTRIBUTE = "badv";
         private static final String BCAT_ATTRIBUTE = "bcat";
+        private static final String CATTAX_ATTRIBUTE = "cattax";
         private static final String BAPP_ATTRIBUTE = "bapp";
         private static final String BATTR_ATTRIBUTE = "battr";
 
@@ -268,6 +306,8 @@ public class BidsBlocker {
 
         AttributeCheckResult<String> bcatCheckResult;
 
+        AttributeCheckResult<Integer> cattaxCheckResult;
+
         AttributeCheckResult<String> bappCheckResult;
 
         AttributeCheckResult<Integer> battrCheckResult;
@@ -275,11 +315,13 @@ public class BidsBlocker {
         public static BlockingResult of(String impId,
                                         AttributeCheckResult<String> badvCheckResult,
                                         AttributeCheckResult<String> bcatCheckResult,
+                                        AttributeCheckResult<Integer> cattaxCheckResult,
                                         AttributeCheckResult<String> bappCheckResult,
                                         AttributeCheckResult<Integer> battrCheckResult) {
 
             final boolean blocked = badvCheckResult.isFailed()
                     || bcatCheckResult.isFailed()
+                    || cattaxCheckResult.isFailed()
                     || bappCheckResult.isFailed()
                     || battrCheckResult.isFailed();
 
@@ -288,6 +330,7 @@ public class BidsBlocker {
                     blocked,
                     badvCheckResult,
                     bcatCheckResult,
+                    cattaxCheckResult,
                     bappCheckResult,
                     battrCheckResult);
         }
@@ -303,6 +346,9 @@ public class BidsBlocker {
             }
             if (bcatCheckResult.isFailed()) {
                 failedChecks.add(BCAT_ATTRIBUTE);
+            }
+            if (cattaxCheckResult.isFailed()) {
+                failedChecks.add(CATTAX_ATTRIBUTE);
             }
             if (bappCheckResult.isFailed()) {
                 failedChecks.add(BAPP_ATTRIBUTE);

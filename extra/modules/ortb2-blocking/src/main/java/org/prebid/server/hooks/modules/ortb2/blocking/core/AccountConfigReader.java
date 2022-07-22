@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -16,6 +17,7 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttribut
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ResponseBlockingConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.Result;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.util.MergeUtils;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
@@ -41,6 +43,7 @@ public class AccountConfigReader {
     private static final String BLOCKED_ADOMAIN_FIELD = "blocked-adomain";
     private static final String ALLOWED_ADOMAIN_FOR_DEALS_FIELD = "allowed-adomain-for-deals";
     private static final String BLOCKED_ADV_CAT_FIELD = "blocked-adv-cat";
+    private static final String CATEGORY_TAXONOMY_FIELD = "category-taxonomy";
     private static final String BLOCK_UNKNOWN_ADV_CAT_FIELD = "block-unknown-adv-cat";
     private static final String ALLOWED_ADV_CAT_FOR_DEALS_FIELD = "allowed-adv-cat-for-deals";
     private static final String BLOCKED_APP_FIELD = "blocked-app";
@@ -85,6 +88,7 @@ public class AccountConfigReader {
                 blockedAttribute(BADV_FIELD, String.class, BLOCKED_ADOMAIN_FIELD, requestMediaTypes);
         final Result<List<String>> bcat =
                 blockedAttribute(BCAT_FIELD, String.class, BLOCKED_ADV_CAT_FIELD, requestMediaTypes);
+        final Result<Integer> cattaxComplement = blockedCattaxComplement(bidRequest);
         final Result<List<String>> bapp =
                 blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
         final Result<Map<String, List<Integer>>> btype =
@@ -93,8 +97,8 @@ public class AccountConfigReader {
                 blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, bidRequest);
 
         return Result.of(
-                toBlockedAttributes(badv, bcat, bapp, btype, battr),
-                MergeUtils.mergeMessages(badv, bcat, bapp, btype, battr));
+                toBlockedAttributes(badv, bcat, cattaxComplement, bapp, btype, battr),
+                MergeUtils.mergeMessages(badv, bcat, cattaxComplement, bapp, btype, battr));
     }
 
     public Result<ResponseBlockingConfig> responseBlockingConfigFor(BidderBid bidderBid) {
@@ -115,6 +119,7 @@ public class AccountConfigReader {
                 ALLOWED_ADV_CAT_FOR_DEALS_FIELD,
                 bidMediaTypes,
                 dealid);
+        final Result<BidAttributeBlockingConfig<Integer>> cattax = blockingConfigForCattax(bcat.getValue());
         final Result<BidAttributeBlockingConfig<String>> bapp = blockingConfigForAttribute(
                 BAPP_FIELD,
                 String.class,
@@ -131,11 +136,12 @@ public class AccountConfigReader {
         final ResponseBlockingConfig response = ResponseBlockingConfig.builder()
                 .badv(badv.getValue())
                 .bcat(bcat.getValue())
+                .cattax(cattax.getValue())
                 .bapp(bapp.getValue())
                 .battr(battr.getValue())
                 .build();
 
-        final List<String> warnings = MergeUtils.mergeMessages(badv, bcat, bapp, battr);
+        final List<String> warnings = MergeUtils.mergeMessages(badv, bcat, cattax, bapp, battr);
 
         return Result.of(response, warnings);
     }
@@ -155,6 +161,27 @@ public class AccountConfigReader {
         final List<T> result = overrideArrayAttribute(attributeConfig, override.getValue(), attributeType, fieldName);
 
         return Result.of(result, override.getMessages());
+    }
+
+    private Result<Integer> blockedCattaxComplement(BidRequest bidRequest) {
+        return Result.withValue(
+                ObjectUtil.firstNonNull(
+                        bidRequest::getCattax,
+                        this::blockedCattaxComplementFromConfig));
+    }
+
+    private Integer blockedCattaxComplementFromConfig() {
+        final JsonNode config = attributeConfig(BCAT_FIELD);
+        if (config == null) {
+            return null;
+        }
+
+        final JsonNode blockedCattaxComplementNode = config.get(CATEGORY_TAXONOMY_FIELD);
+        if (blockedCattaxComplementNode == null) {
+            return null;
+        }
+
+        return typedAs(blockedCattaxComplementNode, Integer.class, CATEGORY_TAXONOMY_FIELD);
     }
 
     private <T> Result<Map<String, List<T>>> blockedAttributesForImps(String attribute,
@@ -226,6 +253,17 @@ public class AccountConfigReader {
                                                                                  String dealid) {
 
         return blockingConfigForAttribute(attribute, type, null, allowedForDealsField, bidMediaTypes, dealid);
+    }
+
+    private static Result<BidAttributeBlockingConfig<Integer>> blockingConfigForCattax(
+            BidAttributeBlockingConfig<String> bcat) {
+
+        return bcat != null
+                ? Result.withValue(BidAttributeBlockingConfig.of(
+                bcat.isEnforceBlocks(),
+                true,
+                SetUtils.emptySet()))
+                : Result.empty();
     }
 
     private JsonNode attributes() {
@@ -324,18 +362,27 @@ public class AccountConfigReader {
 
     private static BlockedAttributes toBlockedAttributes(Result<List<String>> badv,
                                                          Result<List<String>> bcat,
+                                                         Result<Integer> cattaxComplement,
                                                          Result<List<String>> bapp,
                                                          Result<Map<String, List<Integer>>> btype,
                                                          Result<Map<String, List<Integer>>> battr) {
 
-        return badv.hasValue() || bcat.hasValue() || bapp.hasValue() || btype.hasValue() || battr.hasValue()
+        return badv.hasValue()
+                || bcat.hasValue()
+                || cattaxComplement.hasValue()
+                || bapp.hasValue()
+                || btype.hasValue()
+                || battr.hasValue()
+
                 ? BlockedAttributes.builder()
                 .badv(badv.getValue())
                 .bcat(bcat.getValue())
+                .cattaxComplement(cattaxComplement.getValue())
                 .bapp(bapp.getValue())
                 .btype(btype.getValue())
                 .battr(battr.getValue())
                 .build()
+
                 : null;
     }
 
