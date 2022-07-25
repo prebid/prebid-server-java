@@ -18,9 +18,9 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -345,7 +345,7 @@ public class BidsBlockerTest {
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
-            assertThat(result.getValue()).isEqualTo(BlockedBids.of(new HashSet<>(asList(0, 1))));
+            assertThat(result.getValue()).isEqualTo(BlockedBids.of(Set.of(0, 1)));
 
             final Map<String, Object> analyticsResultValues1 = new HashMap<>();
             analyticsResultValues1.put("attributes", asList("badv", "bapp"));
@@ -415,13 +415,113 @@ public class BidsBlockerTest {
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
-            assertThat(result.getValue()).isEqualTo(BlockedBids.of(new HashSet<>(asList(0, 1, 3, 5, 7))));
+            assertThat(result.getValue()).isEqualTo(BlockedBids.of(Set.of(0, 1, 3, 5, 7)));
             assertThat(result.getDebugMessages()).containsOnly(
                     "Bid 0 from bidder bidder1 has been rejected, failed checks: [badv, bcat]",
                     "Bid 1 from bidder bidder1 has been rejected, failed checks: [bcat]",
                     "Bid 3 from bidder bidder1 has been rejected, failed checks: [bapp]",
                     "Bid 5 from bidder bidder1 has been rejected, failed checks: [battr]",
                     "Bid 7 from bidder bidder1 has been rejected, failed checks: [badv, bcat]");
+        });
+    }
+
+    @Test
+    public void shouldReturnEmptyResultForCattaxIfBidderSupportsLowerThan26() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(false)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = asList(
+                bid(bid -> bid.cattax(null)),
+                bid(bid -> bid.cattax(1)),
+                bid(bid -> bid.cattax(2)),
+                bid(bid -> bid.cattax(3)),
+                bid());
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
+        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+
+        // when and then
+        assertThat(blocker.block())
+                .extracting(ExecutionResult::getValue)
+                .isNull();
+    }
+
+    @Test
+    public void shouldPassBidIfCattaxIsNull() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(false)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = singletonList(bid());
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
+        final BidsBlocker blocker = BidsBlocker.create(
+                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+
+        // when and then
+        assertThat(blocker.block())
+                .extracting(ExecutionResult::getValue)
+                .isNull();
+    }
+
+    @Test
+    public void shouldBlockBidIfCattaxNotEqualsAllowedCattax() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(false)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = asList(
+                bid(bid -> bid.cattax(1)),
+                bid(bid -> bid.cattax(2)));
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder().cattaxComplement(2).build();
+        final BidsBlocker blocker = BidsBlocker.create(
+                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+
+        // when and then
+        assertThat(blocker.block()).satisfies(result -> {
+            assertThat(result.getValue()).isEqualTo(BlockedBids.of(Set.of(0)));
+            assertThat(result.getDebugMessages()).containsExactly(
+                    "Bid 0 from bidder bidder1 has been rejected, failed checks: [cattax]");
+        });
+    }
+
+    @Test
+    public void shouldBlockBidIfCattaxNotEquals1IfBlockedAttributesCattaxAbsent() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(false)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = asList(
+                bid(bid -> bid.cattax(1)),
+                bid(bid -> bid.cattax(2)));
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
+        final BidsBlocker blocker = BidsBlocker.create(
+                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+
+        // when and then
+        assertThat(blocker.block()).satisfies(result -> {
+            assertThat(result.getValue()).isEqualTo(BlockedBids.of(Set.of(1)));
+            assertThat(result.getDebugMessages()).containsExactly(
+                    "Bid 1 from bidder bidder1 has been rejected, failed checks: [cattax]");
         });
     }
 
@@ -455,7 +555,7 @@ public class BidsBlockerTest {
     }
 
     private static void hasValue(ExecutionResult<BlockedBids> result, Integer... indexes) {
-        assertThat(result.getValue()).isEqualTo(BlockedBids.of(new HashSet<>(asList(indexes))));
+        assertThat(result.getValue()).isEqualTo(BlockedBids.of(Set.of(indexes)));
         assertThat(result.getErrors()).isNull();
         assertThat(result.getWarnings()).isNull();
         assertThat(result.getDebugMessages()).isNull();

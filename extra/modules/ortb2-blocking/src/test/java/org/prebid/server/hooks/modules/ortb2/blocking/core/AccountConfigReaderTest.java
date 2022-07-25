@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.core;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -787,6 +788,70 @@ public class AccountConfigReaderTest {
     }
 
     @Test
+    public void blockedAttributesForShouldNotReturnCattaxIfBidderSupportsLowerThan26() throws JsonProcessingException {
+        // given
+        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+                {
+                  "attributes": {
+                    "bcat": {
+                      "enforce-blocks": true,
+                      "block-unknown-adv-cat": false,
+                      "category-taxonomy": 6
+                    }
+                  }
+                }
+                """);
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(Result.empty());
+    }
+
+    @Test
+    public void blockedAttributesForShouldReturnCattaxFromRequestIfPresent() throws JsonProcessingException {
+        // given
+        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+                {
+                  "attributes": {
+                    "bcat": {
+                      "enforce-blocks": true,
+                      "block-unknown-adv-cat": false,
+                      "category-taxonomy": 6
+                    }
+                  }
+                }
+                """);
+        final AccountConfigReader reader = AccountConfigReader.create(
+                accountConfig, "bidder1", OrtbVersion.ORTB_2_6, true);
+
+        // when and then
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1"), request -> request.cattax(2))))
+                .isEqualTo(Result.withValue(BlockedAttributes.builder().cattaxComplement(2).build()));
+    }
+
+    @Test
+    public void blockedAttributesForShouldReturnCattaxFromConfigIfNotPresentInRequest() throws JsonProcessingException {
+        // given
+        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+                {
+                  "attributes": {
+                    "bcat": {
+                      "enforce-blocks": true,
+                      "block-unknown-adv-cat": false,
+                      "category-taxonomy": 6
+                    }
+                  }
+                }
+                """);
+        final AccountConfigReader reader = AccountConfigReader.create(
+                accountConfig, "bidder1", OrtbVersion.ORTB_2_6, true);
+
+        // when and then
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1"))))
+                .isEqualTo(Result.withValue(BlockedAttributes.builder().cattaxComplement(6).build()));
+    }
+
+    @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDefaultEnforceBlocksIsNotBoolean() {
         // given
         final ObjectNode accountConfig = mapper.createObjectNode()
@@ -1152,6 +1217,38 @@ public class AccountConfigReaderTest {
         });
     }
 
+    @Test
+    public void responseBlockingConfigForShouldReturnCattaxConfigDependsOnBcatConfig() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(false)
+                        .blockUnknown(true)
+                        .allowedForDeals(asList("cat1", "cat2"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        true)),
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("cat3")))))
+                        .build())
+                .build()));
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.responseBlockingConfigFor(bid())).satisfies(result -> {
+            assertThat(result.getValue()).isEqualTo(ResponseBlockingConfig.builder()
+                    .bcat(BidAttributeBlockingConfig.of(true, false, Set.of("cat1", "cat2", "cat3")))
+                    .cattax(BidAttributeBlockingConfig.of(true, true, emptySet()))
+                    .build());
+            assertThat(result.getMessages()).isNull();
+        });
+    }
+
     private static BidRequest emptyRequest() {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
@@ -1161,6 +1258,14 @@ public class AccountConfigReaderTest {
     private static BidRequest request(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return BidRequest.builder()
                 .imp(singletonList(impCustomizer.apply(Imp.builder()).build()))
+                .build();
+    }
+
+    private static BidRequest request(UnaryOperator<Imp.ImpBuilder> impCustomizer,
+                                      UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(impCustomizer.apply(Imp.builder()).build())))
                 .build();
     }
 

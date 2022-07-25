@@ -76,6 +76,34 @@ public class RequestUpdaterTest {
     }
 
     @Test
+    public void shouldKeepBcatIfPresent() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder().cattaxComplement(2).build());
+        final BidRequest request = BidRequest.builder()
+                .cattax(1)
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .cattax(1)
+                .build());
+    }
+
+    @Test
+    public void shouldReplaceBcatIfAbsent() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder().cattaxComplement(2).build());
+        final BidRequest request = BidRequest.builder().build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .cattax(2)
+                .build());
+    }
+
+    @Test
     public void shouldReplaceBapp() {
         // given
         final RequestUpdater updater = RequestUpdater.create(

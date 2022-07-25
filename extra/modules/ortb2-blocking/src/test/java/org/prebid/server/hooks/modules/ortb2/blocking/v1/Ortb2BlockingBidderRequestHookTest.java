@@ -148,11 +148,14 @@ public class Ortb2BlockingBidderRequestHookTest {
                     .isNotNull()
                     .isInstanceOf(ModuleContext.class)
                     .asInstanceOf(InstanceOfAssertFactories.type(ModuleContext.class))
-                    .satisfies(context -> assertThat(context.blockedAttributesFor("bidder1"))
-                            .isEqualTo(BlockedAttributes.builder()
-                                    .badv(singletonList("domain1.com"))
-                                    .bcat(singletonList("cat1"))
-                                    .build()));
+                    .satisfies(context -> {
+                        assertThat(context.ortbVersionOf("bidder1")).isSameAs(OrtbVersion.ORTB_2_5);
+                        assertThat(context.blockedAttributesFor("bidder1"))
+                                .isEqualTo(BlockedAttributes.builder()
+                                        .badv(singletonList("domain1.com"))
+                                        .bcat(singletonList("cat1"))
+                                        .build());
+                    });
             softly.assertThat(invocationResult.warnings()).isNull();
             softly.assertThat(invocationResult.errors()).isNull();
         });
