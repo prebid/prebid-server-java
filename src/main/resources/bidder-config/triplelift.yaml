@@ -1,6 +1,7 @@
 adapters:
   triplelift:
     endpoint: https://tlx.3lift.com/s2s/auction?sra=1&supplier_id=20
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@triplelift.com
       app-media-types:
