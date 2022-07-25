@@ -5,6 +5,7 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.AnalyticsResult;
@@ -41,18 +42,21 @@ public class BidsBlocker {
 
     private final List<BidderBid> bids;
     private final String bidder;
+    private final OrtbVersion ortbVersion;
     private final ObjectNode accountConfig;
     private final BlockedAttributes blockedAttributes;
     private final boolean debugEnabled;
 
     private BidsBlocker(List<BidderBid> bids,
                         String bidder,
+                        OrtbVersion ortbVersion,
                         ObjectNode accountConfig,
                         BlockedAttributes blockedAttributes,
                         boolean debugEnabled) {
 
         this.bids = bids;
         this.bidder = bidder;
+        this.ortbVersion = ortbVersion;
         this.accountConfig = accountConfig;
         this.blockedAttributes = blockedAttributes;
         this.debugEnabled = debugEnabled;
@@ -60,6 +64,7 @@ public class BidsBlocker {
 
     public static BidsBlocker create(List<BidderBid> bids,
                                      String bidder,
+                                     OrtbVersion ortbVersion,
                                      ObjectNode accountConfig,
                                      BlockedAttributes blockedAttributes,
                                      boolean debugEnabled) {
@@ -67,13 +72,15 @@ public class BidsBlocker {
         return new BidsBlocker(
                 Objects.requireNonNull(bids),
                 Objects.requireNonNull(bidder),
+                Objects.requireNonNull(ortbVersion),
                 accountConfig,
                 blockedAttributes,
                 debugEnabled);
     }
 
     public ExecutionResult<BlockedBids> block() {
-        final AccountConfigReader accountConfigReader = AccountConfigReader.create(accountConfig, bidder, debugEnabled);
+        final AccountConfigReader accountConfigReader = AccountConfigReader.create(
+                accountConfig, bidder, ortbVersion, debugEnabled);
 
         try {
             final List<Result<BlockingResult>> blockedBidResults = bids.stream()
@@ -132,7 +139,7 @@ public class BidsBlocker {
 
     private AttributeCheckResult<Integer> checkCattax(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
         final Integer cattax = bidderBid.getBid().getCattax();
-        if (cattax == null) {
+        if (cattax == null || ortbVersion.ordinal() < OrtbVersion.ORTB_2_6.ordinal()) {
             return AttributeCheckResult.succeeded();
         }
 

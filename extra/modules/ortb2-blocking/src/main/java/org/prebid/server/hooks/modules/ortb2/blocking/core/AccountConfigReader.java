@@ -10,6 +10,7 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BidAttributeBlockingConfig;
@@ -65,16 +66,22 @@ public class AccountConfigReader {
 
     private final ObjectNode config;
     private final String bidder;
+    private final OrtbVersion ortbVersion;
     private final boolean debugEnabled;
 
-    private AccountConfigReader(ObjectNode config, String bidder, boolean debugEnabled) {
+    private AccountConfigReader(ObjectNode config, String bidder, OrtbVersion ortbVersion, boolean debugEnabled) {
         this.config = config;
         this.bidder = bidder;
+        this.ortbVersion = ortbVersion;
         this.debugEnabled = debugEnabled;
     }
 
-    public static AccountConfigReader create(ObjectNode config, String bidder, boolean debugEnabled) {
-        return new AccountConfigReader(config, bidder, debugEnabled);
+    public static AccountConfigReader create(ObjectNode config,
+                                             String bidder,
+                                             OrtbVersion ortbVersion,
+                                             boolean debugEnabled) {
+
+        return new AccountConfigReader(config, bidder, ortbVersion, debugEnabled);
     }
 
     public Result<BlockedAttributes> blockedAttributesFor(BidRequest bidRequest) {
@@ -164,6 +171,10 @@ public class AccountConfigReader {
     }
 
     private Result<Integer> blockedCattaxComplement(BidRequest bidRequest) {
+        if (ortbVersion.ordinal() < OrtbVersion.ORTB_2_6.ordinal()) {
+            return Result.empty();
+        }
+
         return Result.withValue(
                 ObjectUtil.firstNonNull(
                         bidRequest::getCattax,

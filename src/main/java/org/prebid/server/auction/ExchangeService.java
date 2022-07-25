@@ -274,13 +274,12 @@ public class ExchangeService {
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
-                .compose(storedResponseResult -> extractAuctionParticipation(
+                .compose(storedResponseResult -> extractAuctionParticipations(
                         receivedContext, storedResponseResult, aliases, bidderToMultiBid))
 
-                .map(auctionParticipation -> updateRequestMetric(
-                        auctionParticipation, uidsCookie, aliases, account, requestTypeMetric))
-                .map(bidderRequests -> maybeLogBidderInteraction(receivedContext, bidderRequests))
-
+                .map(auctionParticipations -> updateRequestMetric(
+                        auctionParticipations, uidsCookie, aliases, account, requestTypeMetric))
+                .map(auctionParticipations -> maybeLogBidderInteraction(receivedContext, auctionParticipations))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
@@ -485,7 +484,7 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
-    private Future<List<AuctionParticipation>> extractAuctionParticipation(
+    private Future<List<AuctionParticipation>> extractAuctionParticipations(
             AuctionContext context,
             StoredResponseResult storedResponseResult,
             BidderAliases aliases,
@@ -1577,6 +1576,7 @@ public class ExchangeService {
     private List<AuctionParticipation> updateMetricsFromResponses(List<AuctionParticipation> auctionParticipations,
                                                                   Account account,
                                                                   BidderAliases aliases) {
+
         final List<BidderResponse> bidderResponses = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .map(AuctionParticipation::getBidderResponse)
