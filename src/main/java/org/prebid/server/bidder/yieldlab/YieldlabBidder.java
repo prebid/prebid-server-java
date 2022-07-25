@@ -19,8 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
@@ -37,7 +37,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -58,15 +58,21 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
     private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
-    private static final String VAST_MARKUP = "<VAST version=\"2.0\"><Ad id=\"%s\"><Wrapper><AdSystem>Yieldlab"
-            + "</AdSystem><VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
-            + "</Wrapper></Ad></VAST>";
+    private static final String VAST_MARKUP = """
+            <VAST version="2.0"><Ad id="%s"><Wrapper>
+            <AdSystem>Yieldlab</AdSystem>
+            <VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI>
+            <Impression></Impression>
+            <Creatives></Creatives>
+            </Wrapper></Ad></VAST>""";
 
     private final String endpointUrl;
+    private final Clock clock;
     private final JacksonMapper mapper;
 
-    public YieldlabBidder(String endpointUrl, JacksonMapper mapper) {
+    public YieldlabBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -94,7 +100,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final List<String> adSlotIds = extImps.stream()
                 .map(ExtImpYieldlab::getAdslotId)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         final Map<String, String> targeting = extImps.stream()
                 .map(ExtImpYieldlab::getTargeting)
@@ -128,15 +134,15 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request) {
         // for passing validation tests
-        final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(Instant.now().getEpochSecond());
+        final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
 
-        final String updatedPath = String.format("%s/%s", endpointUrl, extImpYieldlab.getAdslotId());
+        final String updatedPath = "%s/%s".formatted(endpointUrl, extImpYieldlab.getAdslotId());
 
         final URIBuilder uriBuilder;
         try {
             uriBuilder = new URIBuilder(updatedPath);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Invalid url: %s, error: %s", updatedPath, e.getMessage()));
+            throw new PreBidException("Invalid url: %s, error: %s".formatted(updatedPath, e.getMessage()));
         }
 
         uriBuilder
@@ -174,10 +180,13 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final String gdpr = getGdprParameter(request.getRegs());
+        if (StringUtils.isNotBlank(gdpr)) {
+            uriBuilder.addParameter("gdpr", gdpr);
+        }
+
         final String consent = getConsentParameter(request.getUser());
-        if (StringUtils.isNotBlank(gdpr) && StringUtils.isNotBlank(consent)) {
-            uriBuilder.addParameter("gdpr", gdpr)
-                    .addParameter("consent", consent);
+        if (StringUtils.isNotBlank(consent)) {
+            uriBuilder.addParameter("consent", consent);
         }
 
         return uriBuilder.toString();
@@ -236,14 +245,14 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER.toString(), String.format("id=%s", user.getBuyeruid()));
+            headers.add(HttpUtil.COOKIE_HEADER.toString(), "id=" + user.getBuyeruid());
         }
 
         return headers;
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final List<YieldlabResponse> yieldlabResponses;
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
@@ -278,7 +287,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final Imp currentImp = bidRequest.getImp().get(currentImpIndex);
         if (currentImp == null) {
-            throw new PreBidException(String.format("Imp not present for id %s", currentImpIndex));
+            throw new PreBidException("Imp not present for id " + currentImpIndex);
         }
         final Bid.BidBuilder updatedBid = Bid.builder();
 
@@ -300,7 +309,7 @@ public class YieldlabBidder implements Bidder<Void> {
         return BidderBid.of(updatedBid.build(), bidType, BID_CURRENCY);
     }
 
-    private List<YieldlabResponse> decodeBodyToBidList(HttpCall<Void> httpCall) {
+    private List<YieldlabResponse> decodeBodyToBidList(BidderCall<Void> httpCall) {
         try {
             return mapper.mapper().readValue(
                     httpCall.getResponse().getBody(),
@@ -347,7 +356,7 @@ public class YieldlabBidder implements Bidder<Void> {
                                          ExtImpYieldlab extImp) {
         // for passing validation tests
         final int weekNumber = isDebugEnabled(bidRequest) ? 35 : Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        return String.format(CREATIVE_ID, extImp.getAdslotId(), yieldlabResponse.getPid(), weekNumber);
+        return CREATIVE_ID.formatted(extImp.getAdslotId(), yieldlabResponse.getPid(), weekNumber);
     }
 
     private static Integer resolveSizeParameter(String adSize, boolean isWidth) {
@@ -361,19 +370,20 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
-        return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
+        return AD_SOURCE_BANNER.formatted(makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private static String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
-                                     YieldlabResponse yieldlabResponse) {
-        return String.format(VAST_MARKUP, extImpYieldlab.getAdslotId(),
+    private String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
+        return VAST_MARKUP.formatted(
+                extImpYieldlab.getAdslotId(),
                 makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private static String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
-                                   YieldlabResponse yieldlabResponse) {
+    private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
         // for passing validation tests
-        final String timestamp = isDebugEnabled(bidRequest) ? "200000" : String.valueOf(Instant.now().getEpochSecond());
+        final String timestamp = isDebugEnabled(bidRequest)
+                ? "200000"
+                : String.valueOf(clock.instant().getEpochSecond());
 
         final URIBuilder uriBuilder = new URIBuilder()
                 .addParameter("ts", timestamp)
@@ -392,7 +402,10 @@ public class YieldlabBidder implements Bidder<Void> {
                     .addParameter("consent", consent);
         }
 
-        return String.format(AD_SOURCE_URL, extImpYieldlab.getAdslotId(), extImpYieldlab.getSupplyId(),
-                yieldlabResponse.getAdSize(), uriBuilder.toString().replace("?", ""));
+        return AD_SOURCE_URL.formatted(
+                extImpYieldlab.getAdslotId(),
+                extImpYieldlab.getSupplyId(),
+                yieldlabResponse.getAdSize(),
+                uriBuilder.toString().replace("?", ""));
     }
 }

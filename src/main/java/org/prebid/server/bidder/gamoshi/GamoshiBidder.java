@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -49,8 +49,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             if (imp.getBanner() == null && imp.getVideo() == null) {
                 errors.add(BidderError.badInput(
-                        String.format("Gamoshi only supports banner and video media types. Ignoring imp id=%s",
-                                imp.getId())));
+                        "Gamoshi only supports banner and video media types. Ignoring imp id=" + imp.getId()));
                 continue;
             }
             validImps.add(processImp(imp));
@@ -128,7 +127,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -155,7 +154,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner),
                         bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(Imp imp) {

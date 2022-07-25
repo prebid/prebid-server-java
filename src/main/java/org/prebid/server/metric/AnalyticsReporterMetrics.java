@@ -25,11 +25,11 @@ class AnalyticsReporterMetrics extends UpdatableMetrics {
     }
 
     private static String createAdapterPrefix(String reporterName) {
-        return String.format("analytics.%s", reporterName);
+        return "analytics." + reporterName;
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     EventTypeMetrics forEventType(MetricName eventType) {

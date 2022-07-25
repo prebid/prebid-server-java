@@ -7,11 +7,11 @@ import org.prebid.server.functional.model.request.auction.SchainNode
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.SourceExt
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
-@PBSTest
+import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
+
 class SchainSpec extends BaseSpec {
 
     private static final GLOBAL_SCHAIN_NODE = new SchainNode().tap {
@@ -22,7 +22,7 @@ class SchainSpec extends BaseSpec {
     }
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": encode(GLOBAL_SCHAIN_NODE)])
 
     def "Global schain node should be appended when only ext.prebid.schains exists"() {
         given: "Basic bid request"
@@ -39,6 +39,54 @@ class SchainSpec extends BaseSpec {
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.source?.ext?.schain?.nodes == schain.nodes + GLOBAL_SCHAIN_NODE
+    }
+
+    def "PBS should copy ext.schain to source.ext.schain when source.ext.schain doesn't exist"() {
+        given: "Basic bid request with ext.schain"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.schain = defaultSchain
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "ext.schain should be appended to the source.ext.schain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.source?.ext?.schain == bidRequest.ext.schain
+    }
+
+    def "PBS should move ext.schain to source.ext.schain when source exists"() {
+        given: "Basic bid request with ext.schain"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.schain = defaultSchain
+            source = new Source(fd: EXCHANGE)
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "ext.schain should be appended to the source.ext.schain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.source?.ext?.schain == bidRequest.ext.schain
+
+        and: "PBS should not override source params from request"
+        assert bidderRequest.source?.fd == bidRequest.source.fd
+    }
+
+    def "PBS should not move ext.schain to source.ext.schain when source.ext.schain exists"() {
+        given: "Basic bid request with ext.schain, source.ext.schain"
+        def schain = defaultSchain
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.schain = defaultSchain
+            source = new Source(ext: new SourceExt(schain: schain))
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain source.ext.schain from request.source.ext.schain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.source?.ext?.schain == schain
     }
 
     def "Global schain node should be appended to the end of the node array when only source.ext.schain exists"() {

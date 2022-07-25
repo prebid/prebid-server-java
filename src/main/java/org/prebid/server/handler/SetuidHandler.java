@@ -14,8 +14,8 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -164,11 +164,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
         if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
-            throw new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
+            throw new InvalidRequestException("\"bidder\" query param is " + cookieNameError);
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+        if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric(bidder);
             throw new InvalidRequestException("Consent string is invalid");
         }
@@ -303,14 +303,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (error instanceof InvalidRequestException) {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format("Invalid request format: %s", message);
+            body = "Invalid request format: " + message;
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED;
-            body = String.format("Unauthorized: %s", message);
+            body = "Unauthorized: " + message;
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format("Unexpected setuid processing error: %s", message);
+            body = "Unexpected setuid processing error: " + message;
             logger.warn(body, error);
         }
 

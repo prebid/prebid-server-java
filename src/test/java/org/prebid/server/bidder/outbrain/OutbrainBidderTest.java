@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -163,7 +163,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = outbrainBidder.makeBids(httpCall, null);
@@ -178,7 +178,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -192,7 +192,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -206,7 +206,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
                         .build(),
@@ -225,7 +225,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
                         .build(),
@@ -244,7 +244,7 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResponseWithErrorWhenIdIsNotFound() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -281,7 +281,7 @@ public class OutbrainBidderTest extends VertxTest {
                 .eventtrackers(eventTrackers)
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build())).build(),
                 mapper.writeValueAsString(
@@ -294,7 +294,7 @@ public class OutbrainBidderTest extends VertxTest {
         // then
         final String expectedAdm = jacksonMapper.encodeToString(Response.builder()
                 .eventtrackers(null)
-                .jstracker(String.format("<script src=\"%s\"></script>", jsUrl))
+                .jstracker("<script src=\"%s\"></script>".formatted(jsUrl))
                 .imptrackers(singletonList(impUrl))
                 .build());
 
@@ -310,7 +310,7 @@ public class OutbrainBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -320,11 +320,11 @@ public class OutbrainBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOutbrain.of(
-                        ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
-                        "tagId", singletonList("testBcat"), singletonList("testBadv"))))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOutbrain.of(
+                                ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
+                                "tagId", singletonList("testBcat"), singletonList("testBadv"))))))
                 .build();
     }
 
@@ -336,8 +336,8 @@ public class OutbrainBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

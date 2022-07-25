@@ -11,11 +11,11 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +79,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private final String externalUrl;
     private final long defaultTimeout;
+    private final Integer coopSyncDefaultLimit;
+    private final Integer coopSyncMaxLimit;
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
@@ -95,6 +98,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     public CookieSyncHandler(String externalUrl,
                              long defaultTimeout,
+                             Integer coopSyncDefaultLimit,
+                             Integer coopSyncMaxLimit,
                              UidsCookieService uidsCookieService,
                              ApplicationSettings applicationSettings,
                              BidderCatalog bidderCatalog,
@@ -110,6 +115,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
+        this.coopSyncDefaultLimit = coopSyncDefaultLimit;
+        this.coopSyncMaxLimit = coopSyncMaxLimit;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -150,8 +157,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         metrics.updateCookieSyncRequestMetric();
 
         toCookieSyncContext(routingContext)
-                .onComplete(cookieSyncContextResult -> handleCookieSyncContextResult(cookieSyncContextResult,
-                        routingContext));
+                .onComplete(cookieSyncContextResult ->
+                        handleCookieSyncContextResult(cookieSyncContextResult, routingContext));
     }
 
     private Future<CookieSyncContext> toCookieSyncContext(RoutingContext routingContext) {
@@ -239,7 +246,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+        if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric();
             throw new InvalidRequestException("Consent string is invalid");
         }
@@ -440,16 +447,17 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
-                .collect(Collectors.toList());
+                .toList();
 
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
-        final List<BidderUsersyncStatus> updatedBidderStatuses =
+        final List<BidderUsersyncStatus> trimmedBidderStatuses =
                 trimBiddersToLimit(bidderStatuses, resolveLimit(cookieSyncContext));
+
         final String cookieSyncStatus = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
-        final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
+        final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, trimmedBidderStatuses);
         final String body = mapper.encodeToString(cookieSyncResponse);
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
@@ -460,7 +468,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())
-                .bidderStatus(updatedBidderStatuses)
+                .bidderStatus(trimmedBidderStatuses)
                 .build();
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         analyticsDelegator.processEvent(event, tcfContext);
@@ -493,9 +501,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else if (!bidderCatalog.isActive(bidder)) {
             return bidderStatusBuilder(bidder)
-                    .error(String.format("%s is not configured properly on this Prebid Server deploy. "
-                            + "If you believe this should work, contact the company hosting the service "
-                            + "and tell them to check their configuration.", bidder))
+                    .error(bidder + """
+                             is not configured properly on this Prebid Server deploy. \
+                            If you believe this should work, contact the company hosting \
+                            the service and tell them to check their configuration.""")
                     .build();
         } else if (biddersRejectedByTcf.contains(bidder)) {
             return bidderStatusBuilder(bidder)
@@ -593,8 +602,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                            Usersyncer.UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
-        final String url = String.format(
-                HOST_BIDDER_USERSYNC_URL_TEMPLATE,
+        final String url = HOST_BIDDER_USERSYNC_URL_TEMPLATE.formatted(
                 externalUrl,
                 cookieFamilyName,
                 HttpUtil.encodeUrl(hostCookieUid));
@@ -609,33 +617,41 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .forEach(metrics::updateCookieSyncMatchesMetric);
     }
 
-    private static Integer resolveLimit(CookieSyncContext cookieSyncContext) {
-        final Integer limit = cookieSyncContext.getCookieSyncRequest().getLimit();
+    private Integer resolveLimit(CookieSyncContext cookieSyncContext) {
+        final AccountCookieSyncConfig accountCookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
 
-        final AccountCookieSyncConfig cookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
-        if (cookieSyncConfig == null) {
-            return limit;
-        }
+        final Integer resolvedLimit = ObjectUtils.firstNonNull(
+                cookieSyncContext.getCookieSyncRequest().getLimit(),
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getDefaultLimit),
+                coopSyncDefaultLimit);
 
-        final Integer resolvedLimit = ObjectUtils.defaultIfNull(limit, cookieSyncConfig.getDefaultLimit());
-        if (resolvedLimit == null) {
-            return null;
-        }
+        final Integer resolvedMaxLimit = ObjectUtils.firstNonNull(
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getMaxLimit),
+                coopSyncMaxLimit);
 
-        final Integer maxLimit = cookieSyncConfig.getMaxLimit();
-
-        return maxLimit == null ? resolvedLimit : Math.min(resolvedLimit, maxLimit);
+        return resolvedLimit != null && resolvedMaxLimit != null && resolvedLimit > resolvedMaxLimit
+                ? resolvedMaxLimit
+                : resolvedLimit;
     }
 
     private static List<BidderUsersyncStatus> trimBiddersToLimit(List<BidderUsersyncStatus> bidderStatuses,
                                                                  Integer limit) {
 
-        if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
-            Collections.shuffle(bidderStatuses);
-            return bidderStatuses.subList(0, limit);
+        if (limit == null || limit <= 0 || limit >= bidderStatuses.size()) {
+            return bidderStatuses;
         }
 
-        return bidderStatuses;
+        final List<BidderUsersyncStatus> allowedStatuses = bidderStatuses.stream()
+                .filter(status -> StringUtils.isEmpty(status.getError()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        Collections.shuffle(allowedStatuses);
+
+        final List<BidderUsersyncStatus> rejectedStatuses = bidderStatuses.stream()
+                .filter(status -> StringUtils.isNotEmpty(status.getError()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        Collections.shuffle(rejectedStatuses);
+
+        return ListUtils.union(allowedStatuses, rejectedStatuses).subList(0, limit);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
@@ -645,18 +661,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (error instanceof InvalidRequestException) {
             status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format("Invalid request format: %s", message);
+            body = "Invalid request format: " + message;
 
             metrics.updateUserSyncBadRequestMetric();
             BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             status = HttpResponseStatus.UNAUTHORIZED;
-            body = String.format("Unauthorized: %s", message);
+            body = "Unauthorized: " + message;
 
             metrics.updateUserSyncOptoutMetric();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format("Unexpected setuid processing error: %s", message);
+            body = "Unexpected setuid processing error: " + message;
 
             logger.warn(body, error);
         }

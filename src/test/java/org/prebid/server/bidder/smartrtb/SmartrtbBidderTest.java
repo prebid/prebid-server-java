@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -127,7 +127,7 @@ public class SmartrtbBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "false");
 
         // when
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
@@ -140,7 +140,7 @@ public class SmartrtbBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
         // when
@@ -156,7 +156,7 @@ public class SmartrtbBidderTest extends VertxTest {
     public void makeBidsShouldReturnTypeBannerWhenResponseExtCreativeTypeIsBanner() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("BANNER"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
@@ -172,7 +172,7 @@ public class SmartrtbBidderTest extends VertxTest {
     public void makeBidsShouldReturnTypeBannerWhenResponseExtCreativeTypeEmpty() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("wrong type"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
@@ -189,7 +189,7 @@ public class SmartrtbBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -199,9 +199,9 @@ public class SmartrtbBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmartrtb.of("publisherID", "123", "Zone ID is empty", true)))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpSmartrtb.of("publisherID", "123", "Zone ID is empty", true)))))
                 .build();
     }
 
@@ -213,8 +213,8 @@ public class SmartrtbBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

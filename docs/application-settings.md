@@ -19,6 +19,7 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
+- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
@@ -43,6 +44,7 @@ There are two ways to configure application settings: database and file. This do
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
+- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
@@ -102,6 +104,11 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        price-floors:
+          enabled: false
+        debug-allow: true
+      metrics:
+        verbosity-level: basic
       privacy:
         ccpa:
           enabled: true
@@ -259,12 +266,19 @@ example:
     },
     "events": {
       "enabled": true
-    }
+    },
+    "price-floors": {
+      "enabled": false
+    },
+    "debug-allow": true
+  },
+  "metrics": {
+      "verbosity-level": "basic"
   },
   "privacy": {
     "ccpa": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
           "web": true,
           "amp": false,
           "app": true,
@@ -273,7 +287,7 @@ example:
     },
     "gdpr": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
         "video": true,
         "web": true,
         "app": true,
@@ -430,6 +444,8 @@ Let's assume following table schema for example:
     `updated_by` int(11) DEFAULT NULL,
     `updated_by_user` varchar(64) DEFAULT NULL,
     `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `verbosity_level` varchar(64) DEFAULT NULL,
+    
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
 ENGINE=InnoDB DEFAULT CHARSET=utf8'
@@ -450,6 +466,9 @@ SELECT JSON_MERGE_PATCH(
                                'default-integration', default_integration,
                                'bid-validations', bid_validations,
                                'events', JSON_OBJECT('enabled', NOT NOT (events_enabled))
+                           ),
+                       'metrics', JSON_OBJECT(
+                               'verbosity-level', verbosity_level
                            ),
                        'privacy', JSON_OBJECT(
                                'ccpa', JSON_OBJECT('enabled', NOT NOT (enforce_ccpa)),

@@ -33,11 +33,11 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
     }
 
     private static String createPrefix(MetricName type) {
-        return String.format("circuit-breaker.%s", type.toString());
+        return "circuit-breaker.%s".formatted(type.toString());
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s%s", prefix, metricName.toString(), SUFFIX);
+        return metricName -> "%s.%s%s".formatted(prefix, metricName, SUFFIX);
     }
 
     @Override
@@ -70,7 +70,7 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
         }
 
         private static Function<MetricName, String> nameCreator(String prefix, String name) {
-            return metricName -> String.format("%s.named.%s.%s%s", prefix, name, metricName.toString(), SUFFIX);
+            return metricName -> "%s.named.%s.%s%s".formatted(prefix, name, metricName, SUFFIX);
         }
 
         @Override

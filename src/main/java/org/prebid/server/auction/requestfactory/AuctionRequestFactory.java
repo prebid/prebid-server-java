@@ -110,6 +110,8 @@ public class AuctionRequestFactory {
 
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
+                .map(ortb2RequestFactory::enrichWithPriceFloors)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
@@ -120,8 +122,7 @@ public class AuctionRequestFactory {
         }
 
         if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException(
-                    String.format("Request size exceeded max size of %d bytes.", maxRequestSize));
+            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;
@@ -144,7 +145,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.mapper().readTree(body);
         } catch (IOException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
     }
 
@@ -152,7 +153,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
     }
 
@@ -165,7 +166,7 @@ public class AuctionRequestFactory {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
-        return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
+        return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
                 .map(resolvedBidRequest ->
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
 

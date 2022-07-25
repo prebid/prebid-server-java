@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -15,8 +16,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,10 +36,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class RichaudienceBidder implements Bidder<BidRequest> {
 
+    private static final int BID_TEST_REQUEST = 1;
+    private static final String OPENRTB_VERSION = "2.5";
+    private static final String DEVICE_IP = "11.222.33.44";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final TypeReference<ExtPrebid<?, ExtImpRichaudience>> RICHAUDIENCE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -56,7 +59,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final URL url = extractUrl(request);
         final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
-        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         boolean isTest = false;
 
         try {
@@ -64,19 +67,21 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             for (Imp imp : request.getImp()) {
                 validateImp(imp);
 
-                final ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImpRichaudience, isSecure));
+                ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp, extImpRichaudience, isSecure);
 
                 if (!isTest && BooleanUtils.isTrue(extImpRichaudience.getTest())) {
                     isTest = true;
                 }
+
+                httpRequests.add(createHttpRequest(
+                        modifyBidRequest(request, url, modifiedImp, isTest)));
             }
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final BidRequest modifiedRequest = modifyBidRequest(request, url, modifiedImps, isTest);
-        return Result.withValue(createHttpRequest(modifiedRequest));
+        return Result.withValues(httpRequests);
     }
 
     private static void validateRequest(BidRequest bidRequest) throws PreBidException {
@@ -96,7 +101,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) throws PreBidException {
         if (!isBannerSizesPresent(imp.getBanner())) {
-            throw new PreBidException(String.format("Banner W/H/Format is required. ImpId: %s", imp.getId()));
+            throw new PreBidException("Banner W/H/Format is required. ImpId: " + imp.getId());
         }
     }
 
@@ -109,7 +114,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Invalid ext. Imp.Id: %s", imp.getId()));
+            throw new PreBidException("Invalid ext. Imp.Id: " + imp.getId());
         }
     }
 
@@ -128,40 +133,46 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, URL url, List<Imp> imps, boolean isTest) {
-        final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder()
-                .imp(imps)
-                .test(BooleanUtils.toInteger(isTest));
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, URL url, Imp imp, boolean isTest) {
+        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder().imp(Collections.singletonList(imp));
+
+        if (isTest) {
+            requestBuilder.test(BID_TEST_REQUEST).device(Device.builder().ip(DEVICE_IP).build());
+        }
 
         final Site site = bidRequest.getSite();
         if (url != null && StringUtils.isBlank(site.getDomain())) {
-            builder.site(site.toBuilder().domain(url.getHost()).build());
+            requestBuilder.site(site.toBuilder().domain(url.getHost()).build());
         }
 
-        return builder.build();
+        return requestBuilder.build();
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
+                .headers(resolveHeaders())
                 .uri(endpointUrl)
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
     }
 
+    private MultiMap resolveHeaders() {
+        return HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
+    }
+
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse, bidRequest));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -171,7 +182,20 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .map(bid -> BidderBid.of(bid,
+                        resolvedBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .toList();
+    }
+
+    private static BidType resolvedBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (impId.equals(imp.getId())) {
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                return BidType.banner;
+            }
+        }
+        return BidType.banner;
     }
 }

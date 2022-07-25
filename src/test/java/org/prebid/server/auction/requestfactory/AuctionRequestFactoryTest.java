@@ -135,6 +135,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -311,7 +312,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(storedRequestProcessor).processStoredRequests(any(), captor.capture());
+        verify(storedRequestProcessor).processAuctionRequest(any(), captor.capture());
 
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getSite()).isNull();
@@ -532,14 +533,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(storedRequestProcessor).processStoredRequests(eq(ACCOUNT_ID), any());
+        verify(storedRequestProcessor).processAuctionRequest(eq(ACCOUNT_ID), any());
     }
 
     @Test
     public void shouldReturnFailedFutureIfProcessStoredRequestsFailed() {
         // given
         givenValidBidRequest();
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -631,7 +632,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenProcessStoredRequest(BidRequest bidRequest) {
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(bidRequest));
     }
 

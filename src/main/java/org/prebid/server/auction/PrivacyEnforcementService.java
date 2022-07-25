@@ -102,7 +102,6 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
-        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
@@ -121,9 +120,15 @@ public class PrivacyEnforcementService {
                         accountGdpr,
                         requestType,
                         requestLogInfo,
-                        timeout,
-                        debugWarnings)
+                        timeout)
+                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
+    }
+
+    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
+        debugWarnings.addAll(tcfContext.getWarnings());
+
+        return tcfContext;
     }
 
     private String resolveAlpha2CountryCode(Device device) {
@@ -348,7 +353,7 @@ public class PrivacyEnforcementService {
                         .user(maskCoppaUser(bidderAndUser.getValue()))
                         .device(maskCoppaDevice(device))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private User maskCoppaUser(User user) {
@@ -528,7 +533,7 @@ public class PrivacyEnforcementService {
                         bidderUserEntry.getKey(),
                         isLmtEnabled,
                         bidderToEnforcement))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

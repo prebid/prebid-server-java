@@ -16,6 +16,6 @@ class RequestMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.requests.%s", prefix, metricName.toString());
+        return metricName -> "%s.requests.%s".formatted(prefix, metricName);
     }
 }

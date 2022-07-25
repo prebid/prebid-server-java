@@ -85,7 +85,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -2032,7 +2031,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().id("bidId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-alpha",
@@ -2043,7 +2042,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adid("adId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-beta",
@@ -2054,7 +2053,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().cid("cid").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenRawBidderResponseHook(
                 "module-beta",
@@ -2065,7 +2064,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adm("adm").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2086,17 +2085,11 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future1 = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                emptyList(),
-                                emptyList()),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                         0),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 = executor.executeRawBidderResponseStage(
-                BidderResponse.of(
-                        "bidder2",
-                        BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
-                        0),
+                BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
                 auctionContext);
 
         // then
@@ -2149,10 +2142,7 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                emptyList(),
-                                emptyList()),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                         0),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
@@ -2196,7 +2186,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().id("bidId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-alpha",
@@ -2207,7 +2197,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adid("adId").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-beta",
@@ -2218,7 +2208,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().cid("cid").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         givenProcessedBidderResponseHook(
                 "module-beta",
@@ -2229,7 +2219,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         bid.getBid().toBuilder().adm("adm").build(),
                                         bid.getType(),
                                         bid.getBidCurrency()))
-                                .collect(Collectors.toList())))));
+                                .toList()))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2251,18 +2241,13 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                        emptyList(),
-                                        emptyList()),
+                                BidderSeatBid.of(singletonList(
+                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                                 0),
                         auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
                 executor.executeProcessedBidderResponseStage(
-                        BidderResponse.of(
-                                "bidder2",
-                                BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
-                                0),
+                        BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
                         auctionContext);
 
         // then
@@ -2317,10 +2302,8 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                                        emptyList(),
-                                        emptyList()),
+                                BidderSeatBid.of(singletonList(
+                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                                 0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())

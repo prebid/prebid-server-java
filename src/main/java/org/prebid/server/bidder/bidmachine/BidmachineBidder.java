@@ -14,8 +14,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BidmachineBidder implements Bidder<BidRequest> {
 
@@ -83,14 +82,16 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         if (banner.getW() == null && banner.getH() == null) {
             final List<Format> format = banner.getFormat();
             if (format == null) {
-                throw new PreBidException("Impression with id: " + imp.getId()
-                        + " has following error: Banner width and height is not provided and"
-                        + " banner format is missing. At least one is required");
+                throw new PreBidException("""
+                        Impression with id: %s has following error: \
+                        Banner width and height is not provided and banner format is missing. \
+                        At least one is required""".formatted(imp.getId()));
             }
             if (format.isEmpty()) {
-                throw new PreBidException("Impression with id: " + imp.getId() + " has following error:"
-                        + " Banner width and height is not provided and banner format array is empty. "
-                        + "At least one is required");
+                throw new PreBidException("""
+                        Impression with id: %s has following error: \
+                        Banner width and height is not provided and banner format array is empty. \
+                        At least one is required""".formatted(imp.getId()));
 
             }
         }
@@ -161,7 +162,7 @@ public class BidmachineBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
         try {
@@ -189,15 +190,15 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid createBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         final BidType bidType = getBidType(bid.getImpid(), imps);
         if (bidType == null) {
             errors.add(BidderError.badServerResponse(
-                    String.format("ignoring bid id=%s, request doesn't contain any valid "
-                            + "impression with id=%s", bid.getId(), bid.getImpid())));
+                    "ignoring bid id=%s, request doesn't contain any valid impression with id=%s"
+                            .formatted(bid.getId(), bid.getImpid())));
 
             return null;
         }

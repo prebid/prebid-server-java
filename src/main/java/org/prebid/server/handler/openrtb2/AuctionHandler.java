@@ -10,14 +10,15 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -37,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class AuctionHandler implements Handler<RoutingContext> {
 
@@ -147,16 +147,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getBidResponse());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
                 final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
-                conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);
+                conditionalLogger.info("%s, Referer: %s".formatted(message, referer), 0.01);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
@@ -167,18 +166,25 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
+
                 body = message;
-                final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
-                metrics.updateAccountRequestRejectedMetrics(accountId);
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN;
+                body = message;
+            } else if (exception instanceof InvalidAccountConfigException) {
+                metricRequestStatus = MetricName.bad_requests;
+                final String message = exception.getMessage();
+                conditionalLogger.error(exception.getMessage(), 0.01d);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else {
                 metricRequestStatus = MetricName.err;
@@ -188,7 +194,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

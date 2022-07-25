@@ -99,6 +99,12 @@
                     "line": {
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
+                      "sizes": [
+                         {
+                           "w": 300,
+                           "h": 250
+                         }
+                       ],
                       "bidder": "rubicon"
                     }
                   }
@@ -151,6 +157,11 @@
         "ext": {
           "prebid": {
             "debug": 1,
+            "server": {
+              "externalurl": "http://localhost:8080",
+              "gvlid": 1,
+              "datacenter": "local"
+            },
             "trace": "verbose",
             "targeting": {
               "pricegranularity": {

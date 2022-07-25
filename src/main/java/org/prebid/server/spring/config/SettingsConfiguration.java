@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
@@ -47,7 +48,6 @@ import javax.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -134,7 +134,7 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = String.format("%s//%s:%d/%s?%s",
+            final String jdbcUrl = "%s//%s:%d/%s?%s".formatted(
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),
@@ -328,7 +328,7 @@ public class SettingsConfiguration {
                                     jdbcApplicationSettings,
                                     httpApplicationSettings)
                             .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+                            .toList();
 
             return new CompositeApplicationSettings(applicationSettingsList);
         }
@@ -339,11 +339,19 @@ public class SettingsConfiguration {
 
         @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
+                @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
-                JsonMerger jsonMerger) {
+                PriceFloorsConfigResolver priceFloorsConfigResolver,
+                JsonMerger jsonMerger,
+                JacksonMapper jacksonMapper) {
 
-            return new EnrichingApplicationSettings(defaultAccountConfig, compositeApplicationSettings, jsonMerger);
+            return new EnrichingApplicationSettings(enforceValidAccount,
+                    defaultAccountConfig,
+                    compositeApplicationSettings,
+                    priceFloorsConfigResolver,
+                    jsonMerger,
+                    jacksonMapper);
         }
     }
 

@@ -22,13 +22,16 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountMetricsConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -153,9 +156,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"privacy\": {"
                 + "\"gdpr\": {"
                 + "\"enabled\": true,"
-                + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
+                + "\"channel-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
                 + "}"
                 + "},"
+                + "\"metrics\": {\"verbosity-level\": \"detailed\"},"
                 + "\"analytics\": {"
                 + "\"auction-events\": {\"amp\": true},"
                 + "\"modules\": {\"some-analytics\": {\"supported-endpoints\": [\"auction\"]}}"
@@ -220,10 +224,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
+        final AccountAuctionEventConfig expectedEventsConfig = AccountAuctionEventConfig.builder().build();
+        expectedEventsConfig.addEvent("amp", true);
         future.onComplete(context.asyncAssertSuccess(account -> {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
                     .status(AccountStatus.active)
+                    .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.detailed))
                     .auction(AccountAuctionConfig.builder()
                             .priceGranularity("med")
                             .bannerCacheTtl(100)
@@ -241,7 +248,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .build(),
                             null))
                     .analytics(AccountAnalyticsConfig.of(
-                            singletonMap("amp", true),
+                            expectedEventsConfig,
                             singletonMap(
                                     "some-analytics",
                                     mapper.createObjectNode()

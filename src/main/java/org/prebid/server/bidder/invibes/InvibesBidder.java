@@ -21,8 +21,8 @@ import org.prebid.server.bidder.invibes.model.InvibesInternalParams;
 import org.prebid.server.bidder.invibes.model.InvibesPlacementProperty;
 import org.prebid.server.bidder.invibes.model.InvibesTypedBid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
@@ -50,7 +49,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             };
     private static final String INVIBES_BID_VERSION = "4";
     private static final String ADAPTER_VERSION = "prebid_1.0.0";
-    private static final String URL_HOST_MACRO = "{{Host}}";
+    private static final String URL_HOST_MACRO = "{{ZoneID}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -112,14 +111,13 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), INVIBES_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Error parsing invibesExt parameters in impression with id: %s", imp.getId()));
+            throw new PreBidException("Error parsing invibesExt parameters in impression with id: " + imp.getId());
         }
     }
 
     private void validateImp(Imp imp) {
         if (imp.getBanner() == null) {
-            throw new PreBidException(String.format("Banner not specified in impression with id: %s", imp.getId()));
+            throw new PreBidException("Banner not specified in impression with id: " + imp.getId());
         }
     }
 
@@ -186,8 +184,8 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
     private HttpRequest<InvibesBidRequest> makeRequest(InvibesInternalParams invibesParams,
                                                        BidRequest request) {
-        final String host = resolveHost(invibesParams.getDomainId());
-        final String url = endpointUrl.replace(URL_HOST_MACRO, host);
+        final String subdomain = resolveHost(invibesParams.getDomainId());
+        final String url = endpointUrl.replace(URL_HOST_MACRO, subdomain);
         final InvibesBidRequest parameter = resolveParameter(invibesParams, request);
 
         final Device device = request.getDevice();
@@ -246,16 +244,12 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     private static String resolveHost(Integer domainId) {
-        if (domainId == null) {
-            return "bid.videostep.com";
-        } else if (domainId >= 1002) {
-            return String.format("bid%s.videostep.com", domainId - 1000);
-        } else if (domainId == 1) {
-            return "adweb.videostepstage.com";
-        } else if (domainId == 2) {
-            return "adweb.invibesstage.com";
+        if (domainId == 0 || domainId == 1 || domainId == 1001) {
+            return "bid";
+        } else if (domainId < 1002) {
+            return "bid" + domainId;
         } else {
-            return "bid.videostep.com";
+            return "bid" + (domainId - 1000);
         }
     }
 
@@ -273,13 +267,13 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<InvibesBidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<InvibesBidRequest> httpCall, BidRequest bidRequest) {
         try {
             final InvibesBidderResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), InvibesBidderResponse.class);
             if (bidResponse != null && StringUtils.isNotBlank(bidResponse.getError())) {
                 return Result.withError(
-                        BidderError.badServerResponse(String.format("Server error: %s.", bidResponse.getError())));
+                        BidderError.badServerResponse("Server error: %s.".formatted(bidResponse.getError())));
             }
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
@@ -300,6 +294,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 .filter(Objects::nonNull)
                 //TODO add DealPriority
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCurrency()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

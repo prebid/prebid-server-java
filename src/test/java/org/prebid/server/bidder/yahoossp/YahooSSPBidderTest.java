@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -15,8 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class YahooSSPBidderTest extends VertxTest {
 
@@ -269,7 +271,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
@@ -284,7 +286,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -298,7 +300,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -312,7 +314,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
@@ -327,7 +329,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().build())
@@ -348,7 +350,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipNotBannerImpAndReturnBannerBidWhenBannerPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(asList(Imp.builder().id("123").build(),
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
@@ -370,20 +372,45 @@ public class YahooSSPBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldSkipNotSupportedImpAndReturnVideoBidWhenVideoPresent() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(asList(Imp.builder().id("123").build(),
+                                Imp.builder().video(Video.builder().build()).id("321").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(asList(Bid.builder().impid("123").build(),
+                                        Bid.builder().impid("321").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), video, "USD"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .site(Site.builder().id("123").build())
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .site(Site.builder().id("123").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .tagid("tagId")
-                .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
+                        .tagid("tagId")
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
                 .build();
     }
 
@@ -396,8 +423,8 @@ public class YahooSSPBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

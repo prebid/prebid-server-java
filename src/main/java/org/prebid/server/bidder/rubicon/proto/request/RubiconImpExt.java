@@ -14,4 +14,6 @@ public class RubiconImpExt {
     Integer maxbids;
 
     String gpid;
+
+    RubiconImpExtPrebid prebid;
 }

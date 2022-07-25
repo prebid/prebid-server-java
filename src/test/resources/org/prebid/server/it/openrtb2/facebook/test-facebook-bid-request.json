@@ -16,10 +16,7 @@
     }
   },
   "user": {
-    "buyeruid": "buyer_id",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid": "buyer_id"
   },
   "device": {
     "ua": "userAgent",

@@ -5,10 +5,10 @@ import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
-@PBSTest
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 class MultibidSpec extends BaseSpec {
 
     def "PBS should not return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = false"() {
@@ -18,13 +18,15 @@ class MultibidSpec extends BaseSpec {
 
         and: "Set maxbids = 2 for default bidder"
         def maxBids = 2
-        def multiBid = new MultiBid(bidder: "generic", maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
+        def multiBid = new MultiBid(bidder: GENERIC, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
         bidRequest.ext.prebid.multibid = [multiBid]
 
         and: "Default basic bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap { price = bidResponse.seatbid.first().bid.first().price - 0.1 }
-        bidResponse.seatbid.first().bid.add(anotherBid)
+        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap {
+            price = bidResponse.seatbid.first().bid.first().price - 0.1
+        }
+        bidResponse.seatbid.first().bid << anotherBid
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -43,13 +45,15 @@ class MultibidSpec extends BaseSpec {
 
         and: "Set maxbids = 2 for default bidder"
         def maxBids = 2
-        def multiBid = new MultiBid(bidder: "generic", maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
+        def multiBid = new MultiBid(bidder: GENERIC, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
         bidRequest.ext.prebid.multibid = [multiBid]
 
         and: "Default basic bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap { price = bidResponse.seatbid.first().bid.first().price - 0.1 }
-        bidResponse.seatbid.first().bid.add(anotherBid)
+        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap {
+            price = bidResponse.seatbid.first().bid.first().price - 0.1
+        }
+        bidResponse.seatbid.first().bid << anotherBid
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)

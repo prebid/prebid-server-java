@@ -16,8 +16,8 @@ import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdopplerBidder implements Bidder<BidRequest> {
 
@@ -114,7 +113,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final Map<String, BidType> impTypes = getImpTypes(bidRequest);
@@ -124,18 +123,18 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
                     .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
-                    .collect(Collectors.toList());
+                    .toList();
             return Result.withValues(bidderBids);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("invalid body: %s", e.getMessage()));
+            throw new PreBidException("invalid body: " + e.getMessage());
         }
     }
 
@@ -161,7 +160,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         final String bidImpId = bid.getImpid();
 
         if (impTypes.get(bidImpId) == null) {
-            throw new PreBidException(String.format("unknown impId: %s", bidImpId));
+            throw new PreBidException("unknown impId: " + bidImpId);
         }
         if (impTypes.get(bidImpId) == BidType.video) {
             validateVideoBidExt(bid);

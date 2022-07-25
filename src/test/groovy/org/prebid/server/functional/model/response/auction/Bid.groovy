@@ -1,10 +1,15 @@
 package org.prebid.server.functional.model.response.auction
 
+import com.fasterxml.jackson.annotation.JsonGetter
+import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
+import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Bid {
+class Bid implements ObjectMapperWrapper {
 
     String id
     String impid
@@ -12,7 +17,7 @@ class Bid {
     String nurl
     String burl
     String lurl
-    String adm
+    Adm adm
     String adid
     List<String> adomain
     String bundle
@@ -33,16 +38,31 @@ class Bid {
     Integer exp
     BidExt ext
 
-    static Bid getDefaultBid(Imp imp) {
-        getDefaultBid(imp.id)
+    static List<Bid> getDefaultBids(List<Imp> imps) {
+        imps.collect { getDefaultBid(it) }
     }
 
-    static Bid getDefaultBid(String impId) {
+    static Bid getDefaultBid(Imp imp) {
         new Bid().tap {
             id = UUID.randomUUID()
-            impid = impId
-            price = 1.23
+            impid = imp.id
+            price = PBSUtils.getRandomPrice()
             crid = 1
+            h = imp.banner && imp.banner.format ? imp.banner.format.first().h : null
+            w = imp.banner && imp.banner.format ? imp.banner.format.first().w : null
+            if (imp.nativeObj) {
+                adm = new Adm(assets: [Asset.defaultAsset])
+            }
         }
+    }
+
+    @JsonGetter("adm")
+    String getAdm() {
+        encode(adm)
+    }
+
+    @JsonSetter("adm")
+    void getAdm(String adm) {
+        this.adm = decode(adm, Adm)
     }
 }

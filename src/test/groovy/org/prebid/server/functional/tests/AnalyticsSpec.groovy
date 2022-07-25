@@ -4,19 +4,19 @@ import org.prebid.server.functional.model.mock.services.pubstack.PubStackRespons
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
 import spock.lang.Shared
 
-@PBSTest
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(pbsServiceFactory.pubstackAnalyticsConfig(SCOPE_ID))
+    private static final PrebidServerService pbsService = pbsServiceFactory.getService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
 
     @Shared
-    PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer, mapper).tap {
+    PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 
@@ -32,6 +32,6 @@ class AnalyticsSpec extends BaseSpec {
         pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should call pubstack analytics"
-        assert analytics.checkRequestCount(analyticsRequestCount + 1)
+        PBSUtils.waitUntil { analytics.requestCount == analyticsRequestCount + 1 }
     }
 }

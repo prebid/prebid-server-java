@@ -15,6 +15,7 @@ import org.prebid.server.bidder.BidderInstanceDeps;
 import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -29,13 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
-    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
-            + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
-            + "and tell them to check their configuration.";
+    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = """
+            %s is not configured properly on this Prebid Server deploy.
+            If you believe this should work, contact the company hosting the service \
+            and tell them to check their configuration.""";
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -92,7 +93,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private List<BidderInstanceDeps> aliasesDeps() {
         return configProperties.getAliases().entrySet().stream()
                 .map(this::aliasDeps)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
@@ -121,7 +122,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private Bidder<?> bidder(CFG configProperties) {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
-                : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
+                : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
     }
 
     private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
@@ -133,17 +134,17 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
         final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
         final MetaInfo aliasMetaInfo = aliasConfiguration.getMetaInfo();
-        final List<String> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
-        final List<String> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
-        final List<String> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
-        final List<String> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
+        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
+        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
+        final List<MediaType> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
+        final List<MediaType> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
                 || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {
 
-            throw new IllegalArgumentException(String.format(
-                    "Alias %s supports more capabilities (app: %s, site: %s) "
-                            + "than the core bidder %s (app: %s, site: %s)",
+            throw new IllegalArgumentException("""
+                    Alias %s supports more capabilities (app: %s, site: %s) \
+                    than the core bidder %s (app: %s, site: %s)""".formatted(
                     alias,
                     aliasAppMediaTypes,
                     aliasSiteMediaTypes,

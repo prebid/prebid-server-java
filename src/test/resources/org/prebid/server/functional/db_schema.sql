@@ -43,5 +43,9 @@ CREATE TABLE stored_responses
 (
     id     SERIAL PRIMARY KEY,
     resid   varchar(40) NOT NULL,
-    responseData varchar(1024)
+    storedAuctionResponse varchar(1024),
+    storedBidResponse varchar(1024)
 );
+
+-- set session wait timeout to 1 minute
+SET SESSION wait_timeout = 60000;

@@ -11,8 +11,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -27,7 +27,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BizzclickBidder implements Bidder<BidRequest> {
 
@@ -58,7 +57,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = imps.stream()
                 .map(BizzclickBidder::modifyImp)
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.withValue(createHttpRequest(request, modifiedImps, extImpBizzclick));
     }
@@ -106,7 +105,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = parseBidResponse(httpCall.getResponse());
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -136,7 +135,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
         return seatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_CURRENCY))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType resolveBidType(String impId, List<Imp> imps) {

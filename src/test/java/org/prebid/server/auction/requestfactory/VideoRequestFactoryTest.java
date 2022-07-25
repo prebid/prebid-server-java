@@ -98,6 +98,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(debugResolver.debugContextFrom(any()))
                 .willReturn(DebugContext.of(true, null));
@@ -462,10 +463,11 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.result().getData().getCachedDebugLog().buildCacheBody())
-                .containsSequence("<Request>{\"device\":{\"ua\":\"123\"}}</Request>\n"
-                        + "<Response></Response>\n"
-                        + "<Headers>header1: value1\n"
-                        + "</Headers>");
+                .containsSequence("""
+                        <Request>{"device":{"ua":"123"}}</Request>
+                        <Response></Response>
+                        <Headers>header1: value1
+                        </Headers>""");
     }
 
     private void prepareMinimumSuccessfulConditions() throws JsonProcessingException {

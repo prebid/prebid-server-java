@@ -10,17 +10,24 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adyoulike.ExtImpAdyoulike;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -30,6 +37,10 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -38,16 +49,24 @@ public class AdyoulikeBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private AdyoulikeBidder adyoulikeBidder;
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
 
     @Before
     public void setUp() {
-        adyoulikeBidder = new AdyoulikeBidder(ENDPOINT_URL, jacksonMapper);
+        adyoulikeBidder = new AdyoulikeBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdyoulikeBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdyoulikeBidder("invalid_url",
+                currencyConversionService,
+                jacksonMapper));
     }
 
     @Test
@@ -68,6 +87,50 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(2);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(imp -> imp
+                .bidfloor(BigDecimal.TEN)
+                .bidfloorcur("EUR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorMessageOnFailedConvertCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willThrow(PreBidException.class);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .bidfloor(BigDecimal.TEN)
+                .bidfloorcur("EUR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType())
+                    .isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage())
+                    .isEqualTo("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
+        });
     }
 
     @Test
@@ -132,7 +195,7 @@ public class AdyoulikeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
@@ -145,7 +208,7 @@ public class AdyoulikeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -159,7 +222,7 @@ public class AdyoulikeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
@@ -176,7 +239,7 @@ public class AdyoulikeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -188,13 +251,13 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
                         .build(),
@@ -206,13 +269,13 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfNoBannerAndHasVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
@@ -224,13 +287,13 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnNativeBidIfNoBannerAndHasNative() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
                         .build(),
@@ -242,13 +305,13 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
@@ -261,14 +324,14 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -279,7 +342,7 @@ public class AdyoulikeBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpAdyoulike.of("placementId", "campaign", "track",
@@ -296,8 +359,8 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
 }

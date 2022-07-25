@@ -37,7 +37,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -47,7 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -60,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -469,6 +469,43 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasesKeyDoesntContainAliasgvlidsKey() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("between", 2))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. vendorId 2 refers to unknown bidder alias: between");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasgvlidsValueLowerThatOne() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("pubmatic", 0))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. Invalid vendorId 0 for alias: pubmatic. "
+                        + "Choose a different vendorId, or remove this entry.");
     }
 
     @Test
@@ -1397,7 +1434,7 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
                 .containsOnly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
-                        + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                                + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -1420,8 +1457,11 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
                 .containsExactlyInAnyOrder(
-                        "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
-                        + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                        """
+                                WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: \
+                                request.imp[0].ext.prebid.bidder.rubicon failed validation.
+                                errorMessage1
+                                errorMessage2""",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -2126,8 +2166,9 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.aliases.rubicon defines a no-op alias."
-                        + " Choose a different alias, or remove this entry");
+                .containsOnly("""
+                        request.ext.prebid.aliases.rubicon defines a no-op alias. \
+                        Choose a different alias, or remove this entry""");
     }
 
     @Test
@@ -2891,7 +2932,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenAdjustmentFactorNegative() {
         // given
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("rubicon", BigDecimal.valueOf(-1.1));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(
@@ -2911,8 +2952,8 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenAdjustmentMediaFactorNegative() {
         // given
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(-1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2934,7 +2975,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenBidderUnknown() {
         // given
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("unknownBidder", BigDecimal.valueOf(1.1F));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(
@@ -2954,8 +2995,8 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenMediaBidderUnknown() {
         // given
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("unknownBidder", BigDecimal.valueOf(1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2976,8 +3017,8 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor("rubicon", BigDecimal.valueOf(1.1));
@@ -2999,8 +3040,8 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
         // given
         final String rubiconAlias = "rubicon_alias";
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("rubicon_alias", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor(rubiconAlias, BigDecimal.valueOf(1.1));
@@ -3023,7 +3064,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownBidderConfigAliasAndAdjustmentIsValid() {
         // given
         final String rubiconAlias = "rubicon_alias";
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor(rubiconAlias, BigDecimal.valueOf(1.1));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(

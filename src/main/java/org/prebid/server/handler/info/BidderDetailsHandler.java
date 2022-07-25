@@ -38,7 +38,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     private static void validateAliases(BidderCatalog bidderCatalog) {
         if (bidderCatalog.names().contains(ALL_PARAM_VALUE)) {
             throw new IllegalArgumentException(
-                    String.format("There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
+                    "There is '%s' bidder or alias configured which is unacceptable.".formatted(ALL_PARAM_VALUE));
         }
     }
 
@@ -65,7 +65,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
-        final String endpoint = String.format("%s/%s", Endpoint.info_bidders.value(), bidderName);
+        final String endpoint = "%s/%s".formatted(Endpoint.info_bidders.value(), bidderName);
 
         if (bidderInfos.containsKey(bidderName)) {
             HttpUtil.executeSafely(routingContext, endpoint,

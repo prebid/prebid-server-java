@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "imp_id:opa:banner",
       "banner": {
         "w": 300,
         "h": 250
@@ -40,6 +40,18 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
     }
   }
 }

@@ -1,28 +1,31 @@
 package org.prebid.server.bidder.algorix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -58,9 +61,7 @@ public class AlgorixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.id("123"), mapper.createArrayNode(), "APAC");
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
@@ -72,11 +73,13 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorOfEveryNotValidImp() {
         // given
+
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(givenImp(impBuilder -> impBuilder
+                .imp(asList(Imp.builder()
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
-                        givenImp(identity())))
+                                .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build(),
+                        givenImp(identity(), null, "APAC")))
                 .build();
 
         // when
@@ -89,7 +92,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(identity(), null, "APAC");
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
@@ -103,12 +106,28 @@ public class AlgorixBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateCorrectURLUSE() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), null, "USE");
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://use.xyz.svr-algorix.com/rtb/sa?sid=testSid&token=testToken");
+    }
+
+    @Test
     public void shouldSetBannerFormatWAndHValuesToBannerIfTheyAreNotPresentInBanner() {
         // given
         final Format bannerFormat = Format.builder().w(320).h(50).build();
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder()
-                        .format(singletonList(bannerFormat)).build()));
+                        .format(singletonList(bannerFormat)).build()), null, "APAC");
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
@@ -124,9 +143,36 @@ public class AlgorixBidderTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetVideoRewardedToVideoIfTheySetIsRewardedTagInVideo() {
+        // given
+        final ExtImpPrebid extImpPrebid = ExtImpPrebid.builder().isRewardedInventory(1).build();
+        final ExtImpAlgorix extImpAlgorix = ExtImpAlgorix
+                .of("testSid", "testToken", "testPlacementId", "testAppId", "APAC");
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(extImpPrebid, extImpAlgorix)))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .extracting(Video::getExt)
+                .contains(mapper.valueToTree(AlgorixVideoExt.of(1)));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -143,7 +189,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -156,7 +202,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -170,7 +216,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -189,7 +235,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -208,7 +254,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
@@ -227,7 +273,7 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
@@ -243,25 +289,94 @@ public class AlgorixBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnBannerBidIfAlgorixBidExtOfBannerMediaType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "banner"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(Map.of("mediaType", "banner")))
+                        .build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfAlgorixBidExtOfVideoMediaType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "video"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(Map.of("mediaType", "video")))
+                        .build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfAlgorixBidExtOfNativeMediaType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "native"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(Map.of("mediaType", "native")))
+                        .build(), xNative, "USD"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Object extImpPrebid,
+            String region) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extImpPrebid, region))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+                                              Object extImpPrebid,
+                                              String region) {
+        return givenBidRequest(identity(), impCustomizer, extImpPrebid, region);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+                                Object extImpPrebid,
+                                String region) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", "APAC")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(extImpPrebid,
+                                ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", region)))))
                 .build();
     }
 
@@ -274,8 +389,8 @@ public class AlgorixBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }

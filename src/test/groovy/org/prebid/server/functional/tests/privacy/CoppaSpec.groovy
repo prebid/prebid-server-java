@@ -1,12 +1,11 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import spock.lang.PendingFeature
 
-@PBSTest
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 class CoppaSpec extends PrivacyBaseSpec {
 
     @PendingFeature
@@ -39,7 +38,7 @@ class CoppaSpec extends PrivacyBaseSpec {
             !privacy.originPrivacy?.ccpa?.usPrivacy
             !privacy.resolvedPrivacy?.ccpa?.usPrivacy
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC].isEmpty()
+            privacy.privacyActionsPerBidder[GENERIC].isEmpty()
 
             privacy.errors?.isEmpty()
         }
@@ -63,7 +62,7 @@ class CoppaSpec extends PrivacyBaseSpec {
             privacy.originPrivacy?.coppa?.coppa == bidRequest.regs.coppa
             privacy.resolvedPrivacy?.coppa?.coppa == bidRequest.regs.coppa
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC] ==
+            privacy.privacyActionsPerBidder[GENERIC] ==
                     ["Geolocation and address were removed from request to bidder according to CCPA policy."]
 
             privacy.errors?.isEmpty()
@@ -105,7 +104,7 @@ class CoppaSpec extends PrivacyBaseSpec {
             !privacy.originPrivacy?.ccpa?.usPrivacy
             !privacy.resolvedPrivacy?.ccpa?.usPrivacy
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC].isEmpty()
+            privacy.privacyActionsPerBidder[GENERIC].isEmpty()
 
             privacy.errors?.isEmpty()
         }
@@ -134,7 +133,7 @@ class CoppaSpec extends PrivacyBaseSpec {
             privacy.originPrivacy?.coppa?.coppa == ampStoredRequest.regs.coppa
             privacy.resolvedPrivacy?.coppa?.coppa == ampStoredRequest.regs.coppa
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC] ==
+            privacy.privacyActionsPerBidder[GENERIC] ==
                     ["Geolocation and address were removed from request to bidder according to CCPA policy."]
 
             privacy.errors?.isEmpty()

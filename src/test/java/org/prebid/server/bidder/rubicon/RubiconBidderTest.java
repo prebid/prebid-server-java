@@ -32,6 +32,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,8 +41,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -49,6 +50,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
@@ -66,6 +68,13 @@ import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorField;
+import org.prebid.server.floors.model.PriceFloorModelGroup;
+import org.prebid.server.floors.model.PriceFloorResult;
+import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -73,6 +82,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -97,6 +107,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
@@ -114,6 +125,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -131,19 +143,22 @@ public class RubiconBidderTest extends VertxTest {
     private RubiconBidder rubiconBidder;
 
     @Mock
+    private PriceFloorResolver priceFloorResolver;
+
+    @Mock
     private CurrencyConversionService currencyConversionService;
 
     @Before
     public void setUp() {
         rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
-                currencyConversionService, jacksonMapper);
+                currencyConversionService, priceFloorResolver, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
-                        currencyConversionService, jacksonMapper));
+                        currencyConversionService, priceFloorResolver, jacksonMapper));
     }
 
     @Test
@@ -302,7 +317,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
                         mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                        RubiconImpExtRpTrack.of("", "")), null, 1, null));
+                        RubiconImpExtRpTrack.of("", "")), null, 1, null, null));
     }
 
     @Test
@@ -545,7 +560,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(tuple(BigDecimal.ONE, null));
+                .containsOnly(tuple(BigDecimal.ONE, "USD"));
     }
 
     @Test
@@ -1174,6 +1189,100 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldUseUserBuyeruidIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "ppuid")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("buyeruid");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseUidIdIfUserBuyeruidAbsentAndSpecialEidSourceAndStypeIsPpuid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "ppuid")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("extUserEidUidId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseUidIdIfUserBuyeruidAbsentAndSpecialEidSourceAndStypeIsOther() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "other")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("extUserEidUidId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateUserExtTpIdWithAdServerEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
@@ -1752,7 +1861,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null)))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null, null)))
                         .build()))
                 .build();
         final BidRequest expectedBidRequest2 = BidRequest.builder()
@@ -1760,7 +1869,7 @@ public class RubiconBidderTest extends VertxTest {
                         .id("2")
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null)))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null, null)))
                         .build()))
                 .build();
 
@@ -2449,7 +2558,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null, null,
-                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com"), 1, null));
+                                RubiconImpExtRpTrack.of("", "")),
+                        asList("moat.com", "doubleclickbygoogle.com"), 1, null, null));
     }
 
     @Test
@@ -2489,21 +2599,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getSource).doesNotContainNull()
                 .extracting(Source::getPchain)
                 .containsOnly("pchain");
-    }
-
-    @Test
-    public void makeBidsShouldTolerateMismatchedBidImpId() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.id("impId")),
-                givenBidResponse(bidBuilder -> bidBuilder.price(ONE).impid("mismatched_impId")));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -2547,9 +2642,178 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFillImpExtWithFloors() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                floorData -> floorData.modelGroups(singletonList(
+                                        givenModelGroup(UnaryOperator.identity())))))))
+                        .build())),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001)
+                        .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAssumeDefaultIpfCurrencyAsUSD() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, null);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .debug(1)
+                        .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                floorData -> floorData.modelGroups(singletonList(
+                                        givenModelGroup(UnaryOperator.identity())))))))
+                        .build())),
+                builder -> builder.id("123").video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001)
+                        .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Ipf for imp `123` provided floor with no currency, assuming USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.TEN, BigDecimal.TEN))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertBidFloor() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "EUR");
+
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.ONE);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .imp(singletonList(
+                                givenImp(impBuilder -> impBuilder
+                                        .id("1")
+                                        .video(Video.builder().build())
+                                        .bidfloor(BigDecimal.TEN)
+                                        .bidfloorcur("EUR"))))
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                        floorData -> floorData.modelGroups(singletonList(
+                                                givenModelGroup(UnaryOperator.identity())))))))
+                                .build())),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillImpExtWithFloorsWhenBothVideoAndBanner() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                floorData -> floorData.modelGroups(singletonList(
+                                        givenModelGroup(UnaryOperator.identity())))))))
+                        .build())),
+                builder -> builder
+                        .video(Video.builder()
+                                .mimes(singletonList("mime"))
+                                .protocols(singletonList(1))
+                                .maxduration(10)
+                                .linearity(10)
+                                .api(singletonList(12))
+                                .build())
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().h(300).w(250).build()))
+                                .build()),
+                builder -> builder
+                        .zoneId(4001)
+                        .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE))));
+    }
+
+    @Test
+    public void makeBidsShouldTolerateMismatchedBidImpId() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder.price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
     public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2577,7 +2841,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotSetNegativeSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2601,7 +2865,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotSetZeroSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2625,7 +2889,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldTolerateWithNotParsibleBuyerValue() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2649,7 +2913,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldTolerateWithNotIntegerBuyerValue() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2675,7 +2939,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final ObjectNode invalidBidExt = mapper.createObjectNode();
         invalidBidExt.set("prebid", mapper.createArrayNode());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("USD")
@@ -2697,7 +2961,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
@@ -2712,7 +2976,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfRequestImpHasNoVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(ONE));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
@@ -2720,14 +2984,15 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfRequestImpHasBannerAndVideoButNoRequiredVideoFieldsPresent()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())),
@@ -2739,14 +3004,15 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfRequestImpHasBannerAndVideoButAllRequiredVideoFieldsPresent()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder
                         .banner(Banner.builder().build())
                         .video(Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
@@ -2759,13 +3025,14 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), video));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfRequestImpHasVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.video(Video.builder().build())),
                 givenBidResponse(ONE));
 
@@ -2775,7 +3042,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), video));
     }
 
     @Test
@@ -2800,7 +3068,7 @@ public class RubiconBidderTest extends VertxTest {
                         .build()))
                 .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.video(Video.builder().build())),
                 bidResponse);
         final BidRequest bidRequest = givenBidRequest(
@@ -2820,7 +3088,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidWithOverriddenCpmFromRequest() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 givenBidResponse(TEN));
 
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
@@ -2846,7 +3114,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidWithOverriddenCpmFromImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 givenBidResponse(TEN));
 
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
@@ -2878,7 +3146,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponseIfZero() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
@@ -2892,13 +3160,14 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, null));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().id("bidid1").price(ONE).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnBidWithOriginalBidIdFieldFromBidResponseIfNotZero() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
@@ -2912,16 +3181,18 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, null));
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsOnly(Tuple.tuple(Bid.builder().id("non-zero").price(ONE).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnBidWithRandomlyGeneratedId() throws JsonProcessingException {
         // given
         rubiconBidder = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, currencyConversionService, jacksonMapper);
+                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                currencyConversionService, priceFloorResolver, jacksonMapper);
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
@@ -2944,9 +3215,10 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         rubiconBidder = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, currencyConversionService, jacksonMapper);
+                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                currencyConversionService, priceFloorResolver, jacksonMapper);
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("EUR")
                         .seatbid(singletonList(RubiconSeatBid.builder()
@@ -2970,7 +3242,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
                 .meta(mapper.createObjectNode().set("dChain", TextNode.valueOf("dChain")))
                 .build());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
@@ -3073,8 +3345,29 @@ public class RubiconBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static PriceFloorRules givenFloors(
+            UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
+
+        return floorsCustomizer.apply(PriceFloorRules.builder()).build();
+    }
+
+    private static PriceFloorData givenFloorData(
+            UnaryOperator<PriceFloorData.PriceFloorDataBuilder> floorDataCustomizer) {
+
+        return floorDataCustomizer.apply(PriceFloorData.builder()).build();
+    }
+
+    private static PriceFloorModelGroup givenModelGroup(
+            UnaryOperator<PriceFloorModelGroup.PriceFloorModelGroupBuilder> modelGroupCustomizer) {
+
+        return modelGroupCustomizer.apply(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .value("video", BigDecimal.TEN))
+                .build();
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

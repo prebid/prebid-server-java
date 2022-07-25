@@ -795,7 +795,8 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(TargetingDefinition.of(context -> false));
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString(), any()))
+                .willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
 
@@ -851,7 +852,8 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(null);
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString(), any()))
+                .willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
 
@@ -1628,8 +1630,8 @@ public class LineItemServiceTest extends VertxTest {
 
         // then
         final TxnLog expectedTxnLog = TxnLog.create();
-        expectedTxnLog.lineItemsMatchedWholeTargeting().addAll(singletonList("id5"));
-        expectedTxnLog.lineItemsPacingDeferred().addAll(singletonList("id5"));
+        expectedTxnLog.lineItemsMatchedWholeTargeting().add("id5");
+        expectedTxnLog.lineItemsPacingDeferred().add("id5");
         assertThat(auctionContext.getTxnLog()).isEqualTo(expectedTxnLog);
     }
 
@@ -1794,17 +1796,17 @@ public class LineItemServiceTest extends VertxTest {
             Function<LineItemMetaData.LineItemMetaDataBuilder,
                     LineItemMetaData.LineItemMetaDataBuilder> lineItemMetaDataCustomizer) {
         return lineItemMetaDataCustomizer.apply(LineItemMetaData.builder()
-                .startTimeStamp(now.minusMinutes(1))
-                .endTimeStamp(now.plusMinutes(1))
-                .lineItemId(lineItemId)
-                .dealId(dealId)
-                .status("active")
-                .accountId("accountId")
-                .source("rubicon")
-                .price(Price.of(BigDecimal.ONE, "USD"))
-                .relativePriority(5)
-                .updatedTimeStamp(now)
-                .deliverySchedules(deliverySchedules))
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(1))
+                        .lineItemId(lineItemId)
+                        .dealId(dealId)
+                        .status("active")
+                        .accountId("accountId")
+                        .source("rubicon")
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .relativePriority(5)
+                        .updatedTimeStamp(now)
+                        .deliverySchedules(deliverySchedules))
                 .build();
     }
 
@@ -1870,7 +1872,8 @@ public class LineItemServiceTest extends VertxTest {
     private void givenTargetingService() {
         given(targetingService.parseTargetingDefinition(any(), any()))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString(), any()))
+                .willAnswer(withEvaluatedTargeting());
     }
 
     private Answer<Boolean> withEvaluatedTargeting() {

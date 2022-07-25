@@ -18,7 +18,7 @@ public class PrebidVersionProvider {
 
     private static String createNameVersionRecord(String name, String version) {
         return StringUtils.isNotEmpty(name) && StringUtils.isNotEmpty(version)
-                ? String.format("%s/%s", name, version)
+                ? "%s/%s".formatted(name, version)
                 : null;
     }
 }

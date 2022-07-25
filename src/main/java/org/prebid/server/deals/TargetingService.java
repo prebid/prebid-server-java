@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.deals.targeting.RequestContext;
 import org.prebid.server.deals.targeting.TargetingDefinition;
@@ -63,9 +64,14 @@ public class TargetingService {
      * Accepts OpenRTB2 request and particular Imp object to evaluate Line Item targeting
      * definition against and returns whether it is matched or not.
      */
-    public boolean matchesTargeting(AuctionContext auctionContext, Imp imp, TargetingDefinition targetingDefinition) {
+    public boolean matchesTargeting(AuctionContext auctionContext,
+                                    Imp imp,
+                                    TargetingDefinition targetingDefinition,
+                                    String source,
+                                    BidderAliases aliases) {
+
         final RequestContext requestContext = new RequestContext(
-                auctionContext.getBidRequest(), imp, auctionContext.getTxnLog(), mapper);
+                auctionContext.getBidRequest(), imp, source, aliases, auctionContext.getTxnLog(), mapper);
 
         return targetingDefinition.getRootExpression().matches(requestContext);
     }
@@ -80,61 +86,37 @@ public class TargetingService {
             return parseTargetingCategory(fieldName, field.getValue(), lineItemId);
         } else {
             throw new TargetingSyntaxException(
-                    String.format("Expected either boolean operator or targeting category, got %s", fieldName));
+                    "Expected either boolean operator or targeting category, got " + fieldName);
         }
     }
 
     private Expression parseBooleanOperator(String fieldName, JsonNode value, String lineItemId) {
         final BooleanOperator operator = BooleanOperator.fromString(fieldName);
-        switch (operator) {
-            case AND:
-                return new And(parseArray(value, node -> parseNode(node, lineItemId)));
-            case OR:
-                return new Or(parseArray(value, node -> parseNode(node, lineItemId)));
-            case NOT:
-                return new Not(parseNode(value, lineItemId));
-            default:
-                throw new IllegalStateException(String.format("Unexpected boolean operator %s", operator));
-        }
+        return switch (operator) {
+            case AND -> new And(parseArray(value, node -> parseNode(node, lineItemId)));
+            case OR -> new Or(parseArray(value, node -> parseNode(node, lineItemId)));
+            case NOT -> new Not(parseNode(value, lineItemId));
+        };
     }
 
     private Expression parseTargetingCategory(String fieldName, JsonNode value, String lineItemId) {
         final TargetingCategory category = TargetingCategory.fromString(fieldName);
-        switch (category.type()) {
-            case size:
-                return new IntersectsSizes(category,
-                        parseArrayFunction(value, MatchingFunction.INTERSECTS, this::parseSize));
-            case mediaType:
-            case userSegment:
-                return new IntersectsStrings(category,
-                        parseArrayFunction(value, MatchingFunction.INTERSECTS, TargetingService::parseString));
-            case domain:
-                return prepareDomainExpression(category, value, lineItemId);
-            case publisherDomain:
-                return new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
-            case referrer:
-            case appBundle:
-            case adslot:
-                return parseStringFunction(category, value);
-            case pagePosition:
-            case dow:
-            case hour:
-                return new InIntegers(category,
-                        parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseInteger));
-            case deviceGeoExt:
-            case deviceExt:
-                return new InStrings(category,
-                        parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseString));
-            case location:
-                return new Within(category, parseSingleObjectFunction(value, MatchingFunction.WITHIN,
-                        this::parseGeoRegion));
-            case bidderParam:
-            case userFirstPartyData:
-            case siteFirstPartyData:
-                return parseTypedFunction(category, value);
-            default:
-                throw new IllegalStateException(String.format("Unexpected targeting category type %s", category));
-        }
+        return switch (category.type()) {
+            case size -> new IntersectsSizes(category,
+                    parseArrayFunction(value, MatchingFunction.INTERSECTS, this::parseSize));
+            case mediaType, userSegment -> new IntersectsStrings(category,
+                    parseArrayFunction(value, MatchingFunction.INTERSECTS, TargetingService::parseString));
+            case domain -> prepareDomainExpression(category, value, lineItemId);
+            case publisherDomain -> new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
+            case referrer, appBundle, adslot -> parseStringFunction(category, value);
+            case pagePosition, dow, hour -> new InIntegers(category,
+                    parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseInteger));
+            case deviceGeoExt, deviceExt -> new InStrings(category,
+                    parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseString));
+            case location -> new Within(category, parseSingleObjectFunction(value, MatchingFunction.WITHIN,
+                    this::parseGeoRegion));
+            case bidderParam, userFirstPartyData, siteFirstPartyData -> parseTypedFunction(category, value);
+        };
     }
 
     private static Or prepareDomainExpression(TargetingCategory category, JsonNode value, String lineItemId) {
@@ -165,14 +147,11 @@ public class TargetingService {
         final MatchingFunction function =
                 validateCompatibleFunction(field, MatchingFunction.MATCHES, MatchingFunction.IN);
 
-        switch (function) {
-            case MATCHES:
-                return new Matches(category, parseString(field.getValue()));
-            case IN:
-                return createInStringsFunction(category, field.getValue());
-            default:
-                throw new IllegalStateException(String.format("Unexpected string function %s", function.value()));
-        }
+        return switch (function) {
+            case MATCHES -> new Matches(category, parseString(field.getValue()));
+            case IN -> createInStringsFunction(category, field.getValue());
+            default -> throw new IllegalStateException("Unexpected string function " + function.value());
+        };
     }
 
     private static Expression parseTypedFunction(TargetingCategory category, JsonNode value) {
@@ -181,16 +160,12 @@ public class TargetingService {
                 MatchingFunction.MATCHES, MatchingFunction.IN, MatchingFunction.INTERSECTS);
 
         final JsonNode functionValue = field.getValue();
-        switch (function) {
-            case MATCHES:
-                return new Matches(category, parseString(functionValue));
-            case IN:
-                return parseTypedInFunction(category, functionValue);
-            case INTERSECTS:
-                return parseTypedIntersectsFunction(category, functionValue);
-            default:
-                throw new IllegalStateException(String.format("Unexpected typed function %s", function.value()));
-        }
+        return switch (function) {
+            case MATCHES -> new Matches(category, parseString(functionValue));
+            case IN -> parseTypedInFunction(category, functionValue);
+            case INTERSECTS -> parseTypedIntersectsFunction(category, functionValue);
+            default -> throw new IllegalStateException("Unexpected typed function " + function.value());
+        };
     }
 
     private Size parseSize(JsonNode node) {
@@ -201,7 +176,7 @@ public class TargetingService {
             size = mapper.mapper().treeToValue(node, Size.class);
         } catch (JsonProcessingException e) {
             throw new TargetingSyntaxException(
-                    String.format("Exception occurred while parsing size: %s", e.getMessage()), e);
+                    "Exception occurred while parsing size: " + e.getMessage(), e);
         }
 
         if (size.getH() == null || size.getW() == null) {
@@ -235,7 +210,7 @@ public class TargetingService {
             region = mapper.mapper().treeToValue(node, GeoRegion.class);
         } catch (JsonProcessingException e) {
             throw new TargetingSyntaxException(
-                    String.format("Exception occurred while parsing geo region: %s", e.getMessage()), e);
+                    "Exception occurred while parsing geo region: " + e.getMessage(), e);
         }
 
         if (region.getLat() == null || region.getLon() == null || region.getRadiusMiles() == null) {
@@ -249,7 +224,7 @@ public class TargetingService {
     private static <T> List<T> parseArray(JsonNode node, Function<JsonNode, T> mapper) {
         validateIsArray(node);
 
-        return StreamUtil.asStream(node.spliterator()).map(mapper).collect(Collectors.toList());
+        return StreamUtil.asStream(node.spliterator()).map(mapper).toList();
     }
 
     private static Expression parseTypedInFunction(TargetingCategory category, JsonNode value) {
@@ -272,14 +247,11 @@ public class TargetingService {
         final Iterator<JsonNode> iterator = value.iterator();
 
         final JsonNodeType dataType = iterator.hasNext() ? iterator.next().getNodeType() : JsonNodeType.STRING;
-        switch (dataType) {
-            case NUMBER:
-                return integerCreator.apply(category, value);
-            case STRING:
-                return stringCreator.apply(category, value);
-            default:
-                throw new TargetingSyntaxException(String.format("Expected integer or string, got %s", dataType));
-        }
+        return switch (dataType) {
+            case NUMBER -> integerCreator.apply(category, value);
+            case STRING -> stringCreator.apply(category, value);
+            default -> throw new TargetingSyntaxException("Expected integer or string, got " + dataType);
+        };
     }
 
     private static Expression createInIntegersFunction(TargetingCategory category, JsonNode value) {
@@ -300,7 +272,7 @@ public class TargetingService {
 
     private static void validateIsObject(JsonNode value) {
         if (!value.isObject()) {
-            throw new TargetingSyntaxException(String.format("Expected object, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected object, got " + value.getNodeType());
         }
     }
 
@@ -309,7 +281,7 @@ public class TargetingService {
 
         if (value.size() != 1) {
             throw new TargetingSyntaxException(
-                    String.format("Expected only one element in the object, got %d", value.size()));
+                    "Expected only one element in the object, got " + value.size());
         }
 
         return value.fields().next();
@@ -317,19 +289,19 @@ public class TargetingService {
 
     private static void validateIsArray(JsonNode value) {
         if (!value.isArray()) {
-            throw new TargetingSyntaxException(String.format("Expected array, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected array, got " + value.getNodeType());
         }
     }
 
     private static void validateIsString(JsonNode value) {
         if (!value.isTextual()) {
-            throw new TargetingSyntaxException(String.format("Expected string, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected string, got " + value.getNodeType());
         }
     }
 
     private static void validateIsInteger(JsonNode value) {
         if (!value.isInt()) {
-            throw new TargetingSyntaxException(String.format("Expected integer, got %s", value.getNodeType()));
+            throw new TargetingSyntaxException("Expected integer, got " + value.getNodeType());
         }
     }
 
@@ -338,10 +310,10 @@ public class TargetingService {
         final String fieldName = field.getKey();
 
         if (!MatchingFunction.isMatchingFunction(fieldName)) {
-            throw new TargetingSyntaxException(String.format("Expected matching function, got %s", fieldName));
+            throw new TargetingSyntaxException("Expected matching function, got " + fieldName);
         } else if (MatchingFunction.fromString(fieldName) != function) {
             throw new TargetingSyntaxException(
-                    String.format("Expected %s matching function, got %s", function.value(), fieldName));
+                    "Expected %s matching function, got %s".formatted(function.value(), fieldName));
         }
 
         return field.getValue();
@@ -352,12 +324,12 @@ public class TargetingService {
         final String fieldName = field.getKey();
 
         if (!MatchingFunction.isMatchingFunction(fieldName)) {
-            throw new TargetingSyntaxException(String.format("Expected matching function, got %s", fieldName));
+            throw new TargetingSyntaxException("Expected matching function, got " + fieldName);
         }
 
         final MatchingFunction function = MatchingFunction.fromString(fieldName);
         if (!Arrays.asList(compatibleFunctions).contains(function)) {
-            throw new TargetingSyntaxException(String.format("Expected one of %s matching functions, got %s",
+            throw new TargetingSyntaxException("Expected one of %s matching functions, got %s".formatted(
                     Arrays.stream(compatibleFunctions).map(MatchingFunction::value).collect(Collectors.joining(", ")),
                     fieldName));
         }

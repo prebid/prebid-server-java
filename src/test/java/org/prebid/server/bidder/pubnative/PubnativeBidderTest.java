@@ -19,8 +19,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -293,7 +293,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
@@ -308,7 +308,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -322,7 +322,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -336,7 +336,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -355,7 +355,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .video(Video.builder().build())
@@ -376,7 +376,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .xNative(Native.builder().build())
@@ -397,7 +397,7 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldResolveBidSizeFromBannerIfWAndHArePresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().w(100).h(100).build())
@@ -418,7 +418,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeBidsShouldResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasSingleElementWithSameSize()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().w(100).h(100)
@@ -440,7 +440,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasSingleElementWithDifferentSize()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().w(100).h(100)
@@ -462,7 +462,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasMultipleElements()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().w(100).h(100)
@@ -484,7 +484,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeBidsShouldResolveBidSizeForBannerWhenWAndHAreNullAndFormatHasSingleElements()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder()
@@ -506,7 +506,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHAreNullAndFormatMultipleElements()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder()
@@ -530,8 +530,8 @@ public class PubnativeBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {
 
         return requestModifier.apply(BidRequest.builder()
-                .device(Device.builder().os("OS").build())
-                .imp(singletonList(givenImp(impModifier))))
+                        .device(Device.builder().os("OS").build())
+                        .imp(singletonList(givenImp(impModifier))))
                 .build();
     }
 
@@ -541,8 +541,8 @@ public class PubnativeBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
-                .banner(Banner.builder().h(1).w(1).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPubnative.of(1, "auth")))))
+                        .banner(Banner.builder().h(1).w(1).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPubnative.of(1, "auth")))))
                 .build();
     }
 
@@ -555,8 +555,8 @@ public class PubnativeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Rubicon
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Retry
 
@@ -14,7 +13,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 
-@PBSTest
 class HttpInteractionSpec extends BaseSpec {
 
     @Retry
@@ -95,7 +93,7 @@ class HttpInteractionSpec extends BaseSpec {
         assert idLogs.size() == 1
 
         def requestLog = getRequestFromLog(idLogs.first(), request.bidder.value)
-        def retrievedRequest = mapper.decode(requestLog, BidRequest)
+        def retrievedRequest = decode(requestLog, BidRequest)
 
         and: "Logged request should not contain bidder parameters in imp[].ext.prebid.bidder.BIDDER"
         assert !retrievedRequest?.imp?.first()?.ext?.prebid?.bidder?.generic
@@ -110,10 +108,6 @@ class HttpInteractionSpec extends BaseSpec {
 
     private static List<String> getLogsByBidder(List<String> logs, BidderName bidderName) {
         logs.findAll { it.contains("Request body to ${bidderName.value}:") }
-    }
-
-    private static List<String> getLogsByText(List<String> logs, String text) {
-        logs.findAll { it.contains(text) }
     }
 
     private static String getRequestFromLog(String log, String bidderName) {

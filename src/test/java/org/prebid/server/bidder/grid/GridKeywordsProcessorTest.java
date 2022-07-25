@@ -6,16 +6,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.KeywordSegment;
-import org.prebid.server.bidder.grid.model.Keywords;
-import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
+import org.prebid.server.bidder.grid.model.request.KeywordSegment;
+import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.request.KeywordsPublisherItem;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -333,7 +332,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
                         "keywords",
                         Arrays.stream(keywords)
                                 .map(keyword -> KeywordSegment.of("keywords", keyword))
-                                .collect(Collectors.toList())));
+                                .toList()));
     }
 
     private static ObjectNode givenPublisherSegmentNode(String name, String value) {
