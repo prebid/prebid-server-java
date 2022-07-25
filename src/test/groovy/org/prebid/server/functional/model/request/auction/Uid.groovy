@@ -4,17 +4,15 @@ import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Producer {
+class Uid {
 
     String id
-    String name
-    Integer cattax
-    List<String> cat
-    String domain
+    Integer atype
 
-    static Producer getDefaultProducer(){
-        new Producer().tap {
+    static Uid getDefaultUid() {
+        new Uid().tap {
             id = PBSUtils.randomString
+            atype = PBSUtils.randomNumber
         }
     }
 }
