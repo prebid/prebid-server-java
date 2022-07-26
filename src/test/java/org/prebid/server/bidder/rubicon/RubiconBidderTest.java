@@ -64,6 +64,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExtRp;
+import org.prebid.server.bidder.rubicon.proto.response.RubiconBid;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -2811,6 +2812,52 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldNotReplacePresentAdmWithAdmObject() throws JsonProcessingException {
+        // given
+        final ObjectNode admObject = mapper.createObjectNode();
+        admObject.put("admObjectProperty", "admObjectValue");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .adm("someAdm")
+                        .admobject(admObject)
+                        .price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("someAdm");
+    }
+
+    @Test
+    public void makeBidsShouldReplaceNotPresentAdmWithAdmObject() throws JsonProcessingException {
+        // given
+        final ObjectNode admObject = mapper.createObjectNode();
+        admObject.put("admObjectProperty", "admObjectValue");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .adm(null)
+                        .admobject(admObject)
+                        .price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("{\"admObjectProperty\":\"admObjectValue\"}");
+    }
+
+    @Test
     public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -2819,7 +2866,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2847,7 +2894,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("-123")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2871,7 +2918,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("0")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2895,7 +2942,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("canNotBeParsed")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2919,7 +2966,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123.2")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2945,7 +2992,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123")
-                                .bid(singletonList(givenBid(bid -> bid.id("789").price(ONE).ext(invalidBidExt))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.id("789").price(ONE).ext(invalidBidExt))))
                                 .build()))
                         .build()));
 
@@ -3049,13 +3096,13 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotReduceBidderAmountForBidsWithSameImpId() throws JsonProcessingException {
         // given
-        final Bid firstBid = Bid.builder()
+        final RubiconBid firstBid = RubiconBid.builder()
                 .id("firstBidId")
                 .impid("impId")
                 .price(ONE)
                 .build();
 
-        final Bid secondBid = Bid.builder()
+        final RubiconBid secondBid = RubiconBid.builder()
                 .id("secondBidId")
                 .impid("impId")
                 .price(ONE)
@@ -3150,7 +3197,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("0").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("0").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3171,7 +3218,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("non-zero").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("non-zero").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3195,7 +3242,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("bidid1").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3222,7 +3269,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("EUR")
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("bidid1").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3246,7 +3293,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(givenBid(bid -> bid.ext(requestNode).price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.ext(requestNode).price(ONE))))
                                 .build()))
                         .build()));
 
@@ -3373,12 +3420,12 @@ public class RubiconBidderTest extends VertxTest {
                 null);
     }
 
-    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer)
+    private static String givenBidResponse(UnaryOperator<RubiconBid.RubiconBidBuilder> bidCustomizer)
             throws JsonProcessingException {
         return mapper.writeValueAsString(RubiconBidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(RubiconSeatBid.builder()
-                        .bid(singletonList(givenBid(bidCustomizer)))
+                        .bid(singletonList(givenRubiconBid(bidCustomizer)))
                         .build()))
                 .build());
     }
@@ -3387,8 +3434,8 @@ public class RubiconBidderTest extends VertxTest {
         return givenBidResponse(bidBuilder -> bidBuilder.price(price));
     }
 
-    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
+    private static RubiconBid givenRubiconBid(UnaryOperator<RubiconBid.RubiconBidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(RubiconBid.builder()).build();
     }
 
     @AllArgsConstructor(staticName = "of")

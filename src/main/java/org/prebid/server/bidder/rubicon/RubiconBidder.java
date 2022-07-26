@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.rubicon;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -15,6 +16,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
@@ -63,6 +65,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExtRp;
+import org.prebid.server.bidder.rubicon.proto.response.RubiconBid;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -1036,6 +1039,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return size.getH() > size.getW() ? PORTRAIT_MOBILE_SIZE_ID : LANDSCAPE_MOBILE_SIZE_ID;
     }
 
+    private Native makeNative(Imp imp) {
+        final Native xNative = imp.getXNative();
+        final String version = ObjectUtil.getIfNotNull(xNative, Native::getVer);
+        if (StringUtils.equalsAny(version, "1.0", "1.1")) {
+            return xNative;
+        }
+
+        return xNative;
+    }
+
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         final String userId = user != null ? user.getId() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
@@ -1513,14 +1526,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (networkId <= 0) {
             return seatBid;
         }
-        final List<Bid> updatedBids = seatBid.getBid().stream()
+        final List<RubiconBid> updatedBids = seatBid.getBid().stream()
                 .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
                 .filter(Objects::nonNull)
                 .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
-    private Bid insertNetworkIdToMeta(Bid bid, int networkId, List<BidderError> errors) {
+    private RubiconBid insertNetworkIdToMeta(RubiconBid bid, int networkId, List<BidderError> errors) {
         final ObjectNode bidExt = bid.getExt();
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid;
         try {
@@ -1553,7 +1566,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Bid updateBid(Bid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {
+    private Bid updateBid(RubiconBid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {
         String bidId = bid.getId();
         if (generateBidId) {
             // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
@@ -1571,10 +1584,29 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? new BigDecimal(String.valueOf(cpmOverride))
                 : bid.getPrice();
 
-        return bid.toBuilder()
+        final RubiconBid updatedRubiconBid = bid.toBuilder()
                 .id(bidId)
+                .adm(resolveAdm(bid.getAdm(), bid.getAdmobject()))
                 .price(bidPrice)
                 .build();
+
+        return bidFromRubiconBid(updatedRubiconBid);
+    }
+
+    private String resolveAdm(String bidAdm, ObjectNode admobject) {
+        if (StringUtils.isNotBlank(bidAdm)) {
+            return bidAdm;
+        }
+
+        return admobject != null ? admobject.toString() : null;
+    }
+
+    private Bid bidFromRubiconBid(RubiconBid rubiconBid) {
+        try {
+            return mapper.mapper().treeToValue(mapper.mapper().valueToTree(rubiconBid), Bid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+        }
     }
 
     private static BidderBid createBidderBid(Bid bid, Imp imp, BidType bidType, String currency) {
