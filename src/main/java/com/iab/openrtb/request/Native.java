@@ -1,8 +1,9 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
@@ -26,7 +27,8 @@ import java.util.List;
  * the offered types.
  */
 @Data
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
+@NoArgsConstructor
 public class Native {
 
     /**

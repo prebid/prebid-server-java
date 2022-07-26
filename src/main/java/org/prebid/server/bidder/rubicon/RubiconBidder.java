@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -54,6 +53,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconNative;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconSiteExt;
@@ -279,13 +279,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isValidType(Imp imp) {
-        return imp.getVideo() != null || imp.getBanner() != null;
+        return imp.getVideo() != null || imp.getBanner() != null || imp.getXNative() != null;
     }
 
     private BidderError impTypeErrorMessage(Imp imp) {
         final BidType type = resolveExpectedBidType(imp);
         return BidderError.badInput(
-                "Impression with id %s rejected with invalid type `%s`. Allowed types are banner and video."
+                "Impression with id %s rejected with invalid type `%s`. Allowed types are [banner, video, native]"
                         .formatted(imp.getId(), type != null ? type.name() : "unknown"));
     }
 
@@ -456,11 +456,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (isVideo) {
             builder
                     .banner(null)
+                    .xNative(null)
                     .video(makeVideo(imp, extImpRubicon.getVideo(), extImpPrebid, referer(site)));
-        } else {
+        } else if (imp.getBanner() != null) {
             builder
                     .banner(makeBanner(imp, overriddenSizes(extImpRubicon)))
+                    .xNative(null)
                     .video(null);
+        } else {
+            builder
+                    .video(null)
+                    .xNative(makeNative(imp, errors));
         }
 
         processWarnings(errors, priceFloorsWarnings);
@@ -1039,14 +1045,59 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return size.getH() > size.getW() ? PORTRAIT_MOBILE_SIZE_ID : LANDSCAPE_MOBILE_SIZE_ID;
     }
 
-    private Native makeNative(Imp imp) {
+    private Native makeNative(Imp imp, List<BidderError> errors) {
         final Native xNative = imp.getXNative();
         final String version = ObjectUtil.getIfNotNull(xNative, Native::getVer);
-        if (StringUtils.equalsAny(version, "1.0", "1.1")) {
+        if (StringUtils.isBlank(version)||StringUtils.equalsAny(version, "1.0", "1.1")) {
             return xNative;
         }
+        final String nativeRequest = xNative.getRequest();
+        final JsonNode requestAsNode = nodeFromString(nativeRequest);
 
-        return xNative;
+        try {
+            validateNativeRequest(requestAsNode);
+        } catch (PreBidException e) {
+            throw new PreBidException(
+                    String.format("Error in native object for imp with id %s: %s", imp.getId(), e.getMessage()));
+        }
+
+        return RubiconNative.builder()
+                .requestNative((ObjectNode) requestAsNode)
+                .request(xNative.getRequest())
+                .ver(xNative.getVer())
+                .api(xNative.getApi())
+                .battr(xNative.getBattr())
+                .ext(xNative.getExt())
+                .build();
+    }
+
+    public final JsonNode nodeFromString(String stringValue) {
+        try {
+            return StringUtils.isNotBlank(stringValue) ? mapper.mapper().readTree(stringValue) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void validateNativeRequest(JsonNode requestAsNode) {
+        if (requestAsNode == null) {
+            throw new PreBidException("Request can not be parsed");
+        }
+
+        final JsonNode eventtrackers = requestAsNode.get("eventtrackers");
+        if (eventtrackers == null || !eventtrackers.isArray()) {
+            throw new PreBidException("Eventtrackers are not present or not of array type");
+        }
+
+        final JsonNode context = requestAsNode.get("context");
+        if (context == null || !context.isInt()) {
+            throw new PreBidException("Context is not present or not of int type");
+        }
+
+        final JsonNode placement = requestAsNode.get("placement");
+        if (placement == null || !placement.isInt()) {
+            throw new PreBidException("Placement is not present or not of int type");
+        }
     }
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
@@ -1603,9 +1654,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Bid bidFromRubiconBid(RubiconBid rubiconBid) {
         try {
-            return mapper.mapper().treeToValue(mapper.mapper().valueToTree(rubiconBid), Bid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+            return mapper.mapper().convertValue(rubiconBid, Bid.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error converting rubiconBid to  ortbBid: " + e.getMessage(), e);
         }
     }
 
