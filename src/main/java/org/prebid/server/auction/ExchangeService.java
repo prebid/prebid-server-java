@@ -847,11 +847,6 @@ public class ExchangeService {
 
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
-        if (app != null && site != null) {
-            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
-        }
-        final Site resolvedSite = app == null ? site : null;
-
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
@@ -860,13 +855,19 @@ public class ExchangeService {
                 ? impBidderToStoredBidResponse.get(imps.get(0).getId()).get(bidder)
                 : null;
 
+        final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
+        final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
+        if (preparedApp != null && preparedSite != null) {
+            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
+        }
+
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases, context.getAccount()))
-                .app(prepareApp(app, fpdApp, useFirstPartyData))
-                .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
+                .app(preparedApp)
+                .site(preparedApp == null ? preparedSite : null)
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
