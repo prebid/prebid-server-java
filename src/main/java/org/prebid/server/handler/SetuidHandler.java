@@ -302,9 +302,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private boolean shouldRespondWithPixel(String format, UsersyncMethodType syncType) {
-        return StringUtils.equals(format, UsersyncFormat.PIXEL.name)
-                || (!StringUtils.equals(format, UsersyncFormat.BLINK.name)
-                && syncType == UsersyncMethodType.REDIRECT);
+        return UsersyncFormat.PIXEL.name.equals(format)
+                || (UsersyncFormat.BLINK.name.equals(format) && syncType == UsersyncMethodType.REDIRECT);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
