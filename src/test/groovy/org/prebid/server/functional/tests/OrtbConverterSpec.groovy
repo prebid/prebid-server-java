@@ -878,7 +878,7 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse shouldn't contain the site.content.kwarray as on request"
+        then: "BidResponse should contain the site.content.kwarray as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             site.content.kwarray == kwarrayRandomStrings
         }
