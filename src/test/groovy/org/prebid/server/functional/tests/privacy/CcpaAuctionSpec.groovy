@@ -204,7 +204,7 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         given: "BidRequest with channel: #requestChannel, ccpa"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def bidRequest = getCcpaBidRequest(validCcpa).tap {
-            ext.prebid.channel = Channel.getDefaultChannel().tap {
+            ext.prebid.channel = new Channel().tap {
                 name = requestChannel
             }
         }

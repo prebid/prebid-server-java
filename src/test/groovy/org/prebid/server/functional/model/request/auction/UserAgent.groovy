@@ -12,8 +12,4 @@ class UserAgent {
     String bitness
     String model
     Integer source
-
-    static UserAgent getDefaultUserAgent(){
-        new UserAgent()
-    }
 }

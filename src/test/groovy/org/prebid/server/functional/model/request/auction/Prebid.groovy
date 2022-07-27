@@ -33,9 +33,5 @@ class Prebid {
 
         ChannelType name
         String version
-
-        static Channel getDefaultChannel(){
-            new Channel()
-        }
     }
 }

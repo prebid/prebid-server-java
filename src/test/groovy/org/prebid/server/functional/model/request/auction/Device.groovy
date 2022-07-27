@@ -38,8 +38,4 @@ class Device {
     String dpidmd5
     String macsha1
     String macmd5
-
-    static Device getDefaultDevice() {
-        new Device()
-    }
 }

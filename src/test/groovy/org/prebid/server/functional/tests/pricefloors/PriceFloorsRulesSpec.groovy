@@ -514,7 +514,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with domain"
         def channel = WEB
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.channel = Channel.defaultChannel.tap {
+            ext.prebid.channel = new Channel().tap {
                 name = channel
             }
         }

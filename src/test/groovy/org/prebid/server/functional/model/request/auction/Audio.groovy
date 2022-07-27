@@ -30,9 +30,9 @@ class Audio {
     Integer stitched
     Integer nvol
 
-    static Audio getDefaultAudio(){
-        return new Audio().tap {
-            mimes = ["video/mp4"]
+    static Audio getDefaultAudio() {
+        new Audio().tap {
+            mimes = ["audio/mp4"]
         }
     }
 }

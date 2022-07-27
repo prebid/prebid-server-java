@@ -196,7 +196,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
-            ext.prebid.channel = Channel.defaultChannel.tap {
+            ext.prebid.channel = new Channel().tap {
                 name = requestChannel
             }
         }
