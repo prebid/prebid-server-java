@@ -56,6 +56,7 @@ import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -142,6 +143,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -284,6 +286,20 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", null, null));
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false,
+                CompressionType.NONE));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
@@ -342,7 +358,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
-        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString()))
+        given(ortbVersionConversionManager.convertFromAuctionSupportedVersion(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -1012,7 +1028,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithinSingleImp() {
         // given
         given(httpBidderRequester.requestBids(any(),
-                eq(BidderRequest.of("bidder", null, givenBidRequest(
+                eq(BidderRequest.of("bidder", null, null, givenBidRequest(
                         singletonList(givenImp(
                                 null,
                                 builder -> builder.ext(mapper.valueToTree(
@@ -1025,7 +1041,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
 
         given(httpBidderRequester.requestBids(any(),
-                eq(BidderRequest.of("bidderAlias", null, givenBidRequest(
+                eq(BidderRequest.of("bidderAlias", null, null, givenBidRequest(
                         singletonList(givenImp(
                                 null,
                                 builder -> builder.ext(mapper.valueToTree(
@@ -4382,7 +4398,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldConvertBidRequestOpenRTBVersionToConfiguredByBidder() {
         // given
-        given(ortbVersionConversionManager.convertToBidderSupportedVersion(any(), anyString())).willAnswer(
+        given(ortbVersionConversionManager.convertFromAuctionSupportedVersion(any(), any())).willAnswer(
                 invocation -> ((BidRequest) invocation.getArgument(0))
                         .toBuilder()
                         .source(null)

@@ -246,12 +246,9 @@ public class ServiceConfiguration {
 
     @Bean
     BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager(
-            BidderCatalog bidderCatalog,
             BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory) {
 
-        return new BidRequestOrtbVersionConversionManager(
-                bidderCatalog,
-                bidRequestOrtbVersionConverterFactory);
+        return new BidRequestOrtbVersionConversionManager(bidRequestOrtbVersionConverterFactory);
     }
 
     @Bean

@@ -8,9 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.BidderInfo;
-import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,8 +18,6 @@ public class BidRequestConversionManagerTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private BidderCatalog bidderCatalog;
     @Mock
     private BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
 
@@ -35,8 +30,7 @@ public class BidRequestConversionManagerTest extends VertxTest {
         given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_5), eq(OrtbVersion.ORTB_2_6)))
                 .willReturn(bidRequest -> bidRequest.toBuilder().id("2.6").build());
 
-        ortbVersionConversionManager = new BidRequestOrtbVersionConversionManager(
-                bidderCatalog, ortbVersionConverterFactory);
+        ortbVersionConversionManager = new BidRequestOrtbVersionConversionManager(ortbVersionConverterFactory);
     }
 
     @Test
@@ -54,28 +48,13 @@ public class BidRequestConversionManagerTest extends VertxTest {
     }
 
     @Test
-    public void convertToBidderSupportedVersionShouldConvertToExpectedVersion() {
+    public void convertFromAuctionSupportedVersionShouldConvertToExpectedVersion() {
         // given
-        given(bidderCatalog.bidderInfoByName(eq("bidder")))
-                .willReturn(BidderInfo.create(
-                        true,
-                        OrtbVersion.ORTB_2_5,
-                        false,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        0,
-                        false,
-                        false,
-                        CompressionType.NONE));
-
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = ortbVersionConversionManager.convertToBidderSupportedVersion(bidRequest, "bidder");
+        final BidRequest result = ortbVersionConversionManager
+                .convertFromAuctionSupportedVersion(bidRequest, OrtbVersion.ORTB_2_5);
 
         // then
         assertThat(result)

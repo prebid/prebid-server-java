@@ -1,7 +1,6 @@
 package org.prebid.server.auction.versionconverter;
 
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.Objects;
 
@@ -10,13 +9,9 @@ public class BidRequestOrtbVersionConversionManager {
     private static final OrtbVersion MINIMAL_SUPPORTED_VERSION = OrtbVersion.ORTB_2_5;
     private static final OrtbVersion AUCTION_VERSION = OrtbVersion.ORTB_2_6;
 
-    private final BidderCatalog bidderCatalog;
     private final BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory;
 
-    public BidRequestOrtbVersionConversionManager(BidderCatalog bidderCatalog,
-                                                  BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory) {
-
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+    public BidRequestOrtbVersionConversionManager(BidRequestOrtbVersionConverterFactory ortbVersionConverterFactory) {
         this.ortbVersionConverterFactory = Objects.requireNonNull(ortbVersionConverterFactory);
     }
 
@@ -26,9 +21,9 @@ public class BidRequestOrtbVersionConversionManager {
                 .convert(bidRequest);
     }
 
-    public BidRequest convertToBidderSupportedVersion(BidRequest bidRequest, String bidderName) {
+    public BidRequest convertFromAuctionSupportedVersion(BidRequest bidRequest, OrtbVersion ortbVersion) {
         return ortbVersionConverterFactory
-                .getConverter(AUCTION_VERSION, bidderCatalog.bidderInfoByName(bidderName).getOrtbVersion())
+                .getConverter(AUCTION_VERSION, ortbVersion)
                 .convert(bidRequest);
     }
 }
