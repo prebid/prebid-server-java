@@ -132,7 +132,7 @@ public class BidderCatalogTest {
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.usersyncerByName(BIDDER)).isEqualTo(usersyncer);
+        assertThat(bidderCatalog.usersyncerByName(BIDDER)).contains(usersyncer);
     }
 
     @Test
@@ -141,7 +141,7 @@ public class BidderCatalogTest {
         bidderCatalog = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.usersyncerByName("unknown_bidder")).isNull();
+        assertThat(bidderCatalog.usersyncerByName("unknown_bidder")).isEmpty();
     }
 
     @Test

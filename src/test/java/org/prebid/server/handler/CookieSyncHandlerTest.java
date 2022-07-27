@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -1629,10 +1630,10 @@ public class CookieSyncHandlerTest extends VertxTest {
 
     private void givenUsersyncersReturningFamilyName() {
         given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
-        given(bidderCatalog.usersyncerByName(RUBICON)).willReturn(rubiconUsersyncer);
+        given(bidderCatalog.usersyncerByName(RUBICON)).willReturn(Optional.ofNullable(rubiconUsersyncer));
 
         given(bidderCatalog.isValidName(APPNEXUS)).willReturn(true);
-        given(bidderCatalog.usersyncerByName(APPNEXUS)).willReturn(appnexusUsersyncer);
+        given(bidderCatalog.usersyncerByName(APPNEXUS)).willReturn(Optional.ofNullable(appnexusUsersyncer));
     }
 
     private void givenDefaultRubiconUsersyncer() {

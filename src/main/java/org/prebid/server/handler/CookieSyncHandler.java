@@ -62,6 +62,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -513,9 +514,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         }
 
-        final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
+        final Optional<Usersyncer> usersyncer = bidderCatalog.usersyncerByName(bidder);
+        final UsersyncMethod usersyncMethod = usersyncer
+                .map(syncer -> cookieSyncContext.getUsersyncMethodChooser().choose(syncer, bidder))
+                .orElse(null);
 
-        final UsersyncMethod usersyncMethod = cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
         if (usersyncMethod == null) {
             // there is nothing to sync
             return null;
@@ -523,7 +526,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final String cookieFamilyName = usersyncer.getCookieFamilyName();
+        final String cookieFamilyName = usersyncer.get().getCookieFamilyName();
         final String uidFromHostCookieToSet = resolveUidFromHostCookie(routingContext, cookieFamilyName);
         if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(cookieFamilyName)) {
             return null;
