@@ -1191,7 +1191,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(
                         BidderError.of("Error in native object for imp with id 1: "
-                                + "Placement is not present or not of int type", BidderError.Type.bad_input));
+                                + "Plcmttype is not present or not of int type", BidderError.Type.bad_input));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -1214,14 +1214,14 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(
                         BidderError.of("Error in native object for imp with id 1: "
-                                + "Placement is not present or not of int type", BidderError.Type.bad_input));
+                                + "Plcmttype is not present or not of int type", BidderError.Type.bad_input));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldPassValidNativeRequestToRequestNativeObject() {
+    public void makeHttpRequestsShouldPassValidNativeRequestToRequestNativeObjectIfVersionIsOneDotTwo() {
         // given
-        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"placement\":2}";
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"plcmttype\":2}";
         final Imp nativeImp = givenImp(builder -> builder
                 .id("1")
                 .xNative(Native.builder()
@@ -1238,7 +1238,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode expectedNativeRequest = mapper.createObjectNode();
         expectedNativeRequest.set("eventtrackers", mapper.createArrayNode());
         expectedNativeRequest.set("context", new IntNode(1));
-        expectedNativeRequest.set("placement", new IntNode(2));
+        expectedNativeRequest.set("plcmttype", new IntNode(2));
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -1247,6 +1247,36 @@ public class RubiconBidderTest extends VertxTest {
                         .requestNative(expectedNativeRequest)
                         .request(nativeRequest)
                         .ver("1.2")
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassValidNativeRequestToRequestNativeObjectIfVersionNotSet() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"plcmttype\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode expectedNativeRequest = mapper.createObjectNode();
+        expectedNativeRequest.set("eventtrackers", mapper.createArrayNode());
+        expectedNativeRequest.set("context", new IntNode(1));
+        expectedNativeRequest.set("plcmttype", new IntNode(2));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(RubiconNative.builder()
+                        .requestNative(expectedNativeRequest)
+                        .request(nativeRequest)
                         .build());
     }
 

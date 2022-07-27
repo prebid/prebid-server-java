@@ -1048,7 +1048,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private Native makeNative(Imp imp, List<BidderError> errors) {
         final Native xNative = imp.getXNative();
         final String version = ObjectUtil.getIfNotNull(xNative, Native::getVer);
-        if (StringUtils.isBlank(version)||StringUtils.equalsAny(version, "1.0", "1.1")) {
+        if (StringUtils.equalsAny(version, "1.0", "1.1")) {
             return xNative;
         }
         final String nativeRequest = xNative.getRequest();
@@ -1094,9 +1094,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             throw new PreBidException("Context is not present or not of int type");
         }
 
-        final JsonNode placement = requestAsNode.get("placement");
+        final JsonNode placement = requestAsNode.get("plcmttype");
         if (placement == null || !placement.isInt()) {
-            throw new PreBidException("Placement is not present or not of int type");
+            throw new PreBidException("Plcmttype is not present or not of int type");
         }
     }
 
