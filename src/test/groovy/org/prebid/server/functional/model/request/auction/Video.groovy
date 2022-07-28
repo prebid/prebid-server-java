@@ -8,16 +8,23 @@ class Video {
     List<String> mimes
     Integer minduration
     Integer maxduration
+    Integer startdelay
+    Integer maxseq
+    Integer poddur
     List<Integer> protocols
     Integer w
     Integer h
-    Integer startdelay
+    Integer podid
+    Integer podseq
+    List<Integer> rqddurs
     Integer placement
     Integer linearity
     Integer skip
     Integer skipmin
     Integer skipafter
     Integer sequence
+    Integer slotinpod
+    BigDecimal mincpmpersec
     List<Integer> battr
     Integer maxextended
     Integer minbitrate

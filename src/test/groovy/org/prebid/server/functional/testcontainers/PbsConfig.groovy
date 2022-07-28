@@ -64,6 +64,7 @@ LIMIT 1
 
     static Map<String, String> getDefaultBiddersConfig() {
         ["adapter-defaults.enabled"                   : "false",
+         "adapter-defaults.ortb-version"              : "2.5",
          "adapter-defaults.modifying-vast-xml-allowed": "true",
          "adapter-defaults.pbs-enforces-ccpa"         : "true"
         ].asImmutable()
@@ -73,6 +74,7 @@ LIMIT 1
         ["adapters.generic.enabled"      : "true",
          "adapters.generic.endpoint"     : "$rootUri/auction".toString(),
          "adapters.generic.usersync.url" : "$rootUri/generic-usersync".toString(),
+         "adapters.generic.ortb-version" : "2.5",
          "adapters.generic.usersync.type": "redirect"
         ]
     }
