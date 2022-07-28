@@ -211,7 +211,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.tagId == ampRequest.slot
         assert bidderRequest.imp[0]?.banner?.format*.h == [ampRequest.h, msH]
         assert bidderRequest.imp[0]?.banner?.format*.w == [ampRequest.w, msW]
-        assert bidderRequest.regs?.ext?.gdpr == (ampRequest.gdprApplies ? 1 : 0)
+        assert bidderRequest.regs?.gdpr == (ampRequest.gdprApplies ? 1 : 0)
     }
 
     def "PBS should prefer ow,oh from the request when ads sizes specified in stored request"() {
@@ -265,7 +265,7 @@ class AmpSpec extends BaseSpec {
         assert !bidderRequest.imp[0]?.tagId
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
-        assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
+        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
     @Retry
