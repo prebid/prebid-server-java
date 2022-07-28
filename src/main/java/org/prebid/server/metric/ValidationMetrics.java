@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -13,14 +13,14 @@ class ValidationMetrics extends UpdatableMetrics {
     private final SpecificValidationMetrics sizeValidationMetrics;
     private final SpecificValidationMetrics secureValidationMetrics;
 
-    ValidationMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    ValidationMetrics(MeterRegistry meterRegistry, String prefix) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
 
         sizeValidationMetrics = new SpecificValidationMetrics(
-                metricRegistry, counterType, createPrefix(prefix), "size");
+                meterRegistry, createPrefix(prefix), "size");
         secureValidationMetrics = new SpecificValidationMetrics(
-                metricRegistry, counterType, createPrefix(prefix), "secure");
+                meterRegistry, createPrefix(prefix), "secure");
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {

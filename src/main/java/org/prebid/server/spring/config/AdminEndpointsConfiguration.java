@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config;
 
-import com.codahale.metrics.MetricRegistry;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -39,6 +38,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 import java.util.Collections;
 import java.util.Map;
@@ -278,7 +278,7 @@ public class AdminEndpointsConfiguration {
     @Bean
     @ConditionalOnExpression("${admin-endpoints.collected-metrics.enabled} == true")
     CustomizedAdminEndpoint collectedMetricsAdminEndpoint(
-            MetricRegistry metricRegistry,
+            CompositeMeterRegistry meterRegistry,
             JacksonMapper mapper,
             @Value("${admin-endpoints.collected-metrics.path}") String path,
             @Value("${admin-endpoints.collected-metrics.on-application-port}") boolean isOnApplicationPort,
@@ -287,7 +287,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new CollectedMetricsHandler(metricRegistry, mapper, path),
+                new CollectedMetricsHandler(meterRegistry, mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

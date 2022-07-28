@@ -1,18 +1,17 @@
 package org.prebid.server.spring.config;
 
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
-import io.vertx.ext.dropwizard.Match;
-import io.vertx.ext.dropwizard.MatchType;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.prebid.server.spring.config.metrics.MetricsConfiguration;
+import io.vertx.micrometer.MicrometerMetricsOptions;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.LocalMessageCodec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,15 +21,14 @@ public class VertxConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VertxConfiguration.class);
 
+    @Autowired
+    private CompositeMeterRegistry meterRegistry;
+
     @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
-                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics) {
-        final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
-                .setEnabled(true)
-                .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
-        if (enablePerClientEndpointMetrics) {
-            metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
-        }
+    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize) {
+        final MicrometerMetricsOptions metricsOptions = new MicrometerMetricsOptions()
+                .setMicrometerRegistry(meterRegistry)
+                .setEnabled(true);
 
         final VertxOptions vertxOptions = new VertxOptions()
                 .setPreferNativeTransport(true)

@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,17 +23,17 @@ class AccountMetrics extends UpdatableMetrics {
     private final ResponseMetrics responseMetrics;
     private final HooksMetrics hooksMetrics;
 
-    AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    AccountMetrics(MeterRegistry meterRegistry, String account) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix(Objects.requireNonNull(account))));
         requestTypeMetricsCreator = requestType ->
-                new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account), requestType);
-        adapterMetrics = new AdapterMetrics(metricRegistry, counterType, createPrefix(account));
+                new RequestTypeMetrics(meterRegistry, createPrefix(account), requestType);
+        adapterMetrics = new AdapterMetrics(meterRegistry, createPrefix(account));
         requestTypeMetrics = new HashMap<>();
-        requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
-        cacheMetrics = new CacheMetrics(metricRegistry, counterType, createPrefix(account));
-        responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
-        hooksMetrics = new HooksMetrics(metricRegistry, counterType, createPrefix(account));
+        requestsMetrics = new RequestMetrics(meterRegistry, createPrefix(account));
+        cacheMetrics = new CacheMetrics(meterRegistry, createPrefix(account));
+        responseMetrics = new ResponseMetrics(meterRegistry, createPrefix(account));
+        hooksMetrics = new HooksMetrics(meterRegistry, createPrefix(account));
     }
 
     private static String createPrefix(String account) {

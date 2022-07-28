@@ -1,7 +1,7 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
 import org.prebid.server.exception.PreBidException;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -17,14 +17,12 @@ class TcfMetrics extends UpdatableMetrics {
     private final TcfVersionMetrics tcfVersion1Metrics;
     private final TcfVersionMetrics tcfVersion2Metrics;
 
-    TcfMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-        super(
-                Objects.requireNonNull(metricRegistry),
-                Objects.requireNonNull(counterType),
+    TcfMetrics(MeterRegistry meterRegistry, String prefix) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createTcfPrefix(Objects.requireNonNull(prefix))));
 
-        tcfVersion1Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v1");
-        tcfVersion2Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v2");
+        tcfVersion1Metrics = new TcfVersionMetrics(meterRegistry, createTcfPrefix(prefix), "v1");
+        tcfVersion2Metrics = new TcfVersionMetrics(meterRegistry, createTcfPrefix(prefix), "v2");
     }
 
     TcfVersionMetrics fromVersion(int version) {
@@ -47,14 +45,12 @@ class TcfMetrics extends UpdatableMetrics {
 
         private final VendorListMetrics vendorListMetrics;
 
-        TcfVersionMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String version) {
+        TcfVersionMetrics(MeterRegistry meterRegistry, String prefix, String version) {
             super(
-                    Objects.requireNonNull(metricRegistry),
-                    Objects.requireNonNull(counterType),
+                    Objects.requireNonNull(meterRegistry),
                     nameCreator(createVersionPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(version))));
 
-            vendorListMetrics = new VendorListMetrics(metricRegistry, counterType,
-                    createVersionPrefix(prefix, version));
+            vendorListMetrics = new VendorListMetrics(meterRegistry, createVersionPrefix(prefix, version));
         }
 
         private static String createVersionPrefix(String prefix, String version) {
@@ -72,11 +68,8 @@ class TcfMetrics extends UpdatableMetrics {
 
     static class VendorListMetrics extends UpdatableMetrics {
 
-        VendorListMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-            super(
-                    metricRegistry,
-                    counterType,
-                    nameCreator(createVersionPrefix(prefix)));
+        VendorListMetrics(MeterRegistry meterRegistry, String prefix) {
+            super(meterRegistry, nameCreator(createVersionPrefix(prefix)));
         }
 
         private static String createVersionPrefix(String prefix) {

@@ -1,16 +1,14 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
 
 class HookSuccessMetrics extends UpdatableMetrics {
 
-    HookSuccessMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-        super(
-                Objects.requireNonNull(metricRegistry),
-                Objects.requireNonNull(counterType),
+    HookSuccessMetrics(MeterRegistry meterRegistry, String prefix) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
     }
 

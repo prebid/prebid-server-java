@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,10 +15,9 @@ public class CookieSyncMetrics extends UpdatableMetrics {
     private final Function<String, CookieSyncMetrics.BidderCookieSyncMetrics> bidderCookieSyncMetricsCreator;
     private final Map<String, CookieSyncMetrics.BidderCookieSyncMetrics> bidderCookieSyncMetrics;
 
-    CookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> "cookie_sync." + metricName);
-        bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(metricRegistry, counterType, bidder);
+    CookieSyncMetrics(MeterRegistry meterRegistry) {
+        super(Objects.requireNonNull(meterRegistry), metricName -> "cookie_sync." + metricName);
+        bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(meterRegistry, bidder);
         bidderCookieSyncMetrics = new HashMap<>();
     }
 
@@ -30,10 +29,10 @@ public class CookieSyncMetrics extends UpdatableMetrics {
 
         private final TcfMetrics tcfMetrics;
 
-        BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
-            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+        BidderCookieSyncMetrics(MeterRegistry meterRegistry, String bidder) {
+            super(Objects.requireNonNull(meterRegistry),
                     nameCreator(Objects.requireNonNull(createCookieSyncPrefix(bidder))));
-            tcfMetrics = new TcfMetrics(metricRegistry, counterType, createCookieSyncPrefix(bidder));
+            tcfMetrics = new TcfMetrics(meterRegistry, createCookieSyncPrefix(bidder));
         }
 
         TcfMetrics tcf() {

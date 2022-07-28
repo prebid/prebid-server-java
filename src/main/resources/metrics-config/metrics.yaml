@@ -1,4 +1,34 @@
 metrics:
-  metricType: flushingCounter
   accounts:
     default-verbosity: none
+  cloudwatch:
+    enabled: false
+    namespace: prebid-server # Namespace to use for metrics
+    batchSize: 20 # Number of measurements per request to use for this backend. If more measurements are found, then multiple requests will be made. (Default: 20)
+  graphite:
+    enabled: false
+    host: localhost # Graphite host
+    port: 2004 # Graphite port
+  influx:
+    enabled: false
+    apiVersion: v2 # API version of InfluxDB to use. Defaults to 'v1' unless an org is configured. If an org is configured, defaults to 'v2'.
+    autoCreateDb: true # Whether to create the InfluxDB database if it does not exist before attempting to publish metrics to it. InfluxDB v1 only. (Default: true)
+    batchSize: 10000 # Number of measurements per request to use for this backend. If more measurements are found, then multiple requests will be made. (Default: 10000)
+    bucket: mybucket # Bucket for metrics. Use either the bucket name or ID. Defaults to the value of the db property if not set. InfluxDB v2 only.
+    compressed: true # Whether to enable GZIP compression of metrics batches published to InfluxDB. (Default: true)
+    connectTimeout: 1s # Connection timeout for requests to this backend. (Default: 1s)
+    consistency: one # Write consistency for each point. (Default: one)
+    db: mydb # Database to send metrics to. InfluxDB v1 only. (Default: mydb)
+    numThreads: 2 # Number of threads to use with the metrics publishing scheduler. (Default: 2)
+    org: myorg # Org to write metrics to. InfluxDB v2 only.
+    password: mysecret # Login password of the InfluxDB server. InfluxDB v1 only.
+    readTimeout: 10s # Read timeout for requests to this backend. (Default: 10s)
+    retentionPolicy: my_rp # Retention policy to use (InfluxDB writes to the DEFAULT retention policy if one is not specified). InfluxDB v1 only.
+    step: 1m # Step size (i.e. reporting frequency) to use. (Default: 1m)
+    token: AUTH_TOKEN_HERE # Authentication token to use with calls to the InfluxDB backend. For InfluxDB v1, the Bearer scheme is used. For v2, the Token scheme is used.
+    uri: http://localhost:8086 # URI of the InfluxDB server. (Default: http://localhost:8086)
+    userName: myusername # Login user of the InfluxDB server. InfluxDB v1 only.
+  prometheus:
+    enabled: false
+    path: /metrics # URL path to use for scrapper
+    port: 9000 # Port to use for Prometheus server

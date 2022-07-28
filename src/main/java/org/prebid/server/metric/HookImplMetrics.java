@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -9,13 +9,11 @@ class HookImplMetrics extends UpdatableMetrics {
 
     private final HookSuccessMetrics successMetrics;
 
-    HookImplMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String hookImplCode) {
-        super(
-                Objects.requireNonNull(metricRegistry),
-                Objects.requireNonNull(counterType),
+    HookImplMetrics(MeterRegistry meterRegistry, String prefix, String hookImplCode) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(hookImplCode))));
 
-        successMetrics = new HookSuccessMetrics(metricRegistry, counterType, createPrefix(prefix, hookImplCode));
+        successMetrics = new HookSuccessMetrics(meterRegistry, createPrefix(prefix, hookImplCode));
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {

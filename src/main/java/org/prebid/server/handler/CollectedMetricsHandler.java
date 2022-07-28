@@ -1,11 +1,15 @@
 package org.prebid.server.handler;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.FunctionTimer;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.TimeGauge;
+import io.micrometer.core.instrument.Timer;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.json.JacksonMapper;
@@ -17,18 +21,17 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class CollectedMetricsHandler implements Handler<RoutingContext> {
 
-    private final MetricRegistry metricRegistry;
+    private final MeterRegistry meterRegistry;
     private final JacksonMapper mapper;
     private final String endpoint;
 
-    public CollectedMetricsHandler(MetricRegistry metricRegistry,
+    public CollectedMetricsHandler(MeterRegistry meterRegistry,
                                    JacksonMapper mapper,
                                    String endpoint) {
-        this.metricRegistry = Objects.requireNonNull(metricRegistry);
+        this.meterRegistry = Objects.requireNonNull(meterRegistry);
         this.mapper = Objects.requireNonNull(mapper);
         this.endpoint = Objects.requireNonNull(endpoint);
     }
@@ -44,18 +47,31 @@ public class CollectedMetricsHandler implements Handler<RoutingContext> {
     }
 
     private Map<String, Number> getAllMetrics() {
-        return Stream.of(getMetric(metricRegistry.getGauges(), Gauge::getValue),
-                        getMetric(metricRegistry.getCounters(), Counter::getCount),
-                        getMetric(metricRegistry.getHistograms(), metric -> metric.getSnapshot().get95thPercentile()),
-                        getMetric(metricRegistry.getMeters(), Meter::getCount),
-                        getMetric(metricRegistry.getTimers(), Timer::getCount))
-                .flatMap(Function.identity())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
-    }
+        Function<Gauge, Number> getGaugeValue = m -> m.value();
+        Function<Counter, Number> getCounterValue = m -> m.count();
+        Function<Timer, Number> getTimerValue = m -> m.count();
+        Function<DistributionSummary, Number> getSummaryValue = m -> m.takeSnapshot().count();
+        Function<LongTaskTimer, Number> getLongTaskTimerValue = m -> m.takeSnapshot().count();
+        Function<TimeGauge, Number> getTimeGaugeValue = m -> m.value();
+        Function<FunctionCounter, Number> getFunctionCounterValue = m -> m.count();
+        Function<FunctionTimer, Number> getFunctionTimerValue = m -> m.count();
+        Function<Meter, Number> getMeterValue = m -> 0;
 
-    private static <T extends Metric> Stream<Map.Entry<String, Number>> getMetric(Map<String, T> metricMap,
-                                                                                  Function<T, ?> getter) {
-        return metricMap.entrySet().stream()
-                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), (Number) getter.apply(entry.getValue())));
+        return meterRegistry.getMeters()
+                    .stream()
+                    .map(m -> new AbstractMap.SimpleEntry<>(
+                        m.getId().getName(),
+                        (Number) m.match(
+                            getGaugeValue,
+                            getCounterValue,
+                            getTimerValue,
+                            getSummaryValue,
+                            getLongTaskTimerValue,
+                            getTimeGaugeValue,
+                            getFunctionCounterValue,
+                            getFunctionTimerValue,
+                            getMeterValue
+                            )))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 }

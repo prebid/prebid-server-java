@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,25 +15,22 @@ class HooksMetrics extends UpdatableMetrics {
     private final Function<String, ModuleMetrics> moduleMetricsCreator;
     private final Map<String, ModuleMetrics> moduleMetrics;
 
-    HooksMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+    HooksMetrics(MeterRegistry meterRegistry, String prefix) {
         super(
-                Objects.requireNonNull(metricRegistry),
-                Objects.requireNonNull(counterType),
+                Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
 
         moduleMetricsCreator = moduleCode ->
-                new ModuleMetrics(metricRegistry, counterType, createPrefix(prefix), moduleCode);
+                new ModuleMetrics(meterRegistry, createPrefix(prefix), moduleCode);
         moduleMetrics = new HashMap<>();
     }
 
-    HooksMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(
-                Objects.requireNonNull(metricRegistry),
-                Objects.requireNonNull(counterType),
+    HooksMetrics(MeterRegistry meterRegistry) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(createPrefix()));
 
         moduleMetricsCreator = moduleCode ->
-                new ModuleMetrics(metricRegistry, counterType, createPrefix(), moduleCode);
+                new ModuleMetrics(meterRegistry, createPrefix(), moduleCode);
         moduleMetrics = new HashMap<>();
     }
 

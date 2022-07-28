@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -12,10 +12,10 @@ class RequestTypeMetrics extends UpdatableMetrics {
 
     private final TcfMetrics tcfMetrics;
 
-    RequestTypeMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, MetricName requestType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    RequestTypeMetrics(MeterRegistry meterRegistry, String prefix, MetricName requestType) {
+        super(Objects.requireNonNull(meterRegistry),
                 nameCreator(Objects.requireNonNull(prefix), Objects.requireNonNull(requestType)));
-        tcfMetrics = new TcfMetrics(metricRegistry, counterType, createTcfPrefix(prefix, requestType));
+        tcfMetrics = new TcfMetrics(meterRegistry, createTcfPrefix(prefix, requestType));
     }
 
     TcfMetrics tcf() {

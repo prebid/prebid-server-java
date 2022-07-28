@@ -1,6 +1,9 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.CompositeMeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleConfig;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.MockClock;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,7 +13,8 @@ public class CookieSyncMetricsTest {
     @Test
     public void forBidderShouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         // given
-        final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.counter);
+        final MeterRegistry meterRegistry = new SimpleMeterRegistry(SimpleConfig.DEFAULT, new MockClock());
+        final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(meterRegistry);
 
         // when and then
         assertThat(cookieSyncMetrics.forBidder("rubicon")).isSameAs(cookieSyncMetrics.forBidder("rubicon"));
