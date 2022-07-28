@@ -24,6 +24,6 @@ public enum BooleanOperator {
                 return op;
             }
         }
-        throw new IllegalArgumentException(String.format("Unrecognized boolean operator: %s", candidate));
+        throw new IllegalArgumentException("Unrecognized boolean operator: " + candidate);
     }
 }

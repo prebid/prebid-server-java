@@ -31,8 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class AdminCentralServiceTest extends VertxTest {
 
@@ -253,8 +253,8 @@ public class AdminCentralServiceTest extends VertxTest {
         final AdminCentralResponse adminCentralResponse = AdminCentralResponse.of(null,
                 Command.of("save", jacksonMapper.mapper().valueToTree(UpdateSettingsCacheRequest
                         .of(Collections.singletonMap("requestId",
-                                jacksonMapper.mapper().writeValueAsString(BidRequest.builder().id("requestId")
-                                        .build())),
+                                        jacksonMapper.mapper().writeValueAsString(BidRequest.builder().id("requestId")
+                                                .build())),
                                 Collections.singletonMap("impId",
                                         jacksonMapper.mapper().writeValueAsString(Imp.builder().id("impId")
                                                 .build()))))),

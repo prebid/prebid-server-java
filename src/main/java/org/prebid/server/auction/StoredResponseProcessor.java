@@ -86,7 +86,7 @@ public class StoredResponseProcessor {
 
         return applicationSettings.getStoredResponses(storedIds, timeout)
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
+                        "Stored response fetching failed with reason: " + exception.getMessage())))
                 .map(storedResponseDataResult -> StoredResponseResult.of(
                         requiredRequestImps,
                         convertToSeatBid(storedResponseDataResult, auctionStoredResponseToImpId),
@@ -96,9 +96,10 @@ public class StoredResponseProcessor {
 
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
                                                        Map<String, String> auctionStoredResponseToImpId) {
+
         return imps.stream()
                 .filter(imp -> !auctionStoredResponseToImpId.containsValue(imp.getId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<AuctionParticipation> updateStoredBidResponse(List<AuctionParticipation> auctionParticipations) {
@@ -163,7 +164,7 @@ public class StoredResponseProcessor {
         return responseBidders.stream()
                 .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
                         bidderToSeatBid.get(bidder), impIdToBidType))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {
@@ -206,8 +207,8 @@ public class StoredResponseProcessor {
         try {
             return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format(
-                    "Error decoding bidRequest.imp.ext for impId = %s : %s", impId, e.getMessage()));
+            throw new InvalidRequestException(
+                    "Error decoding bidRequest.imp.ext for impId = %s : %s".formatted(impId, e.getMessage()));
         }
     }
 
@@ -225,14 +226,15 @@ public class StoredResponseProcessor {
             final String impId = storedIdToImpId.getValue();
             final String rowSeatBid = idToStoredResponses.get(id);
             if (rowSeatBid == null) {
-                throw new InvalidRequestException(String.format("Failed to fetch stored auction response for"
-                        + " impId = %s and storedAuctionResponse id = %s.", impId, id));
+                throw new InvalidRequestException(
+                        "Failed to fetch stored auction response for impId = %s and storedAuctionResponse id = %s."
+                                .formatted(impId, id));
             }
             final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
             validateStoredSeatBid(seatBids);
             resolvedSeatBids.addAll(seatBids.stream()
                     .map(seatBid -> updateSeatBidBids(seatBid, impId))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         return mergeSameBidderSeatBid(resolvedSeatBids);
     }
@@ -241,7 +243,7 @@ public class StoredResponseProcessor {
         try {
             return mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPE);
         } catch (IOException e) {
-            throw new InvalidRequestException(String.format("Can't parse Json for stored response with id %s", id));
+            throw new InvalidRequestException("Can't parse Json for stored response with id " + id);
         }
     }
 
@@ -250,7 +252,7 @@ public class StoredResponseProcessor {
     }
 
     private List<Bid> updateBidsWithImpId(List<Bid> bids, String impId) {
-        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).collect(Collectors.toList());
+        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).toList();
     }
 
     private static Bid updateBidWithImpId(Bid bid, String impId) {
@@ -273,12 +275,12 @@ public class StoredResponseProcessor {
         return seatBids.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
                 .entrySet().stream()
                 .map(bidderToSeatBid -> makeMergedSeatBid(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private SeatBid makeMergedSeatBid(String seat, List<SeatBid> storedSeatBids) {
         return SeatBid.builder()
-                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).collect(Collectors.toList()))
+                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).toList())
                 .seat(seat)
                 .ext(storedSeatBids.stream().map(SeatBid::getExt).filter(Objects::nonNull).findFirst().orElse(null))
                 .build();
@@ -334,7 +336,7 @@ public class StoredResponseProcessor {
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
                 .map(bid -> makeBidderBid(bid, bidCurrency, impIdToBidType))
-                .collect(Collectors.toList())
+                .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());

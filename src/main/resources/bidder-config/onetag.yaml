@@ -1,6 +1,7 @@
 adapters:
   onetag:
     endpoint: https://prebid-server.onetag-sys.com/prebid-server/{{publisherId}}
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: devops@onetag.com
       app-media-types:

@@ -284,7 +284,7 @@ public class ExchangeService {
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         aliases)
                                         .map(auctionParticipation::with))
-                                .collect(Collectors.toList())))
+                                .collect(Collectors.toCollection(ArrayList::new))))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
 
@@ -388,8 +388,9 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                debugWarnings.add(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+                debugWarnings.add(
+                        "Invalid MultiBid: bidder %s and bidders %s specified. Only bidder %s will be used."
+                                .formatted(bidder, bidders, bidder));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
@@ -399,8 +400,9 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    debugWarnings.add(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
-                            + "will be skipped.", codePrefix, bidders));
+                    debugWarnings.add(
+                            "Invalid MultiBid: CodePrefix %s that was specified for bidders %s will be skipped."
+                                    .formatted(codePrefix, bidders));
                 }
 
                 bidders.forEach(currentBidder ->
@@ -419,13 +421,13 @@ public class ExchangeService {
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                                  List<String> debugWarnings) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            debugWarnings.add(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            debugWarnings.add("Invalid MultiBid: Bidder %s specified multiple times.".formatted(bidder));
             return;
         }
 
         if (maxBids == null) {
-            debugWarnings.add(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
-                    + "will be skipped.", bidder));
+            debugWarnings.add("Invalid MultiBid: MaxBids for bidder %s is not specified and will be skipped."
+                    .formatted(bidder));
             return;
         }
 
@@ -488,13 +490,13 @@ public class ExchangeService {
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .map(imp -> dealsProcessor.removePgDealsOnlyBiddersWithoutDeals(context, imp, aliases))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
@@ -723,7 +725,7 @@ public class ExchangeService {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
                 .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -782,7 +784,7 @@ public class ExchangeService {
                         context))
                 // Can't be removed after we prepare workflow to filter blocked
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(bidderRequests);
 
@@ -842,11 +844,6 @@ public class ExchangeService {
 
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
-        if (app != null && site != null) {
-            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
-        }
-        final Site resolvedSite = app == null ? site : null;
-
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
@@ -855,13 +852,19 @@ public class ExchangeService {
                 ? impBidderToStoredBidResponse.get(imps.get(0).getId()).get(bidder)
                 : null;
 
+        final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
+        final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
+        if (preparedApp != null && preparedSite != null) {
+            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
+        }
+
         final BidderRequest bidderRequest = BidderRequest.of(bidder, storedBidResponse, bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases, context.getAccount()))
-                .app(prepareApp(app, fpdApp, useFirstPartyData))
-                .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
+                .app(preparedApp)
+                .site(preparedApp == null ? preparedSite : null)
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
@@ -888,7 +891,7 @@ public class ExchangeService {
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, useFirstPartyData, aliases, account))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Imp prepareImp(Imp imp,
@@ -926,7 +929,7 @@ public class ExchangeService {
                 .map(deal -> Tuple2.of(deal, toExtDeal(deal.getExt())))
                 .filter((Tuple2<Deal, ExtDeal> tuple) -> DealUtil.isBidderHasDeal(bidder, tuple.getRight(), aliases))
                 .map((Tuple2<Deal, ExtDeal> tuple) -> prepareDeal(tuple.getLeft(), tuple.getRight()))
-                .collect(Collectors.toList());
+                .toList();
 
         return pmp.toBuilder().deals(updatedDeals).build();
     }
@@ -941,8 +944,7 @@ public class ExchangeService {
         try {
             return mapper.mapper().treeToValue(ext, ExtDeal.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(
-                    String.format("Error decoding bidRequest.imp.pmp.deal.ext: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding bidRequest.imp.pmp.deal.ext: " + e.getMessage(), e);
         }
     }
 
@@ -1015,7 +1017,7 @@ public class ExchangeService {
         try {
             return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding imp.ext.prebid: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
     }
 
@@ -1180,7 +1182,7 @@ public class ExchangeService {
                                                            MetricName requestTypeMetric) {
         auctionParticipations = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         metrics.updateRequestBidderCardinalityMetric(auctionParticipations.size());
         metrics.updateAccountRequestMetrics(account, requestTypeMetric);
@@ -1292,7 +1294,7 @@ public class ExchangeService {
 
         return auctionParticipations.stream()
                 .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private AuctionParticipation dropZeroNonDealBids(AuctionParticipation auctionParticipation,
@@ -1306,9 +1308,8 @@ public class ExchangeService {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
-                debugWarnings.add(String.format(
-                        "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        bid.getId()));
+                debugWarnings.add("Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
+                        .formatted(bid.getId()));
             } else {
                 validBids.add(bidderBid);
             }
@@ -1336,7 +1337,7 @@ public class ExchangeService {
                         auctionContext.getBidRequest(),
                         auctionParticipation,
                         auctionContext.getAccount()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -1361,9 +1362,8 @@ public class ExchangeService {
 
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
-            errors.add(BidderError.badInput(
-                    String.format("Cur parameter contains more than one currency. %s will be used",
-                            requestCurrencies.get(0))));
+            errors.add(BidderError.badInput("Cur parameter contains more than one currency. %s will be used"
+                    .formatted(requestCurrencies.get(0))));
         }
 
         final List<BidderBid> bids = seatBid.getBids();
@@ -1566,7 +1566,7 @@ public class ExchangeService {
         final List<BidderResponse> bidderResponses = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .map(AuctionParticipation::getBidderResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
@@ -1612,28 +1612,14 @@ public class ExchangeService {
      * Resolves {@link MetricName} by {@link BidderError.Type} value.
      */
     private static MetricName bidderErrorTypeToMetric(BidderError.Type errorType) {
-        final MetricName errorMetric;
-        switch (errorType) {
-            case bad_input:
-                errorMetric = MetricName.badinput;
-                break;
-            case bad_server_response:
-                errorMetric = MetricName.badserverresponse;
-                break;
-            case failed_to_request_bids:
-                errorMetric = MetricName.failedtorequestbids;
-                break;
-            case timeout:
-                errorMetric = MetricName.timeout;
-                break;
-            case invalid_bid:
-                errorMetric = MetricName.bid_validation;
-                break;
-            case generic:
-            default:
-                errorMetric = MetricName.unknown_error;
-        }
-        return errorMetric;
+        return switch (errorType) {
+            case bad_input -> MetricName.badinput;
+            case bad_server_response -> MetricName.badserverresponse;
+            case failed_to_request_bids -> MetricName.failedtorequestbids;
+            case timeout -> MetricName.timeout;
+            case invalid_bid -> MetricName.bid_validation;
+            case rejected_ipf, generic -> MetricName.unknown_error;
+        };
     }
 
     private AuctionContext enrichWithHooksDebugInfo(AuctionContext context) {
@@ -1702,7 +1688,7 @@ public class ExchangeService {
                                         messagesLists -> messagesLists.getValue().stream()
                                                 .map(messagesGetter)
                                                 .flatMap(Collection::stream)
-                                                .collect(Collectors.toList())))));
+                                                .toList()))));
 
         return !messagesByModule.isEmpty() ? messagesByModule : null;
     }
@@ -1718,7 +1704,7 @@ public class ExchangeService {
                 .entrySet().stream()
                 .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), traceLevel))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (stages.isEmpty()) {
             return null;
@@ -1736,7 +1722,7 @@ public class ExchangeService {
         final List<ExtModulesTraceStageOutcome> extStageOutcomes = stageOutcomes.stream()
                 .map(stageOutcome -> toTraceStageOutcome(stageOutcome, level))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         if (extStageOutcomes.isEmpty()) {
             return null;
@@ -1755,7 +1741,7 @@ public class ExchangeService {
 
         final List<ExtModulesTraceGroup> groups = stageOutcome.getGroups().stream()
                 .map(group -> toTraceGroup(group, level))
-                .collect(Collectors.toList());
+                .toList();
 
         if (groups.isEmpty()) {
             return null;
@@ -1769,7 +1755,7 @@ public class ExchangeService {
     private static ExtModulesTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
         final List<ExtModulesTraceInvocationResult> invocationResults = group.getHooks().stream()
                 .map(hook -> toTraceInvocationResult(hook, level))
-                .collect(Collectors.toList());
+                .toList();
 
         final long executionTime = invocationResults.stream()
                 .mapToLong(ExtModulesTraceInvocationResult::getExecutionTime)
@@ -1800,7 +1786,7 @@ public class ExchangeService {
         return ExtModulesTraceAnalyticsTags.of(CollectionUtils.emptyIfNull(analyticsTags.activities()).stream()
                 .filter(Objects::nonNull)
                 .map(ExchangeService::toTraceAnalyticsActivity)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
@@ -1810,7 +1796,7 @@ public class ExchangeService {
                 CollectionUtils.emptyIfNull(activity.results()).stream()
                         .filter(Objects::nonNull)
                         .map(ExchangeService::toTraceAnalyticsResult)
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     private static ExtModulesTraceAnalyticsResult toTraceAnalyticsResult(Result result) {

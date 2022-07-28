@@ -14,6 +14,6 @@ public class EventTypeMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix, MetricName eventType) {
-        return metricName -> String.format("%s.%s.%s", prefix, eventType, metricName.toString());
+        return metricName -> "%s.%s.%s".formatted(prefix, eventType, metricName);
     }
 }

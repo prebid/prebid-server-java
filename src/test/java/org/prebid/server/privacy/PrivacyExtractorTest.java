@@ -49,7 +49,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegsExtIsNull() {
         // given and when
         final String gdpr = privacyExtractor.validPrivacyFrom(
-                BidRequest.builder().regs(Regs.of(null, null)).build(), new ArrayList<>())
+                        BidRequest.builder().regs(Regs.of(null, null)).build(), new ArrayList<>())
                 .getGdpr();
 
         // then

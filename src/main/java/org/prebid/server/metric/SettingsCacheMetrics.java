@@ -29,11 +29,11 @@ class SettingsCacheMetrics extends UpdatableMetrics {
     }
 
     private static String createPrefix(MetricName type) {
-        return String.format("settings.cache.%s", type.toString());
+        return "settings.cache." + type.toString();
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     static class RefreshSettingsCacheMetrics extends UpdatableMetrics {
@@ -48,11 +48,11 @@ class SettingsCacheMetrics extends UpdatableMetrics {
         }
 
         private static String createPrefix(String prefix, MetricName type) {
-            return String.format("%s.refresh.%s", prefix, type.toString());
+            return "%s.refresh.%s".formatted(prefix, type);
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+            return metricName -> "%s.%s".formatted(prefix, metricName);
         }
     }
 }

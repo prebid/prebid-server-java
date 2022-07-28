@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 final class RubiconSize {
@@ -133,7 +132,7 @@ final class RubiconSize {
                     .sorted(Comparator.comparing(rubiconSize -> rubiconSize.h))
                     .limit(1)
                     .map(rubiconSize -> Format.builder().w(rubiconSize.w).h(rubiconSize.h).build())
-                    .collect(Collectors.toList());
+                    .toList();
             result.addAll(idResult);
         }
         return result;
@@ -157,16 +156,12 @@ final class RubiconSize {
         }
 
         private static int ordinal(Integer i) {
-            switch (i) {
-                case 15:
-                    return 1;
-                case 2:
-                    return 2;
-                case 9:
-                    return 3;
-                default:
-                    return 4;
-            }
+            return switch (i) {
+                case 15 -> 1;
+                case 2 -> 2;
+                case 9 -> 3;
+                default -> 4;
+            };
         }
     }
 }

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.94.0-SNAPSHOT</version>
+        <version>1.95.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -63,9 +63,9 @@
         <mockito.version>4.0.0</mockito.version>
         <mockito-junit-jupiter.version>4.0.0</mockito-junit-jupiter.version>
         <assertj.version>3.21.0</assertj.version>
-        <wiremock.version>2.31.0</wiremock.version>
+        <wiremock.version>2.33.2</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.48.v20220622</jetty.version>
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.1.210</h2.version>
         <spock.version>2.1-groovy-3.0</spock.version>
@@ -78,12 +78,12 @@
         <bytebuddy.version>1.11.19</bytebuddy.version>
 
         <!-- plugin versions -->
-        <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
-        <checkstyle.version>8.29</checkstyle.version>
+        <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
+        <checkstyle.version>10.3</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
-        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
@@ -809,6 +809,14 @@
                 <artifactId>allure-maven</artifactId>
                 <version>${allure-maven.version}</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -840,17 +848,6 @@
     </reporting>
 
     <profiles>
-        <profile>
-            <id>Java 17</id>
-            <activation>
-                <jdk>[17,)</jdk>
-            </activation>
-            <properties>
-                <java.version>17</java.version>
-                <maven.compiler.source>${java.version}</maven.compiler.source>
-                <maven.compiler.target>${java.version}</maven.compiler.target>
-            </properties>
-        </profile>
         <profile>
             <!-- Run only one application container instance on fixed ports for debugging purposes -->
             <id>Container debugging</id>

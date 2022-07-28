@@ -120,9 +120,9 @@ public class DealsProcessor {
                                            Imp imp,
                                            Set<String> pgDealsOnlyBiddersToRemove) {
 
-        auctionContext.getDebugWarnings().add(String.format(
-                "Not calling %s bidders for impression %s due to %s flag and no available PG line items.",
-                String.join(", ", pgDealsOnlyBiddersToRemove), imp.getId(), PG_DEALS_ONLY));
+        auctionContext.getDebugWarnings().add(
+                "Not calling %s bidders for impression %s due to %s flag and no available PG line items."
+                        .formatted(String.join(", ", pgDealsOnlyBiddersToRemove), imp.getId(), PG_DEALS_ONLY));
     }
 
     private static boolean hasBidder(Imp imp) {

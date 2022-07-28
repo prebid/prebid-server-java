@@ -71,7 +71,7 @@ public class Ortb2ImplicitParametersResolver {
     private static final String BIDDER_EXT = "bidder";
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
-            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid");
+            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid");
 
     private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
@@ -113,7 +113,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Currency code supplied is not valid: %s", code), e);
+            throw new IllegalArgumentException("Currency code supplied is not valid: " + code, e);
         }
         return code;
     }
@@ -178,7 +178,7 @@ public class Ortb2ImplicitParametersResolver {
 
         if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
             throw new BlacklistedAppException(
-                    String.format("Prebid-server does not process requests from App ID: %s", appId));
+                    "Prebid-server does not process requests from App ID: " + appId);
         }
     }
 
@@ -472,7 +472,7 @@ public class Ortb2ImplicitParametersResolver {
 
         final List<ImpPopulationContext> impPopulationContexts = imps.stream()
                 .map(imp -> new ImpPopulationContext(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger))
-                .collect(Collectors.toList());
+                .toList();
 
         if (impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulatedImp)
@@ -483,7 +483,7 @@ public class Ortb2ImplicitParametersResolver {
 
         return impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulationResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {

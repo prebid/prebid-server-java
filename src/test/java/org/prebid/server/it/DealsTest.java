@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -280,7 +281,7 @@ public class DealsTest extends VertxTest {
                                         new Customization(
                                                 "ext.debug.trace.lineitems.lineItem" + i + "[*].time",
                                                 timeValueMatcher)))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
         arrayValueMatchers.add(new Customization("ext.debug.httpcalls.cache", cacheArrayValueMatcher));

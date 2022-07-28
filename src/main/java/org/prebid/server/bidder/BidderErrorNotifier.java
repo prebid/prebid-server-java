@@ -2,8 +2,8 @@ package org.prebid.server.bidder;
 
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
@@ -66,8 +66,7 @@ public class BidderErrorNotifier {
 
         if (logTimeoutNotificationResult && !(logTimeoutNotificationFailureOnly && isSuccessful)) {
             conditionalLogger.warn(
-                    String.format(
-                            "Notified bidder about timeout. Status code: %s. Request body: %s",
+                    "Notified bidder about timeout. Status code: %s. Request body: %s".formatted(
                             response.getStatusCode(),
                             new String(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
@@ -81,10 +80,8 @@ public class BidderErrorNotifier {
 
         if (logTimeoutNotificationResult) {
             conditionalLogger.warn(
-                    String.format(
-                            "Error occurred while notifying bidder about timeout. Error message: %s. Request body: %s",
-                            exception.getMessage(),
-                            new String(timeoutNotification.getBody())),
+                    "Error occurred while notifying bidder about timeout. Error message: %s. Request body: %s"
+                            .formatted(exception.getMessage(), new String(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
         }
 
