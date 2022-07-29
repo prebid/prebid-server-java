@@ -7,5 +7,5 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = false)
 class SourceExt {
 
-    Schain schain
+    SupplyChain schain
 }
