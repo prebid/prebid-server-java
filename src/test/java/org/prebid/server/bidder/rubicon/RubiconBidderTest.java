@@ -216,8 +216,8 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsExactly(
+        assertThat(result.getErrors())
+                .containsExactlyInAnyOrder(
                         BidderError.of("Impression with id 1 rejected with invalid type `audio`."
                                 + " Allowed types are [banner, video, native]", BidderError.Type.bad_input),
                         BidderError.of("Impression with id 2 rejected with invalid type `audio`."

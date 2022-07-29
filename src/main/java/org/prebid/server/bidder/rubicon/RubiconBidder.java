@@ -279,7 +279,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isValidType(Imp imp) {
-        return imp.getVideo() != null || imp.getBanner() != null || imp.getXNative() != null;
+        return ObjectUtils.anyNotNull(imp.getVideo(), imp.getBanner(), imp.getXNative());
     }
 
     private BidderError impTypeErrorMessage(Imp imp) {
@@ -1052,17 +1052,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return xNative;
         }
         final String nativeRequest = xNative.getRequest();
-        final JsonNode requestAsNode = nodeFromString(nativeRequest);
+        final JsonNode requestNode = nodeFromString(nativeRequest);
 
         try {
-            validateNativeRequest(requestAsNode);
+            validateNativeRequest(requestNode);
         } catch (PreBidException e) {
             throw new PreBidException(
                     String.format("Error in native object for imp with id %s: %s", imp.getId(), e.getMessage()));
         }
 
         return RubiconNative.builder()
-                .requestNative((ObjectNode) requestAsNode)
+                .requestNative((ObjectNode) requestNode)
                 .request(xNative.getRequest())
                 .ver(xNative.getVer())
                 .api(xNative.getApi())
@@ -1079,22 +1079,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void validateNativeRequest(JsonNode requestAsNode) {
-        if (requestAsNode == null) {
+    private void validateNativeRequest(JsonNode requestNode) {
+        if (requestNode == null) {
             throw new PreBidException("Request can not be parsed");
         }
 
-        final JsonNode eventtrackers = requestAsNode.get("eventtrackers");
+        final JsonNode eventtrackers = requestNode.get("eventtrackers");
         if (eventtrackers == null || !eventtrackers.isArray()) {
             throw new PreBidException("Eventtrackers are not present or not of array type");
         }
 
-        final JsonNode context = requestAsNode.get("context");
+        final JsonNode context = requestNode.get("context");
         if (context == null || !context.isInt()) {
             throw new PreBidException("Context is not present or not of int type");
         }
 
-        final JsonNode placement = requestAsNode.get("plcmttype");
+        final JsonNode placement = requestNode.get("plcmttype");
         if (placement == null || !placement.isInt()) {
             throw new PreBidException("Plcmttype is not present or not of int type");
         }
