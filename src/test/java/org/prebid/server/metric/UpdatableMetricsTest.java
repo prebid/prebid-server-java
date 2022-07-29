@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import io.micrometer.core.instrument.CompositeMeterRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.core.instrument.MockClock;
