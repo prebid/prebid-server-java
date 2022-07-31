@@ -53,6 +53,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconNative;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconSiteExt;
@@ -64,6 +65,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExtRp;
+import org.prebid.server.bidder.rubicon.proto.response.RubiconBid;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -187,7 +189,8 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFilterImpressionsWithInvalidTypes() {
         // given
         final Imp imp1 = givenImp(builder -> builder.video(Video.builder().build()));
-        final Imp imp2 = givenImp(builder -> builder.id("2").xNative(Native.builder().build()));
+        final Imp imp2 = givenImp(builder -> builder.id("2")
+                .xNative(Native.builder().ver("1.0").build()));
         final Imp imp3 = givenImp(builder -> builder.id("3").audio(Audio.builder().build()));
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2, imp3)).build();
 
@@ -195,19 +198,17 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(
-                        BidderError.of("Impression with id 2 rejected with invalid type `xNative`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+        assertThat(result.getErrors())
+                .containsExactly(
                         BidderError.of("Impression with id 3 rejected with invalid type `audio`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input));
-        assertThat(result.getValue()).hasSize(1);
+                                + " Allowed types are [banner, video, native]", BidderError.Type.bad_input));
+        assertThat(result.getValue()).hasSize(2);
     }
 
     @Test
     public void makeHttpRequestsShouldFilterAllImpressionsAndReturnErrorMeessagesWithoutRequests() {
         // given
-        final Imp imp1 = givenImp(builder -> builder.id("1").xNative(Native.builder().build()));
+        final Imp imp1 = givenImp(builder -> builder.id("1").audio(Audio.builder().build()));
         final Imp imp2 = givenImp(builder -> builder.id("2").audio(Audio.builder().build()));
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
@@ -215,12 +216,12 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(
-                        BidderError.of("Impression with id 1 rejected with invalid type `xNative`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+        assertThat(result.getErrors())
+                .containsExactlyInAnyOrder(
+                        BidderError.of("Impression with id 1 rejected with invalid type `audio`."
+                                + " Allowed types are [banner, video, native]", BidderError.Type.bad_input),
                         BidderError.of("Impression with id 2 rejected with invalid type `audio`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+                                + " Allowed types are [banner, video, native]", BidderError.Type.bad_input),
                         BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
                                 BidderError.Type.bad_input));
         assertThat(result.getValue()).isEmpty();
@@ -1000,6 +1001,282 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotValidateNativeObjectIfVersionIsOneDotZero() {
+        // given
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder().ver("1.0").build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotValidateNativeObjectIfVersionIsOneDotOne() {
+        // given
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder().ver("1.1").build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestFieldIsNull() {
+        // given
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(null)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Request can not be parsed", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestFieldCanNotBeParsed() {
+        // given
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request("{")
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Request can not be parsed", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestEventtrackersAreMissed() {
+        // given
+        final String nativeRequest = "{}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Eventtrackers are not present or not of array type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestEventtrackersAreNotArray() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":3,\"context\":1,\"placement\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Eventtrackers are not present or not of array type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestContextIsMissed() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"placement\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Context is not present or not of int type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestContextIsNotInt() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":[],\"placement\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Context is not present or not of int type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestPlacementIsNotPresent() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Plcmttype is not present or not of int type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestPlacementIsNotInt() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"placement\":[]}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.of("Error in native object for imp with id 1: "
+                                + "Plcmttype is not present or not of int type", BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassValidNativeRequestToRequestNativeObjectIfVersionIsOneDotTwo() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"plcmttype\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode expectedNativeRequest = mapper.createObjectNode();
+        expectedNativeRequest.set("eventtrackers", mapper.createArrayNode());
+        expectedNativeRequest.set("context", new IntNode(1));
+        expectedNativeRequest.set("plcmttype", new IntNode(2));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(RubiconNative.builder()
+                        .requestNative(expectedNativeRequest)
+                        .request(nativeRequest)
+                        .ver("1.2")
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassValidNativeRequestToRequestNativeObjectIfVersionNotSet() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"plcmttype\":2}";
+        final Imp nativeImp = givenImp(builder -> builder
+                .id("1")
+                .xNative(Native.builder()
+                        .request(nativeRequest)
+                        .build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode expectedNativeRequest = mapper.createObjectNode();
+        expectedNativeRequest.set("eventtrackers", mapper.createArrayNode());
+        expectedNativeRequest.set("context", new IntNode(1));
+        expectedNativeRequest.set("plcmttype", new IntNode(2));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(RubiconNative.builder()
+                        .requestNative(expectedNativeRequest)
+                        .request(nativeRequest)
                         .build());
     }
 
@@ -2811,6 +3088,52 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldNotReplacePresentAdmWithAdmObject() throws JsonProcessingException {
+        // given
+        final ObjectNode admObject = mapper.createObjectNode();
+        admObject.put("admObjectProperty", "admObjectValue");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .adm("someAdm")
+                        .admobject(admObject)
+                        .price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("someAdm");
+    }
+
+    @Test
+    public void makeBidsShouldReplaceNotPresentAdmWithAdmObject() throws JsonProcessingException {
+        // given
+        final ObjectNode admObject = mapper.createObjectNode();
+        admObject.put("admObjectProperty", "admObjectValue");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .adm(null)
+                        .admobject(admObject)
+                        .price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("{\"admObjectProperty\":\"admObjectValue\"}");
+    }
+
+    @Test
     public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -2819,7 +3142,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2847,7 +3170,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("-123")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2871,7 +3194,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("0")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2895,7 +3218,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("canNotBeParsed")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2919,7 +3242,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123.2")
-                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
                                 .build()))
                         .build()));
 
@@ -2945,7 +3268,7 @@ public class RubiconBidderTest extends VertxTest {
                         .cur("USD")
                         .seatbid(singletonList(RubiconSeatBid.builder()
                                 .buyer("123")
-                                .bid(singletonList(givenBid(bid -> bid.id("789").price(ONE).ext(invalidBidExt))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.id("789").price(ONE).ext(invalidBidExt))))
                                 .build()))
                         .build()));
 
@@ -3049,13 +3372,13 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotReduceBidderAmountForBidsWithSameImpId() throws JsonProcessingException {
         // given
-        final Bid firstBid = Bid.builder()
+        final RubiconBid firstBid = RubiconBid.builder()
                 .id("firstBidId")
                 .impid("impId")
                 .price(ONE)
                 .build();
 
-        final Bid secondBid = Bid.builder()
+        final RubiconBid secondBid = RubiconBid.builder()
                 .id("secondBidId")
                 .impid("impId")
                 .price(ONE)
@@ -3150,7 +3473,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("0").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("0").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3171,7 +3494,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("non-zero").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("non-zero").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3195,7 +3518,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("bidid1").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3222,7 +3545,7 @@ public class RubiconBidderTest extends VertxTest {
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .cur("EUR")
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("bidid1").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3246,7 +3569,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(givenBid(bid -> bid.ext(requestNode).price(ONE))))
+                                .bid(singletonList(givenRubiconBid(bid -> bid.ext(requestNode).price(ONE))))
                                 .build()))
                         .build()));
 
@@ -3373,12 +3696,12 @@ public class RubiconBidderTest extends VertxTest {
                 null);
     }
 
-    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer)
+    private static String givenBidResponse(UnaryOperator<RubiconBid.RubiconBidBuilder> bidCustomizer)
             throws JsonProcessingException {
         return mapper.writeValueAsString(RubiconBidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(RubiconSeatBid.builder()
-                        .bid(singletonList(givenBid(bidCustomizer)))
+                        .bid(singletonList(givenRubiconBid(bidCustomizer)))
                         .build()))
                 .build());
     }
@@ -3387,8 +3710,8 @@ public class RubiconBidderTest extends VertxTest {
         return givenBidResponse(bidBuilder -> bidBuilder.price(price));
     }
 
-    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
+    private static RubiconBid givenRubiconBid(UnaryOperator<RubiconBid.RubiconBidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(RubiconBid.builder()).build();
     }
 
     @AllArgsConstructor(staticName = "of")
