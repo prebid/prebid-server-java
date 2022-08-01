@@ -997,7 +997,11 @@ public class ExchangeService {
             final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
             final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
             final ExtImpPrebidFloors updatedFloors = floors != null
-                    ? ExtImpPrebidFloors.of(floors.getFloorRule(), floors.getFloorRuleValue(), adjustedFloor)
+                    ? ExtImpPrebidFloors.of(floors.getFloorRule(),
+                    floors.getFloorRuleValue(),
+                    adjustedFloor,
+                    floors.getFloorMin(),
+                    floors.getFloorMinCur())
                     : null;
 
             return mapper.mapper().valueToTree(

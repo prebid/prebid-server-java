@@ -16,4 +16,11 @@ public class ExtImpPrebidFloors {
 
     @JsonProperty("floorValue")
     BigDecimal floorValue;
+
+    @JsonProperty("floorMin")
+    BigDecimal floorMin;
+
+    @JsonProperty("floorMinCur")
+    String floorMinCur;
+
 }

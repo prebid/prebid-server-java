@@ -361,11 +361,30 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 ? (ObjectNode) extPrebid
                 : mapper.mapper().createObjectNode();
 
-        final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(priceFloorResult.getFloorRule(),
-                priceFloorResult.getFloorRuleValue(), priceFloorResult.getFloorValue());
+        final JsonNode impFloorsNode = extPrebid.get("floors");
+        final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(
+                priceFloorResult.getFloorRule(),
+                priceFloorResult.getFloorRuleValue(),
+                priceFloorResult.getFloorValue(),
+                resolveImpFloorMin(impFloorsNode),
+                resolveImpFloorMinCur(impFloorsNode));
         final ObjectNode floorsNode = mapper.mapper().valueToTree(prebidFloors);
 
         return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
+    }
+
+    private static BigDecimal resolveImpFloorMin(JsonNode impFloorsNode) {
+        final JsonNode impFloorMinNode = impFloorsNode != null ? impFloorsNode.get("floorMin") : null;
+
+        return impFloorMinNode != null && impFloorMinNode.isNumber()
+                ? impFloorMinNode.decimalValue() : null;
+    }
+
+    private static String resolveImpFloorMinCur(JsonNode impFloorsNode) {
+        final JsonNode impFloorMinCurNode = impFloorsNode != null ? impFloorsNode.get("floorMinCur") : null;
+
+        return impFloorMinCurNode != null && impFloorMinCurNode.isTextual()
+                ? impFloorMinCurNode.asText() : null;
     }
 
     private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest,

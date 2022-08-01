@@ -1,6 +1,7 @@
 package org.prebid.server.floors;
 
 import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -34,9 +35,12 @@ import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
@@ -82,14 +86,17 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private final CurrencyConversionService currencyConversionService;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
+    private final JacksonMapper mapper;
 
     public BasicPriceFloorResolver(CurrencyConversionService currencyConversionService,
                                    CountryCodeMapper countryCodeMapper,
-                                   Metrics metrics) {
+                                   Metrics metrics,
+                                   JacksonMapper mapper) {
 
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -134,7 +141,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 : getDataCurrency(floorRules);
 
         try {
-            return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
+            return resolveResult(floor, rule, floorForRule, imp, bidRequest, floorCurrency, warnings);
         } catch (PreBidException e) {
             final String logMessage = "Error occurred while resolving floor for imp: %s, cause: %s"
                     .formatted(imp.getId(), e.getMessage());
@@ -450,16 +457,18 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private PriceFloorResult resolveResult(BigDecimal floor,
                                            String rule,
                                            BigDecimal floorForRule,
+                                           Imp imp,
                                            BidRequest bidRequest,
-                                           String rulesCurrency) {
+                                           String rulesCurrency,
+                                           List<String> warnings) {
 
         if (floor == null) {
             return null;
         }
 
-        final PriceFloorRules floorRules = extractRules(bidRequest);
-        final BigDecimal floorMin = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getFloorMin);
-        final String floorMinCur = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getFloorMinCur);
+        final Price floorMinValues = resolveFloorMin(bidRequest, imp, warnings);
+        final BigDecimal floorMin = floorMinValues.getValue();
+        final String floorMinCur = floorMinValues.getCurrency();
 
         final String effectiveRulesCurrency = ObjectUtils.defaultIfNull(rulesCurrency, DEFAULT_RULES_CURRENCY);
         final String effectiveFloorMinCurrency =
@@ -475,28 +484,45 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 ? Price.of(effectiveRulesCurrency, convertedFloorMinValue)
                 : Price.of(effectiveFloorMinCurrency, floorMin);
 
-        final BigDecimal floorValue = effectiveFloor.getValue();
-        final String floorCurrency = effectiveFloor.getCurrency();
-
-        final BigDecimal floorMinValue = convertedFloorMin.getValue();
-        final String floorMinCurrency = convertedFloorMin.getCurrency();
-
-        final Price resolvedPrice;
-        if (StringUtils.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
-            if (floorValue.compareTo(floorMinValue) > 0) {
-                resolvedPrice = roundPrice(effectiveFloor);
-            } else {
-                resolvedPrice = roundPrice(convertedFloorMin);
-            }
-        } else {
-            resolvedPrice = roundPrice(ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin));
-        }
-
+        final Price resolvedPrice = resolvePrice(effectiveFloor, convertedFloorMin, effectiveFloorMin);
         return PriceFloorResult.of(
                 rule,
                 floorForRule,
                 ObjectUtil.getIfNotNull(resolvedPrice, Price::getValue),
                 ObjectUtil.getIfNotNull(resolvedPrice, Price::getCurrency));
+    }
+
+    private Price resolveFloorMin(BidRequest bidRequest, Imp imp, List<String> warnings) {
+        final ObjectNode impExt = imp.getExt();
+        final ExtImpPrebid extImpPrebid = extImpPrebid(
+                ObjectUtil.getIfNotNull(impExt, ext -> ext.get("prebid")));
+        final ExtImpPrebidFloors extImpPrebidFloors =
+                ObjectUtil.getIfNotNull(extImpPrebid, ExtImpPrebid::getFloors);
+        final BigDecimal impFloorMin =
+                ObjectUtil.getIfNotNull(extImpPrebidFloors, ExtImpPrebidFloors::getFloorMin);
+        final String impFloorMinCur =
+                ObjectUtil.getIfNotNull(extImpPrebidFloors, ExtImpPrebidFloors::getFloorMinCur);
+
+        final PriceFloorRules floorRules = extractRules(bidRequest);
+        final BigDecimal requestFloorMin = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getFloorMin);
+        final String requestFloorMinCur = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getFloorMinCur);
+
+        if (ObjectUtils.allNotNull(impFloorMinCur, requestFloorMinCur)
+                && !impFloorMinCur.equals(requestFloorMinCur)) {
+            warnings.add("imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values");
+        }
+
+        return Price.of(
+                ObjectUtils.defaultIfNull(impFloorMinCur, requestFloorMinCur),
+                ObjectUtils.defaultIfNull(impFloorMin, requestFloorMin));
+    }
+
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+        }
     }
 
     private static PriceFloorRules extractRules(BidRequest bidRequest) {
@@ -516,6 +542,25 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static Price roundPrice(Price price) {
         return price != null ? Price.of(price.getCurrency(), BidderUtil.roundFloor(price.getValue())) : null;
+    }
+
+    private static Price resolvePrice(Price effectiveFloor, Price convertedFloorMin, Price effectiveFloorMin) {
+        final BigDecimal floorValue = effectiveFloor.getValue();
+        final String floorCurrency = effectiveFloor.getCurrency();
+
+        final BigDecimal floorMinValue = convertedFloorMin.getValue();
+        final String floorMinCurrency = convertedFloorMin.getCurrency();
+
+        if (StringUtils.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
+            if (floorValue.compareTo(floorMinValue) > 0) {
+                return roundPrice(effectiveFloor);
+            } else {
+                return roundPrice(convertedFloorMin);
+            }
+        }
+
+        return roundPrice(ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin));
+
     }
 
     private static class RuleKeyCandidateIterator implements Iterator<String> {
