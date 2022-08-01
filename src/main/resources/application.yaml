@@ -170,6 +170,7 @@ settings:
   enforce-valid-account: false
   database:
     pool-size: 20
+    provider-class: c3p0
   targeting:
     truncate-attr-chars: 20
   default-account-config: >
