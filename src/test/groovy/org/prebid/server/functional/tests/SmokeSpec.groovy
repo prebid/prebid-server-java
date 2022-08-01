@@ -202,7 +202,7 @@ class SmokeSpec extends BaseSpec {
         assert response.isEmpty()
     }
 
-    def "PBS should return by default blank when we use usersync.iframe without format override"() {
+    def "PBS should return by default blank when we use usersync.iframe without format-override"() {
         given: "Pbs config with usersync.iframe"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.iframe.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
@@ -220,7 +220,7 @@ class SmokeSpec extends BaseSpec {
         assert HttpUtil.decodeWithUTF8(bidderStatus.usersync?.url).contains("&f=b&")
     }
 
-    def "PBS should return by default pixel when we use usersync.redirect without format override"() {
+    def "PBS should return by default pixel when we use usersync.redirect without format-override"() {
         given: "Pbs config with usersync.redirect"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.redirect.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
@@ -257,8 +257,8 @@ class SmokeSpec extends BaseSpec {
         assert HttpUtil.decodeWithUTF8(bidderStatus.usersync?.url).contains("&f=b&")
     }
 
-    def "PBS should return pixel when we use usersync.iframe.format override"() {
-        given: "Pbs config with usersync.redirect"
+    def "PBS should return pixel when we use usersync.iframe.format-override"() {
+        given: "Pbs config with usersync.iframe"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.iframe.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
                  "adapters.generic.usersync.iframe.support-cors"   : "false",

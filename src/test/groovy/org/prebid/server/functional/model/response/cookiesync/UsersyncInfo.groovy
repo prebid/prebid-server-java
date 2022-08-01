@@ -14,6 +14,7 @@ class UsersyncInfo {
 
         @JsonProperty("iframe")
         IFRAME("iframe", UsersyncFormat.BLINK),
+
         @JsonProperty("redirect")
         REDIRECT("redirect", UsersyncFormat.PIXEL)
 
