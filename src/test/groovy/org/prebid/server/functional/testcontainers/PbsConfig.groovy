@@ -92,7 +92,8 @@ LIMIT 1
          "settings.database.dbname"   : mysql.databaseName,
          "settings.database.user"     : mysql.username,
          "settings.database.password" : mysql.password,
-         "settings.database.pool-size": "2" // setting 2 here to leave some slack for the PBS
+         "settings.database.pool-size": "2", // setting 2 here to leave some slack for the PBS
+         "settings.database.provider-class": "hikari"
         ].asImmutable()
     }
 
