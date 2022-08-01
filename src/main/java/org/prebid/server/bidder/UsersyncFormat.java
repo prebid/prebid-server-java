@@ -7,8 +7,8 @@ public enum UsersyncFormat {
     @JsonProperty("pixel")
     PIXEL("i"),
 
-    @JsonProperty("blink")
-    BLINK("b");
+    @JsonProperty("blank")
+    BLANK("b");
 
     public final String name;
 

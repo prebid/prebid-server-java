@@ -28,13 +28,13 @@ public class UsersyncUtilTest {
                         .build());
 
         // then
-        assertThat(format).isEqualTo(UsersyncFormat.BLINK);
+        assertThat(format).isEqualTo(UsersyncFormat.BLANK);
     }
 
     @Test
     public void enrichUrlWithFormatShouldNotChangeUrlIfMissing() {
         // given and when
-        final String url = UsersyncUtil.enrichUrlWithFormat(null, UsersyncFormat.BLINK);
+        final String url = UsersyncUtil.enrichUrlWithFormat(null, UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isNull();
@@ -43,7 +43,7 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUrlWithFormatShouldNotChangeUrlIfEmpty() {
         // given and when
-        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLINK);
+        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isEmpty();
@@ -52,7 +52,7 @@ public class UsersyncUtilTest {
     @Test
     public void enrichUrlWithFormatShouldNotChangeUrlIfTypeMissing() {
         // given and when
-        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLINK);
+        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isEmpty();
