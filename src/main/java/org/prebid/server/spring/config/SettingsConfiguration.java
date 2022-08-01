@@ -134,18 +134,16 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final boolean isHikari = storedRequestsDatabaseProperties.getProviderClass() == DbPoolType.hikari;
-            final String jdbcUrlSuffix = storedRequestsDatabaseProperties.getType().jdbcUrlSuffix;
-
             final String jdbcUrl = "%s//%s:%d/%s?%s".formatted(
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),
                     storedRequestsDatabaseProperties.getDbname(),
-                    isHikari ? jdbcUrlSuffix + "&allowPublicKeyRetrieval=true" : jdbcUrlSuffix);
+                    storedRequestsDatabaseProperties.getType().jdbcUrlSuffix
+                            + storedRequestsDatabaseProperties.getProviderClass().jdbcUrlSuffix);
 
             return JDBCClient.createShared(vertx, new JsonObject()
-                    .put(isHikari ? "jdbcUrl" : "url", jdbcUrl)
+                    .put(storedRequestsDatabaseProperties.getProviderClass().url, jdbcUrl)
                     .put("user", storedRequestsDatabaseProperties.getUser())
                     .put("password", storedRequestsDatabaseProperties.getPassword())
                     .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
@@ -194,10 +192,12 @@ public class SettingsConfiguration {
 
         @AllArgsConstructor
         private enum DbPoolType {
-            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider"),
-            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider");
+            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "&allowPublicKeyRetrieval=true"),
+            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "");
 
             private final String jdbcCP;
+            private final String url;
+            private final String jdbcUrlSuffix;
         }
     }
 

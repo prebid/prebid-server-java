@@ -91,7 +91,7 @@
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
-        <hikari-cp.version>5.0.1</hikari-cp.version>
+        <hikari.version>5.0.1</hikari.version>
     </properties>
 
     <dependencyManagement>
@@ -361,7 +361,7 @@
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>5.0.1</version>
+            <version>${hikari.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>
