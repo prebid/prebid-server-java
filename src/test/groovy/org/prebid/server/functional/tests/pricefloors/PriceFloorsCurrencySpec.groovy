@@ -359,15 +359,16 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain floorMin, floorMinCur, currency from request"
-        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0].ext.prebid.floors.floorMinCur == EUR
-        assert bidderRequest.imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
-        assert bidderRequest.ext.prebid.floors.floorMinCur == EUR
-        assert bidderRequest.ext.prebid.floors.floorMin == FLOOR_MIN
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].ext.prebid.floors.floorMinCur == EUR
+            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+            ext.prebid.floors.floorMinCur == EUR
+            ext.prebid.floors.floorMin == FLOOR_MIN
+        }
     }
 
      def "PBS should return warning when both floorMinCur and floorMinCur exist and they're different"() {
-        given: "Default BidRequest with floorMinCur"
+        given: "Default BidRequest with floorMinCur, floorMin"
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMinCur: EUR, floorMin:  FLOOR_MIN)
             ext.prebid.floors.floorMinCur = JPY
@@ -386,10 +387,43 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                 ["imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values"]
 
         and: "Bidder request should contain floorMinCur, floorMin from request"
-        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0].ext.prebid.floors.floorMinCur == EUR
-        assert bidderRequest.imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
-        assert bidderRequest.ext.prebid.floors.floorMinCur == JPY
-        assert bidderRequest.ext.prebid.floors.floorMin == FLOOR_MIN
+        verifyAll(bidder.getBidderRequest(bidRequest.id)){
+            imp[0].ext.prebid.floors.floorMinCur == EUR
+            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+            ext.prebid.floors.floorMinCur == JPY
+            ext.prebid.floors.floorMin == FLOOR_MIN
+        }
+    }
+
+      def "PBS should replace floorValue on floorMin when floorMin biggest that floorValue defined in request"() {
+        given: "Default BidRequest with floorMin, floorMinCur, floorValue"
+        def randomFloorValue = PBSUtils.getRandomPrice(FLOOR_MIN as Integer)
+        def bidRequest = bidRequestWithFloors.tap {
+                imp[0].ext.prebid.floors = new ImpExtPrebidFloors().tap {
+                floorMinCur = USD
+                floorMin = randomFloorValue
+                floorValue = FLOOR_MIN
+            }
+        }
+
+        and: "Set Floors Provider response with a floorMin"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): FLOOR_MIN]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain floorMin, floorMinCur and floorValue the same as floorMin"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].ext.prebid.floors.floorMinCur == USD
+            imp[0].ext.prebid.floors.floorMin == randomFloorValue
+            imp[0].ext.prebid.floors.floorValue == randomFloorValue
+        }
     }
 }
