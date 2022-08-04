@@ -239,12 +239,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static List<Eid> resolveUserEids(List<Eid> eids, ExtUser extUser) {
-        if (CollectionUtils.isNotEmpty(eids)) {
-            return null;
-        }
-
-        final List<Eid> extEids = extUser.getEids();
-        return CollectionUtils.isNotEmpty(extEids) ? extEids : null;
+        return eids == null ? extUser.getEids() : null;
     }
 
     private static ExtUser resolveUserExt(ExtUser extUser) {

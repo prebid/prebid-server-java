@@ -291,6 +291,28 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
                 });
     }
 
+    @Test
+    public void convertShouldPass25EmptyEidAArray() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.user(
+                User.builder().ext(ExtUser.builder().eids(emptyList()).build()).build()));
+
+        // when
+        final BidRequest result = converter.convert(bidRequest);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .satisfies(user -> {
+                    assertThat(user)
+                            .extracting(User::getEids)
+                            .isSameAs(emptyList());
+                    assertThat(user)
+                            .extracting(User::getExt)
+                            .isNull();
+                });
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()).build();
     }
