@@ -1046,12 +1046,12 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "language");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "buyeruid");
         final ExtUser extUser = ExtUser.builder()
-                .data(obj("language", mapper.valueToTree(asList("UA", "EN"))))
+                .data(obj("buyeruid", mapper.valueToTree(asList("buyeruid1", "buyeruid2"))))
                 .build();
         final RequestContext context = new RequestContext(
-                request(r -> r.user(user(u -> u.language("DE").ext(extUser)))),
+                request(r -> r.user(user(u -> u.buyeruid("buyeruid3").ext(extUser)))),
                 imp(identity()),
                 null,
                 aliases,
@@ -1060,7 +1060,7 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupStrings(category).getValues())
-                .containsExactly(singletonList("DE"), asList("UA", "EN"));
+                .containsExactly(singletonList("buyeruid3"), asList("buyeruid1", "buyeruid2"));
     }
 
     @Test

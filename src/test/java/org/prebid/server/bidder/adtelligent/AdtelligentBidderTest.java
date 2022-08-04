@@ -61,7 +61,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.of(0, ExtRegs.of(1, null)))
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                 .build();
 
         // when
@@ -88,7 +88,7 @@ public class AdtelligentBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, ExtRegs.of(1, null)))
+                        .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                         .build()));
     }
 

@@ -24,18 +24,25 @@ class Bid implements ObjectMapperWrapper {
     String iurl
     String cid
     String crid
+    String tactic
+    Integer cattax
     List<String> cat
     List<Integer> attr
+    List<Integer> apis
     Integer api
     Integer protocol
     Integer qagmediarating
     String language
+    String langb
     String dealid
     Integer w
     Integer h
     Integer wratio
     Integer hratio
     Integer exp
+    Integer dur
+    Integer mtype
+    Integer slotinpod
     BidExt ext
 
     static List<Bid> getDefaultBids(List<Imp> imps) {

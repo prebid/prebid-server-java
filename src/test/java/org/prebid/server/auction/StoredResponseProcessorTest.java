@@ -361,7 +361,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("imp1").build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", null, "storedresponse", bidRequest);
 
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
@@ -389,7 +389,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder().build(), Imp.builder().build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", null, "storedresponse", bidRequest);
 
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
@@ -417,7 +417,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("rubicon", "storedresponse", bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.of("rubicon", null, "storedresponse", bidRequest);
 
         final List<BidderBid> bids = List.of(
                 BidderBid.of(Bid.builder().impid("##PBSIMPID##").build(), BidType.banner, "USD"),
