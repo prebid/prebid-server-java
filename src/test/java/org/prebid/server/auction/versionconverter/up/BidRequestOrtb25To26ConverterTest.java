@@ -292,7 +292,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
     }
 
     @Test
-    public void convertShouldPass25EmptyEidAArray() {
+    public void convertShouldPass25EmptyEidArray() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.user(
                 User.builder().ext(ExtUser.builder().eids(emptyList()).build()).build()));
