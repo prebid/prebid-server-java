@@ -11,19 +11,9 @@ class UsersyncInfo {
     Boolean supportCORS
 
     enum Type {
-
         @JsonProperty("iframe")
-        IFRAME("iframe", UsersyncFormat.BLINK),
-
+        IFRAME,
         @JsonProperty("redirect")
-        REDIRECT("redirect", UsersyncFormat.PIXEL)
-
-        public final String name
-        public final UsersyncFormat format
-
-        Type(String name, UsersyncFormat format) {
-            this.name = name
-            this.format = format
-        }
+        REDIRECT
     }
 }
