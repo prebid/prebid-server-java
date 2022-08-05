@@ -650,7 +650,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                                      String currency,
                                                      Imp imp,
                                                      BidRequest bidRequest) {
-        final ObjectNode impExt = imp.getExt().deepCopy();
+        final ObjectNode impExt = imp.getExt();
         final ExtImpPrebid extImpPrebid = extImpPrebid(impExt.get(PREBID_EXT));
         final ExtImpPrebidFloors floors = extImpPrebid != null ? extImpPrebid.getFloors() : null;
 
