@@ -498,12 +498,10 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     }
 
     private Price resolveFloorMin(BidRequest bidRequest, Imp imp, List<String> warnings) {
-        final ObjectNode impExt = imp.getExt();
-        final ExtImpPrebid extImpPrebid = extImpPrebid(
-                ObjectUtil.getIfNotNull(impExt, ext -> ext.get("prebid")));
-        final Optional<ExtImpPrebidFloors> extImpPrebidFloors =
-                Optional.ofNullable(extImpPrebid)
-                        .map(ExtImpPrebid::getFloors);
+        final Optional<ExtImpPrebidFloors> extImpPrebidFloors = Optional.ofNullable(imp.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(this::extImpPrebid)
+                .map(ExtImpPrebid::getFloors);
         final BigDecimal impFloorMin = extImpPrebidFloors
                 .map(ExtImpPrebidFloors::getFloorMin)
                 .orElse(null);
