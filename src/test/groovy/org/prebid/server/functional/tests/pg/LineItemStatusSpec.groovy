@@ -13,9 +13,9 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 import static java.time.ZoneOffset.UTC
-import static java.time.temporal.ChronoUnit.SECONDS
 
 class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
 
@@ -176,7 +176,7 @@ class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
     }
 
     private ZonedDateTime timeToReportFormat(ZonedDateTime givenTime, ZoneId reportTimeZone) {
-        givenTime.truncatedTo(SECONDS).withZoneSameInstant(reportTimeZone)
+        givenTime.truncatedTo(ChronoUnit.MILLIS).withZoneSameInstant(reportTimeZone)
     }
 
     private Integer getDeliveryRateMs(DeliverySchedule deliverySchedule) {
