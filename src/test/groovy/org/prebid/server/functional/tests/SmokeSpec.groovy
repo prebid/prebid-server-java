@@ -17,6 +17,8 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.cookiesync.UsersyncFormat.BLANK
+import static org.prebid.server.functional.model.response.cookiesync.UsersyncFormat.PIXEL
 import static org.prebid.server.functional.model.response.cookiesync.UsersyncInfo.Type.IFRAME
 import static org.prebid.server.functional.model.response.cookiesync.UsersyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.model.response.status.Status.OK
@@ -202,11 +204,9 @@ class SmokeSpec extends BaseSpec {
         assert response.isEmpty()
     }
 
-    def "PBS should return usersync url with blank format for iframe usersync when format-override absent"() {
-        given: "Pbs config with usersync.iframe"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.iframe.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.iframe.support-cors": "false"])
+    def "PBS should return usersync url with '#usersyncFormat' for #usersyncMethod when format-override absent"() {
+        given: "Pbs config with usersync.#usersyncMethod"
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
@@ -216,15 +216,20 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain format blank"
         def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.type == IFRAME
-        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=b")
+        assert bidderStatus?.usersync?.type == usersyncMethod
+        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=$usersyncFormat")
+
+        where:
+        usersyncMethod || usersyncFormat || pbsConfig
+        REDIRECT       || PIXEL.name     || ["adapters.generic.usersync.redirect.url"           : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                             "adapters.generic.usersync.redirect.support-cors"  : "false"]
+        IFRAME         || BLANK.name     || ["adapters.generic.usersync.iframe.url"             : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                             "adapters.generic.usersync.iframe.support-cors"    : "false"]
     }
 
-    def "PBS should return by default pixel when we use usersync.redirect without format-override"() {
-        given: "Pbs config with usersync.redirect"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.redirect.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.redirect.support-cors": "false"])
+    def "PBS should return usersync url with '#usersyncFormat' format for #usersyncMethod usersync when format-override is #formatOverride"() {
+        given: "Pbs config with usersync.#usersyncMethod and iframe.format-override: #formatOverride"
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
@@ -232,47 +237,18 @@ class SmokeSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain format pixel"
+        then: "Response usersync url should contain #formatOverride format"
         def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.type == REDIRECT
-        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=i")
-    }
+        assert bidderStatus?.usersync?.type == usersyncMethod
+        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=$usersyncFormat")
 
-    def "PBS should return usersync url with blank format for redirect usersync when format-override is blank"() {
-        given: "Pbs config with usersync.redirect"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.redirect.support-cors"   : "false",
-                 "adapters.generic.usersync.redirect.format-override": "blank"])
-
-        and: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response usersync url should contain blank format"
-        def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.type == REDIRECT
-        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=b")
-    }
-
-    def"PBS should return usersync url with pixel format for iframe usersync when format-override is pixel"() {
-        given: "Pbs config with usersync.iframe"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.iframe.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.iframe.support-cors"   : "false",
-                 "adapters.generic.usersync.iframe.format-override": "pixel"])
-
-        and: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain pixel"
-        def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.type == IFRAME
-        assert HttpUtil.decodeUrlWithUTF8(bidderStatus.usersync?.url).contains("f=i")
+        where:
+        usersyncMethod || usersyncFormat || formatOverride || pbsConfig
+        REDIRECT       || BLANK.name     || BLANK          || ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                                               "adapters.generic.usersync.redirect.support-cors"   : "false",
+                                                               "adapters.generic.usersync.redirect.format-override": BLANK.value]
+        IFRAME         || PIXEL.name     || PIXEL          || ["adapters.generic.usersync.iframe.url"              : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                                               "adapters.generic.usersync.iframe.support-cors"     : "false",
+                                                               "adapters.generic.usersync.iframe.format-override"  : PIXEL.value]
     }
 }

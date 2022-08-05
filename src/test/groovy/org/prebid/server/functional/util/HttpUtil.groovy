@@ -24,8 +24,8 @@ class HttpUtil implements ObjectMapperWrapper {
         [(COOKIE_HEADER): makeUidsCookieHeaderValue(encode(uidsCookie))]
     }
 
-    static String decodeUrlWithUTF8(String url, String enc = "UTF8") {
-        URLDecoder.decode(url, enc)
+    static String decodeUrlWithUTF8(String url) {
+        URLDecoder.decode(url, "UTF8")
     }
 
     private static String makeUidsCookieHeaderValue(String uidsCookieJson) {

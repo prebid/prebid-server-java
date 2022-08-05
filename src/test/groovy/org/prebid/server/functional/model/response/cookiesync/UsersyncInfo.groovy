@@ -1,6 +1,6 @@
 package org.prebid.server.functional.model.response.cookiesync
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
@@ -11,9 +11,12 @@ class UsersyncInfo {
     Boolean supportCORS
 
     enum Type {
-        @JsonProperty("iframe")
         IFRAME,
-        @JsonProperty("redirect")
         REDIRECT
+
+        @JsonValue
+        String getValue() {
+            name().toLowerCase()
+        }
     }
 }
