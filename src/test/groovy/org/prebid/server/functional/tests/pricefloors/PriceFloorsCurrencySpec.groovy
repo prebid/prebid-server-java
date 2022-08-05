@@ -397,10 +397,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
      def "PBS should choose floorMin from imp[0].ext.prebid.floors when imp[0].ext.prebid.floors is present"() {
         given: "Default BidRequest with floorMin, floorMinCur"
-        def impExtPrebidFloorMin = BigDecimal.valueOf(4)
+        def impExtPrebidFloorMin = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
-                ext.prebid.floors.floorMin = BigDecimal.valueOf(2)
-                ext.prebid.floors.data.modelGroups[0].values = [(rule): BigDecimal.valueOf(3)]
+                ext.prebid.floors.floorMin = PBSUtils.randomFloorValue
+                ext.prebid.floors.data.modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
                 imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMin: impExtPrebidFloorMin, floorMinCur:  USD)
         }
 
@@ -423,7 +423,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     def "PBS should choose floorMin from ext.prebid.floors when imp[0].ext.prebid.floor.floorMin is absent"() {
         given: "Default BidRequest with floorMin"
-        def extPrebidFloorMin = BigDecimal.valueOf(5)
+        def extPrebidFloorMin = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
                 ext.prebid.floors.floorMin = extPrebidFloorMin
                 imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMin: null, floorMinCur:  null)
