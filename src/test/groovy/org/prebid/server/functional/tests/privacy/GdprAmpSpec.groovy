@@ -122,8 +122,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$invalidTcfConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$invalidTcfConsent" - failed.*/
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -196,8 +195,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$ccpaConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$ccpaConsent" - failed.*/
     }
 
     def "PBS should apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = true in account config"() {
