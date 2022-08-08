@@ -9,9 +9,5 @@ import java.util.List;
 @Value
 public class RubiconBannerExtRp {
 
-    Integer sizeId;
-
-    List<Integer> altSizeIds;
-
     String mime;
 }
