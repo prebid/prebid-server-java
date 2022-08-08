@@ -12,7 +12,6 @@
         ],
         "ext": {
           "rp": {
-            "size_id": 15,
             "mime": "text/html"
           }
         }
