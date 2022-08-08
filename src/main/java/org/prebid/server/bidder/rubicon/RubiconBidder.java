@@ -414,11 +414,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         final ExtRequest extRequest = bidRequest.getExt();
-        final boolean isVideo = isVideo(imp);
+        final ImpMediaType impType = impType(imp);
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
-        final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp,
-                isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
+        final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp, impType, priceFloorsWarnings);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null
@@ -452,12 +451,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .bidfloor(resolvedBidFloor);
         }
 
-        if (isVideo) {
+        if (impType == ImpMediaType.video) {
             builder
                     .banner(null)
                     .xNative(null)
                     .video(makeVideo(imp, extImpRubicon.getVideo(), extImpPrebid, referer(site)));
-        } else if (imp.getBanner() != null) {
+        } else if (impType == ImpMediaType.banner) {
             builder
                     .banner(makeBanner(imp))
                     .xNative(null)
@@ -909,13 +908,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static boolean isVideo(Imp imp) {
+    private static ImpMediaType impType(Imp imp) {
         final Video video = imp.getVideo();
-        if (video != null) {
-            // Do any other media types exist? Or check required video fields.
-            return imp.getBanner() == null || isFullyPopulatedVideo(video);
+        final Banner banner = imp.getBanner();
+        final Native xNative = imp.getXNative();
+        if (video != null && ((banner == null && xNative == null) || isFullyPopulatedVideo(video))) {
+            return ImpMediaType.video;
         }
-        return false;
+        if (banner == null && xNative != null) {
+            return ImpMediaType.xNative;
+        }
+
+        return ImpMediaType.banner;
     }
 
     private static boolean isFullyPopulatedVideo(Video video) {
@@ -986,7 +990,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer width = banner.getW();
         final Integer height = banner.getH();
         final List<Format> format = banner.getFormat();
-        if ((width != null && height != null) || CollectionUtils.isEmpty(format)) {
+        if ((width == null || height == null) && CollectionUtils.isEmpty(format)) {
             throw new PreBidException("rubicon imps must have at least one size element [w, h, format]");
         }
 
@@ -1649,7 +1653,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidType bidType(BidRequest bidRequest) {
-        return isVideo(bidRequest.getImp().get(0)) ? BidType.video : BidType.banner;
+        final ImpMediaType impMediaType = impType(bidRequest.getImp().get(0));
+        return switch (impMediaType) {
+            case video -> BidType.video;
+            case banner -> BidType.banner;
+            case xNative -> BidType.xNative;
+            default -> throw new PreBidException("Unsupported bid mediaType");
+        };
     }
 
     private ObjectNode toObjectNode(JsonNode node) {
