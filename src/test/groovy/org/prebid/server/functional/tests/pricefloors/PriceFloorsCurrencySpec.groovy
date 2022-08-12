@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -11,6 +12,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
+import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
@@ -339,6 +341,108 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == floorMin
             imp[0].bidFloorCur == bidRequest.ext.prebid.floors.floorMinCur
             !imp[0].ext?.prebid?.floors
+        }
+    }
+
+     def "PBS should update floorMinCur, floorMin for bidder when defined in request"() {
+        given: "Default BidRequest with floorMin, floorMinCur"
+        def bidRequest = bidRequestWithFloors.tap {
+            imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMinCur: EUR, floorMin:  FLOOR_MIN)
+            ext.prebid.floors.floorMinCur = EUR
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain floorMin, floorMinCur, currency from request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].ext.prebid.floors.floorMinCur == EUR
+            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+            ext.prebid.floors.floorMinCur == EUR
+            ext.prebid.floors.floorMin == FLOOR_MIN
+        }
+    }
+
+     def "PBS should return warning when both floorMinCur and floorMinCur exist and they're different"() {
+        given: "Default BidRequest with floorMinCur, floorMin"
+        def bidRequest = bidRequestWithFloors.tap {
+            imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMinCur: EUR, floorMin:  FLOOR_MIN)
+            ext.prebid.floors.floorMinCur = JPY
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values"]
+
+        and: "Bidder request should contain floorMinCur, floorMin from request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)){
+            imp[0].ext.prebid.floors.floorMinCur == EUR
+            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+            ext.prebid.floors.floorMinCur == JPY
+            ext.prebid.floors.floorMin == FLOOR_MIN
+        }
+    }
+
+     def "PBS should choose floorMin from imp[0].ext.prebid.floors when imp[0].ext.prebid.floors is present"() {
+        given: "Default BidRequest with floorMin, floorMinCur"
+        def impExtPrebidFloorMin = PBSUtils.randomFloorValue
+        def bidRequest = bidRequestWithFloors.tap {
+                ext.prebid.floors.floorMin = PBSUtils.randomFloorValue
+                ext.prebid.floors.data.modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
+                imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMin: impExtPrebidFloorMin, floorMinCur:  USD)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain floorMin, floorValue, bidFloor, bidFloorCur"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].ext.prebid.floors.floorMinCur == USD
+            imp[0].ext.prebid.floors.floorMin == impExtPrebidFloorMin
+            imp[0].ext.prebid.floors.floorValue == impExtPrebidFloorMin
+            imp[0].bidFloor == impExtPrebidFloorMin
+            imp[0].bidFloorCur == USD
+        }
+    }
+
+    def "PBS should choose floorMin from ext.prebid.floors when imp[0].ext.prebid.floor.floorMin is absent"() {
+        given: "Default BidRequest with floorMin"
+        def extPrebidFloorMin = PBSUtils.randomFloorValue
+        def bidRequest = bidRequestWithFloors.tap {
+                ext.prebid.floors.floorMin = extPrebidFloorMin
+                imp[0].ext.prebid.floors = new ImpExtPrebidFloors(floorMin: null, floorMinCur:  null)
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain bidFloorCur, bidFloor, floorValue"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !imp[0].ext.prebid.floors.floorMinCur
+            !imp[0].ext.prebid.floors.floorMin
+            imp[0].ext.prebid.floors.floorValue ==  extPrebidFloorMin
+            imp[0].bidFloor == extPrebidFloorMin
+            imp[0].bidFloorCur == USD
         }
     }
 }
