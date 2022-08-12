@@ -10,9 +10,9 @@ class CookieSyncResponse {
 
     Status status
     @JsonProperty("bidder_status")
-    List<BidderUsersyncStatus> bidderStatus
+    List<BidderUserSyncStatus> bidderStatus
 
-    BidderUsersyncStatus getBidderUsersync(BidderName bidderName) {
+    BidderUserSyncStatus getBidderUserSync(BidderName bidderName) {
         bidderStatus?.find { it.bidder == bidderName }
     }
 

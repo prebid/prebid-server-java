@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-class UsersyncInfo {
+class UserSyncInfo {
 
     String url
     Type type
