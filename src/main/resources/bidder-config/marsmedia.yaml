@@ -1,6 +1,6 @@
 adapters:
   marsmedia:
-    endpoint: https://bidd.rtbsrv.com/bidder/?bid=f3xtet
+    endpoint: https://bid306.rtbsrv.com/bidder/?bid=f3xtet
     meta-info:
       maintainer-email: prebid@mars.media
       app-media-types:
