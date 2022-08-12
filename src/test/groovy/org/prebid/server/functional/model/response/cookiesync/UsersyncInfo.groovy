@@ -11,8 +11,26 @@ class UsersyncInfo {
     Boolean supportCORS
 
     enum Type {
+
         IFRAME,
         REDIRECT
+
+        @JsonValue
+        String getValue() {
+            name().toLowerCase()
+        }
+    }
+
+    enum Format {
+
+        PIXEL("i"),
+        BLANK("b");
+
+        final String name
+
+        Format(String name) {
+            this.name = name
+        }
 
         @JsonValue
         String getValue() {
