@@ -17,6 +17,7 @@ CREATE TABLE accounts_account
     updated_by_user           varchar(64),
     updated                   timestamp
 );
+
 CREATE TABLE s2sconfig_config
 (
     id     SERIAL PRIMARY KEY,
@@ -35,10 +36,12 @@ CREATE TABLE stored_requests
 
 CREATE TABLE stored_imps
 (
-    id     SERIAL PRIMARY KEY,
-    uuid   varchar(40) NOT NULL,
-    config varchar(1024)
+    id          SERIAL PRIMARY KEY,
+    accountId   varchar(40),
+    impid       varchar(40),
+    impData     json
 );
+
 CREATE TABLE stored_responses
 (
     id     SERIAL PRIMARY KEY,
