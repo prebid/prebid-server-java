@@ -54,6 +54,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.bidder.AllBidderResponsesPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
@@ -189,24 +190,24 @@ public class BidResponseCreator {
                 .map(AuctionParticipation::getBidderResponse)
                 .toList();
 
-        return videoStoredDataResult(auctionContext)
-                .compose(videoStoredDataResult -> {
-                    final List<BidderResponse> modifiedBidderResponses =
-                            updateBids(bidderResponses, videoStoredDataResult, auctionContext, eventsContext, imps);
+        return videoStoredDataResult(auctionContext).compose(videoStoredDataResult ->
+                invokeProcessedBidderResponseHooks(
+                        updateBids(bidderResponses, videoStoredDataResult, auctionContext, eventsContext, imps),
+                        auctionContext)
 
-                    return invokeProcessedBidderResponseHooks(modifiedBidderResponses, auctionContext)
+                        .compose(updatedResponses ->
+                                invodeAllProcessedBidderResponseHook(updatedResponses, auctionContext))
 
-                            .compose(updatedByHooksBidderResponses ->
-                                    createCategoryMapping(auctionContext, updatedByHooksBidderResponses))
+                        .compose(updatedResponses ->
+                                createCategoryMapping(auctionContext, updatedResponses))
 
-                            .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
-                                    toBidderResponseInfos(categoryMappingResult, imps),
-                                    auctionContext,
-                                    cacheInfo,
-                                    bidderToMultiBids,
-                                    videoStoredDataResult,
-                                    eventsContext));
-                });
+                        .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
+                                toBidderResponseInfos(categoryMappingResult, imps),
+                                auctionContext,
+                                cacheInfo,
+                                bidderToMultiBids,
+                                videoStoredDataResult,
+                                eventsContext)));
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -443,6 +444,14 @@ public class BidResponseCreator {
                                 .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
                         .collect(Collectors.toCollection(ArrayList::new)))
                 .map(CompositeFuture::list);
+    }
+
+    private Future<List<BidderResponse>> invodeAllProcessedBidderResponseHook(List<BidderResponse> bidderResponses,
+                                                                              AuctionContext auctionContext) {
+
+        return hookStageExecutor.executeAllProcessedBidderResponsesStage(bidderResponses, auctionContext)
+                .map(HookStageExecutionResult::getPayload)
+                .map(AllBidderResponsesPayload::bidderResponses);
     }
 
     private static BidderResponse rejectBidderResponseOrProceed(

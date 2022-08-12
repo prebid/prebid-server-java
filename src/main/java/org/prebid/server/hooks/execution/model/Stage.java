@@ -12,6 +12,7 @@ public enum Stage {
     processed_auction_request("processed-auction-request"),
     bidder_request("bidder-request"),
     raw_bidder_response("raw-bidder-response"),
+    all_processed_bidder_responses("all-processed-bidder-responses"),
     processed_bidder_response("processed-bidder-response"),
     auction_response("auction-response");
 
