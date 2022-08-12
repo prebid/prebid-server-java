@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface AllProcessedBidResponsesPayload {
 
-    List<BidderResponse> bidderResponses();
+    List<BidderResponse> bidResponses();
 }
