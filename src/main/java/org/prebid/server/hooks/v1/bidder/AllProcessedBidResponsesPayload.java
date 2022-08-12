@@ -4,7 +4,7 @@ import org.prebid.server.auction.model.BidderResponse;
 
 import java.util.List;
 
-public interface AllBidderResponsesPayload {
+public interface AllProcessedBidResponsesPayload {
 
     List<BidderResponse> bidderResponses();
 }

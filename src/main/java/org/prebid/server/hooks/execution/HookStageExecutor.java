@@ -25,7 +25,7 @@ import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
-import org.prebid.server.hooks.execution.v1.bidder.AllBidderResponsesPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
@@ -35,7 +35,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
-import org.prebid.server.hooks.v1.bidder.AllBidderResponsesPayload;
+import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
@@ -60,7 +60,7 @@ public class HookStageExecutor {
     private static final String ENTITY_HTTP_REQUEST = "http-request";
     private static final String ENTITY_AUCTION_REQUEST = "auction-request";
     private static final String ENTITY_AUCTION_RESPONSE = "auction-response";
-    private static final String ENTITY_ALL_PROCESSED_BIDDER_RESPONSES = "all-processed-bidder-responses";
+    private static final String ENTITY_ALL_PROCESSED_BID_RESPONSES = "all-processed-bid-responses";
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
@@ -213,7 +213,7 @@ public class HookStageExecutor {
                 .execute();
     }
 
-    public Future<HookStageExecutionResult<AllBidderResponsesPayload>> executeAllProcessedBidderResponsesStage(
+    public Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> executeAllProcessedBidResponsesStage(
             List<BidderResponse> bidderResponses,
             AuctionContext auctionContext) {
 
@@ -223,9 +223,9 @@ public class HookStageExecutor {
         final Endpoint endpoint = context.getEndpoint();
 
         return stageExecutor(
-                StageWithHookType.ALL_PROCESSED_BIDDER_RESPONSES, ENTITY_ALL_PROCESSED_BIDDER_RESPONSES,
+                StageWithHookType.ALL_PROCESSED_BID_RESPONSES, ENTITY_ALL_PROCESSED_BID_RESPONSES,
                 context, account, endpoint)
-                .withInitialPayload(AllBidderResponsesPayloadImpl.of(bidderResponses))
+                .withInitialPayload(AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
                 .execute();

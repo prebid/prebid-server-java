@@ -54,7 +54,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.v1.bidder.AllBidderResponsesPayload;
+import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
@@ -196,7 +196,7 @@ public class BidResponseCreator {
                         auctionContext)
 
                         .compose(updatedResponses ->
-                                invodeAllProcessedBidderResponseHook(updatedResponses, auctionContext))
+                                invodeAllProcessedBidResponseHook(updatedResponses, auctionContext))
 
                         .compose(updatedResponses ->
                                 createCategoryMapping(auctionContext, updatedResponses))
@@ -446,12 +446,12 @@ public class BidResponseCreator {
                 .map(CompositeFuture::list);
     }
 
-    private Future<List<BidderResponse>> invodeAllProcessedBidderResponseHook(List<BidderResponse> bidderResponses,
-                                                                              AuctionContext auctionContext) {
+    private Future<List<BidderResponse>> invodeAllProcessedBidResponseHook(List<BidderResponse> bidderResponses,
+                                                                           AuctionContext auctionContext) {
 
-        return hookStageExecutor.executeAllProcessedBidderResponsesStage(bidderResponses, auctionContext)
+        return hookStageExecutor.executeAllProcessedBidResponsesStage(bidderResponses, auctionContext)
                 .map(HookStageExecutionResult::getPayload)
-                .map(AllBidderResponsesPayload::bidderResponses);
+                .map(AllProcessedBidResponsesPayload::bidderResponses);
     }
 
     private static BidderResponse rejectBidderResponseOrProceed(
