@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 
@@ -24,6 +25,8 @@ public class BidderConfigurationProperties {
     DefaultBidderConfigurationProperties defaultProperties;
 
     private Boolean enabled;
+
+    private OrtbVersion ortbVersion;
 
     @NotBlank
     private String endpoint;
@@ -55,6 +58,7 @@ public class BidderConfigurationProperties {
     @PostConstruct
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
+        ortbVersion = ObjectUtils.defaultIfNull(ortbVersion, defaultProperties.getOrtbVersion());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(
                 modifyingVastXmlAllowed, defaultProperties.getModifyingVastXmlAllowed());

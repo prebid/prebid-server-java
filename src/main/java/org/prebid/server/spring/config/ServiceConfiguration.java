@@ -17,9 +17,9 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
+import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
@@ -37,6 +37,8 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -187,11 +189,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SchainResolver schainResolver(
+    SupplyChainResolver schainResolver(
             @Value("${auction.host-schain-node}") String globalSchainNode,
             JacksonMapper mapper) {
 
-        return SchainResolver.create(globalSchainNode, mapper);
+        return SupplyChainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
@@ -238,6 +240,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory(JacksonMapper jacksonMapper) {
+        return new BidRequestOrtbVersionConverterFactory(jacksonMapper);
+    }
+
+    @Bean
+    BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager(
+            BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory) {
+
+        return new BidRequestOrtbVersionConversionManager(bidRequestOrtbVersionConverterFactory);
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
@@ -280,6 +294,7 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -292,6 +307,7 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
@@ -322,8 +338,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                                        Ortb2RequestFactory ortb2RequestFactory,
+    AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                                        StoredRequestProcessor storedRequestProcessor,
+                                        BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
@@ -334,8 +351,9 @@ public class ServiceConfiguration {
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
-                storedRequestProcessor,
                 ortb2RequestFactory,
+                storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
@@ -351,8 +369,9 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
-            VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver auctionTimeoutResolver,
@@ -364,8 +383,9 @@ public class ServiceConfiguration {
                 enforceStoredRequest,
                 escapeLogCacheRegex,
                 ortb2RequestFactory,
-                ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
+                ortb2ImplicitParametersResolver,
                 privacyEnforcementService,
                 auctionTimeoutResolver,
                 debugResolver,
@@ -625,9 +645,10 @@ public class ServiceConfiguration {
             DealsProcessor dealsProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
-            SchainResolver schainResolver,
+            SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -651,9 +672,10 @@ public class ServiceConfiguration {
                 dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,

@@ -348,7 +348,7 @@ public class CriteoBidderTest extends VertxTest {
                 .user(User.builder().buyeruid("buyerid").ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().os("ios").ifa("ifa").ip("255.255.255.255").ua("userAgent").build())
                 .site(Site.builder().id("siteId").page("www.criteo.com").build())
-                .regs(Regs.of(null, ExtRegs.of(1, "1N--")))
+                .regs(Regs.builder().ext(ExtRegs.of(1, "1N--")).build())
                 .build();
     }
 

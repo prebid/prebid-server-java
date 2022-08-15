@@ -56,11 +56,9 @@
               ]
             },
             "pmp": {
-              "private_auction": 0,
               "deals": [
                 {
                   "id": "dealId3",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem3",
@@ -77,11 +75,16 @@
                 },
                 {
                   "id": "dealId2",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
+                      "sizes": [
+                         {
+                           "w": 300,
+                           "h": 250
+                         }
+                       ],
                       "bidder": "rubicon"
                     }
                   }
@@ -117,8 +120,8 @@
           "ip": "185.199.110.0"
         },
         "user": {
+          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
           "ext": {
-            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
             "fcapids": [],
             "time": {
               "userdow": "{{ userdow }}",

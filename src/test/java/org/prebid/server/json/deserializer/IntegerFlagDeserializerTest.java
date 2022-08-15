@@ -1,4 +1,4 @@
-package org.prebid.server.json;
+package org.prebid.server.json.deserializer;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;

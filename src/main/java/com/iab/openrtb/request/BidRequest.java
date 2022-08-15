@@ -24,37 +24,37 @@ public class BidRequest {
 
     /**
      * Unique ID of the bid request, provided by the exchange.
-     * (required)
+     * <p/> (required)
      */
     String id;
 
     /**
-     * Array of Imp objects (Section 3.2.4) representing the impressions
-     * offered. At least 1 Imp object is required.
+     * Array of {@link Imp} objects (Section 3.2.4) representing the impressions
+     * offered. At least 1 {@link Imp}  object is required.
      */
     List<Imp> imp;
 
     /**
-     * Details via a Site object (Section 3.2.13) about the publisher’s website.
+     * Details via a {@link Site} object (Section 3.2.13) about the publisher’s website.
      * Only applicable and recommended for websites.
      */
     Site site;
 
     /**
-     * Details via an Application object (Section 3.2.14) about the publisher’s app
+     * Details via an {@link App} object (Section 3.2.14) about the publisher’s app
      * (i.e., non-browser applications). Only applicable and recommended for
      * apps.
      */
     App app;
 
     /**
-     * Details via a Device object (Section 3.2.18) about the user’s device
+     * Details via a {@link Device} object (Section 3.2.18) about the user’s device
      * to which the impression will be delivered.
      */
     Device device;
 
     /**
-     * Details via a User object (Section 3.2.20) about the human user
+     * Details via a {@link User} object (Section 3.2.20) about the human user
      * of the device; the advertising audience.
      */
     User user;
@@ -67,7 +67,7 @@ public class BidRequest {
 
     /**
      * Auction type, where 1 = First Price, 2 = Second Price Plus. Exchange-specific
-     * auction types can be defined using values greater than 500.
+     * auction types can be defined using values 500 and greater.
      */
     Integer at;
 
@@ -79,7 +79,7 @@ public class BidRequest {
     Long tmax;
 
     /**
-     * White list of buyer seats (e.g., advertisers, agencies) allowed to bid on
+     * Allowed list of buyer seats (e.g., advertisers, agencies) allowed to bid on
      * this impression. IDs of seats and knowledge of the buyer’s customers to
      * which they refer must be coordinated between bidders and the exchange
      * <em>a priori</em>. At most, only one of wseat and bseat should be used in
@@ -114,18 +114,35 @@ public class BidRequest {
     List<String> cur;
 
     /**
-     * White list of languages for creatives using ISO-639-1-alpha-2.
-     * Omission implies no specific restrictions, but buyers would be advised
-     * to consider language attribute in the Device and/or Content objects
-     * if available.
+     * Allowed list of languages for creatives using ISO-639-1-alpha-2.
+     * Omission implies no specific restrictions, but buyers would be
+     * advised to consider language attribute in the {@link Device} and/or
+     * {@link Content} objects if available. Only one of wlang or wlangb
+     * should be present.
      */
     List<String> wlang;
 
     /**
-     * Blocked advertiser categories using the IAB content categories.
-     * Refer to List 5.1.
+     * Allowed list of languages for creatives using IETF BCP 47I.
+     * Omission implies no specific restrictions, but buyers would be
+     * advised to consider language attribute in the {@link Device} and/or
+     * {@link Content} objects if available. Only one of wlang or wlangb
+     * should be present.
+     */
+    List<String> wlangb;
+
+    /**
+     * Blocked advertiser categories using the specified category taxonomy. <p/>
+     * The taxonomy to be used is defined by the cattax field. If no cattax
+     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
      */
     List<String> bcat;
+
+    /**
+     * The taxonomy in use for bcat. Refer to the AdCOM
+     * 1.0 list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category Taxonomies</a> for values.
+     */
+    Integer cattax;
 
     /**
      * Block list of advertisers by their domains (e.g., “ford.com”).
@@ -133,21 +150,22 @@ public class BidRequest {
     List<String> badv;
 
     /**
-     * Block list of applications by their platform-specific
-     * exchange-independent application identifiers. On Android, these should be
-     * bundle or package names (e.g., com.foo.mygame). On iOS, these are numeric
-     * IDs.
+     * Block list of applications by their app store IDs. See <a href="https://iabtechlab.com/wp-content/uploads/2020/08/IAB-Tech-Lab-OTT-store-assigned-App-Identification-Guidelines-2020.pdf">
+     * OTT/CTV Store Assigned App Identification Guidelines</a> for more
+     * details about expected strings for CTV app stores. For mobile apps
+     * in Google Play Store, these should be bundle or package names (e.g.com.foo.mygame).
+     * For apps in Apple App Store, these should be a numeric ID.
      */
     List<String> bapp;
 
     /**
-     * A Source object (Section 3.2.2) that provides data about the inventory
+     * A {@link Source} object (Section 3.2.2) that provides data about the inventory
      * source and which entity makes the final decision.
      */
     Source source;
 
     /**
-     * A Regs object (Section 3.2.3) that specifies any industry, legal,
+     * A {@link Regs} object (Section 3.2.3) that specifies any industry, legal,
      * or governmental regulations in force for this request.
      */
     Regs regs;

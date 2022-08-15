@@ -1,6 +1,7 @@
 adapters:
   kargo:
     endpoint: https://krk.kargo.com/api/v1/openrtb
+    endpoint-compression: gzip
     modifyingVastXmlAllowed: true
     meta-info:
       maintainer-email: kraken@kargo.com

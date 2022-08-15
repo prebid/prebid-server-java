@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.ImageObject;
@@ -20,6 +21,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.TitleObject;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
@@ -43,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -55,8 +56,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -557,9 +556,47 @@ public class RequestValidator {
     }
 
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
-        if (user != null && user.getExt() != null) {
-            final ExtUser extUser = user.getExt();
+        if (user != null) {
+            validateUserExt(user.getExt(), aliases);
 
+            final List<Eid> eids = user.getEids();
+            if (eids != null) {
+                if (eids.isEmpty()) {
+                    throw new ValidationException(
+                            "request.user.eids must contain at least one element or be undefined");
+                }
+                for (int index = 0; index < eids.size(); index++) {
+                    final Eid eid = eids.get(index);
+                    if (StringUtils.isBlank(eid.getSource())) {
+                        throw new ValidationException(
+                                "request.user.eids[%d] missing required field: \"source\"", index);
+                    }
+                    final List<Uid> eidUids = eid.getUids();
+                    if (CollectionUtils.isEmpty(eidUids)) {
+                        throw new ValidationException(
+                                "request.user.eids[%d].uids must contain at least one element", index);
+                    }
+                    for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                        final Uid uid = eidUids.get(uidsIndex);
+                        if (StringUtils.isBlank(uid.getId())) {
+                            throw new ValidationException(
+                                    "request.user.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                    uidsIndex);
+                        }
+                    }
+                }
+                final Set<String> uniqueSources = eids.stream()
+                        .map(Eid::getSource)
+                        .collect(Collectors.toSet());
+                if (eids.size() != uniqueSources.size()) {
+                    throw new ValidationException("request.user.eids must contain unique sources");
+                }
+            }
+        }
+    }
+
+    private void validateUserExt(ExtUser extUser, Map<String, String> aliases) throws ValidationException {
+        if (extUser != null) {
             final ExtUserPrebid prebid = extUser.getPrebid();
             if (prebid != null) {
                 final Map<String, String> buyerUids = prebid.getBuyeruids();
@@ -576,58 +613,15 @@ public class RequestValidator {
                     }
                 }
             }
-
-            final List<ExtUserEid> eids = extUser.getEids();
-            if (eids != null) {
-                if (eids.isEmpty()) {
-                    throw new ValidationException(
-                            "request.user.ext.eids must contain at least one element or be undefined");
-                }
-                for (int index = 0; index < eids.size(); index++) {
-                    final ExtUserEid eid = eids.get(index);
-                    if (StringUtils.isBlank(eid.getSource())) {
-                        throw new ValidationException(
-                                "request.user.ext.eids[%d] missing required field: \"source\"", index);
-                    }
-                    final String eidId = eid.getId();
-                    final List<ExtUserEidUid> eidUids = eid.getUids();
-                    if (eidId == null && eidUids == null) {
-                        throw new ValidationException(
-                                "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
-                    }
-                    if (eidId == null) {
-                        if (eidUids.isEmpty()) {
-                            throw new ValidationException(
-                                    "request.user.ext.eids[%d].uids must contain at least one element "
-                                            + "or be undefined", index);
-                        }
-                        for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                            final ExtUserEidUid uid = eidUids.get(uidsIndex);
-                            if (StringUtils.isBlank(uid.getId())) {
-                                throw new ValidationException(
-                                        "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                        uidsIndex);
-                            }
-                        }
-                    }
-                }
-                final Set<String> uniqueSources = eids.stream()
-                        .map(ExtUserEid::getSource)
-                        .collect(Collectors.toSet());
-                if (eids.size() != uniqueSources.size()) {
-                    throw new ValidationException("request.user.ext.eids must contain unique sources");
-                }
-            }
         }
     }
 
     /**
-     * Validates {@link Regs}. Throws {@link ValidationException} in case if {@link ExtRegs} is present in
-     * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
+     * Validates {@link Regs}. Throws {@link ValidationException} in case if
+     * its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final Integer gdpr = regs != null ? regs.getGdpr() : null;
         if (gdpr != null && gdpr != 0 && gdpr != 1) {
             throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }
@@ -1158,11 +1152,14 @@ public class RequestValidator {
 
     private void validateMetrics(List<Metric> metrics, int impIndex) throws ValidationException {
         for (int i = 0; i < metrics.size(); i++) {
-            if (metrics.get(i).getType() == null || metrics.get(i).getType().isEmpty()) {
+            final Metric metric = metrics.get(i);
+
+            if (StringUtils.isEmpty(metric.getType())) {
                 throw new ValidationException("Missing request.imp[%d].metric[%d].type", impIndex, i);
             }
 
-            if (metrics.get(i).getValue() < 0.0 || metrics.get(i).getValue() > 1.0) {
+            final Float value = metric.getValue();
+            if (value == null || value < 0.0 || value > 1.0) {
                 throw new ValidationException("request.imp[%d].metric[%d].value must be in the range [0.0, 1.0]",
                         impIndex, i);
             }

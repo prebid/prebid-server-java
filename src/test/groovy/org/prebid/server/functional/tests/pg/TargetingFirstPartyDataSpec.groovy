@@ -35,10 +35,9 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_BUYER_IDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_KEYWORDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_LANGUAGE
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_ID
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_IDS
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UIDS
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_KEYWORDS
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_YOB
 
 class TargetingFirstPartyDataSpec extends BasePgSpec {
@@ -79,7 +78,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         where:
         ufpdTargetingType | userExtData
-        UFPD_LANGUAGE     | new UserExtData(language: stringTargetingValue)
+        UFPD_BUYER_UID    | new UserExtData(buyeruid: stringTargetingValue)
         UFPD_KEYWORDS     | new UserExtData(keywords: [stringTargetingValue])
     }
 
@@ -94,7 +93,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(ufpdTargetingType, INTERSECTS, [integerTargetingValue])
+                                              .addTargeting(ufpdTargetingType, INTERSECTS, [stringTargetingValue])
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -110,8 +109,8 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         where:
         ufpdTargetingType | userExtData
-        UFPD_BUYER_ID     | new UserExtData(buyerid: integerTargetingValue)
-        UFPD_BUYER_IDS    | new UserExtData(buyerids: [integerTargetingValue])
+        UFPD_BUYER_UID    | new UserExtData(buyeruid: stringTargetingValue)
+        UFPD_BUYER_UIDS   | new UserExtData(buyeruids: [stringTargetingValue])
     }
 
     def "PBS should support taking Site First Party Data from different sources"() {
@@ -268,8 +267,8 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         where:
         ufpdTargetingType | updateUserFieldGeneric                 | targetingValue        | matchingFunction
-        UFPD_LANGUAGE     | { it.language = stringTargetingValue } | stringTargetingValue  | INTERSECTS
-        UFPD_LANGUAGE     | { it.language = stringTargetingValue } | stringTargetingValue  | IN
+        UFPD_BUYER_UID    | { it.buyeruid = stringTargetingValue } | stringTargetingValue  | INTERSECTS
+        UFPD_BUYER_UID    | { it.buyeruid = stringTargetingValue } | stringTargetingValue  | IN
         UFPD_YOB          | { it.yob = integerTargetingValue }     | integerTargetingValue | INTERSECTS
         UFPD_YOB          | { it.yob = integerTargetingValue }     | integerTargetingValue | IN
     }
@@ -278,14 +277,14 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                it.language = stringTargetingValue
+                it.buyeruid = stringTargetingValue
             }
         }
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, MATCHES, stringTargetingValue)
+                                              .addTargeting(UFPD_BUYER_UID, MATCHES, stringTargetingValue)
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -383,12 +382,12 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
     def "PBS should be able to match user FPD targeting taken from different sources by MATCHES matching function"() {
         given: "Bid request with set user FPD in different request places"
-        def bidRequest = getUserFpdBidRequest(userLanguage, userExtDataLanguage)
+        def bidRequest = getUserFpdBidRequest(userBuyerUid, userExtDataBuyerUid)
 
         and: "Planner response with MATCHES 1 of user FPD values"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, MATCHES, stringTargetingValue)
+                                              .addTargeting(UFPD_BUYER_UID, MATCHES, stringTargetingValue)
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -404,21 +403,21 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
 
         where:
-        userLanguage          | userExtDataLanguage
+        userBuyerUid          | userExtDataBuyerUid
         stringTargetingValue  | PBSUtils.randomString
         PBSUtils.randomString | stringTargetingValue
     }
 
     def "PBS should be able to match user FPD targeting taken from different sources by IN matching function"() {
         given: "Bid request with set user FPD in different request places"
-        def userLanguage = PBSUtils.randomString
-        def userExtDataLanguage = PBSUtils.randomString
-        def bidRequest = getUserFpdBidRequest(userLanguage, userExtDataLanguage)
+        def userBuyerUid = PBSUtils.randomString
+        def userExtDataBuyerUid = PBSUtils.randomString
+        def bidRequest = getUserFpdBidRequest(userBuyerUid, userExtDataBuyerUid)
 
         and: "Planner response with IN all of user FPD values"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, IN, [userLanguage, userExtDataLanguage, PBSUtils.randomString])
+                                              .addTargeting(UFPD_BUYER_UID, IN, [userBuyerUid, userExtDataBuyerUid, PBSUtils.randomString])
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -472,7 +471,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         given: "Bid request with set User specific bidder config"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             def user = new User().tap {
-                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+                ext = new UserExt(data: new UserExtData(buyeruid: stringTargetingValue))
             }
             def bidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
                     config: new BidderConfig(ortb2: new BidderConfigOrtb(user: user)))
@@ -482,7 +481,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .addTargeting(UFPD_BUYER_UID, matchingFunction, matchingValue)
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -542,7 +541,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         def notMatchedBidder = APPNEXUS
         def bidRequest = BidRequest.defaultBidRequest.tap {
             def user = new User().tap {
-                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+                ext = new UserExt(data: new UserExtData(buyeruid: stringTargetingValue))
             }
             def bidderConfig = new ExtPrebidBidderConfig(bidders: [notMatchedBidder],
                     config: new BidderConfig(ortb2: new BidderConfigOrtb(user: user)))
@@ -552,7 +551,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .addTargeting(UFPD_BUYER_UID, matchingFunction, matchingValue)
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -615,12 +614,12 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         given: "Bid request with 1 not matched User specific bidder config and 1 matched"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             def firstBidderConfigUser = new User().tap {
-                ext = new UserExt(data: new UserExtData(language: PBSUtils.randomString))
+                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
             }
             def firstBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
                     config: new BidderConfig(ortb2: new BidderConfigOrtb(user: firstBidderConfigUser)))
             def secondBidderConfigUser = new User().tap {
-                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
+                ext = new UserExt(data: new UserExtData(buyeruid: stringTargetingValue))
             }
             def secondBidderConfig = new ExtPrebidBidderConfig(bidders: [GENERIC],
                     config: new BidderConfig(ortb2: new BidderConfigOrtb(user: secondBidderConfigUser)))
@@ -630,7 +629,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(UFPD_LANGUAGE, matchingFunction, matchingValue)
+                                              .addTargeting(UFPD_BUYER_UID, matchingFunction, matchingValue)
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -665,11 +664,11 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         }
     }
 
-    private BidRequest getUserFpdBidRequest(String userLanguage, String userExtDataLanguage) {
+    private BidRequest getUserFpdBidRequest(String userBuyerUid, String userExtDataBuyerUid) {
         BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                language = userLanguage
-                ext = new UserExt(data: new UserExtData(language: userExtDataLanguage))
+                buyeruid = userBuyerUid
+                ext = new UserExt(data: new UserExtData(buyeruid: userExtDataBuyerUid))
             }
         }
     }

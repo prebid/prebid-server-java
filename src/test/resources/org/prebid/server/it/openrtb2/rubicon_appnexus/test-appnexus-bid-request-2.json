@@ -102,7 +102,11 @@
         },
         {
           "source": "pubcid",
-          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+          "uids": [
+            {
+              "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+            }
+          ]
         }
       ]
     }

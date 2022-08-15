@@ -10,7 +10,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
  * device which can also be interpreted as the user’s current location. When
  * subordinate to a {@link User} object, it indicates the location of the user’s
  * home base (i.e., not necessarily their current location).
- * <p>The {@code lat}/{code lon} attributes should only be passed if they
+ * <p>The {@code lat}/{@code lon} attributes should only be passed if they
  * conform to the accuracy depicted in the {@code type} attribute. For example,
  * the centroid of a geographic region such as postal code should not be passed.
  */
@@ -32,7 +32,8 @@ public class Geo {
 
     /**
      * Source of location data; recommended when passing lat/lon.
-     * Refer to List 5.20.
+     * Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--location-types-">
+     * List: Location Types</a> in AdCOM 1.0.
      */
     Integer type;
 
@@ -53,7 +54,8 @@ public class Geo {
 
     /**
      * Service or provider used to determine geolocation from IP address if
-     * applicable (i.e., type = 2). Refer to List 5.23.
+     * applicable (i.e., type = 2). Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--ip-location-services-">
+     * List: IP Location Services</a> in AdCOM 1.0.
      */
     Integer ipservice;
 
