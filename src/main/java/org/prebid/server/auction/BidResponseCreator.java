@@ -196,7 +196,7 @@ public class BidResponseCreator {
                         auctionContext)
 
                         .compose(updatedResponses ->
-                                invodeAllProcessedBidResponsesHook(updatedResponses, auctionContext))
+                                invokeAllProcessedBidResponsesHook(updatedResponses, auctionContext))
 
                         .compose(updatedResponses ->
                                 createCategoryMapping(auctionContext, updatedResponses))
@@ -446,7 +446,7 @@ public class BidResponseCreator {
                 .map(CompositeFuture::list);
     }
 
-    private Future<List<BidderResponse>> invodeAllProcessedBidResponsesHook(List<BidderResponse> bidderResponses,
+    private Future<List<BidderResponse>> invokeAllProcessedBidResponsesHook(List<BidderResponse> bidderResponses,
                                                                             AuctionContext auctionContext) {
 
         return hookStageExecutor.executeAllProcessedBidResponsesStage(bidderResponses, auctionContext)

@@ -11,5 +11,5 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class AllProcessedBidResponsesPayloadImpl implements AllProcessedBidResponsesPayload {
 
-    List<BidderResponse> bidderResponses;
+    List<BidderResponse> bidResponses;
 }
