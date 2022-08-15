@@ -3017,7 +3017,6 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionInvocationContext,
                 Future<InvocationResult<AllProcessedBidResponsesPayload>>> delegate;
 
-
         @Override
         public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
                 AllProcessedBidResponsesPayload payload,
