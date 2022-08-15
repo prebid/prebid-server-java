@@ -25,16 +25,16 @@ class StoredImp {
     @Column(name = "accountId")
     String accountId
     @Column(name = "impid")
-    String impid
+    String impReqId
     @Column(name = "impData")
     @Convert(converter = ImpConfigTypeConverter)
     Imp impData
 
-    static StoredImp getDefaultStoredImp(BidRequest bidRequest,
-                                         Imp storedImp,
-                                         String accountId = bidRequest?.site?.publisher?.id){
-        new StoredImp(impid: bidRequest.imp[0]?.ext?.prebid?.storedRequest?.id,
-                accountId: accountId,
-                impData: storedImp)
+    static StoredImp getDbStoredImp(BidRequest bidRequest, Imp storedImp) {
+        new StoredImp().tap {
+            accountId = bidRequest?.site?.publisher?.id
+            impReqId = bidRequest?.imp[0]?.ext?.prebid?.storedRequest?.id
+            impData = storedImp
+        }
     }
 }

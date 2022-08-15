@@ -627,7 +627,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
 
         and: "Save storedImp into DB"
-        def storedImp = StoredImp.getDefaultStoredImp(bidRequest, Imp.defaultImpression)
+        def storedImp = StoredImp.getDbStoredImp(bidRequest, Imp.defaultImpression)
         storedImpDao.save(storedImp)
 
         and: "Account with enabled fetch, fetch.url in the DB"
