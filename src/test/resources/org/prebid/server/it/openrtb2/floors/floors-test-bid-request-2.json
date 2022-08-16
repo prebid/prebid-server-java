@@ -14,7 +14,9 @@
           "floors": {
             "floorRule": "www.example.com|banner|320x250",
             "floorRuleValue": 2,
-            "floorValue": 4
+            "floorValue": 4,
+            "floorMinCur": "NZD",
+            "floorMin": 0.11
           }
         },
         "bidder": {}

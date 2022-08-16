@@ -10,6 +10,12 @@
       "bidfloor": 4,
       "bidfloorcur": "USD",
       "ext": {
+        "prebid": {
+          "floors": {
+            "floorMinCur": "NZD",
+            "floorMin": 0.11
+          }
+        },
         "generic": {
         }
       }

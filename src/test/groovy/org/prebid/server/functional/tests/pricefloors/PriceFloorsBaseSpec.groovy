@@ -30,6 +30,7 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.INP
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
+    public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)

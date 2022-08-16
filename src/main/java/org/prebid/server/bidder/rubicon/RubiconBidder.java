@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.rubicon;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -343,6 +344,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return rubiconImpExts.stream()
                 .filter(Objects::nonNull)
                 .map(ExtPrebid::getBidder)
+                .filter(Objects::nonNull)
                 .map(ExtImpRubicon::getVideo)
                 .filter(Objects::nonNull)
                 .map(RubiconVideoParams::getLanguage)
@@ -649,10 +651,24 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                                      String currency,
                                                      Imp imp,
                                                      BidRequest bidRequest) {
+        final ObjectNode impExt = imp.getExt();
+        final ExtImpPrebid extImpPrebid = extImpPrebid(impExt.get(PREBID_EXT));
+        final ExtImpPrebidFloors floors = extImpPrebid != null ? extImpPrebid.getFloors() : null;
+
         return RubiconImpExtPrebid.of(ExtImpPrebidFloors.of(
                 priceFloorResult.getFloorRule(),
                 convertToXAPICurrency(priceFloorResult.getFloorRuleValue(), currency, imp, bidRequest),
-                convertToXAPICurrency(priceFloorResult.getFloorValue(), currency, imp, bidRequest)));
+                convertToXAPICurrency(priceFloorResult.getFloorValue(), currency, imp, bidRequest),
+                floors != null ? floors.getFloorMin() : null,
+                floors != null ? floors.getFloorMinCur() : null));
+    }
+
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+        }
     }
 
     private void mergeFirstPartyDataFromSite(Site site, ObjectNode result) {

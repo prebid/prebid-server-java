@@ -10,6 +10,7 @@ import java.nio.file.Path
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
 import static java.math.RoundingMode.HALF_UP
+import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MAX
 import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
@@ -43,8 +44,8 @@ class PBSUtils implements ObjectMapperWrapper {
         createTempFile(data, ".json")
     }
 
-    static BigDecimal getRandomFloorValue() {
-        roundDecimal(getRandomDecimal(FLOOR_MIN, 2), 2)
+    static BigDecimal getRandomFloorValue(float floorMin = FLOOR_MIN, float floorMax = FLOOR_MAX) {
+        roundDecimal(getRandomDecimal(floorMin, floorMax), 2)
     }
 
     private static Path createTempFile(String content, String suffix) {
