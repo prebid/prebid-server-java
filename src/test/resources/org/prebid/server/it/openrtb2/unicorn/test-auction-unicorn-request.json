@@ -10,13 +10,14 @@
       "ext": {
         "unicorn": {
           "placementId": "placementId",
-          "publisherId": 123,
+          "publisherId": "123",
           "mediaId": "mediaTestId",
           "accountId": 456
         }
       }
     }
   ],
+  "app": {},
   "tmax": 5000,
   "regs": {
     "ext": {

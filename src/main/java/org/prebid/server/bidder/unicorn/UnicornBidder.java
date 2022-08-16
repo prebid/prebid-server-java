@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.BidResponse;
@@ -33,7 +35,6 @@ import org.prebid.server.proto.openrtb.ext.request.unicorn.ExtImpUnicorn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -52,25 +53,24 @@ public class UnicornBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> modifiedImps = new ArrayList<>();
-        final Source source;
-        final int firstImpAccountId;
+        final ExtImpUnicorn firstImpExt;
+        final List<Imp> modifiedImps;
+        final Source modifiedSource;
+        final App modifiedApp;
 
         try {
             validateRegs(request.getRegs());
 
-            for (Imp imp : request.getImp()) {
-                modifiedImps.add(modifyImp(imp));
-            }
-
-            source = updateSource(request.getSource());
-            firstImpAccountId = getAccountIdFromFirstImp(request);
+            firstImpExt = parseImpExt(request.getImp().get(0)).getBidder();
+            modifiedImps = request.getImp().stream().map(this::modifyImp).toList();
+            modifiedSource = modifySource(request.getSource());
+            modifiedApp = modifyApp(request.getApp(), firstImpExt.getMediaId(), firstImpExt.getPublisherId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpAccountId);
-        return Result.withValue(createRequest(request, modifiedImps, source, modifiedExtRequest));
+        final ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpExt.getAccountId());
+        return Result.withValue(createRequest(request, modifiedImps, modifiedApp, modifiedSource, modifiedExtRequest));
     }
 
     private static void validateRegs(Regs regs) {
@@ -144,7 +144,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return node != null && !node.isEmpty();
     }
 
-    private static Source updateSource(Source source) {
+    private static Source modifySource(Source source) {
         return Optional.ofNullable(source)
                 .map(Source::toBuilder)
                 .orElseGet(Source::builder)
@@ -159,10 +159,18 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return extSource;
     }
 
-    private int getAccountIdFromFirstImp(BidRequest request) {
-        return parseImpExt(request.getImp().get(0))
-                .getBidder()
-                .getAccountId();
+    private static App modifyApp(App app, String mediaId, String publisherId) {
+        if (app == null) {
+            throw new PreBidException("request app is required");
+        }
+
+        final Publisher publisher = Optional.ofNullable(app.getPublisher())
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(publisherId)
+                .build();
+
+        return app.toBuilder().id(mediaId).publisher(publisher).build();
     }
 
     private static ExtRequest modifyExtRequest(ExtRequest extRequest, int accountId) {
@@ -181,11 +189,13 @@ public class UnicornBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequest(BidRequest request,
                                                   List<Imp> imps,
+                                                  App app,
                                                   Source source,
                                                   ExtRequest extRequest) {
 
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(imps)
+                .app(app)
                 .source(source)
                 .ext(extRequest)
                 .build();

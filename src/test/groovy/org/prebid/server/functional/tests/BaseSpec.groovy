@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
-import org.prebid.server.functional.repository.dao.ConfigDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
 import org.prebid.server.functional.repository.dao.StoredRequestDao
 import org.prebid.server.functional.repository.dao.StoredResponseDao
@@ -27,7 +26,6 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
     protected static final AccountDao accountDao = repository.accountDao
-    protected static final ConfigDao configDao = repository.configDao
     protected static final StoredImpDao storedImpDao = repository.storedImpDao
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao

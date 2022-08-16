@@ -18,14 +18,6 @@ CREATE TABLE accounts_account
     updated                   timestamp
 );
 
-CREATE TABLE s2sconfig_config
-(
-    id     SERIAL PRIMARY KEY,
-    uuid   varchar(40) NOT NULL,
-    config varchar(512)
-);
-
-
 CREATE TABLE stored_requests
 (
     id          SERIAL PRIMARY KEY,
