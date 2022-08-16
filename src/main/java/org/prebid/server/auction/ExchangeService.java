@@ -277,9 +277,8 @@ public class ExchangeService {
                 .compose(storedResponseResult -> extractAuctionParticipations(
                         receivedContext, storedResponseResult, aliases, bidderToMultiBid))
 
-                .map(auctionParticipations -> updateRequestMetric(
-                        auctionParticipations, uidsCookie, aliases, account, requestTypeMetric))
-                .map(auctionParticipations -> maybeLogBidderInteraction(receivedContext, auctionParticipations))
+                .map(auctionParticipation -> updateRequestMetric(
+                        auctionParticipation, uidsCookie, aliases, account, requestTypeMetric))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
@@ -1221,7 +1220,6 @@ public class ExchangeService {
                                                              BidderAliases aliases) {
 
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
-
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, auctionContext, timeout, aliases))
 
@@ -1237,6 +1235,7 @@ public class ExchangeService {
             Timeout timeout,
             BidderAliases aliases) {
 
+        httpInteractionLogger.maybeLogBidderRequest(auctionContext, bidderRequest);
         if (hookStageResult.isShouldReject()) {
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }
@@ -1299,8 +1298,7 @@ public class ExchangeService {
                 ? Collections.emptyList()
                 : stageResult.getPayload().bids();
 
-        return bidderResponse
-                .with(bidderResponse.getSeatBid().with(bids));
+        return bidderResponse.with(bidderResponse.getSeatBid().with(bids));
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
@@ -1557,14 +1555,6 @@ public class ExchangeService {
         // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
         // dynamically.
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
-    }
-
-    private List<AuctionParticipation> maybeLogBidderInteraction(AuctionContext context,
-                                                                 List<AuctionParticipation> auctionParticipations) {
-        auctionParticipations.forEach(auctionParticipation ->
-                httpInteractionLogger.maybeLogBidderRequest(context, auctionParticipation.getBidderRequest()));
-
-        return auctionParticipations;
     }
 
     /**
