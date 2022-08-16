@@ -76,9 +76,9 @@ class SmokeSpec extends BaseSpec {
         then: "Response should contain all bidders"
         assert response.status == CookieSyncResponse.Status.NO_COOKIE
         assert response.bidderStatus?.size() == cookieSyncRequest.bidders.size()
-        def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.url
-        assert bidderStatus?.usersync?.type
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus?.userSync?.url
+        assert bidderStatus?.userSync?.type
     }
 
     def "Call PBS /cookie_sync with valid uids cookie should return status OK"() {
@@ -93,7 +93,7 @@ class SmokeSpec extends BaseSpec {
         assert response.status == CookieSyncResponse.Status.OK
 
         and: "Response should contain all bidders"
-        assert !response.getBidderUsersync(GENERIC)
+        assert !response.getBidderUserSync(GENERIC)
     }
 
     def "PBS should set uids cookie"() {

@@ -70,10 +70,9 @@ LIMIT 1
     }
 
     static Map<String, String> getBidderConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["adapters.generic.enabled"      : "true",
-         "adapters.generic.endpoint"     : "$rootUri/auction".toString(),
-         "adapters.generic.usersync.url" : "$rootUri/generic-usersync".toString(),
-         "adapters.generic.usersync.type": "redirect"
+        ["adapters.generic.enabled"                    : "true",
+         "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
+         "adapters.generic.usersync.cookie-family-name": "generic"
         ]
     }
 
