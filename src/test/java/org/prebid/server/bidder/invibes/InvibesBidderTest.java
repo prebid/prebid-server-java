@@ -297,6 +297,7 @@ public class InvibesBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .containsOnly(expectedRequest);
     }
+
     @Test
     public void makeHttpRequestsShouldCreateInvibesAmpBidRequestWithCorrectParams() throws JsonProcessingException {
         // given
@@ -305,7 +306,9 @@ public class InvibesBidderTest extends VertxTest {
                         .device(Device.builder().w(DEVICE_W).h(DEVICE_H).build())
                         .user(User.builder().buyeruid(BUYER_UID).build())
                         .site(Site.builder().page(PAGE_URL).build())
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder().amp(ExtRequestPrebidAmp.of(Collections.emptyMap())).build())),
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder().amp(ExtRequestPrebidAmp.of(Collections.emptyMap())).build()
+                        )),
                 impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
 
         // when
