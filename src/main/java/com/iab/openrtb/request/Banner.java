@@ -26,7 +26,7 @@ import java.util.List;
 public class Banner {
 
     /**
-     * Array of format objects (Section 3.2.10) representing the banner sizes
+     * Array of {@link Format} objects (Section 3.2.10) representing the banner sizes
      * permitted. If none are specified, then use of the h and w attributes is
      * highly recommended.
      */
@@ -44,18 +44,30 @@ public class Banner {
      */
     Integer h;
 
-    /** Blocked banner ad types. Refer to List 5.2. */
+    /**
+     * Blocked banner ad types.
+     * Values:
+     * <p/> 1 = XHTML Text Ad,
+     * <p/> 2 = XHTML Banner Ad,
+     * <p/> 3 = JavaScript Ad,
+     * <p/> 4 = iframe.
+     */
     List<Integer> btype;
 
-    /** Blocked creative attributes. Refer to List 5.3. */
+    /**
+     * Blocked creative attributes. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--creative-attributes-">
+     * List: Creative Attributes</a> in AdCOM 1.0.
+     */
     List<Integer> battr;
 
-    /** Ad position on screen. Refer to List 5.4. */
+    /**
+     * Ad position on screen. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--placement-positions-">
+     * List: Placement Positions</a> in AdCOM 1.0.
+     */
     Integer pos;
 
     /**
-     * Content MIME types supported. Popular MIME types may include
-     * “application/x-shockwave-flash”, “image/jpg”, and “image/gif”.
+     * Content MIME types supported. Popular MIME types may include, “image/jpeg” and “image/gif”.
      */
     List<String> mimes;
 
@@ -65,31 +77,36 @@ public class Banner {
      */
     Integer topframe;
 
-    /** Directions in which the banner may expand. Refer to List 5.5. */
+    /**
+     * Directions in which the banner may expand. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--expandable-directions-">
+     * List: Expandable Directions</a> in AdCOM 1.0.
+     */
     List<Integer> expdir;
 
     /**
-     * List of supported API frameworks for this impression. Refer to List 5.6.
-     * If an API is not explicitly listed, it is assumed not to be supported.
+     * List of supported API frameworks for this impression. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--api-frameworks-">
+     * List: API Frameworks</a>. If an API is not explicitly listed, it is assumed not to be supported.
      */
     List<Integer> api;
 
     /**
-     * Unique identifier for this banner object. Recommended when Banner objects
-     * are used with a Video object (Section 3.2.7) to represent an array of
+     * Unique identifier for this banner object. Recommended when {@link Banner} objects
+     * are used with a {@link Video} object (Section 3.2.7) to represent an array of
      * companion ads. Values usually start at 1 and increase with each object;
      * should be unique within an impression.
      */
     String id;
 
     /**
-     * Relevant only for Banner objects used with a Video object (Section 3.2.7)
+     * Relevant only for {@link Banner} objects used with a {@link Video} object (Section 3.2.7)
      * in an array of companion ads. Indicates the companion banner rendering
      * mode relative to the associated video, where 0 = concurrent,
      * 1 = end-card.
      */
     Integer vcm;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

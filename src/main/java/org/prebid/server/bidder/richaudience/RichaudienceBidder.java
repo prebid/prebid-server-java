@@ -16,8 +16,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class RichaudienceBidder implements Bidder<BidRequest> {
 
@@ -102,7 +101,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) throws PreBidException {
         if (!isBannerSizesPresent(imp.getBanner())) {
-            throw new PreBidException(String.format("Banner W/H/Format is required. ImpId: %s", imp.getId()));
+            throw new PreBidException("Banner W/H/Format is required. ImpId: " + imp.getId());
         }
     }
 
@@ -115,7 +114,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Invalid ext. Imp.Id: %s", imp.getId()));
+            throw new PreBidException("Invalid ext. Imp.Id: " + imp.getId());
         }
     }
 
@@ -164,7 +163,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, bidRequest));
@@ -185,7 +184,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid,
                         resolvedBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType resolvedBidType(String impId, List<Imp> imps) {

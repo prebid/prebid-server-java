@@ -46,7 +46,6 @@ public enum Protocol {
      */
     DAAST10_WRAPPER(10);
 
-
     private final Integer value;
 
     Protocol(final Integer value) {

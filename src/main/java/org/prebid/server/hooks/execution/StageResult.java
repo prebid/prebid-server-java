@@ -7,7 +7,6 @@ import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @Getter
@@ -46,6 +45,6 @@ class StageResult<T> {
     private List<GroupExecutionOutcome> groupExecutionOutcomes() {
         return groupResults.stream()
                 .map(GroupResult::toGroupExecutionOutcome)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

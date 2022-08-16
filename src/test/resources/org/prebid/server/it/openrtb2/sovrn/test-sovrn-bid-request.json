@@ -3,9 +3,18 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "minduration": 30,
+        "maxduration": 30,
+        "protocols": [
+          2,
+          3,
+          5,
+          6
+        ]
       },
       "tagid": "tag_id",
       "ext": {
@@ -37,6 +46,18 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
     }
   }
 }

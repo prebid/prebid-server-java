@@ -83,11 +83,9 @@
     }
   },
   "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT",
     "data": [
       {
-        "ext": {
-          "segtax": 4
-        },
         "segment": [
           {
             "id": "segmentId1"
@@ -95,10 +93,12 @@
           {
             "id": "segmentId2"
           }
-        ]
+        ],
+        "ext": {
+          "segtax": 4
+        }
       }
     ],
-    "buyeruid": "J5VLCWQP-26-CWFT",
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
@@ -129,7 +129,11 @@
         },
         {
           "source": "pubcid",
-          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+          "uids": [
+            {
+              "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+            }
+          ]
         }
       ],
       "tpid": [

@@ -6,13 +6,11 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@PBSTest
 class StoredResponseSpec extends BaseSpec {
 
     @PendingFeature
@@ -85,6 +83,35 @@ class StoredResponseSpec extends BaseSpec {
         assert response.seatbid[0]?.seat == storedBidResponse.seatbid[0].seat
         assert response.seatbid[0]?.bid?.size() == storedBidResponse.seatbid[0].bid.size()
         assert response.seatbid[0]?.bid[0]?.impid == storedBidResponse.seatbid[0].bid[0].impid
+        assert response.seatbid[0]?.bid[0]?.price == storedBidResponse.seatbid[0].bid[0].price
+        assert response.seatbid[0]?.bid[0]?.id == storedBidResponse.seatbid[0].bid[0].id
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should replace bid impId on imp id when bid impId has macro ##PBSIMPID##"() {
+        given: "Default basic BidRequest with stored response"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+        }
+
+        and: "Stored bid response in DB with marco id"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+           seatbid[0].bid[0].impid = "##PBSIMPID##"
+        }
+        def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain information from stored bid response and change bid.impId on imp.id"
+        assert response.id == bidRequest.id
+        assert response.seatbid[0]?.seat == storedBidResponse.seatbid[0].seat
+        assert response.seatbid[0]?.bid?.size() == storedBidResponse.seatbid[0].bid.size()
+        assert response.seatbid[0]?.bid[0]?.impid == bidRequest.imp[0].id
         assert response.seatbid[0]?.bid[0]?.price == storedBidResponse.seatbid[0].bid[0].price
         assert response.seatbid[0]?.bid[0]?.id == storedBidResponse.seatbid[0].bid[0].id
 

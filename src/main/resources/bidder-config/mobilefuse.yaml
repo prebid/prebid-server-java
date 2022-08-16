@@ -1,6 +1,7 @@
 adapters:
   mobilefuse:
     endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@mobilefuse.com
       app-media-types:

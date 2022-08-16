@@ -17,13 +17,6 @@ CREATE TABLE accounts_account
     updated_by_user           varchar(64),
     updated                   timestamp
 );
-CREATE TABLE s2sconfig_config
-(
-    id     SERIAL PRIMARY KEY,
-    uuid   varchar(40) NOT NULL,
-    config varchar(512)
-);
-
 
 CREATE TABLE stored_requests
 (
@@ -46,3 +39,6 @@ CREATE TABLE stored_responses
     storedAuctionResponse varchar(1024),
     storedBidResponse varchar(1024)
 );
+
+-- set session wait timeout to 1 minute
+SET SESSION wait_timeout = 60000;

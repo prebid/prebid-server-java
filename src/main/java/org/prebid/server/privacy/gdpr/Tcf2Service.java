@@ -76,7 +76,7 @@ public class Tcf2Service {
                 .filter(Objects::nonNull)
                 .map(vendorId -> VendorPermission.of(
                         vendorId, bidderCatalog.nameByVendorId(vendorId), PrivacyEnforcementAction.restrictAll()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Collection<VendorPermission> vendorPermissions(Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
@@ -85,7 +85,7 @@ public class Tcf2Service {
                 .filter(Objects::nonNull)
                 .map(bidderName -> VendorPermission.of(
                         vendorIdResolver.resolve(bidderName), bidderName, PrivacyEnforcementAction.restrictAll()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Future<Collection<VendorPermission>> permissionsForInternal(Collection<VendorPermission> vendorPermissions,
@@ -104,7 +104,7 @@ public class Tcf2Service {
                 .map(vendorGvlPermissions -> wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions))
 
                 .compose(gvlResult -> processSupportedPurposeStrategies(tcfConsent, gvlResult, mergedPurposes,
-                        purposeOneTreatmentInterpretation),
+                                purposeOneTreatmentInterpretation),
                         ignoredFailed -> processDowngradedSupportedPurposeStrategies(tcfConsent,
                                 vendorPermissionsByType, mergedPurposes, mergedPurposeOneTreatmentInterpretation))
 
@@ -142,12 +142,12 @@ public class Tcf2Service {
 
         final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
-                .collect(Collectors.toList());
+                .toList();
 
         final List<VendorPermissionWithGvl> standardPermissions = vendorPermissionsByType.getStandardPermissions()
                 .stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
-                .collect(Collectors.toList());
+                .toList();
 
         return VendorPermissionsByType.of(weakPermissions, standardPermissions);
     }
@@ -186,7 +186,7 @@ public class Tcf2Service {
 
         return Future.succeededFuture(vendorPermissionsByType.joinPermissions().stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     private Future<Collection<VendorPermission>> processDowngradedSupportedPurposeStrategies(
@@ -247,17 +247,13 @@ public class Tcf2Service {
                                             boolean wasDowngraded) {
 
         switch (purposeOneTreatmentInterpretation) {
-            case accessAllowed:
-                vendorPermissionsWithGvl.forEach(vendorPermission ->
-                        purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
-                break;
-            case noAccessAllowed:
+            case accessAllowed -> vendorPermissionsWithGvl.forEach(vendorPermission ->
+                    purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
+            case noAccessAllowed -> {
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
-                break;
-            case ignore:
-            default:
-                purposeOneStrategy.processTypePurposeStrategy(
-                        tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
+            }
+            case ignore -> purposeOneStrategy.processTypePurposeStrategy(
+                    tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
         }
     }
 
@@ -326,42 +322,27 @@ public class Tcf2Service {
     }
 
     private Purpose findPurposeByTcfPurpose(PurposeCode tcfPurpose, Purposes purposes) {
-        switch (tcfPurpose) {
-            case ONE:
-                return purposes.getP1();
-            case TWO:
-                return purposes.getP2();
-            case THREE:
-                return purposes.getP3();
-            case FOUR:
-                return purposes.getP4();
-            case FIVE:
-                return purposes.getP5();
-            case SIX:
-                return purposes.getP6();
-            case SEVEN:
-                return purposes.getP7();
-            case EIGHT:
-                return purposes.getP8();
-            case NINE:
-                return purposes.getP9();
-            case TEN:
-                return purposes.getP10();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %s", tcfPurpose));
-        }
+        return switch (tcfPurpose) {
+            case ONE -> purposes.getP1();
+            case TWO -> purposes.getP2();
+            case THREE -> purposes.getP3();
+            case FOUR -> purposes.getP4();
+            case FIVE -> purposes.getP5();
+            case SIX -> purposes.getP6();
+            case SEVEN -> purposes.getP7();
+            case EIGHT -> purposes.getP8();
+            case NINE -> purposes.getP9();
+            case TEN -> purposes.getP10();
+            default -> throw new IllegalArgumentException("Illegal TCF code for purpose: " + tcfPurpose);
+        };
     }
 
-    private SpecialFeature findSpecialFeatureById(int tcfSpecialFeaturesId, SpecialFeatures specialFeatures) {
-        switch (tcfSpecialFeaturesId) {
-            case 1:
-                return specialFeatures.getSf1();
-            case 2:
-                return specialFeatures.getSf2();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal TCF code for special feature: %d",
-                        tcfSpecialFeaturesId));
-        }
+    private SpecialFeature findSpecialFeatureById(int specialFeatureId, SpecialFeatures specialFeatures) {
+        return switch (specialFeatureId) {
+            case 1 -> specialFeatures.getSf1();
+            case 2 -> specialFeatures.getSf2();
+            default -> throw new IllegalArgumentException("Illegal TCF code for special feature: " + specialFeatureId);
+        };
     }
 
     private PurposeOneTreatmentInterpretation mergePurposeOneTreatmentInterpretation(
@@ -387,7 +368,7 @@ public class Tcf2Service {
 
         public Collection<T> joinPermissions() {
             return Stream.concat(weakPermissions.stream(), standardPermissions.stream())
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 }

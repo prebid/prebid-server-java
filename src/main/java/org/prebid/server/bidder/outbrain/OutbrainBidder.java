@@ -17,8 +17,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class OutbrainBidder implements Bidder<BidRequest> {
 
@@ -90,7 +89,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OUTBRAIN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -142,7 +141,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
         try {
@@ -167,7 +166,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid createBidderBid(Bid bid, List<Imp> requestImps, String cur, List<BidderError> errors) {
@@ -210,7 +209,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             if (Objects.equals(currentMethod, IMAGE_TRACKER_METHOD)) {
                 imptrackers.add(eventTracker.getUrl());
             } else if (Objects.equals(currentMethod, JS_TRACKER_METHOD)) {
-                jstracker = String.format("<script src=\"%s\"></script>", eventTracker.getUrl());
+                jstracker = "<script src=\"%s\"></script>".formatted(eventTracker.getUrl());
             }
         }
 
@@ -231,6 +230,6 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find native/banner impression \"%s\"", impId));
+        throw new PreBidException("Failed to find native/banner impression \"%s\"".formatted(impId));
     }
 }

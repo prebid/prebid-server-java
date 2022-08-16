@@ -153,9 +153,10 @@ public class HttpInteractionLoggerTest extends VertxTest {
     @Test
     public void maybeLogOpenrtb2AuctionShouldLogOneLineBodyFromContext() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("{\n"
-                + "  \"param\": \"value\"\n"
-                + "}");
+        given(routingContext.getBodyAsString()).willReturn("""
+                {
+                  "param": "value"
+                }""");
         final AuctionContext givenAuctionContext =
                 givenAuctionContext(accountBuilder -> accountBuilder.id("123"));
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
@@ -454,6 +455,6 @@ public class HttpInteractionLoggerTest extends VertxTest {
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()).build();
 
-        return BidderRequest.of("bidderName", null, bidRequest);
+        return BidderRequest.of("bidderName", null, null, bidRequest);
     }
 }

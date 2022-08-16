@@ -33,6 +33,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -218,7 +219,7 @@ public class DealsSimulationTest extends VertxTest {
                                 JSONCompareMode.NON_EXTENSIBLE,
                                 new Customization("ext.debug.trace.lineitems.lineItem" + i + "[*].time",
                                         timeValueMatcher)))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
 

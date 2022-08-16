@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
@@ -64,9 +65,10 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorResolver basicPriceFloorResolver(CurrencyConversionService currencyConversionService,
                                                CountryCodeMapper countryCodeMapper,
-                                               Metrics metrics) {
+                                               Metrics metrics,
+                                               JacksonMapper mapper) {
 
-        return new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics);
+        return new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics, mapper);
     }
 
     @Bean
@@ -79,10 +81,9 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                                  PriceFloorResolver floorResolver,
-                                                 CurrencyConversionService conversionService,
                                                  JacksonMapper mapper) {
 
-        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, conversionService, mapper);
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, mapper);
     }
 
     @Bean
@@ -92,9 +93,14 @@ public class PriceFloorsConfiguration {
     }
 
     @Bean
+    FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
+        return new FloorAdjustmentFactorResolver();
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorAdjuster basicPriceFloorAdjuster() {
-        return new BasicPriceFloorAdjuster();
+    PriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
     }
 
     @Bean

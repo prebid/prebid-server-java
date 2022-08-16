@@ -26,7 +26,9 @@ class BidRequest {
     Integer allimps
     List<Currency> cur
     List<String> wlang
+    List<String> wlangb
     List<String> bcat
+    Integer cattax
     List<String> badv
     List<String> bapp
     Source source

@@ -99,14 +99,14 @@ public class CurrencyConversionService implements Initializable {
     private CurrencyConversionRates processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final String body = response.getBody();
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException("Cannot parse response: " + body, e);
         }
     }
 
@@ -210,9 +210,8 @@ public class CurrencyConversionService implements Initializable {
                 effectiveToCurrency);
 
         if (conversionRate == null) {
-            throw new PreBidException(
-                    String.format("Unable to convert from currency %s to desired ad server currency %s",
-                            effectiveFromCurrency, effectiveToCurrency));
+            throw new PreBidException("Unable to convert from currency %s to desired ad server currency %s"
+                    .formatted(effectiveFromCurrency, effectiveToCurrency));
         }
 
         return price.multiply(conversionRate).setScale(DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);

@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -21,7 +20,6 @@ import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFOR
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class GdprAmpSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
@@ -124,8 +122,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$invalidTcfConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$invalidTcfConsent" - failed.*/
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -198,8 +195,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$ccpaConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$ccpaConsent" - failed.*/
     }
 
     def "PBS should apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = true in account config"() {

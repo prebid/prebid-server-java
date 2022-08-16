@@ -125,13 +125,12 @@ public class AnalyticsReporterDelegator {
         if (analyticsFieldNames != null) {
             final List<String> unknownAdapterNames = StreamUtil.asStream(analyticsFieldNames)
                     .filter(adapter -> !reporterNames.contains(adapter))
-                    .collect(Collectors.toList());
+                    .toList();
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;
-                UNKNOWN_ADAPTERS_LOGGER.warn(
-                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'",
-                                unknownAdapterNames, refererUrl), 0.01);
+                UNKNOWN_ADAPTERS_LOGGER.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
+                        .formatted(unknownAdapterNames, refererUrl), 0.01);
             }
         }
     }
@@ -141,8 +140,7 @@ public class AnalyticsReporterDelegator {
     }
 
     private static <T> T updateEvent(T event, String adapter) {
-        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent) {
-            final AuctionEvent auctionEvent = (AuctionEvent) event;
+        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent auctionEvent) {
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
             return updatedAuctionContext != null

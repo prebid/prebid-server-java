@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
@@ -46,10 +47,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -70,8 +70,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
-
-    private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
 
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
@@ -95,6 +93,21 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private BidRequest defaultBidRequest;
     private HttpRequestContext httpRequest;
 
+    public Ortb2ImplicitParametersResolver target(boolean shouldCacheOnlyWinningsBids) {
+        return new Ortb2ImplicitParametersResolver(
+                shouldCacheOnlyWinningsBids,
+                "USD",
+                singletonList("bad_app"),
+                "https://external.url/",
+                0,
+                "datacenter-region",
+                paramsExtractor,
+                ipAddressHelper,
+                idGenerator,
+                jsonMerger,
+                jacksonMapper);
+    }
+
     @Before
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
@@ -106,15 +119,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(idGenerator.generateId()).willReturn(null);
         given(timeoutResolver.resolve(any())).willReturn(2000L);
 
-        target = new Ortb2ImplicitParametersResolver(
-                false,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(false);
     }
 
     @Test
@@ -976,6 +981,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .put("skadn-data", "skadn-value"))
                                 .<ObjectNode>set("data", mapper.createObjectNode()
                                         .put("data-data", "data-value"))
+                                .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                        .put("gpid-data", "gpid-value"))
+                                .<ObjectNode>set("tid", mapper.createObjectNode()
+                                        .put("tid-data", "tid-value"))
                                 .set("prebid", mapper.createObjectNode()
                                         .<ObjectNode>set("bidder", mapper.createObjectNode()
                                                 .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
@@ -998,6 +1007,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                 .put("skadn-data", "skadn-value"))
                         .<ObjectNode>set("data", mapper.createObjectNode()
                                 .put("data-data", "data-value"))
+                        .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                .put("gpid-data", "gpid-value"))
+                        .<ObjectNode>set("tid", mapper.createObjectNode()
+                                .put("tid-data", "tid-value"))
                         .set("prebid", mapper.createObjectNode()
                                 .<ObjectNode>set("bidder", mapper.createObjectNode()
                                         .<ObjectNode>set(
@@ -1148,7 +1161,9 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
-        assertThat(result).isSameAs(bidRequest);
+        assertThat(result)
+                .extracting(BidRequest::getSite, BidRequest::getDevice)
+                .containsExactly(bidRequest.getSite(), bidRequest.getDevice());
     }
 
     @Test
@@ -1286,7 +1301,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1299,11 +1314,11 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSourceExtSchainIfNotDefinedAndExtSchainPresent() {
+    public void shouldSetSourceSchainIfNotDefinedAndExtSchainPresent() {
         // given
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1311,33 +1326,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)));
-    }
-
-    @Test
-    public void shouldModifySourceExtIfSourceExtSchainNotDefinedAndExtSchainPresent() {
-        // given
-        final ExtSource extSource = jacksonMapper.fillExtension(
-                ExtSource.of(null),
-                mapper.createObjectNode().put("someField", "someValue"));
-        final ExtRequest extRequest = jacksonMapper.fillExtension(
-                ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
-        final BidRequest bidRequest = BidRequest.builder()
-                .source(Source.builder().ext(extSource).build())
-                .ext(extRequest)
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-
-        // then
-        assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(jacksonMapper.fillExtension(
-                        ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)),
-                        mapper.createObjectNode().put("someField", "someValue")));
+                .extracting(Source::getSchain)
+                .isEqualTo(SupplyChain.of(1, null, "ver", null));
     }
 
     @Test
@@ -1714,15 +1704,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrueInConfig() {
         // given
-        target = new Ortb2ImplicitParametersResolver(
-                true,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(true);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1743,15 +1725,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidIsNull() {
         // given
-        target = new Ortb2ImplicitParametersResolver(
-                true,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(true);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1773,15 +1747,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidCacheIsNull() {
         // given
-        target = new Ortb2ImplicitParametersResolver(
-                true,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(true);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1803,15 +1769,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNull() {
         // given
-        target = new Ortb2ImplicitParametersResolver(
-                true,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(true);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1884,15 +1842,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromRequestWhenCacheWinningonlyIsPresent() {
         // given
-        target = new Ortb2ImplicitParametersResolver(
-                true,
-                "USD",
-                BLACKLISTED_APPS,
-                paramsExtractor,
-                ipAddressHelper,
-                idGenerator,
-                jsonMerger,
-                jacksonMapper);
+        target = target(true);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1905,12 +1855,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
-        assertThat(singletonList(result))
+        assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getCache)
                 .extracting(ExtRequestPrebidCache::getWinningonly)
-                .containsOnly(false);
+                .isEqualTo(false);
     }
 
     @Test
@@ -1929,13 +1879,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
-        final ExtRequest expectedExtBidRequest = ExtRequest.of(
-                ExtRequestPrebid.builder()
-                        .cache(ExtRequestPrebidCache.of(null, null, null))
-                        .pbs(ExtRequestPrebidPbs.of(ENDPOINT))
-                        .channel(ExtRequestPrebidChannel.of("amp"))
-                        .build());
-        assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
+        assertThat(result)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .isNull();
     }
 
     @Test
@@ -1951,11 +1900,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
 
         // then
-        final ExtRequest expectedExtBidRequest = ExtRequest.of(
-                ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
-                        .build());
-        assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
+        assertThat(result)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getPbs)
+                .extracting(ExtRequestPrebidPbs::getEndpoint)
+                .isEqualTo(Endpoint.openrtb2_auction.value());
     }
 
     @Test
@@ -2118,6 +2068,24 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getDebug)
                 .containsOnly(1);
+    }
+
+    @Test
+    public void shouldPassExtPrebidServer() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getServer)
+                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
     }
 
     @Test

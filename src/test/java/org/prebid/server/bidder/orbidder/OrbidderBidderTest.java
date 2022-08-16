@@ -14,8 +14,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -102,7 +102,7 @@ public class OrbidderBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
         final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
@@ -115,7 +115,7 @@ public class OrbidderBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorsWhenSeatBidIsEmptyList() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
@@ -132,7 +132,7 @@ public class OrbidderBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorsWhenBidsEmptyList()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
                                 .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
@@ -170,8 +170,8 @@ public class OrbidderBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);

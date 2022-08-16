@@ -5,21 +5,18 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
@@ -98,7 +95,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         }
     }
 
-    @Unroll
     def "PBS should apply gdpr when privacy.gdpr.channel-enabled.app or privacy.gdpr.enabled = true in account config"() {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
@@ -122,7 +118,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: true)]
     }
 
-    @Unroll
     def "PBS should apply gdpr when privacy.gdpr.channel-enabled.web or privacy.gdpr.enabled = true in account config"() {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
@@ -146,7 +141,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: false, channelEnabled: [(WEB): true])]
     }
 
-    @Unroll
     def "PBS should not apply gdpr when privacy.gdpr.channel-enabled.app or privacy.gdpr.enabled = false in account config"() {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
@@ -171,7 +165,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: false)]
     }
 
-    @Unroll
     def "PBS should not apply gdpr when privacy.gdpr.channel-enabled.web or privacy.gdpr.enabled = false in account config"() {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
@@ -203,7 +196,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
-            ext.prebid.channel = new Channel(name: requestChannel)
+            ext.prebid.channel = new Channel().tap {
+                name = requestChannel
+            }
         }
 
         and: "Save account config #accountChannel = true with into DB"

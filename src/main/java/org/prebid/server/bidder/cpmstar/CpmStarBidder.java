@@ -10,8 +10,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class CpmStarBidder implements Bidder<BidRequest> {
 
@@ -84,13 +83,13 @@ public class CpmStarBidder implements Bidder<BidRequest> {
 
     private Imp createImp(ExtImpCpmStar extImpCpmStar, Imp imp) {
         if (extImpCpmStar == null) {
-            throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
+            throw new PreBidException("imp id=%s: bidder.ext is null".formatted(imp.getId()));
         }
         return imp.toBuilder().ext(mapper.mapper().valueToTree(extImpCpmStar)).build();
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
@@ -108,7 +107,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, bidResponse.getCur(), errors);
         return Result.of(result, errors);
@@ -121,7 +120,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             try {
                 bidderBids.add(BidderBid.of(bid, bidType(bid.getImpid(), imps), currency));
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("bid id=%s %s", bid.getId(), e.getMessage())));
+                errors.add(BidderError.badInput("bid id=%s %s".formatted(bid.getId(), e.getMessage())));
             }
         }
         return bidderBids;
@@ -137,6 +136,6 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("could not find valid impid=%s", impId));
+        throw new PreBidException("could not find valid impid=" + impId);
     }
 }

@@ -1,12 +1,12 @@
 package org.prebid.server.floors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -41,20 +41,20 @@ public class PriceFloorsConfigResolver {
     private final Metrics metrics;
     private final AccountPriceFloorsConfig defaultFloorsConfig;
 
-    public PriceFloorsConfigResolver(String defaultAccountConfig, Metrics metrics) {
-        this.defaultAccount = parseAccount(defaultAccountConfig);
+    public PriceFloorsConfigResolver(String defaultAccountConfig, Metrics metrics, JacksonMapper mapper) {
+        this.defaultAccount = parseAccount(defaultAccountConfig, mapper);
         this.defaultFloorsConfig = getFloorsConfig(defaultAccount);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    private static Account parseAccount(String accountConfig) {
+    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
         try {
             final Account account = StringUtils.isNotBlank(accountConfig)
-                    ? new ObjectMapper().readValue(accountConfig, Account.class)
+                    ? mapper.decodeValue(accountConfig, Account.class)
                     : null;
 
             return isNotEmpty(account) ? account : null;
-        } catch (JsonProcessingException e) {
+        } catch (DecodeException e) {
             throw new IllegalArgumentException("Could not parse default account configuration", e);
         }
     }
@@ -74,8 +74,8 @@ public class PriceFloorsConfigResolver {
             validatePriceFloorConfig(account, defaultFloorsConfig);
             return Future.succeededFuture(account);
         } catch (PreBidException e) {
-            final String message =
-                    String.format("Account with id '%s' has invalid config: %s", account.getId(), e.getMessage());
+            final String message = "Account with id '%s' has invalid config: %s"
+                    .formatted(account.getId(), e.getMessage());
             final String accountId = ObjectUtil.getIfNotNull(account, Account::getId);
             if (StringUtils.isNotBlank(accountId)) {
                 metrics.updateAlertsConfigFailed(account.getId(), MetricName.price_floors);
@@ -162,7 +162,7 @@ public class PriceFloorsConfigResolver {
     }
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
-        return String.format("Invalid price-floors property '%s', value passed: %s", property, value);
+        return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
     }
 
     private Account fallbackToDefaultConfig(Account account) {

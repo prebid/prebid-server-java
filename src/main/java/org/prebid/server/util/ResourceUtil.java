@@ -24,7 +24,7 @@ public class ResourceUtil {
         final InputStream resourceAsStream = ResourceUtil.class.getClassLoader().getResourceAsStream(path);
 
         if (resourceAsStream == null) {
-            throw new IllegalArgumentException(String.format("Could not find file at path: %s", path));
+            throw new IllegalArgumentException("Could not find file at path: " + path);
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
@@ -39,7 +39,7 @@ public class ResourceUtil {
     public static byte[] readByteArrayFromClassPath(String path) throws IOException {
         final InputStream resourceAsStream = ResourceUtil.class.getClassLoader().getResourceAsStream(path);
         if (resourceAsStream == null) {
-            throw new IllegalArgumentException(String.format("Could not find file at path: %s", path));
+            throw new IllegalArgumentException("Could not find file at path: " + path);
         }
         return IOUtils.toByteArray(resourceAsStream);
     }

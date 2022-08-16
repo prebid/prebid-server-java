@@ -13,8 +13,8 @@ import org.prebid.server.functional.model.Currency
 class Imp {
 
     String id
-    Banner banner
     List<Metric> metric
+    Banner banner
     Video video
     Audio audio
     @JsonProperty("native")
@@ -24,12 +24,14 @@ class Imp {
     String displayManagerVer
     Integer instl
     String tagId
+    BigDecimal bidFloor
+    Currency bidFloorCur
     Integer clickBrowser
     Integer secure
     List<String> iframeBuster
+    Integer rwdd
+    Integer ssai
     Integer exp
-    BigDecimal bidFloor
-    Currency bidFloorCur
     ImpExt ext
 
     static Imp getDefaultImpression() {
@@ -41,6 +43,12 @@ class Imp {
     static Imp getVideoImpression() {
         defaultImp.tap {
             video = Video.defaultVideo
+        }
+    }
+
+    static Imp getNativeImpression() {
+        defaultImp.tap {
+            nativeObj = Native.defaultNative
         }
     }
 

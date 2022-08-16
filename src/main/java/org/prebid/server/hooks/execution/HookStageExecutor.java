@@ -25,6 +25,7 @@ import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
@@ -34,6 +35,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
+import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
@@ -51,7 +53,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HookStageExecutor {
@@ -59,6 +60,7 @@ public class HookStageExecutor {
     private static final String ENTITY_HTTP_REQUEST = "http-request";
     private static final String ENTITY_AUCTION_REQUEST = "auction-request";
     private static final String ENTITY_AUCTION_RESPONSE = "auction-response";
+    private static final String ENTITY_ALL_PROCESSED_BID_RESPONSES = "all-processed-bid-responses";
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
@@ -110,8 +112,7 @@ public class HookStageExecutor {
 
         final Endpoint endpoint = context.getEndpoint();
 
-        return this
-                .stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
+        return stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
                 .withExecutionPlan(planForEntrypointStage(endpoint))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
@@ -205,11 +206,28 @@ public class HookStageExecutor {
 
         final Endpoint endpoint = context.getEndpoint();
 
-        return this
-                .stageExecutor(StageWithHookType.PROCESSED_BIDDER_RESPONSE, bidder, context, account, endpoint)
+        return stageExecutor(StageWithHookType.PROCESSED_BIDDER_RESPONSE, bidder, context, account, endpoint)
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
+                .execute();
+    }
+
+    public Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> executeAllProcessedBidResponsesStage(
+            List<BidderResponse> bidderResponses,
+            AuctionContext auctionContext) {
+
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
+
+        final Endpoint endpoint = context.getEndpoint();
+
+        return stageExecutor(
+                StageWithHookType.ALL_PROCESSED_BID_RESPONSES, ENTITY_ALL_PROCESSED_BID_RESPONSES,
+                context, account, endpoint)
+                .withInitialPayload(AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
+                .withRejectAllowed(false)
                 .execute();
     }
 
@@ -222,8 +240,7 @@ public class HookStageExecutor {
 
         final Endpoint endpoint = context.getEndpoint();
 
-        return this
-                .stageExecutor(StageWithHookType.AUCTION_RESPONSE, ENTITY_AUCTION_RESPONSE, context, account, endpoint)
+        return stageExecutor(StageWithHookType.AUCTION_RESPONSE, ENTITY_AUCTION_RESPONSE, context, account, endpoint)
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
@@ -248,8 +265,7 @@ public class HookStageExecutor {
             Account account,
             Endpoint endpoint) {
 
-        return this
-                .stageExecutor(stage, entity, context)
+        return stageExecutor(stage, entity, context)
                 .withExecutionPlan(planForStage(account, endpoint, stage.stage()));
     }
 
@@ -281,8 +297,9 @@ public class HookStageExecutor {
                 StageWithHookType.forStage(stage));
 
         if (hook == null) {
-            throw new IllegalArgumentException(String.format(
-                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s", stage, hookId));
+            throw new IllegalArgumentException(
+                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s"
+                            .formatted(stage, hookId));
         }
     }
 
@@ -321,7 +338,7 @@ public class HookStageExecutor {
         final List<ExecutionGroup> combinedGroups = Stream.of(hostStageExecutionPlan, accountStageExecutionPlan)
                 .map(StageExecutionPlan::getGroups)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
 
         return StageExecutionPlan.of(combinedGroups);
     }

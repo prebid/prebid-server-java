@@ -18,8 +18,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -100,7 +100,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         try {
             uriBuilder = new URIBuilder(endpointUrl);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Invalid url: %s, error: %s", endpointUrl, e.getMessage()));
+            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
         }
 
         uriBuilder
@@ -144,7 +144,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         final Banner banner = imp.getBanner();
         final List<Format> formats = banner != null ? banner.getFormat() : null;
         return CollectionUtils.emptyIfNull(formats).stream()
-                .map(format -> String.format("%sx%s", format.getW(), format.getH()))
+                .map(format -> "%sx%s".formatted(format.getW(), format.getH()))
                 .collect(Collectors.joining(","));
     }
 
@@ -175,7 +175,7 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         try {
             final AdgenerationResponse adgenerationResponse = decodeBodyToBidResponse(httpCall.getResponse());
             if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {
@@ -224,9 +224,12 @@ public class AdgenerationBidder implements Bidder<Void> {
     private String getAdm(AdgenerationResponse adgenerationResponse, String impId) {
         String ad = adgenerationResponse.getAd();
         if (StringUtils.isNotBlank(adgenerationResponse.getVastxml())) {
-            ad = String.format("<body><div id=\"apvad-%s\"></div><script type=\"text/javascript\" id=\"apv\" "
-                            + "src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script>%s</body>", impId,
-                    insertVASTMethod(impId, adgenerationResponse.getVastxml()));
+            ad = """
+                    <body>
+                    <div id="apvad-%s"></div>
+                    <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                    %s
+                    </body>""".formatted(impId, insertVASTMethod(impId, adgenerationResponse.getVastxml()));
         }
         final String updateAd = StringUtils.isNotBlank(adgenerationResponse.getBeacon())
                 ? appendChildToBody(ad, adgenerationResponse.getBeacon())
@@ -238,8 +241,12 @@ public class AdgenerationBidder implements Bidder<Void> {
 
     private String insertVASTMethod(String impId, String vastXml) {
         final String replacedVastxml = REPLACE_VAST_XML_PATTERN.matcher(vastXml).replaceAll("");
-        return String.format("<script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"%s\"}).load('%s');"
-                + " })(); </script>", impId, replacedVastxml);
+        return """
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"%s"}).load('%s');
+                })();
+                </script>""".formatted(impId, replacedVastxml);
     }
 
     private String appendChildToBody(String ad, String beacon) {

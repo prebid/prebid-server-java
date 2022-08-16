@@ -188,7 +188,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                 StoredDataFetcher<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
             return retriever.apply(accountId, subtractSets(requestIds, storedIdToRequest.keySet()),
-                    subtractSets(impIds, storedIdToImp.keySet()), timeout)
+                            subtractSets(impIds, storedIdToImp.keySet()), timeout)
                     .map(result -> StoredDataResult.of(
                             combineMaps(storedIdToRequest, result.getStoredIdToRequest()),
                             combineMaps(storedIdToImp, result.getStoredIdToImp()),

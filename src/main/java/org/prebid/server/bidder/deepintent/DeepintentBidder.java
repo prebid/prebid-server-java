@@ -11,8 +11,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class DeepintentBidder implements Bidder<BidRequest> {
 
@@ -64,21 +63,20 @@ public class DeepintentBidder implements Bidder<BidRequest> {
 
         final List<HttpRequest<BidRequest>> requests = modifiedImps.stream()
                 .map(imp -> createRequest(request, imp))
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(requests, errors);
     }
 
     private Banner buildImpBanner(Banner banner, String impId) {
         if (banner == null) {
-            throw new PreBidException(String.format("We need a Banner Object in "
-                    + "the request, imp : %s", impId));
+            throw new PreBidException("We need a Banner Object in the request, imp : " + impId);
         }
 
         if (banner.getW() == null && banner.getH() == null) {
             final List<Format> bannerFormats = banner.getFormat();
             if (CollectionUtils.isEmpty(banner.getFormat())) {
-                throw new PreBidException(String.format("At least one size is required, imp : %s", impId));
+                throw new PreBidException("At least one size is required, imp : " + impId);
             }
             final Format format = bannerFormats.get(0);
             return banner.toBuilder().w(format.getW()).h(format.getH()).build();
@@ -91,7 +89,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), DEEPINTENT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -119,7 +117,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.of(extractBids(httpCall), Collections.emptyList());
         } catch (PreBidException e) {
@@ -127,7 +125,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+    private List<BidderBid> extractBids(BidderCall<BidRequest> httpCall) {
         final BidResponse bidResponse;
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -147,7 +145,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidType getBidType(String impId, List<Imp> imps) {
@@ -156,6 +154,6 @@ public class DeepintentBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression with id: %s", impId));
+        throw new PreBidException("Failed to find impression with id: " + impId);
     }
 }

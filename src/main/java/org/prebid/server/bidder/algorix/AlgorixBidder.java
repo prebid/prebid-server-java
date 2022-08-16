@@ -1,7 +1,8 @@
 package org.prebid.server.bidder.algorix;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -13,12 +14,12 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * AlgoriX (@link Bidder) implementation.
@@ -97,7 +97,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException error) {
-            throw new PreBidException(String.format("Impression Id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression Id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -152,14 +152,11 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         if (Objects.isNull(extImp.getRegion())) {
             return "xyz";
         }
-        switch (extImp.getRegion()) {
-            case "APAC":
-                return "apac.xyz";
-            case "USE":
-                return "use.xyz";
-            default:
-                return "xyz";
-        }
+        return switch (extImp.getRegion()) {
+            case "APAC" -> "apac.xyz";
+            case "USE" -> "use.xyz";
+            default -> "xyz";
+        };
     }
 
     private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
@@ -176,7 +173,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -199,31 +196,26 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
-    }
-
-    private AlgorixBidExt parseAlgorixBidExt(Bid bid) {
-        try {
-            return mapper.mapper().treeToValue(bid.getExt(), AlgorixBidExt.class);
-        } catch (IllegalArgumentException | JsonProcessingException error) {
-            return null;
-        }
+                .toList();
     }
 
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final AlgorixBidExt bidExt = parseAlgorixBidExt(bid);
-        if (Objects.nonNull(bidExt)) {
-            switch (bidExt.getMediaType()) {
-                case "banner":
-                    return BidType.banner;
-                case "native":
-                    return BidType.xNative;
-                case "video":
-                    return BidType.video;
-                default:
-                    break;
-            }
+        final ObjectNode bidExt = bid.getExt();
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
+        final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual()
+                ? mediaTypeNode.textValue()
+                : StringUtils.EMPTY;
+
+        final BidType bidType = switch (mediaType) {
+            case "banner" -> BidType.banner;
+            case "native" -> BidType.xNative;
+            case "video" -> BidType.video;
+            default -> null;
+        };
+        if (bidType != null) {
+            return bidType;
         }
+
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {

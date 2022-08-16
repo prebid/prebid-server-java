@@ -25,7 +25,6 @@ import org.prebid.server.functional.model.request.auction.UserTime
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -53,7 +52,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.PAGE_POSITION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -68,7 +67,6 @@ class TargetingSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
-    @Unroll
     def "PBS should invalidate line items when targeting has #reason"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -126,7 +124,6 @@ class TargetingSpec extends BasePgSpec {
                                                                                 .build()
     }
 
-    @Unroll
     def "PBS should invalidate line items with not supported '#matchingFunction' matching function by '#targetingType' targeting type"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -160,7 +157,6 @@ class TargetingSpec extends BasePgSpec {
         WITHIN           | AD_UNIT_AD_SLOT
     }
 
-    @Unroll
     def "PBS should support line item targeting by string '#targetingType' targeting type"() {
         given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -180,20 +176,20 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType | bidRequest
+        targetingType  | bidRequest
 
-        REFERRER      | BidRequest.defaultBidRequest.tap {
+        REFERRER       | BidRequest.defaultBidRequest.tap {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
+        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
             app = new App(id: PBSUtils.randomString,
                     bundle: stringTargetingValue)
         }
 
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+        UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                language = stringTargetingValue
+                buyeruid = stringTargetingValue
             }
         }
     }
@@ -336,7 +332,6 @@ class TargetingSpec extends BasePgSpec {
         "'\$not' root node without matches" | new Targeting.Builder(NOT).buildNotBooleanOperatorTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
     }
 
-    @Unroll
     def "PBS should support line item domain targeting by #domainTargetingType"() {
         given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -371,7 +366,6 @@ class TargetingSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS should support line item domain targeting"() {
         given: "Bid response"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -407,7 +401,6 @@ class TargetingSpec extends BasePgSpec {
         "www.example.com"         | "example.com"
     }
 
-    @Unroll
     def "PBS should appropriately match '\$or', '\$not' line items targeting root node rules"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest

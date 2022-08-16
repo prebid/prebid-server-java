@@ -5,7 +5,6 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedBids;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ResponseUpdater {
@@ -22,8 +21,8 @@ public class ResponseUpdater {
 
     public List<BidderBid> update(List<BidderBid> bids) {
         return IntStream.range(0, bids.size())
-            .filter(index -> !blockedBids.getIndexes().contains(index))
-            .mapToObj(bids::get)
-            .collect(Collectors.toList());
+                .filter(index -> !blockedBids.getIndexes().contains(index))
+                .mapToObj(bids::get)
+                .toList();
     }
 }

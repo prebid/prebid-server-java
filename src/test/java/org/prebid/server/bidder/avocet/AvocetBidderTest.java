@@ -14,8 +14,8 @@ import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
 import org.prebid.server.bidder.avocet.model.AvocetResponseExt;
 import org.prebid.server.bidder.kubient.KubientBidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -68,7 +68,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
@@ -83,7 +83,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                         .ext(mapper.createObjectNode().put("avocet", "invalid")))));
@@ -99,7 +99,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfDurationIsZeroAndApiIsThree() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -125,7 +125,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfDurationIsZeroAndApiIsTwo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -151,7 +151,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfDurationIsZeroAndApiIsOne() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -177,7 +177,7 @@ public class AvocetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfDurationIsNotZero() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -208,8 +208,8 @@ public class AvocetBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

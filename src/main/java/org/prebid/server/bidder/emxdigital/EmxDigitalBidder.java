@@ -18,8 +18,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class EmxDigitalBidder implements Bidder<BidRequest> {
 
@@ -79,7 +78,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(imp -> modifyImp(imp, isSecure, unpackImpExt(imp)))
-                .collect(Collectors.toList());
+                .toList();
 
         return request.toBuilder()
                 .imp(modifiedImps)
@@ -116,13 +115,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             tagidNumber = Integer.parseInt(bidder.getTagid());
         } catch (NumberFormatException e) {
             throw new PreBidException(
-                    String.format("tagid must be a String of numbers, ignoring imp id=%s",
-                            imp.getId()), e);
+                    "tagid must be a String of numbers, ignoring imp id=" + imp.getId(), e);
         }
 
         if (tagidNumber == 0) {
-            throw new PreBidException(String.format("tagid cant be 0, ignoring imp id=%s",
-                    imp.getId()));
+            throw new PreBidException("tagid cant be 0, ignoring imp id=" + imp.getId());
         }
 
         return bidder;
@@ -181,7 +178,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     private static List<Integer> removeVast40Protocols(List<Integer> protocols) {
         return protocols.stream()
                 .filter(protocol -> !protocol.equals(PROTOCOL_VAST_40))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Banner modifyImpBanner(Banner banner) {
@@ -234,12 +231,12 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        return String.format("%s?t=%s&ts=%s&src=pbserver", endpointUrl, urlTimeout,
-                (int) Instant.now().getEpochSecond());
+        return "%s?t=%s&ts=%s&src=pbserver"
+                .formatted(endpointUrl, urlTimeout, (int) Instant.now().getEpochSecond());
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -261,7 +258,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String bidAdm) {

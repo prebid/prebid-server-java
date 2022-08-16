@@ -6,7 +6,6 @@ import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.deals.register.RegisterRequest
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.testcontainers.scaffolding.NetworkScaffolding
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -19,8 +18,8 @@ class GeneralPlanner extends NetworkScaffolding {
     static final String PLANS_ENDPOINT_PATH = "/deals/plans"
     static final String REGISTER_ENDPOINT_PATH = "/deals/register"
 
-    GeneralPlanner(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, REGISTER_ENDPOINT_PATH, mapper)
+    GeneralPlanner(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, REGISTER_ENDPOINT_PATH)
     }
 
     void initRegisterResponse(HttpStatusCode statusCode = OK_200) {
@@ -49,7 +48,7 @@ class GeneralPlanner extends NetworkScaffolding {
 
     List<RegisterRequest> getRecordedRegisterRequests() {
         def body = getRecordedRequestsBody(request)
-        body.collect { mapper.decode(it, RegisterRequest) }
+        body.collect { decode(it, RegisterRequest) }
     }
 
     void setResponse(HttpStatusCode statusCode = OK_200) {
@@ -57,12 +56,18 @@ class GeneralPlanner extends NetworkScaffolding {
                         .respond(response().withStatusCode(statusCode.code()))
     }
 
-    Map<String, String> getLastRecordedRegisterRequestHeaders() {
+    Map<String, List<String>> getLastRecordedRegisterRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 
-    Map<String, String> getLastRecordedPlansRequestHeaders() {
+    Map<String, List<String>> getLastRecordedPlansRequestHeaders() {
         getLastRecordedRequestHeaders(plansRequest)
+    }
+
+    @Override
+    void reset() {
+        super.reset(PLANS_ENDPOINT_PATH)
+        super.reset(REGISTER_ENDPOINT_PATH)
     }
 
     private void setPlansResponse(PlansResponse plansResponse,

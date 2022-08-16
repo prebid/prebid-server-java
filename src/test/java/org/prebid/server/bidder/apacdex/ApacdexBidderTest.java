@@ -14,8 +14,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.apacdex.proto.ExtImpApacdex;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -134,7 +134,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
@@ -151,7 +151,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
@@ -165,7 +165,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -179,7 +179,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnValidBidderBids() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
                                 givenBid("123", banner),
@@ -204,7 +204,7 @@ public class ApacdexBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenExtBidTypeNotFound() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(List.of(SeatBid.builder()
@@ -226,7 +226,7 @@ public class ApacdexBidderTest extends VertxTest {
         // given
         final ObjectNode givenExt = getExtUnknownTypeJsonNode();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(List.of(SeatBid.builder()
@@ -265,15 +265,15 @@ public class ApacdexBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
+        return BidderCall.succeededHttp(
                 null,
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
                 null);

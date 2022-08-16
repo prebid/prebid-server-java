@@ -27,6 +27,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -38,7 +39,6 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -81,11 +81,11 @@ public class AmpRequestFactory {
     private static final String ADDTL_CONSENT_PARAM = "addtl_consent";
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
-    private static final String AMP_CHANNEL = "amp";
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
@@ -95,8 +95,9 @@ public class AmpRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
-    public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                             Ortb2RequestFactory ortb2RequestFactory,
+    public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                             StoredRequestProcessor storedRequestProcessor,
+                             BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
                              Ortb2ImplicitParametersResolver paramsResolver,
@@ -106,8 +107,9 @@ public class AmpRequestFactory {
                              DebugResolver debugResolver,
                              JacksonMapper mapper) {
 
-        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
+        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
@@ -129,6 +131,7 @@ public class AmpRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(initialAuctionContext, httpRequest)
+
                         .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequest, startTime)))
 
@@ -246,19 +249,20 @@ public class AmpRequestFactory {
                 ? ConsentedProvidersSettings.of(addtlConsent)
                 : null;
 
-        final ExtUser extUser = ExtUser.builder()
-                .consent(consent)
+        final ExtUser extUser = consentedProvidersSettings != null
+                ? ExtUser.builder()
                 .consentedProvidersSettings(consentedProvidersSettings)
-                .build();
+                .build()
+                : null;
 
-        return User.builder().ext(extUser).build();
+        return User.builder().consent(consent).ext(extUser).build();
     }
 
     private static Regs createRegs(ConsentParam consentParam, Integer gdpr) {
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         return gdpr != null || usPrivacy != null
-                ? Regs.of(null, ExtRegs.of(gdpr, usPrivacy))
+                ? Regs.builder().gdpr(gdpr).usPrivacy(usPrivacy).build()
                 : null;
     }
 
@@ -341,6 +345,7 @@ public class AmpRequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
+                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
@@ -363,14 +368,13 @@ public class AmpRequestFactory {
         final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
             throw new InvalidRequestException(
-                    String.format("data for tag_id='%s' does not define the required imp array.", tagId));
+                    "data for tag_id='%s' does not define the required imp array.".formatted(tagId));
         }
 
         final int impSize = imps.size();
         if (impSize > 1) {
             throw new InvalidRequestException(
-                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed", tagId,
-                            impSize));
+                    "data for tag_id '%s' includes %d imp elements. Only one is allowed".formatted(tagId, impSize));
         }
 
         if (bidRequest.getApp() != null) {
@@ -467,7 +471,7 @@ public class AmpRequestFactory {
                     : null;
             return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
+            throw new InvalidRequestException("Error reading targeting json " + e.getMessage());
         }
     }
 
@@ -475,8 +479,8 @@ public class AmpRequestFactory {
         if (jsonNodeTargeting.isObject()) {
             return (ObjectNode) jsonNodeTargeting;
         } else {
-            throw new InvalidRequestException(String.format("Error decoding targeting, expected type is `object` "
-                    + "but was %s", jsonNodeTargeting.getNodeType().name()));
+            throw new InvalidRequestException("Error decoding targeting, expected type is `object` but was "
+                    + jsonNodeTargeting.getNodeType().name());
         }
     }
 
@@ -486,7 +490,7 @@ public class AmpRequestFactory {
                     ? Targeting.empty()
                     : mapper.mapper().treeToValue(targetingNode, Targeting.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
+            throw new InvalidRequestException("Error decoding targeting from url: " + e.getMessage());
         }
     }
 
@@ -589,11 +593,11 @@ public class AmpRequestFactory {
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else if (height != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             updatedFormats = Collections.emptyList();
         }

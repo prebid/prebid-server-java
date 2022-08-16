@@ -27,7 +27,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
         final List<PublisherRestriction> publisherRestrictions = vendorConsent.getPublisherRestrictions().stream()
                 .filter(publisherRestriction -> publisherRestriction.getPurposeId() == purpose.code())
-                .collect(Collectors.toList());
+                .toList();
 
         final List<VendorPermission> allowedExcluded = allowedExcludedVendorPermission(excludedVendors,
                 publisherRestrictions);
@@ -41,7 +41,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                 permissionAndRestriction.getKey(), vendorConsent, permissionAndRestriction.getValue()))
                 .map(Map.Entry::getKey)
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .collect(Collectors.toList());
+                .toList();
 
         return CollectionUtils.union(allowedExcluded, allowedVendorPermissions);
     }
@@ -55,12 +55,12 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                         .equals(RestrictionType.NOT_ALLOWED))
                 .map(PublisherRestriction::getVendorIds)
                 .flatMap(vendorIds -> StreamSupport.stream(vendorIds.spliterator(), false))
-                .collect(Collectors.toList());
+                .toList();
 
         return excludedVendors.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermissionWithGvl -> isNotRestricted(notAllowedVendorIds, vendorPermissionWithGvl))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean isNotRestricted(List<Integer> notAllowedVendorIds, VendorPermission vendorPermission) {
@@ -134,7 +134,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
             return isFlexible
                     ? isAllowedByFlexible(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
                     : isAllowedByNotFlexibleLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString,
-                            restrictionType);
+                    restrictionType);
         }
 
         return false;
@@ -168,16 +168,14 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                         TCString tcString,
                                         RestrictionType restrictionType) {
 
-        switch (restrictionType) {
-            case REQUIRE_CONSENT:
-                return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
-            case REQUIRE_LEGITIMATE_INTEREST:
-                return isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            case UNDEFINED:
-                return isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            default:
-                return false;
-        }
+        return switch (restrictionType) {
+            case NOT_ALLOWED -> false;
+            case REQUIRE_CONSENT -> isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
+            case REQUIRE_LEGITIMATE_INTEREST ->
+                    isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+            case UNDEFINED ->
+                    isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+        };
     }
 }
 

@@ -5,14 +5,20 @@ vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
   init-timeout-ms: 5000
-  http-server-instances: 1
   enable-per-client-endpoint-metrics: false
-http:
-  port: 8080
+server:
   max-headers-size: 16384
   ssl: false
   jks-path:
   jks-password:
+  unix-socket:
+    enabled: false
+    path:
+    server-instances: 1
+  http:
+    enabled: true
+    port: 8080
+    server-instances: 1
 admin:
   port: 8060
 admin-endpoints:
@@ -102,6 +108,7 @@ data-center: dataCenter
 profile: profile
 adapter-defaults:
   enabled: false
+  ortb-version: "2.5"
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -158,15 +165,12 @@ currency-converter:
     default-timeout-ms: 4000
     refresh-period-ms: 900000
     stale-after-ms: 259200000
-metrics:
-  metricType: flushingCounter
-  accounts:
-    default-verbosity: none
 settings:
   generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
   database:
     pool-size: 20
+    provider-class: c3p0
   targeting:
     truncate-attr-chars: 20
   default-account-config: >

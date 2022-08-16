@@ -2,10 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -53,16 +50,13 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
-import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,49 +68,15 @@ import java.util.Set;
 @Configuration
 public class WebConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebConfiguration.class);
-
-    @Autowired
-    private ContextRunner contextRunner;
-
-    @Value("${vertx.http-server-instances}")
-    private int httpServerNum;
-
     @Autowired
     private Vertx vertx;
 
-    @Autowired
-    private HttpServerOptions httpServerOptions;
-
-    @Autowired
-    private ExceptionHandler exceptionHandler;
-
-    @Autowired
-    @Qualifier("router")
-    private Router router;
-
-    @Value("${http.port}")
-    private int httpPort;
-
-    @PostConstruct
-    public void startHttpServer() {
-        logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
-                httpPort);
-
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
-                vertx.createHttpServer(httpServerOptions)
-                        .exceptionHandler(exceptionHandler)
-                        .requestHandler(router)
-                        .listen(httpPort, promise));
-
-        logger.info("Successfully started {0} instances of Http Server", httpServerNum);
-    }
-
-    @Bean
-    HttpServerOptions httpServerOptions(@Value("${http.max-headers-size}") int maxHeaderSize,
-                                        @Value("${http.ssl}") boolean ssl,
-                                        @Value("${http.jks-path}") String jksPath,
-                                        @Value("${http.jks-password}") String jksPassword) {
+    @Bean // TODO: remove support for properties with http prefix after transition period
+    HttpServerOptions httpServerOptions(
+            @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
+            @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
+            @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
+            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)

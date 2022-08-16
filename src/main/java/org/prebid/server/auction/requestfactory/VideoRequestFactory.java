@@ -22,6 +22,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -53,8 +54,9 @@ public class VideoRequestFactory {
     private final Pattern escapeLogCacheRegexPattern;
 
     private final Ortb2RequestFactory ortb2RequestFactory;
-    private final Ortb2ImplicitParametersResolver paramsResolver;
     private final VideoStoredRequestProcessor storedRequestProcessor;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    private final Ortb2ImplicitParametersResolver paramsResolver;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
@@ -64,8 +66,9 @@ public class VideoRequestFactory {
                                boolean enforceStoredRequest,
                                String escapeLogCacheRegex,
                                Ortb2RequestFactory ortb2RequestFactory,
-                               Ortb2ImplicitParametersResolver paramsResolver,
                                VideoStoredRequestProcessor storedRequestProcessor,
+                               BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
+                               Ortb2ImplicitParametersResolver paramsResolver,
                                PrivacyEnforcementService privacyEnforcementService,
                                TimeoutResolver timeoutResolver,
                                DebugResolver debugResolver,
@@ -74,8 +77,9 @@ public class VideoRequestFactory {
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
-        this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
+        this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
@@ -147,8 +151,7 @@ public class VideoRequestFactory {
         }
 
         if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException(String.format("Request size exceeded max size of %d bytes.",
-                    maxRequestSize));
+            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;
@@ -173,6 +176,11 @@ public class VideoRequestFactory {
         final String accountId = accountIdFrom(bidRequestVideo);
 
         return storedRequestProcessor.processVideoRequest(accountId, storedRequestId, podConfigIds, bidRequestVideo)
+
+                .map(bidRequestToErrors -> WithPodErrors.of(
+                        ortbVersionConversionManager.convertToAuctionSupportedVersion(bidRequestToErrors.getData()),
+                        bidRequestToErrors.getPodErrors()))
+
                 .map(bidRequestToErrors -> fillImplicitParameters(httpRequest, bidRequestToErrors, debugEnabled));
     }
 

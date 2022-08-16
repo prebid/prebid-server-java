@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
@@ -40,10 +41,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -70,11 +70,12 @@ public class Ortb2ImplicitParametersResolver {
     private static final String BIDDER_EXT = "bidder";
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
-            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid");
+            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid");
 
     private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
     private final List<String> blacklistedApps;
+    private final ExtRequestPrebidServer serverInfo;
     private final ImplicitParametersExtractor paramsExtractor;
     private final IpAddressHelper ipAddressHelper;
     private final IdGenerator sourceIdGenerator;
@@ -84,6 +85,9 @@ public class Ortb2ImplicitParametersResolver {
     public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
                                            String adServerCurrency,
                                            List<String> blacklistedApps,
+                                           String externalUrl,
+                                           Integer hostVendorId,
+                                           String datacenterRegion,
                                            ImplicitParametersExtractor paramsExtractor,
                                            IpAddressHelper ipAddressHelper,
                                            IdGenerator sourceIdGenerator,
@@ -93,6 +97,7 @@ public class Ortb2ImplicitParametersResolver {
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
+        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
@@ -107,7 +112,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Currency code supplied is not valid: %s", code), e);
+            throw new IllegalArgumentException("Currency code supplied is not valid: " + code, e);
         }
         return code;
     }
@@ -148,31 +153,18 @@ public class Ortb2ImplicitParametersResolver {
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
 
         final Source source = bidRequest.getSource();
-        final Source populatedSource = populateSource(source, ObjectUtils.defaultIfNull(populatedExt, ext));
+        final Source populatedSource = populateSource(source, populatedExt);
 
-        if (ObjectUtils.anyNotNull(
-                populatedDevice,
-                populatedSite,
-                populatedImps,
-                resolvedAt,
-                resolvedCurrencies,
-                resolvedTmax,
-                populatedExt,
-                populatedSource)) {
-
-            return bidRequest.toBuilder()
-                    .device(populatedDevice != null ? populatedDevice : device)
-                    .site(populatedSite != null ? populatedSite : site)
-                    .imp(populatedImps != null ? populatedImps : imps)
-                    .at(resolvedAt != null ? resolvedAt : at)
-                    .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
-                    .tmax(resolvedTmax != null ? resolvedTmax : tmax)
-                    .ext(populatedExt != null ? populatedExt : ext)
-                    .source(populatedSource != null ? populatedSource : source)
-                    .build();
-        }
-
-        return bidRequest;
+        return bidRequest.toBuilder()
+                .device(populatedDevice != null ? populatedDevice : device)
+                .site(populatedSite != null ? populatedSite : site)
+                .imp(populatedImps != null ? populatedImps : imps)
+                .at(resolvedAt != null ? resolvedAt : at)
+                .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
+                .tmax(resolvedTmax != null ? resolvedTmax : tmax)
+                .ext(populatedExt)
+                .source(populatedSource != null ? populatedSource : source)
+                .build();
     }
 
     public static boolean isImpExtBidder(String field) {
@@ -185,7 +177,7 @@ public class Ortb2ImplicitParametersResolver {
 
         if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
             throw new BlacklistedAppException(
-                    String.format("Prebid-server does not process requests from App ID: %s", appId));
+                    "Prebid-server does not process requests from App ID: " + appId);
         }
     }
 
@@ -420,13 +412,13 @@ public class Ortb2ImplicitParametersResolver {
         final String tid = source != null ? source.getTid() : null;
         final String populatedTid = populateSourceTid(tid);
 
-        final ExtSource sourceExt = source != null ? source.getExt() : null;
-        final ExtSource populatedSourceExt = populateExtSource(sourceExt, extRequest);
+        final SupplyChain supplyChain = source != null ? source.getSchain() : null;
+        final SupplyChain populatedSupplyChain = populateSupplyChain(supplyChain, extRequest);
 
-        if (ObjectUtils.anyNotNull(populatedTid, populatedSourceExt)) {
+        if (ObjectUtils.anyNotNull(populatedTid, populatedSupplyChain)) {
             return (source != null ? source.toBuilder() : Source.builder())
                     .tid(populatedTid != null ? populatedTid : tid)
-                    .ext(populatedSourceExt != null ? populatedSourceExt : sourceExt)
+                    .schain(populatedSupplyChain != null ? populatedSupplyChain : supplyChain)
                     .build();
         }
 
@@ -443,29 +435,16 @@ public class Ortb2ImplicitParametersResolver {
         return StringUtils.isNotEmpty(generatedId) ? generatedId : null;
     }
 
-    private ExtSource populateExtSource(ExtSource extSource, ExtRequest extRequest) {
-        final ExtSourceSchain extSourceSchain = extSource != null ? extSource.getSchain() : null;
-        if (extSourceSchain != null || extRequest == null) {
+    private SupplyChain populateSupplyChain(SupplyChain supplyChain, ExtRequest extRequest) {
+        if (supplyChain != null || extRequest == null) {
             return null;
         }
 
-        final ExtSourceSchain extRequestSchain;
         try {
-            extRequestSchain = mapper.mapper().convertValue(extRequest.getProperty("schain"), ExtSourceSchain.class);
+            return mapper.mapper().convertValue(extRequest.getProperty("schain"), SupplyChain.class);
         } catch (IllegalArgumentException e) {
             return null;
         }
-
-        return extRequestSchain != null ? modifyExtSource(extSource, extRequestSchain) : null;
-    }
-
-    private static ExtSource modifyExtSource(ExtSource extSource, ExtSourceSchain extSourceSchain) {
-        final ExtSource modifiedExtSource = ExtSource.of(extSourceSchain);
-        if (extSource != null) {
-            modifiedExtSource.addProperties(extSource.getProperties());
-        }
-
-        return modifiedExtSource;
     }
 
     private List<Imp> populateImps(BidRequest bidRequest, HttpRequestContext httpRequest) {
@@ -479,7 +458,7 @@ public class Ortb2ImplicitParametersResolver {
 
         final List<ImpPopulationContext> impPopulationContexts = imps.stream()
                 .map(imp -> new ImpPopulationContext(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger))
-                .collect(Collectors.toList());
+                .toList();
 
         if (impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulatedImp)
@@ -490,7 +469,7 @@ public class Ortb2ImplicitParametersResolver {
 
         return impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulationResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {
@@ -514,42 +493,36 @@ public class Ortb2ImplicitParametersResolver {
         return node != null && node.isObject();
     }
 
-    /**
-     * Returns updated {@link ExtRequest} if required or null otherwise.
-     */
     private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps, String endpoint) {
-        if (ext == null) {
-            return null;
-        }
-
-        final ExtRequestPrebid prebid = ext.getPrebid();
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
         final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest, endpoint);
-        final ExtRequestPrebidPbs updatedPbs = pbsOrNull(bidRequest, endpoint);
+        final ExtRequestPrebidPbs updatedPbs = pbsOrNull(prebid, endpoint);
 
-        if (updatedTargeting != null || updatedCache != null || updatedChannel != null || updatedPbs != null) {
-            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                    ? prebid.toBuilder()
-                    : ExtRequestPrebid.builder();
+        final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                ? prebid.toBuilder()
+                : ExtRequestPrebid.builder();
 
-            final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
-                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                    .cache(ObjectUtils.defaultIfNull(updatedCache,
-                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                    .channel(ObjectUtils.defaultIfNull(updatedChannel,
-                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
-                    .pbs(ObjectUtils.defaultIfNull(updatedPbs,
-                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
-                    .build());
-            updatedExt.addProperties(ext.getProperties());
+        final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
+                .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                .cache(ObjectUtils.defaultIfNull(updatedCache,
+                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                .channel(ObjectUtils.defaultIfNull(updatedChannel,
+                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
+                .pbs(ObjectUtils.defaultIfNull(updatedPbs,
+                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
+                .server(serverInfo)
+                .build());
 
-            return updatedExt;
+        final Map<String, JsonNode> extProperties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
+        if (extProperties != null) {
+            updatedExt.addProperties(extProperties);
         }
 
-        return null;
+        return updatedExt;
     }
 
     /**
@@ -575,9 +548,9 @@ public class Ortb2ImplicitParametersResolver {
     /**
      * Returns populated {@link ExtRequestPrebidPbs} or null if no changes were applied.
      */
-    private ExtRequestPrebidPbs pbsOrNull(BidRequest bidRequest, String endpoint) {
+    private ExtRequestPrebidPbs pbsOrNull(ExtRequestPrebid prebid, String endpoint) {
         final String existingEndpoint = ObjectUtil.getIfNotNull(
-                ObjectUtil.getIfNotNull(bidRequest.getExt().getPrebid(), ExtRequestPrebid::getPbs),
+                ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs),
                 ExtRequestPrebidPbs::getEndpoint);
 
         if (StringUtils.isNotBlank(existingEndpoint)) {
@@ -749,7 +722,7 @@ public class Ortb2ImplicitParametersResolver {
      * Returns default list of currencies if it wasn't on the request, otherwise null.
      */
     private List<String> resolveCurrencies(List<String> currencies) {
-        return CollectionUtils.isEmpty(currencies) && adServerCurrency != null
+        return CollectionUtils.isEmpty(currencies)
                 ? Collections.singletonList(adServerCurrency)
                 : null;
     }

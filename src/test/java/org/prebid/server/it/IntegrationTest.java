@@ -28,9 +28,10 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.util.IntegrationTestsUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
@@ -41,9 +42,9 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -57,8 +58,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static io.restassured.RestAssured.given;
-import static java.lang.String.format;
+import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestPropertySource({"test-application.properties", "test-application-hooks.properties"})
@@ -107,18 +107,18 @@ public abstract class IntegrationTest extends VertxTest {
     }
 
     protected static Response responseFor(String file, Endpoint endpoint) throws IOException {
-        return given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .body(jsonFrom(file))
-                .post(endpoint.value());
+        return IntegrationTestsUtil.responseFor(file, endpoint, SPEC);
     }
 
     protected static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
+    }
+
+    protected static String jsonFrom(String file, PrebidVersionProvider prebidVersionProvider) throws IOException {
+        // workaround to clear formatting
+        return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)))
+                .replace("{{ pbs.java.version }}", prebidVersionProvider.getNameVersionRecord());
     }
 
     protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
@@ -167,9 +167,12 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
+    private static String setResponseTime(Response response,
+                                          String expectedResponseJson,
+                                          String bidder,
                                           String responseTimePath) {
-        final Object val = response.path(format(responseTimePath, bidder));
+
+        final Object val = response.path(responseTimePath.formatted(bidder));
         final Integer responseTime = val instanceof Integer ? (Integer) val : null;
         if (responseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + bidder + "\\.response_time_ms }}\"",
@@ -246,35 +249,23 @@ public abstract class IntegrationTest extends VertxTest {
                                            Response response,
                                            List<String> bidders,
                                            Customization... customizations) throws IOException, JSONException {
-        final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
-        fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
-        fullCustomizations.add(new Customization("ext.responsetimemillis.cache", (o1, o2) -> true));
-        String expectedRequest = replaceStaticInfo(jsonFrom(file));
-        for (String bidder : bidders) {
-            expectedRequest = replaceBidderRelatedStaticInfo(expectedRequest, bidder);
-            fullCustomizations.add(new Customization(
-                    String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
-        }
 
-        JSONAssert.assertEquals(expectedRequest, response.asString(),
-                new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
-                        fullCustomizations.toArray(new Customization[0])));
+        IntegrationTestsUtil.assertJsonEquals(
+                file,
+                response,
+                bidders,
+                (json, bidder) -> replaceBidderRelatedStaticInfo(json, bidder, WIREMOCK_PORT),
+                IntegrationTest::replaceStaticInfo,
+                customizations);
     }
 
     private static String replaceStaticInfo(String json) {
-
         return json.replaceAll("\\{\\{ cache.endpoint }}", CACHE_ENDPOINT)
                 .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
                 .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
                 .replaceAll("\\{\\{ userservice_uri }}", USER_SERVICE_ENDPOINT)
                 .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
-    }
-
-    private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
-
-        return json.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
-                "http://" + HOST_AND_PORT + "/" + bidder + "-exchange");
     }
 
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {
@@ -360,15 +351,14 @@ public abstract class IntegrationTest extends VertxTest {
         private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
             lock.lock();
             try {
-                while (!dealsResponseOrder.peek().equals(id)) {
+                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
                     lockCondition.await();
                 }
                 TimeUnit.MILLISECONDS.sleep(delay);
                 dealsResponseOrder.poll();
                 lockCondition.signalAll();
             } catch (InterruptedException e) {
-                throw new RuntimeException(format("Failed on waiting to return bid request for lineItem id = %s",
-                        id));
+                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
             } finally {
                 lock.unlock();
             }

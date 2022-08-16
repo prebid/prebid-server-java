@@ -18,8 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -327,7 +327,7 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
@@ -344,7 +344,7 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -358,7 +358,7 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -372,7 +372,7 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidWhenTypeNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -391,7 +391,7 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenVideoPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("123")
                         .video(Video.builder().build())),
                 mapper.writeValueAsString(
@@ -412,7 +412,7 @@ public class AdvangelistsBidderTest extends VertxTest {
             ExtImpAdvangelists extImpAdvangelists) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extImpAdvangelists))))
+                        .imp(singletonList(givenImp(impCustomizer, extImpAdvangelists))))
                 .build();
     }
 
@@ -428,15 +428,15 @@ public class AdvangelistsBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 ExtImpAdvangelists extImpAdvangelists) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extImpAdvangelists))))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, extImpAdvangelists))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAdvangelists.of("pubid", "placment")))))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpAdvangelists.of("pubid", "placment")))))
                 .build();
     }
 
@@ -449,8 +449,8 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

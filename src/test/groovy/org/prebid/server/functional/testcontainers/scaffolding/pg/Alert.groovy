@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference
 import org.mockserver.model.HttpRequest
 import org.prebid.server.functional.model.deals.alert.AlertEvent
 import org.prebid.server.functional.testcontainers.scaffolding.NetworkScaffolding
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -16,17 +15,17 @@ class Alert extends NetworkScaffolding {
 
     static final String ALERT_ENDPOINT_PATH = "/deals/alert"
 
-    Alert(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, ALERT_ENDPOINT_PATH, mapper)
+    Alert(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, ALERT_ENDPOINT_PATH)
     }
 
     AlertEvent getRecordedAlertRequest() {
         def body = getRecordedRequestsBody(request).last()
         // 0 index element is returned after deserialization as PBS responses with SingletonList
-        mapper.decode(body, new TypeReference<List<AlertEvent>>() {})[0]
+        decode(body, new TypeReference<List<AlertEvent>>() {})[0]
     }
 
-    Map<String, String> getLastRecordedAlertRequestHeaders() {
+    Map<String, List<String>> getLastRecordedAlertRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 
