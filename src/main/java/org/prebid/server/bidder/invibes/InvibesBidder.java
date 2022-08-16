@@ -90,7 +90,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             updateInvibesInternalParams(invibesInternalParams, extImpInvibes, imp);
         }
 
-        //TODO: add AMP parameter to invibesInternalParams, after reqInfo will be implemented
+        invibesInternalParams.setIsAmp(isAmp(request));
 
         final List<String> placementIds = invibesInternalParams.getBidParams().getPlacementIds();
         if (CollectionUtils.isEmpty(placementIds)) {
@@ -121,6 +121,15 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         if (imp.getBanner() == null) {
             throw new PreBidException(String.format("Banner not specified in impression with id: %s", imp.getId()));
         }
+    }
+
+    private boolean isAmp(BidRequest request) {
+        if (request.getExt() == null) {
+            return false;
+        } else if (request.getExt().getPrebid() == null) {
+            return false;
+        }
+        return request.getExt().getPrebid().getAmp() != null;
     }
 
     private String resolveConsentString(User user) {
