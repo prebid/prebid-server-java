@@ -30,6 +30,8 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
 import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
@@ -41,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
@@ -122,12 +125,10 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     private boolean isAmp(BidRequest request) {
-        if (request.getExt() == null) {
-            return false;
-        } else if (request.getExt().getPrebid() == null) {
-            return false;
-        }
-        return request.getExt().getPrebid().getAmp() != null;
+        return Optional.ofNullable(request.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAmp)
+                .isPresent();
     }
 
     private String resolveConsentString(User user) {
