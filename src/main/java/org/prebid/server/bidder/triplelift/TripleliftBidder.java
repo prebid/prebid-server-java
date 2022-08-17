@@ -145,12 +145,11 @@ public class TripleliftBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(TripleliftResponseExt tripleliftResponseExt) {
-        final boolean isVideo = Optional.ofNullable(tripleliftResponseExt)
+        return Optional.ofNullable(tripleliftResponseExt)
                 .map(TripleliftResponseExt::getTripleliftPb)
                 .map(TripleliftInnerExt::getFormat)
                 .filter(format -> format.equals(11) || format.equals(12) || format.equals(17))
-                .isPresent();
-
-        return isVideo ? BidType.video : BidType.banner;
+                .map(format -> BidType.video)
+                .orElse(BidType.banner);
     }
 }
