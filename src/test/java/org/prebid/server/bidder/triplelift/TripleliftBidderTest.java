@@ -265,6 +265,40 @@ public class TripleliftBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnTypeVideoWhenTripleliftInnerExtIsTwelve() throws JsonProcessingException {
+        // given
+        final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(12)));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
+
+        // when
+        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnTypeVideoWhenTripleliftInnerExtIsSeventeen() throws JsonProcessingException {
+        // given
+        final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(17)));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
+
+        // when
+        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")

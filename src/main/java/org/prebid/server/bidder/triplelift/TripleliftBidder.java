@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
 
@@ -144,12 +145,12 @@ public class TripleliftBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(TripleliftResponseExt tripleliftResponseExt) {
-        final TripleliftInnerExt tripleliftInnerExt = tripleliftResponseExt != null
-                ? tripleliftResponseExt.getTripleliftPb()
-                : null;
+        final boolean isVideo = Optional.ofNullable(tripleliftResponseExt)
+                .map(TripleliftResponseExt::getTripleliftPb)
+                .map(TripleliftInnerExt::getFormat)
+                .filter(format -> format.equals(11) || format.equals(12) || format.equals(17))
+                .isPresent();
 
-        return tripleliftInnerExt != null && Objects.equals(tripleliftInnerExt.getFormat(), 11)
-                ? BidType.video
-                : BidType.banner;
+        return isVideo ? BidType.video : BidType.banner;
     }
 }
