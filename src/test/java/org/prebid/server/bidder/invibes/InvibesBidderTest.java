@@ -295,7 +295,7 @@ public class InvibesBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .containsOnly(expectedRequest);
+                .containsExactly(expectedRequest);
     }
 
     @Test
@@ -343,7 +343,7 @@ public class InvibesBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .containsOnly(expectedRequest);
+                .containsExactly(expectedRequest);
     }
 
     @Test
