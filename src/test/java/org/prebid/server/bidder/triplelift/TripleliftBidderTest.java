@@ -109,7 +109,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly(inventoryCode);
+                .containsExactly(inventoryCode);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
-                .containsOnly(floor);
+                .containsExactly(floor);
     }
 
     @Test
@@ -211,7 +211,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
@@ -245,7 +245,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
@@ -262,7 +262,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
     }
 
     @Test
@@ -279,7 +279,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
     }
 
     @Test
@@ -296,7 +296,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
