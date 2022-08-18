@@ -124,13 +124,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
     }
 
-    private boolean isAmp(BidRequest request) {
-        return Optional.ofNullable(request.getExt())
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAmp)
-                .isPresent();
-    }
-
     private String resolveConsentString(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         return extUser != null ? extUser.getConsent() : "";
@@ -274,6 +267,13 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Aver", ADAPTER_VERSION);
         return headers;
+    }
+
+    private static boolean isAmp(BidRequest request) {
+        return Optional.ofNullable(request.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAmp)
+                .isPresent();
     }
 
     @Override
