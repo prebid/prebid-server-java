@@ -2,9 +2,11 @@ package org.prebid.server.bidder.unicorn;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
@@ -170,7 +172,7 @@ public class UnicornBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(ExtImpPrebid.builder()
                         .storedrequest(ExtStoredRequest.of("storedRequestId"))
-                        .build(), ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                        .build(), ExtImpUnicorn.of("", "123", "mediaId", 456)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
@@ -235,13 +237,42 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotFoundStoredRequestId() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", "123", "mediaId", 456)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("stored request id not found in imp: 123"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorForEmptyApp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity()).toBuilder().app(null).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("request app is required"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyAppWhenPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getId, App::getPublisher)
+                .containsExactly(tuple("mediaId", Publisher.builder().id("123").build()));
     }
 
     @Test
@@ -309,9 +340,10 @@ public class UnicornBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        return bidRequestCustomizer.apply(
+                BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer)))
+                        .app(App.builder().build())).build();
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -323,7 +355,7 @@ public class UnicornBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null,
-                                ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
+                                ExtImpUnicorn.of("placementId", "123", "mediaId", 456)))))
                 .build();
     }
 

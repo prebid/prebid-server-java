@@ -5,6 +5,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
+import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
@@ -24,6 +25,8 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
             new StageWithHookTypeImpl<>(Stage.raw_bidder_response, RawBidderResponseHook.class);
     StageWithHookType<ProcessedBidderResponseHook> PROCESSED_BIDDER_RESPONSE =
             new StageWithHookTypeImpl<>(Stage.processed_bidder_response, ProcessedBidderResponseHook.class);
+    StageWithHookType<AllProcessedBidResponsesHook> ALL_PROCESSED_BID_RESPONSES =
+            new StageWithHookTypeImpl<>(Stage.all_processed_bid_responses, AllProcessedBidResponsesHook.class);
     StageWithHookType<AuctionResponseHook> AUCTION_RESPONSE =
             new StageWithHookTypeImpl<>(Stage.auction_response, AuctionResponseHook.class);
 
@@ -38,6 +41,7 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
             case processed_auction_request -> PROCESSED_AUCTION_REQUEST;
             case bidder_request -> BIDDER_REQUEST;
             case raw_bidder_response -> RAW_BIDDER_RESPONSE;
+            case all_processed_bid_responses -> ALL_PROCESSED_BID_RESPONSES;
             case processed_bidder_response -> PROCESSED_BIDDER_RESPONSE;
             case auction_response -> AUCTION_RESPONSE;
         };
