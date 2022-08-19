@@ -68,6 +68,9 @@ import java.util.Set;
 @Configuration
 public class WebConfiguration {
 
+    @Value("${logging.sampling-rate:0.01}")
+    private double logSamplingRate;
+
     @Autowired
     private Vertx vertx;
 
@@ -182,6 +185,7 @@ public class WebConfiguration {
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
+                logSamplingRate,
                 auctionRequestFactory,
                 exchangeService,
                 analyticsReporter,
@@ -274,6 +278,7 @@ public class WebConfiguration {
         return new CookieSyncHandler(
                 externalUrl,
                 defaultTimeoutMs,
+                logSamplingRate,
                 coopSyncDefaultLimit,
                 coopSyncMaxLimit,
                 uidsCookieService,

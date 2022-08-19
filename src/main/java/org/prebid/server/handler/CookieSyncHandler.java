@@ -79,6 +79,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private final String externalUrl;
     private final long defaultTimeout;
+    private final double logSamplingRate;
     private final Integer coopSyncDefaultLimit;
     private final Integer coopSyncMaxLimit;
     private final UidsCookieService uidsCookieService;
@@ -98,6 +99,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     public CookieSyncHandler(String externalUrl,
                              long defaultTimeout,
+                             double logSamplingRate,
                              Integer coopSyncDefaultLimit,
                              Integer coopSyncMaxLimit,
                              UidsCookieService uidsCookieService,
@@ -115,6 +117,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
+        this.logSamplingRate = logSamplingRate;
         this.coopSyncDefaultLimit = coopSyncDefaultLimit;
         this.coopSyncMaxLimit = coopSyncMaxLimit;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -664,7 +667,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             body = "Invalid request format: " + message;
 
             metrics.updateUserSyncBadRequestMetric();
-            BAD_REQUEST_LOGGER.info(message, 0.01);
+            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
         } else if (error instanceof UnauthorizedUidsException) {
             status = HttpResponseStatus.UNAUTHORIZED;
             body = "Unauthorized: " + message;

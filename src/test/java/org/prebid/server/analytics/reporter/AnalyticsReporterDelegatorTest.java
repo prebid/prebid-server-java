@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -88,8 +89,8 @@ public class AnalyticsReporterDelegatorTest {
         given(privacyEnforcementService.resultForVendorIds(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
-        target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
-                privacyEnforcementService, metrics);
+        target = new AnalyticsReporterDelegator(
+                0.01, List.of(firstReporter, secondReporter), vertx, privacyEnforcementService, metrics);
     }
 
     @Test
