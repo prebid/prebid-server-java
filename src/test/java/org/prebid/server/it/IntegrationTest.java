@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.prebid.server.VertxTest;
@@ -91,6 +92,11 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @After
+    public void resetMappings() {
+        WIRE_MOCK_RULE.resetMappings();
     }
 
     static RequestSpecification spec(int port) {
