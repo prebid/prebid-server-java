@@ -58,7 +58,6 @@ public class AnalyticsReporterDelegator {
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
 
-
     public AnalyticsReporterDelegator(double logSamplingRate,
                                       List<AnalyticsReporter> delegates,
                                       Vertx vertx,
