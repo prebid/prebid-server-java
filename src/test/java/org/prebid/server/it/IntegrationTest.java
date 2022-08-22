@@ -95,8 +95,8 @@ public abstract class IntegrationTest extends VertxTest {
     }
 
     @After
-    public void resetMappings() {
-        WIRE_MOCK_RULE.resetMappings();
+    public void resetWireMock() {
+        WIRE_MOCK_RULE.resetAll();
     }
 
     static RequestSpecification spec(int port) {
