@@ -5,6 +5,7 @@ import io.vertx.core.eventbus.EventBus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -607,15 +608,16 @@ public class DealsConfiguration {
         }
 
         @Bean
-        DealsPopulator dealsPopulator(LineItemService lineItemService,
-                                      @Autowired(required = false) DeviceInfoService deviceInfoService,
-                                      @Autowired(required = false) GeoLocationService geoLocationService,
-                                      UserService userService,
-                                      Clock clock,
-                                      JacksonMapper mapper,
-                                      CriteriaLogManager criteriaLogManager) {
+        UserAdditionalInfoService userAdditionalInfoService(
+                LineItemService lineItemService,
+                @Autowired(required = false) DeviceInfoService deviceInfoService,
+                @Autowired(required = false) GeoLocationService geoLocationService,
+                UserService userService,
+                Clock clock,
+                JacksonMapper mapper,
+                CriteriaLogManager criteriaLogManager) {
 
-            return new DealsPopulator(
+            return new UserAdditionalInfoService(
                     lineItemService,
                     deviceInfoService,
                     geoLocationService,
@@ -623,6 +625,14 @@ public class DealsConfiguration {
                     clock,
                     mapper,
                     criteriaLogManager);
+        }
+
+        @Bean
+        DealsPopulator dealsPopulator(LineItemService lineItemService,
+                                      JacksonMapper mapper,
+                                      CriteriaLogManager criteriaLogManager) {
+
+            return new DealsPopulator(lineItemService, mapper, criteriaLogManager);
         }
 
         @Bean

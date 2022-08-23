@@ -36,7 +36,7 @@ public class WinningBidComparatorFactory {
     /**
      * Compares two {@link BidInfo} arguments for order based on dealId presence.
      * Returns negative integer when first does not have a deal and second has.
-     * Return positive integer when first has deal and second does not
+     * Return positive integer when first has deal and second does not.
      * Returns zero when both have deals, or both don't have a deal
      */
     private static class WinningBidDealComparator implements Comparator<BidInfo> {
