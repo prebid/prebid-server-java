@@ -250,7 +250,7 @@ public class RemoteFileSyncer {
 
     private Future<Boolean> isNeedToUpdate() {
         final Promise<Boolean> isNeedToUpdate = Promise.promise();
-        httpClient.getAbs(downloadUrl, response -> checkNewVersion(response, isNeedToUpdate))
+        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isNeedToUpdate))
                 .exceptionHandler(isNeedToUpdate::fail)
                 .end();
         return isNeedToUpdate.future();
