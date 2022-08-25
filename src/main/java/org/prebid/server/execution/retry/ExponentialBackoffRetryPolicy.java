@@ -20,7 +20,7 @@ public class ExponentialBackoffRetryPolicy implements MakeRetryPolicy {
     @Override
     public RetryPolicy next() {
         final long nextDelay = (long) Math.min(delay * factor, maxDelayMillis);
-        final long variedDelay = nextDelay + (long) ThreadLocalRandom.current().nextDouble(delay * jitter);
-        return new ExponentialBackoffRetryPolicy(variedDelay, maxDelayMillis, factor, jitter);
+        final long variedDelay = nextDelay + (long) ThreadLocalRandom.current().nextDouble(nextDelay * jitter);
+        return of(variedDelay, maxDelayMillis, factor, jitter);
     }
 }
