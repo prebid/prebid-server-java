@@ -97,7 +97,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -1081,9 +1080,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Map<String, List<Eid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
                 : null;
-        final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
-                ? extractExtUserTpIds(sourceToUserEidExt)
-                : null;
         final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
         final List<Eid> resolvedExtUserEids = hasStypeToRemove
                 ? prepareExtUserEids(extUserEids)
@@ -1093,7 +1089,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
         if (userExtRp == null
-                && userExtTpIds == null
                 && userExtData == null
                 && liverampId == null
                 && resolvedId == null
@@ -1112,7 +1107,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
-                .tpid(userExtTpIds)
                 .liverampIdl(liverampId)
                 .build();
 
@@ -1225,51 +1219,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
                 .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
                 .collect(Collectors.groupingBy(Eid::getSource));
-    }
-
-    /**
-     * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpIdRubicon}s for supported vendors.
-     */
-    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(Map<String, List<Eid>> specialExtUserEids) {
-        final List<ExtUserTpIdRubicon> result = new ArrayList<>();
-
-        specialExtUserEids.getOrDefault(ADSERVER_EID, Collections.emptyList()).stream()
-                .map(extUserEid -> extUserTpIdForAdServer(extUserEid.getUids().get(0)))
-                .filter(Objects::nonNull)
-                .forEach(result::add);
-
-        specialExtUserEids.getOrDefault(LIVEINTENT_EID, Collections.emptyList()).stream()
-                .map(extUserEid -> extUserTpIdForLiveintent(extUserEid.getUids().get(0)))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .ifPresent(result::add);
-
-        return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Extracts {@link ExtUserTpIdRubicon} for AdServer.
-     */
-    private static ExtUserTpIdRubicon extUserTpIdForAdServer(Uid adServerEidUid) {
-        return Objects.equals(getUserEidUidRtiPartner(adServerEidUid), "TDID")
-                ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
-                : null;
-    }
-
-    private static String getUserEidUidRtiPartner(Uid uid) {
-        final ObjectNode uidExt = uid != null ? uid.getExt() : null;
-        final JsonNode rtiPartner = uidExt != null ? uidExt.path(RTI_PARTNER_FIELD) : null;
-        return rtiPartner != null && !rtiPartner.isMissingNode()
-                ? rtiPartner.asText()
-                : null;
-    }
-
-    /**
-     * Extracts {@link ExtUserTpIdRubicon} for Liveintent.
-     */
-    private static ExtUserTpIdRubicon extUserTpIdForLiveintent(Uid adServerEidUid) {
-        final String id = adServerEidUid != null ? adServerEidUid.getId() : null;
-        return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user,
