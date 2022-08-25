@@ -79,20 +79,13 @@ public class RemoteFileSyncer {
         }
     }
 
-    /**
-     * Fetches remote file and executes given callback with filepath on finish.
-     */
     public void sync(RemoteFileProcessor processor) {
-        checkFileExist(saveFilePath)
-                .compose(exists -> !exists
-                        ? syncRemoteFiles(retryPolicy)
-                        : processor.setDataPath(saveFilePath)
-                        .map(false)
-                        .recover(ignored -> removeCorruptedSaveFile()))
+        isFileExists(saveFilePath)
+                .compose(exists -> exists ? processSavedFile(processor) : syncRemoteFiles(retryPolicy))
                 .onComplete(syncResult -> handleSync(processor, syncResult));
     }
 
-    private Future<Boolean> checkFileExist(String filePath) {
+    private Future<Boolean> isFileExists(String filePath) {
         final Promise<Boolean> promise = Promise.promise();
         fileSystem.exists(filePath, async -> {
             if (async.succeeded()) {
@@ -104,16 +97,30 @@ public class RemoteFileSyncer {
         return promise.future();
     }
 
+    private Future<Boolean> processSavedFile(RemoteFileProcessor processor) {
+        return processor.setDataPath(saveFilePath)
+                .map(false)
+                .recover(ignored -> removeCorruptedSaveFile());
+    }
+
     private Future<Boolean> removeCorruptedSaveFile() {
-        return cleanUp(saveFilePath)
+        return deleteFileIfExists(saveFilePath)
                 .compose(ignored -> syncRemoteFiles(retryPolicy))
                 .recover(error -> Future.failedFuture(new PreBidException(
                         "Corrupted file %s cant be deleted. Please check permission or delete manually."
                                 .formatted(saveFilePath), error)));
     }
 
-    private Future<Void> cleanUp(String filePath) {
-        return checkFileExist(filePath)
+    private Future<Boolean> syncRemoteFiles(RetryPolicy retryPolicy) {
+        return deleteFileIfExists(tmpFilePath)
+                .compose(ignored -> downloadToTempFile())
+                .recover(error -> retrySync(retryPolicy))
+                .compose(downloadResult -> swapFiles())
+                .map(true);
+    }
+
+    private Future<Void> deleteFileIfExists(String filePath) {
+        return isFileExists(filePath)
                 .compose(exists -> exists ? deleteFile(filePath) : Future.succeededFuture());
     }
 
@@ -123,23 +130,22 @@ public class RemoteFileSyncer {
         return promise.future();
     }
 
-    private Future<Boolean> syncRemoteFiles(RetryPolicy retryPolicy) {
-        return cleanUp(tmpFilePath)
-                .compose(ignored -> download())
-                .recover(error -> retrySync(retryPolicy))
-                .compose(downloadResult -> swapFiles())
-                .map(true);
+    private Future<Void> downloadToTempFile() {
+        return openFile(tmpFilePath)
+                .compose(tmpFile -> requestData()
+                        .compose(response -> pumpToFile(response, tmpFile)));
     }
 
-    private Future<Void> download() {
-        return openFile(tmpFilePath)
-                .compose(file -> requestData()
-                        .compose(response -> pumpToFile(response, file)));
+    private Future<HttpClientResponse> requestData() {
+        final Promise<HttpClientResponse> promise = Promise.promise();
+        httpClient.getAbs(downloadUrl, promise::complete).end();
+        return promise.future();
     }
 
     private Future<Void> retrySync(RetryPolicy retryPolicy) {
         if (retryPolicy instanceof MakeRetryPolicy policy) {
             logger.info("Retrying file download from {0} with policy: {1}", downloadUrl, retryPolicy);
+
             final Promise<Void> promise = Promise.promise();
             vertx.setTimer(policy.delay(), timerId ->
                     syncRemoteFiles(policy.next())
@@ -150,12 +156,6 @@ public class RemoteFileSyncer {
         } else {
             return Future.failedFuture(new PreBidException("File sync failed"));
         }
-    }
-
-    private Future<HttpClientResponse> requestData() {
-        final Promise<HttpClientResponse> promise = Promise.promise();
-        httpClient.getAbs(downloadUrl, promise::complete).end();
-        return promise.future();
     }
 
     private Future<AsyncFile> openFile(String path) {
@@ -243,33 +243,33 @@ public class RemoteFileSyncer {
     }
 
     private Future<Boolean> tryUpdate() {
-        return checkFileExist(saveFilePath)
-                .compose(fileExists -> fileExists ? isNeedToUpdate() : Future.succeededFuture(true))
+        return isFileExists(saveFilePath)
+                .compose(fileExists -> fileExists ? isUpdateRequired() : Future.succeededFuture(true))
                 .compose(needUpdate -> needUpdate ? syncRemoteFiles(retryPolicy) : Future.succeededFuture(false));
     }
 
-    private Future<Boolean> isNeedToUpdate() {
-        final Promise<Boolean> isNeedToUpdate = Promise.promise();
-        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isNeedToUpdate))
-                .exceptionHandler(isNeedToUpdate::fail)
+    private Future<Boolean> isUpdateRequired() {
+        final Promise<Boolean> isUpdateRequired = Promise.promise();
+        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isUpdateRequired))
+                .exceptionHandler(isUpdateRequired::fail)
                 .end();
-        return isNeedToUpdate.future();
+        return isUpdateRequired.future();
     }
 
-    private void checkNewVersion(HttpClientResponse response, Promise<Boolean> isNeedToUpdate) {
+    private void checkNewVersion(HttpClientResponse response, Promise<Boolean> isUpdateRequired) {
         final String contentLengthParameter = response.getHeader(HttpHeaders.CONTENT_LENGTH);
         if (StringUtils.isNumeric(contentLengthParameter) && !contentLengthParameter.equals("0")) {
             final long contentLength = Long.parseLong(contentLengthParameter);
             fileSystem.props(saveFilePath, filePropsResult -> {
                 if (filePropsResult.succeeded()) {
                     logger.info("Prev length = {0}, new length = {1}", filePropsResult.result().size(), contentLength);
-                    isNeedToUpdate.complete(filePropsResult.result().size() != contentLength);
+                    isUpdateRequired.complete(filePropsResult.result().size() != contentLength);
                 } else {
-                    isNeedToUpdate.fail(filePropsResult.cause());
+                    isUpdateRequired.fail(filePropsResult.cause());
                 }
             });
         } else {
-            isNeedToUpdate.fail("ContentLength is invalid: " + contentLengthParameter);
+            isUpdateRequired.fail("ContentLength is invalid: " + contentLengthParameter);
         }
     }
 }

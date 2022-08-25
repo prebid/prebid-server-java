@@ -10,8 +10,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ExponentialBackoffRetryPolicy implements MakeRetryPolicy {
 
     long delay;
+
     long maxDelayMillis;
+
     double factor;
+
     double jitter;
 
     @Override
