@@ -17,9 +17,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -79,9 +79,6 @@ public abstract class IntegrationTest extends VertxTest {
             .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
-    @Rule
-    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
-
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
@@ -95,6 +92,11 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @After
+    public void resetWireMock() {
+        WIRE_MOCK_RULE.resetAll();
     }
 
     static RequestSpecification spec(int port) {

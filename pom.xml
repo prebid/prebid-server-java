@@ -42,7 +42,7 @@
         <jackson.version>2.13.2</jackson.version>
         <!--TODO: Replace this with jackson.version after dependencies update-->
         <jackson.databind.version>2.13.2.2</jackson.databind.version>
-        <json.schema.validator.version>0.1.7</json.schema.validator.version>
+        <json-schema-validator.version>1.0.72</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
         <postgresql.version>42.4.1</postgresql.version>
@@ -56,26 +56,25 @@
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <logback.version>1.2.9</logback.version>
         <log4j.version>2.17.1</log4j.version>
+        <hikari.version>5.0.1</hikari.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
-        <junit-jupiter.version>5.8.1</junit-jupiter.version>
-        <mockito.version>4.0.0</mockito.version>
-        <mockito-junit-jupiter.version>4.0.0</mockito-junit-jupiter.version>
-        <assertj.version>3.21.0</assertj.version>
+        <junit-jupiter.version>5.9.0</junit-jupiter.version>
+        <mockito.version>4.7.0</mockito.version>
+        <assertj.version>3.23.1</assertj.version>
         <wiremock.version>2.33.2</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.48.v20220622</jetty.version>
         <restassured.version>4.4.0</restassured.version>
-        <h2.version>2.1.210</h2.version>
+        <h2.version>2.1.214</h2.version>
         <spock.version>2.1-groovy-3.0</spock.version>
-        <groovy.version>3.0.11</groovy.version>
-        <testcontainers.version>1.17.2</testcontainers.version>
-        <mockserver-client.version>5.11.2</mockserver-client.version>
-        <allure.version>2.17.2</allure.version>
-        <aspectj.version>1.9.7</aspectj.version>
-        <h2.version>1.4.200</h2.version>
-        <bytebuddy.version>1.11.19</bytebuddy.version>
+        <groovy.version>3.0.12</groovy.version>
+        <testcontainers.version>1.17.3</testcontainers.version>
+        <mockserver.version>5.14.0</mockserver.version>
+        <allure.version>2.19.0</allure.version>
+        <aspectj.version>1.9.9.1</aspectj.version>
+        <bytebuddy.version>1.12.14</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
@@ -86,12 +85,11 @@
         <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
-        <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
+        <docker-maven-plugin.version>0.40.2</docker-maven-plugin.version>
         <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
-        <hikari.version>5.0.1</hikari.version>
     </properties>
 
     <dependencyManagement>
@@ -249,7 +247,7 @@
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>${json.schema.validator.version}</version>
+            <version>${json-schema-validator.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.java-json-tools</groupId>
@@ -385,7 +383,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>${mockito-junit-jupiter.version}</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -552,7 +550,7 @@
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>${mockserver-client.version}</version>
+            <version>${mockserver.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -783,7 +781,7 @@
                     </argLine>
                     <systemPropertyVariables>
                         <allure.results.directory>target/allure-results</allure.results.directory>
-                        <mockserver.version>${mockserver-client.version}</mockserver.version>
+                        <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
                         <tests.max-container-count>2</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>
