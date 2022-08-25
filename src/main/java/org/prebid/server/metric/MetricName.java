@@ -2,15 +2,51 @@ package org.prebid.server.metric;
 
 public enum MetricName {
 
+    alerts_account_config("alerts.account_config"),
+    analytics_events("analytics.events"),
+    price_floors_general_err("price-floors.general.err"),
+    price_floors_fetch_failure("price-floors.fetch.failure"),
+    response_validation("response.validation"),
+    adapter_cookie_sync_action("adapter.cookie_sync.action"),
+    adapter_cookie_sync_tcf("adapter.cookie_sync.tcf"),
+    adapter_user_sync_action("adapter.user_sync.action"),
+    adapter_user_sync_tcf("adapter.user_sync.tcf"),
+    user_sync_bad_requests("user_sync.bad_requests"),
+    user_sync_opt_outs("user_sync.opt_outs"),
+    adapter_tcf("adapter.tcf"),
+
+
+    // privacy
+    privacy_tcf_errors("privacy.tcf.errors"),
+    privacy_tcf_requests("privacy.tcf.requests"),
+    privacy_tcf_unknown_geo("privacy.tcf.unknown-geo"),
+    privacy_tcf_in_geo("privacy.tcf.in-geo"),
+    privacy_tcf_out_geo("privacy.tcf.out-geo"),
+    privacy_tcf_vendorlist("privacy.tcf.vendorlist"),
+    privacy_usp_specified("privacy.usp.specified"),
+    privacy_usp_opt_out("privacy.usp.opt-out"),
+    privacy_coopa("privacy.coopa"),
+    privacy_lmt("privacy.lmt"),
+
     // connection
     connection_accept_errors,
 
     // circuit breaker
-    db,
-    geo,
-    http,
-    opened,
-    existing,
+    cb_db_open("circuit-breaker.db.opened"),
+    cb_geo_open("circuit-breaker.geo.opened"),
+    cb_http_open("circuit-breaker.http.named.opened"),
+    cb_http_existing("circuit.breaker.http.existing"),
+
+    // pg
+    pg_planner_lineitems_received("pg.planner_lineitems_received"),
+    pg_planner_requests("pg.planner_requests"),
+    pg_planner_request_failed("pg.planner_request_failed"),
+    pg_planner_request_successful("pg.planner_request_successful"),
+    pg_planner_request_time("pg.planner_request_time"),
+    pg_delivery_requests("pg.delivery_requests"),
+    pg_delivery_request_failed("pg.delivery_request_failed"),
+    pg_delivery_request_successful("pg.delivery_request_successful"),
+    pg_delivery_request_time("pg.delivery_request_time"),
 
     // database
     db_query_time,
@@ -156,16 +192,28 @@ public enum MetricName {
     user_details_request_failed,
     user_details_request_successful,
 
-    // pg
-    planner_lineitems_received,
-    planner_requests,
-    planner_request_failed,
-    planner_request_successful,
-    planner_request_time,
-    delivery_requests,
-    delivery_request_failed,
-    delivery_request_successful,
-    delivery_request_time;
+    adapter_requests_result("requests.result"),
+
+    bidder_cardinality_requests("bidder-cardinality.requests"),
+
+    // hooks
+    account_module_calls("account.module_calls"),
+    module_calls("module.calls"),
+
+    // settings
+    settings_cache_refresh_db_query_time("settings.cache.refresh.db_query_time"),
+    settings_cache_refresh_err("settings.cache.refresh.err"),
+    settings_cache_account("settings.cache.account"),
+
+    // currency
+    currency_rates_stale("currency-rates.stale"),
+
+    // timeout notifications
+    timeout_notifications("timeout_notifications"),
+
+    // cache
+    prebid_cache_requests("prebid_cache.requests"),
+    prebid_cache_creative_size("prebid_cache.creative_size");
 
     private final String name;
 

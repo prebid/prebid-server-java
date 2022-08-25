@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config.metrics;
 
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.metric.AccountMetricsVerbosityResolver;
@@ -24,7 +25,8 @@ public class MetricsConfiguration {
 
     @Bean
     CompositeMeterRegistry compositeMeterRegistry() {
-        return new CompositeMeterRegistry();
+        CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry().add(new SimpleMeterRegistry());
+        return compositeMeterRegistry;
     }
 
     @Bean

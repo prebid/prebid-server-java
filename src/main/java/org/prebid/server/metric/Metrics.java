@@ -9,9 +9,9 @@ import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,140 +29,11 @@ public class Metrics extends UpdatableMetrics {
 
     private final AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
 
-    private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
-    private final Function<String, AccountMetrics> accountMetricsCreator;
-    private final Function<String, AdapterTypeMetrics> adapterMetricsCreator;
-    private final Function<String, AnalyticsReporterMetrics> analyticMetricsCreator;
-    private final Function<String, PriceFloorMetrics> priceFloorsMetricsCreator;
-    private final Function<String, AlertsConfigMetrics> alertsMetricsCreator;
-    private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
-    private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
-    private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
-    // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
-    // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
-    // thread-safe
-    private final Map<MetricName, RequestStatusMetrics> requestMetrics;
-    private final Map<String, AccountMetrics> accountMetrics;
-    private final Map<String, AdapterTypeMetrics> adapterMetrics;
-    private final Map<String, AnalyticsReporterMetrics> analyticMetrics;
-    private final Map<String, PriceFloorMetrics> priceFloorsMetrics;
-    private final Map<String, AlertsConfigMetrics> alertsMetrics;
-    private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
-    private final UserSyncMetrics userSyncMetrics;
-    private final CookieSyncMetrics cookieSyncMetrics;
-    private final PrivacyMetrics privacyMetrics;
-    private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
-    private final CacheMetrics cacheMetrics;
-    private final TimeoutNotificationMetrics timeoutNotificationMetrics;
-    private final CurrencyRatesMetrics currencyRatesMetrics;
-    private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
-    private final HooksMetrics hooksMetrics;
-    private final PgMetrics pgMetrics;
-
     public Metrics(CompositeMeterRegistry meterRegistry,
                    AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
         super(meterRegistry, MetricName::toString);
 
         this.accountMetricsVerbosityResolver = Objects.requireNonNull(accountMetricsVerbosityResolver);
-
-        requestMetricsCreator = requestType -> new RequestStatusMetrics(meterRegistry, requestType);
-        accountMetricsCreator = account -> new AccountMetrics(meterRegistry, account);
-        adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(meterRegistry, adapterType);
-        bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
-                meterRegistry, cardinality);
-        analyticMetricsCreator = analyticCode -> new AnalyticsReporterMetrics(
-                meterRegistry, analyticCode);
-        priceFloorsMetricsCreator = moduleType -> new PriceFloorMetrics(
-                meterRegistry, moduleType);
-        alertsMetricsCreator = account -> new AlertsConfigMetrics(
-                meterRegistry, account);
-        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(meterRegistry, type);
-        settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(meterRegistry, type);
-        requestMetrics = new EnumMap<>(MetricName.class);
-        accountMetrics = new HashMap<>();
-        adapterMetrics = new HashMap<>();
-        analyticMetrics = new HashMap<>();
-        priceFloorsMetrics = new HashMap<>();
-        alertsMetrics = new HashMap<>();
-        bidderCardinailtyMetrics = new HashMap<>();
-        userSyncMetrics = new UserSyncMetrics(meterRegistry);
-        cookieSyncMetrics = new CookieSyncMetrics(meterRegistry);
-        privacyMetrics = new PrivacyMetrics(meterRegistry);
-        circuitBreakerMetrics = new HashMap<>();
-        cacheMetrics = new CacheMetrics(meterRegistry);
-        timeoutNotificationMetrics = new TimeoutNotificationMetrics(meterRegistry);
-        currencyRatesMetrics = new CurrencyRatesMetrics(meterRegistry);
-        settingsCacheMetrics = new HashMap<>();
-        hooksMetrics = new HooksMetrics(meterRegistry);
-        pgMetrics = new PgMetrics(meterRegistry);
-    }
-
-    RequestStatusMetrics forRequestType(MetricName requestType) {
-        return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
-    }
-
-    BidderCardinalityMetrics forBidderCardinality(int cardinality) {
-        return bidderCardinailtyMetrics.computeIfAbsent(cardinality, bidderCardinalityMetricsCreator);
-    }
-
-    AccountMetrics forAccount(String accountId) {
-        return accountMetrics.computeIfAbsent(accountId, accountMetricsCreator);
-    }
-
-    AdapterTypeMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
-    }
-
-    AnalyticsReporterMetrics forAnalyticReporter(String analyticCode) {
-        return analyticMetrics.computeIfAbsent(analyticCode, analyticMetricsCreator);
-    }
-
-    PriceFloorMetrics forPriceFloorFetch() {
-        return priceFloorsMetrics.computeIfAbsent("fetch", priceFloorsMetricsCreator);
-    }
-
-    PriceFloorMetrics forPriceFloorGeneralErrors() {
-        return priceFloorsMetrics.computeIfAbsent("general", priceFloorsMetricsCreator);
-    }
-
-    AlertsConfigMetrics configFailedForAccount(String accountId) {
-        return alertsMetrics.computeIfAbsent(accountId, alertsMetricsCreator);
-    }
-
-    UserSyncMetrics userSync() {
-        return userSyncMetrics;
-    }
-
-    PgMetrics pgMetrics() {
-        return pgMetrics;
-    }
-
-    CookieSyncMetrics cookieSync() {
-        return cookieSyncMetrics;
-    }
-
-    PrivacyMetrics privacy() {
-        return privacyMetrics;
-    }
-
-    CircuitBreakerMetrics forCircuitBreakerType(MetricName type) {
-        return circuitBreakerMetrics.computeIfAbsent(type, circuitBreakerMetricsCreator);
-    }
-
-    CacheMetrics cache() {
-        return cacheMetrics;
-    }
-
-    CurrencyRatesMetrics currencyRates() {
-        return currencyRatesMetrics;
-    }
-
-    SettingsCacheMetrics forSettingsCacheType(MetricName type) {
-        return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
-    }
-
-    HooksMetrics hooks() {
-        return hooksMetrics;
     }
 
     public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
@@ -171,6 +42,7 @@ public class Metrics extends UpdatableMetrics {
         } else if (!liveUidsPresent) {
             incCounter(MetricName.no_cookie_requests);
         }
+
         incCounter(MetricName.imps_requested, numImps);
     }
 
@@ -220,22 +92,29 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
-        forRequestType(requestType).incCounter(requestStatus);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("request_type", requestType.toString()),
+            new MetricTag("request_status", requestStatus.toString())
+        );
+        incCounter(MetricName.requests, metricTags);
     }
 
     public void updateRequestBidderCardinalityMetric(int bidderCardinality) {
-        forBidderCardinality(bidderCardinality).incCounter(MetricName.requests);
+        incCounter(MetricName.bidder_cardinality_requests, "cardinality", String.valueOf(bidderCardinality));
     }
 
     public void updateAccountRequestMetrics(Account account, MetricName requestType) {
         final AccountMetricsVerbosityLevel verbosityLevel = accountMetricsVerbosityResolver.forAccount(account);
         if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.basic)) {
-            final AccountMetrics accountMetrics = forAccount(account.getId());
+            List<MetricTag> metricTags = Arrays.asList(
+                new MetricTag("account", account.getId())
+            );
 
-            accountMetrics.incCounter(MetricName.requests);
             if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-                accountMetrics.requestType(requestType).incCounter(MetricName.requests);
+                metricTags.add(new MetricTag("request_type", requestType.toString()));
             }
+
+            incCounter(MetricName.requests, metricTags);
         }
     }
 
@@ -252,107 +131,161 @@ public class Metrics extends UpdatableMetrics {
     }
 
     private void updateAccountRequestsMetrics(String accountId, MetricName metricName) {
-        forAccount(accountId).requests().incCounter(metricName);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("account", accountId),
+            new MetricTag("rejected_reason", metricName.toString())
+        );
+        incCounter(MetricName.requests, metricTags);
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder)
+        );
 
-        adapterTypeMetrics.requestType(requestType).incCounter(MetricName.requests);
+        incCounter(MetricName.requests, metricTags, "request_type", requestType.toString());
 
         if (noCookie) {
-            adapterTypeMetrics.incCounter(MetricName.no_cookie_requests);
+            incCounter(MetricName.no_cookie_requests, metricTags);
         }
     }
 
     public void updateAdapterResponseTime(String bidder, Account account, int responseTime) {
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
-        adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder)
+        );
 
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterTypeMetrics accountAdapterMetrics =
-                    forAccount(account.getId()).adapter().forAdapter(bidder);
-            accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
+            metricTags.add(new MetricTag("account", account.getId()));
         }
+
+        updateTimer(MetricName.request_time, responseTime, metricTags);
     }
 
     public void updateAdapterRequestNobidMetrics(String bidder, Account account) {
-        forAdapter(bidder).request().incCounter(MetricName.nobid);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("result", MetricName.nobid.toString())
+        );
+
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.nobid);
+            metricTags.add(new MetricTag("account", account.getId()));
         }
+
+        incCounter(MetricName.adapter_requests_result, metricTags);
     }
 
     public void updateAdapterRequestGotbidsMetrics(String bidder, Account account) {
-        forAdapter(bidder).request().incCounter(MetricName.gotbids);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("result", MetricName.gotbids.toString())
+        );
+
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.gotbids);
+            metricTags.add(new MetricTag("account", account.getId()));
         }
+
+        incCounter(MetricName.adapter_requests_result, metricTags);
     }
 
     public void updateAdapterBidMetrics(String bidder, Account account, long cpm, boolean isAdm, String bidType) {
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
-        adapterTypeMetrics.updateHistogram(MetricName.prices, cpm);
-        adapterTypeMetrics.incCounter(MetricName.bids_received);
-        adapterTypeMetrics.forBidType(bidType)
-                .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("bid_type",
+                isAdm ? MetricName.adm_bids_received.toString() : MetricName.nurl_bids_received.toString())
+        );
 
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterTypeMetrics accountAdapterMetrics =
-                    forAccount(account.getId()).adapter().forAdapter(bidder);
-            accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
-            accountAdapterMetrics.incCounter(MetricName.bids_received);
+            metricTags.add(new MetricTag("account", account.getId()));
         }
+
+        updateHistogram(MetricName.prices, cpm, metricTags);
+        incCounter(MetricName.bids_received, metricTags);
     }
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
-        forAdapter(bidder).request().incCounter(errorMetric);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("result", errorMetric.toString())
+        );
+        incCounter(MetricName.adapter_requests_result, metricTags);
     }
 
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
-        forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("reporter_name", analyticCode),
+            new MetricTag("event_type", eventType.toString()),
+            new MetricTag("result", result.toString())
+        );
+        incCounter(MetricName.analytics_events, metricTags);
     }
 
-    public void updatePriceFloorFetchMetric(MetricName result) {
-        forPriceFloorFetch().incCounter(result);
+    public void updatePriceFloorFetchMetric() {
+        incCounter(MetricName.price_floors_fetch_failure);
     }
 
-    public void updatePriceFloorGeneralAlertsMetric(MetricName result) {
-        forPriceFloorGeneralErrors().incCounter(result);
+    public void updatePriceFloorGeneralAlertsMetric() {
+        incCounter(MetricName.price_floors_general_err);
     }
 
     public void updateAlertsConfigFailed(String accountId, MetricName metricName) {
-        configFailedForAccount(accountId).incCounter(metricName);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("account", accountId),
+            new MetricTag("type", metricName.toString())
+        );
+        incCounter(MetricName.alerts_account_config, metricTags);
     }
 
     public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
-        forAdapter(bidder).response().validation().size().incCounter(type);
-        forAccount(accountId).response().validation().size().incCounter(type);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("account", accountId),
+            new MetricTag("validation", "size"),
+            new MetricTag("level", type.toString())
+        );
+        incCounter(MetricName.response_validation, metricTags);
     }
 
     public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
-        forAdapter(bidder).response().validation().secure().incCounter(type);
-        forAccount(accountId).response().validation().secure().incCounter(type);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("account", accountId),
+            new MetricTag("validation", "secure"),
+            new MetricTag("level", type.toString())
+        );
+        incCounter(MetricName.response_validation, metricTags);
     }
 
     public void updateUserSyncOptoutMetric() {
-        userSync().incCounter(MetricName.opt_outs);
+        incCounter(MetricName.user_sync_opt_outs);
     }
 
     public void updateUserSyncBadRequestMetric() {
-        userSync().incCounter(MetricName.bad_requests);
+        incCounter(MetricName.user_sync_bad_requests);
     }
 
     public void updateUserSyncSetsMetric(String bidder) {
-        userSync().forBidder(bidder).incCounter(MetricName.sets);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.sets.toString())
+        );
+        incCounter(MetricName.adapter_user_sync_action, metricTags);
     }
 
     public void updateUserSyncTcfBlockedMetric(String bidder) {
-        userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.blocked.toString())
+        );
+        incCounter(MetricName.adapter_user_sync_tcf, metricTags);
     }
 
     public void updateUserSyncTcfInvalidMetric(String bidder) {
-        userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.invalid.toString())
+        );
+        incCounter(MetricName.adapter_user_sync_tcf, metricTags);
     }
 
     public void updateUserSyncTcfInvalidMetric() {
@@ -364,15 +297,27 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateCookieSyncGenMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.gen);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.gen.toString())
+        );
+        incCounter(MetricName.adapter_cookie_sync_action, metricTags);
     }
 
     public void updateCookieSyncMatchesMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.matches);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.matches.toString())
+        );
+        incCounter(MetricName.adapter_cookie_sync_action, metricTags);
     }
 
     public void updateCookieSyncTcfBlockedMetric(String bidder) {
-        cookieSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("action", MetricName.blocked.toString())
+        );
+        incCounter(MetricName.adapter_cookie_sync_tcf, metricTags);
     }
 
     public void updateAuctionTcfMetrics(String bidder,
@@ -382,60 +327,64 @@ public class Metrics extends UpdatableMetrics {
                                         boolean analyticsBlocked,
                                         boolean requestBlocked) {
 
-        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("adapter", bidder),
+            new MetricTag("type", requestType.toString())
+        );
 
         if (userIdRemoved) {
-            tcf.incCounter(MetricName.userid_removed);
+            metricTags.add(new MetricTag("tcf", MetricName.userid_removed.toString()));
+            incCounter(MetricName.adapter_tcf, metricTags);
         }
         if (geoMasked) {
-            tcf.incCounter(MetricName.geo_masked);
+            metricTags.add(new MetricTag("tcf", MetricName.geo_masked.toString()));
+            incCounter(MetricName.adapter_tcf, metricTags);
         }
         if (analyticsBlocked) {
-            tcf.incCounter(MetricName.analytics_blocked);
+            metricTags.add(new MetricTag("tcf", MetricName.analytics_blocked.toString()));
+            incCounter(MetricName.adapter_tcf, metricTags);
         }
         if (requestBlocked) {
-            tcf.incCounter(MetricName.request_blocked);
+            metricTags.add(new MetricTag("tcf", MetricName.request_blocked.toString()));
+            incCounter(MetricName.adapter_tcf, metricTags);
         }
     }
 
     public void updatePrivacyCoppaMetric() {
-        privacy().incCounter(MetricName.coppa);
+        incCounter(MetricName.privacy_coopa);
     }
 
     public void updatePrivacyLmtMetric() {
-        privacy().incCounter(MetricName.lmt);
+        incCounter(MetricName.privacy_lmt);
     }
 
     public void updatePrivacyCcpaMetrics(boolean isSpecified, boolean isEnforced) {
         if (isSpecified) {
-            privacy().usp().incCounter(MetricName.specified);
+            incCounter(MetricName.privacy_usp_specified);
         }
         if (isEnforced) {
-            privacy().usp().incCounter(MetricName.opt_out);
+            incCounter(MetricName.privacy_usp_opt_out);
         }
     }
 
     public void updatePrivacyTcfMissingMetric() {
-        privacy().tcf().incCounter(MetricName.missing);
+        incCounter(MetricName.privacy_tcf_errors, new MetricTag("error", MetricName.missing.toString()));
     }
 
     public void updatePrivacyTcfInvalidMetric() {
-        privacy().tcf().incCounter(MetricName.invalid);
+        incCounter(MetricName.privacy_tcf_errors, new MetricTag("error", MetricName.invalid.toString()));
     }
 
     public void updatePrivacyTcfRequestsMetric(int version) {
-        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
-        versionMetrics.incCounter(MetricName.requests);
+        incCounter(MetricName.privacy_tcf_requests, new MetricTag("tcf", String.valueOf(version)));
     }
 
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
-        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
-
         final MetricName metricName = inEea == null
-                ? MetricName.unknown_geo
-                : inEea ? MetricName.in_geo : MetricName.out_geo;
+                ? MetricName.privacy_tcf_unknown_geo
+                : inEea ? MetricName.privacy_tcf_in_geo : MetricName.privacy_tcf_out_geo;
 
-        versionMetrics.incCounter(metricName);
+        incCounter(metricName, new MetricTag("tcf", String.valueOf(version)));
     }
 
     public void updatePrivacyTcfVendorListMissingMetric(int version) {
@@ -455,8 +404,11 @@ public class Metrics extends UpdatableMetrics {
     }
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
-        final TcfMetrics tcfMetrics = privacy().tcf();
-        tcfMetrics.fromVersion(version).vendorList().incCounter(metricName);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("tcf", String.valueOf(version)),
+            new MetricTag("status", metricName.toString())
+        );
+        incCounter(MetricName.privacy_tcf_vendorlist, metricTags);
     }
 
     public void updateConnectionAcceptErrors() {
@@ -468,39 +420,37 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void createDatabaseCircuitBreakerGauge(BooleanSupplier stateSupplier) {
-        forCircuitBreakerType(MetricName.db)
-                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+        createGauge(MetricName.cb_db_open, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void createHttpClientCircuitBreakerGauge(String name, BooleanSupplier stateSupplier) {
-        forCircuitBreakerType(MetricName.http)
-                .forName(name)
-                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+        createGauge(MetricName.cb_http_open,
+                () -> stateSupplier.getAsBoolean() ? 1 : 0, new MetricTag("name", name));
     }
 
     public void removeHttpClientCircuitBreakerGauge(String name) {
-        forCircuitBreakerType(MetricName.http).forName(name).removeMetric(MetricName.opened);
+        removeMetric(MetricName.cb_http_open, new MetricTag("name", name));
     }
 
     public void createHttpClientCircuitBreakerNumberGauge(LongSupplier numberSupplier) {
-        forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
+        createGauge(MetricName.cb_http_existing, numberSupplier);
     }
 
     public void updatePlannerRequestMetric(boolean successful) {
-        pgMetrics().incCounter(MetricName.planner_requests);
+        incCounter(MetricName.pg_planner_requests);
         if (successful) {
-            pgMetrics().incCounter(MetricName.planner_request_successful);
+            incCounter(MetricName.pg_planner_request_successful);
         } else {
-            pgMetrics().incCounter(MetricName.planner_request_failed);
+            incCounter(MetricName.pg_planner_request_failed);
         }
     }
 
     public void updateDeliveryRequestMetric(boolean successful) {
-        pgMetrics().incCounter(MetricName.delivery_requests);
+        incCounter(MetricName.pg_delivery_requests);
         if (successful) {
-            pgMetrics().incCounter(MetricName.delivery_request_successful);
+            incCounter(MetricName.pg_delivery_request_successful);
         } else {
-            pgMetrics().incCounter(MetricName.delivery_request_failed);
+            incCounter(MetricName.pg_delivery_request_failed);
         }
     }
 
@@ -527,15 +477,15 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateLineItemsNumberMetric(long count) {
-        pgMetrics().incCounter(MetricName.planner_lineitems_received, count);
+        incCounter(MetricName.pg_planner_lineitems_received, count);
     }
 
     public void updatePlannerRequestTime(long millis) {
-        pgMetrics().updateTimer(MetricName.planner_request_time, millis);
+        updateTimer(MetricName.pg_planner_request_time, millis);
     }
 
     public void updateDeliveryRequestTime(long millis) {
-        pgMetrics().updateTimer(MetricName.delivery_request_time, millis);
+        updateTimer(MetricName.pg_delivery_request_time, millis);
     }
 
     public void updateGeoLocationMetric(boolean successful) {
@@ -548,8 +498,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void createGeoLocationCircuitBreakerGauge(BooleanSupplier stateSupplier) {
-        forCircuitBreakerType(MetricName.geo)
-                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+        createGauge(MetricName.cb_geo_open, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateStoredRequestMetric(boolean found) {
@@ -569,42 +518,65 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.ok, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("account", accountId),
+            new MetricTag("result", "ok")
+        );
+        updateTimer(MetricName.prebid_cache_requests, timeElapsed, metricTags);
     }
 
     public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.err, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("account", accountId),
+            new MetricTag("result", "err")
+        );
+        updateTimer(MetricName.prebid_cache_requests, timeElapsed, metricTags);
     }
 
     public void updateCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
-        cache().creativeSize().updateHistogram(creativeType, creativeSize);
-        forAccount(accountId).cache().creativeSize().updateHistogram(creativeType, creativeSize);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("account", accountId),
+            new MetricTag("creative_type", creativeType.toString())
+        );
+        updateHistogram(MetricName.prebid_cache_creative_size, creativeSize, metricTags);
     }
 
     public void updateTimeoutNotificationMetric(boolean success) {
+        MetricTag metricTag = new MetricTag("status", "failed");
+
         if (success) {
-            timeoutNotificationMetrics.incCounter(MetricName.ok);
-        } else {
-            timeoutNotificationMetrics.incCounter(MetricName.failed);
+            metricTag = new MetricTag("status", "ok");
         }
+
+        incCounter(MetricName.timeout_notifications, metricTag);
     }
 
     public void createCurrencyRatesGauge(BooleanSupplier stateSupplier) {
-        currencyRates().createGauge(MetricName.stale, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+        createGauge(MetricName.currency_rates_stale, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateSettingsCacheRefreshTime(MetricName cacheType, MetricName refreshType, long timeElapsed) {
-        forSettingsCacheType(cacheType).forRefreshType(refreshType).updateTimer(MetricName.db_query_time, timeElapsed);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("cache_type", cacheType.toString()),
+            new MetricTag("refresh_type", refreshType.toString())
+        );
+        updateTimer(MetricName.settings_cache_refresh_db_query_time, timeElapsed, metricTags);
     }
 
     public void updateSettingsCacheRefreshErrorMetric(MetricName cacheType, MetricName refreshType) {
-        forSettingsCacheType(cacheType).forRefreshType(refreshType).incCounter(MetricName.err);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("cache_type", cacheType.toString()),
+            new MetricTag("refresh_type", refreshType.toString())
+        );
+        incCounter(MetricName.settings_cache_refresh_err, metricTags);
     }
 
     public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
-        forSettingsCacheType(cacheType).incCounter(event);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("cache_type", cacheType.toString()),
+            new MetricTag("event", event.toString())
+        );
+        incCounter(MetricName.settings_cache_account, metricTags);
     }
 
     public void updateHooksMetrics(
@@ -615,15 +587,18 @@ public class Metrics extends UpdatableMetrics {
             Long executionTime,
             ExecutionAction action) {
 
-        final HookImplMetrics hookImplMetrics = hooks().module(moduleCode).stage(stage).hookImpl(hookImplCode);
+        List<MetricTag> metricTags = Arrays.asList(
+            new MetricTag("module", moduleCode),
+            new MetricTag("stage", stage.toString()),
+            new MetricTag("hook", hookImplCode),
+            new MetricTag("action", HookMetricMapper.fromAction(action).toString()));
 
-        hookImplMetrics.incCounter(MetricName.call);
         if (status == ExecutionStatus.success) {
-            hookImplMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+            incCounter(MetricName.module_calls, metricTags, "status", "success");
         } else {
-            hookImplMetrics.incCounter(HookMetricMapper.fromStatus(status));
+            incCounter(MetricName.module_calls, metricTags, "status", "failure");
         }
-        hookImplMetrics.updateTimer(MetricName.duration, executionTime);
+        updateTimer(MetricName.module_calls, executionTime);
     }
 
     public void updateAccountHooksMetrics(
@@ -633,20 +608,25 @@ public class Metrics extends UpdatableMetrics {
             ExecutionAction action) {
 
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final ModuleMetrics accountModuleMetrics = forAccount(account.getId()).hooks().module(moduleCode);
+            List<MetricTag> metricTags = Arrays.asList(
+                new MetricTag("account", account.getId()),
+                new MetricTag("module", moduleCode),
+                new MetricTag("action", HookMetricMapper.fromAction(action).toString()));
 
-            accountModuleMetrics.incCounter(MetricName.call);
             if (status == ExecutionStatus.success) {
-                accountModuleMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+                incCounter(MetricName.account_module_calls, metricTags, "status", "success");
             } else {
-                accountModuleMetrics.incCounter(MetricName.failure);
+                incCounter(MetricName.account_module_calls, metricTags, "status", "failure");
             }
         }
     }
 
     public void updateAccountModuleDurationMetric(Account account, String moduleCode, Long executionTime) {
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(account.getId()).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
+            List<MetricTag> metricTags = Arrays.asList(
+                new MetricTag("account", account.getId()),
+                new MetricTag("module", moduleCode));
+            updateTimer(MetricName.account_module_calls, executionTime, metricTags);
         }
     }
 

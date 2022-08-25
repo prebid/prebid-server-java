@@ -22,7 +22,6 @@ import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -274,7 +273,7 @@ public class PriceFloorFetcher {
                                                                 String fetchUrl,
                                                                 String accountId) {
 
-        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+        metrics.updatePriceFloorFetchMetric();
 
         final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {

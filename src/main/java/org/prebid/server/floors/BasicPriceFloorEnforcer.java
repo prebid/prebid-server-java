@@ -22,7 +22,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -208,7 +207,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                     .formatted(bidRequest.getId(), e.getMessage());
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+            metrics.updatePriceFloorGeneralAlertsMetric();
             errors.add(BidderError.badServerResponse("Price floors enforcement failed: " + e.getMessage()));
 
             return null;

@@ -35,7 +35,6 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -143,7 +142,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             }
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+            metrics.updatePriceFloorGeneralAlertsMetric();
         }
 
         return null;
