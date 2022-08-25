@@ -49,7 +49,7 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final long TIMEOUT = 10000;
     private static final int RETRY_COUNT = 2;
     private static final long RETRY_INTERVAL = 2000;
-    private static final RetryPolicy RETRY_POLICY = FixedIntervalRetryPolicy.of(RETRY_INTERVAL, RETRY_COUNT);
+    private static final RetryPolicy RETRY_POLICY = FixedIntervalRetryPolicy.limited(RETRY_INTERVAL, RETRY_COUNT);
     private static final long UPDATE_INTERVAL = 2000000;
     private static final String SOURCE_URL = "https://example.com";
     private static final String FILE_PATH = String.join(File.separator, "fake", "path", "to", "file.pdf");

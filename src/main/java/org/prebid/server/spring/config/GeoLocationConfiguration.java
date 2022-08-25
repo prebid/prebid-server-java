@@ -83,7 +83,7 @@ public class GeoLocationConfiguration {
                     properties.getDownloadUrl(),
                     properties.getSaveFilepath(),
                     properties.getTmpFilepath(),
-                    FixedIntervalRetryPolicy.withLimit(properties.getRetryIntervalMs(), properties.getRetryCount()),
+                    FixedIntervalRetryPolicy.limited(properties.getRetryIntervalMs(), properties.getRetryCount()),
                     properties.getTimeoutMs(),
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),

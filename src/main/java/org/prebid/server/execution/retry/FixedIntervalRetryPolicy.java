@@ -11,7 +11,7 @@ public class FixedIntervalRetryPolicy implements MakeRetryPolicy {
 
     Integer retriesLeft;
 
-    public static FixedIntervalRetryPolicy withLimit(long delay, int retryLimit) {
+    public static FixedIntervalRetryPolicy limited(long delay, int retryLimit) {
         return new FixedIntervalRetryPolicy(delay, retryLimit);
     }
 
@@ -26,7 +26,7 @@ public class FixedIntervalRetryPolicy implements MakeRetryPolicy {
         }
 
         return retriesLeft - 1 > 0
-                ? withLimit(delay, retriesLeft - 1)
+                ? limited(delay, retriesLeft - 1)
                 : NoRetryPolicy.instance();
     }
 }
