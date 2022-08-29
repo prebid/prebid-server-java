@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
+import com.iab.openrtb.request.SupplyChain;
 import lombok.Value;
 
 import java.util.List;
@@ -8,8 +8,7 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.ext.prebid.schains
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtRequestPrebidSchain {
 
     /**
@@ -20,6 +19,6 @@ public class ExtRequestPrebidSchain {
     /**
      * Defines the contract for bidrequest.ext.prebid.schains[i].schain
      */
-    ExtSourceSchain schain;
+    SupplyChain schain;
 }
 

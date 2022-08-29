@@ -1,5 +1,6 @@
 package org.prebid.server.floors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -550,10 +551,17 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .data(givenFloorData(floorData -> floorData
                         .modelGroups(singletonList(givenModelGroup(identity()))))));
 
+        final JsonNode impFloorsNode = mapper.valueToTree(ExtImpPrebidFloors.of(
+                null, null, null, BigDecimal.TEN, "CUR"));
+        final ObjectNode givenImpExt = mapper.createObjectNode();
+        final ObjectNode givenImpExtPrebid = mapper.createObjectNode();
+        givenImpExtPrebid.set("floors", impFloorsNode);
+        givenImpExt.set("prebid", givenImpExtPrebid);
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(identity()),
                 givenBidRequest(
-                        request -> request.imp(singletonList(givenImp(identity()))),
+                        request -> request.imp(singletonList(givenImp(
+                                impBuilder -> impBuilder.ext(givenImpExt)))),
                         requestFloors));
 
         given(floorResolver.resolve(any(), any(), any(), any()))
@@ -566,7 +574,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final ObjectNode ext = jacksonMapper.mapper().createObjectNode();
         final ObjectNode extPrebid = jacksonMapper.mapper().createObjectNode();
         final ObjectNode extPrebidFloors = jacksonMapper.mapper().valueToTree(
-                ExtImpPrebidFloors.of("rule", BigDecimal.ONE, BigDecimal.TEN));
+                ExtImpPrebidFloors.of("rule", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN, "CUR"));
 
         assertThat(extractImps(result))
                 .containsOnly(givenImp(imp -> imp

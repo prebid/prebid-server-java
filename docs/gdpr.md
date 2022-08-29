@@ -6,7 +6,7 @@ Prebid Server does not use this ID for any other reason.
 
 ## IDs during Auction
 
-The [`/openrtb2/auction`](../endpoints/openrtb2/auction.md#gdpr) endpoint accepts `user.regs.gdpr` and `user.ext.consent` fields,
+The [`/openrtb2/auction`](../endpoints/openrtb2/auction.md#gdpr) endpoint accepts `user.regs.gdpr` and `user.consent` fields,
 [as recommended by the IAB](https://iabtechlab.com/wp-content/uploads/2018/02/OpenRTB_Advisory_GDPR_2018-02.pdf).
 
 ## IDs during Cookie Syncs

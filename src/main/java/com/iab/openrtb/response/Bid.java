@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * A {@link SeatBid} object contains one or more Bid objects, each of which
+ * A {@link SeatBid} object contains one or more {@link Bid} objects, each of which
  * relates to a specific impression in the bid request via the {@code impid}
  * attribute and constitutes an offer to buy that impression for a given
  * {@code price}.
@@ -18,12 +18,12 @@ import java.util.List;
 public class Bid {
 
     /**
-     * Bidder generated bid ID to assist with logging/tracking. (required)
+     * Bidder generated bid ID to assist with logging/tracking. <p/> (required)
      */
     String id;
 
     /**
-     * ID of the Imp object in the related bid request. (required)
+     * ID of the Imp object in the related bid request. <p/> (required)
      */
     String impid;
 
@@ -32,7 +32,7 @@ public class Bid {
      * impression only. Note that while the type indicates float, Integer math
      * is highly recommended when handling currencies (e.g., BigDecimal in
      * Java).
-     * (required)
+     * <p/> (required)
      */
     BigDecimal price;
 
@@ -81,9 +81,12 @@ public class Bid {
     List<String> adomain;
 
     /**
-     * A platform-specific application identifier intended to be unique to the
-     * app and independent of the exchange. On Android, this should be a bundle
-     * or package name (e.g., com.foo.mygame). On iOS, it is a numeric ID.
+     * The store ID of the app in an app store (e.g., Apple App Store, Google Play).
+     * See <a href="https://iabtechlab.com/wp-content/uploads/2020/08/IAB-Tech-Lab-OTT-store-assigned-App-Identification-Guidelines-2020.pdf">
+     * OTT/CTV Store Assigned App Identification Guidelines</a> for more details about
+     * expected strings for CTV app stores. For mobile apps in Google Play Store, these
+     * should be bundle or package names (e.g. com.foo.mygame). For apps in Apple App
+     * Store, these should be a numeric ID.
      */
     String bundle;
 
@@ -100,45 +103,74 @@ public class Bid {
     String cid;
 
     /**
-     * Creative ID to assist with ad quality checking. tactic String Tactic ID
-     * to enable buyers to label bids for reporting to the exchange the tactic
-     * through which their bid was submitted. The specific usage and meaning of
-     * the tactic ID should be communicated between buyer and exchanges a
-     * priori.
+     * Creative ID to assist with ad quality checking.
      */
     String crid;
 
     /**
-     * IAB content categories of the creative. Refer to List 5.1.
+     * Tactic ID to enable buyers to label bids for reporting to the
+     * exchange the tactic through which their bid was submitted.
+     * The specific usage and meaning of the tactic ID should be
+     * communicated between buyer and exchanges <em>a priori</em>.
+     */
+    String tactic;
+
+    /**
+     * The taxonomy in use. Refer to the AdCOM 1.0 list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
+
+    /**
+     * IAB content categories of the creative. The taxonomy to be used is
+     * defined by the cattax field. If no cattax field is supplied IAB
+     * Content Category Taxonomy 1.0 is assumed.
      */
     List<String> cat;
 
     /**
-     * Set of attributes describing the creative. Refer to List 5.3.
+     * Set of attributes describing the creative. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--creative-attributes-">
+     * List: Creative Attributes</a> in AdCOM 1.0.
      */
     List<Integer> attr;
 
     /**
-     * API required by the markup if applicable. Refer to List 5.6.
+     * List of supported APIs for the markup. If an API is not explicitly
+     * listed, it is assumed to be unsupported. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--api-frameworks-">
+     * List: API Frameworks</a> in AdCOM 1.0.
+     */
+    List<Integer> apis;
+
+    /**
+     * API required by the markup if applicable. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--api-frameworks-">
+     * List: API Frameworks</a> in AdCOM 1.0.
      */
     Integer api;
 
     /**
-     * Video response protocol of the markup if applicable. Refer to List 5.8.
+     * Video response protocol of the markup if applicable. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--creative-subtypes---audiovideo-">
+     * List: Creative Subtypes - Audio/Video</a> in AdCOM 1.0.
      */
     Integer protocol;
 
     /**
-     * Creative media rating per IQG guidelines. Refer to List 5.19.
+     * Creative media rating per IQG guidelines. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--media-ratings-">
+     * List: Media Ratings</a> in AdCOM 1.0.
      */
     Integer qagmediarating;
 
     /**
-     * Language of the creative using ISO-639-1-alpha-2. The non- standard code
-     * “xx” may also be used if the creative has no linguistic content (e.g., a
-     * banner with just a company logo).
+     * Language of the creative using ISO-639-1-alpha-2. The non-
+     * standard code “xx” may also be used if the creative has no
+     * linguistic content (e.g., a banner with just a company logo).
+     * Only one of language or langb should be present.
      */
     String language;
+
+    /**
+     * Language of the creative using IETF BCP 47. Only one of language or langb should be present.
+     */
+    String langb;
 
     /**
      * Reference to the deal.id from the bid request if this bid pertains to a
@@ -173,6 +205,31 @@ public class Bid {
      * between the auction and the actual impression.
      */
     Integer exp;
+
+    /**
+     * Duration of the video or audio creative in seconds.
+     */
+    Integer dur;
+
+    /**
+     * Type of the creative markup so that it can properly be
+     * associated with the right sub-object of the BidRequest.Imp.
+     * <p/> Values:
+     * <p/> 1 = Banner,
+     * <p/> 2 = Video,
+     * <p/> 3 = Audio,
+     * <p/> 4 = Native
+     */
+    Integer mtype;
+
+    /**
+     * Indicates that the bid response is only eligible for a specific
+     * position within a video or audio ad pod (e.g. first position,
+     * last position, or any). Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--slot-position-in-pod-">
+     * List: Slot Position in Pod</a> in AdCOM 1.0 for guidance on the
+     * use of this field.
+     */
+    Integer slotinpod;
 
     /**
      * Placeholder for bidder-specific extensions to OpenRTB.

@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
@@ -42,6 +41,7 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIT
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
+import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
@@ -514,7 +514,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with domain"
         def channel = WEB
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.channel = new Channel(name: channel)
+            ext.prebid.channel = new Channel().tap {
+                name = channel
+            }
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"

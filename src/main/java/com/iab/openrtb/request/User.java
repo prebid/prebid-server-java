@@ -18,18 +18,18 @@ import java.util.List;
 public class User {
 
     /**
-     * Exchange-specific ID for the user. At least one of id or buyeruid is
-     * recommended.
+     * Exchange-specific ID for the user.
      */
     String id;
 
     /**
      * Buyer-specific ID for the user as mapped by the exchange for the buyer.
-     * At least one of buyeruid or id is recommended.
      */
     String buyeruid;
 
-    /** Year of birth as a 4-digit integer. */
+    /**
+     * Year of birth as a 4-digit integer.
+     */
     Integer yob;
 
     /**
@@ -38,10 +38,15 @@ public class User {
      */
     String gender;
 
-    String language;
-
-    /** Comma separated list of keywords, interests, or intent. */
+    /**
+     * Comma separated list of keywords, interests, or intent. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
     String keywords;
+
+    /**
+     * Array of keywords about the user. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
+    List<String> kwarray;
 
     /**
      * Optional feature to pass bidder data that was set in the exchange’s
@@ -52,17 +57,31 @@ public class User {
     String customdata;
 
     /**
-     * Location of the user’s home base defined by a Geo object (Section
+     * Location of the user’s home base defined by a {@link Geo} object (Section
      * 3.2.19). This is not necessarily their current location.
      */
     Geo geo;
 
     /**
-     * Additional user data. Each Data object (Section 3.2.21) represents a
+     * Additional user data. Each {@link Data} object (Section 3.2.21) represents a
      * different data source.
      */
     List<Data> data;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * When GDPR regulations are in effect this attribute contains
+     * the Transparency and Consent Framework’s <a href="https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20Consent%20string%20and%20vendor%20list%20formats%20v2.md">Consent String</a>
+     * data structure.
+     */
+    String consent;
+
+    /**
+     * Details for support of a standard protocol for multiple third party identity providers (Section 3.2.27).
+     */
+    List<Eid> eids;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ExtUser ext;
 }

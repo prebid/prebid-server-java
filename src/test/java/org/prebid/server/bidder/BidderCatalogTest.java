@@ -87,6 +87,7 @@ public class BidderCatalogTest {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
+                null,
                 true,
                 null,
                 null,
@@ -163,6 +164,7 @@ public class BidderCatalogTest {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
+                null,
                 true,
                 null,
                 null,

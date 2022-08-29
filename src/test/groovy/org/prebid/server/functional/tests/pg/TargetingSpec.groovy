@@ -52,7 +52,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.PAGE_POSITION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -176,20 +176,20 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType | bidRequest
+        targetingType  | bidRequest
 
-        REFERRER      | BidRequest.defaultBidRequest.tap {
+        REFERRER       | BidRequest.defaultBidRequest.tap {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
+        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
             app = new App(id: PBSUtils.randomString,
                     bundle: stringTargetingValue)
         }
 
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+        UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                language = stringTargetingValue
+                buyeruid = stringTargetingValue
             }
         }
     }

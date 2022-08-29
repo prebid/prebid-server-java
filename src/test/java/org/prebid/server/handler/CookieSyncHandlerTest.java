@@ -642,6 +642,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(
                         true,
+                        null,
                         true,
                         null,
                         null,
@@ -717,6 +718,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(
                         true,
+                        null,
                         true,
                         null,
                         null,
@@ -759,6 +761,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(
                         true,
+                        null,
                         true,
                         null,
                         null,
@@ -1501,19 +1504,21 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
-        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(
-                true,
-                true,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                2,
-                true,
-                false,
-                CompressionType.NONE));
+        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(
+                BidderInfo.create(
+                        true,
+                        null,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        2,
+                        true,
+                        false,
+                        CompressionType.NONE));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 

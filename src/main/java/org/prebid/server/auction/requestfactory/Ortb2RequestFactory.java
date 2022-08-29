@@ -345,7 +345,7 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 100);
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 0.01);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 

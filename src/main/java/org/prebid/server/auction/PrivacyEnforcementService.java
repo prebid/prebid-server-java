@@ -63,7 +63,6 @@ public class PrivacyEnforcementService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private static final User EMPTY_USER = User.builder().build();
-    private static final ExtUser EMPTY_USER_EXT = ExtUser.builder().build();
 
     private final BidderCatalog bidderCatalog;
     private final PrivacyExtractor privacyExtractor;
@@ -319,6 +318,7 @@ public class PrivacyEnforcementService {
                     .id(null)
                     .buyeruid(null)
                     .geo(maskGeoDefault(user.getGeo()))
+                    .eids(null)
                     .ext(maskUserExt(user.getExt()))
                     .build());
         }
@@ -364,6 +364,7 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .buyeruid(null)
                     .geo(maskGeoForCoppa(user.getGeo()))
+                    .eids(null)
                     .ext(maskUserExt(user.getExt()))
                     .build());
         }
@@ -502,8 +503,8 @@ public class PrivacyEnforcementService {
         if (user.getId() != null || user.getBuyeruid() != null) {
             return true;
         }
-        final ExtUser extUser = user.getExt();
-        return extUser != null && CollectionUtils.isNotEmpty(extUser.getEids());
+
+        return CollectionUtils.isNotEmpty(user.getEids());
     }
 
     /**
@@ -587,6 +588,7 @@ public class PrivacyEnforcementService {
                 userBuilder
                         .id(null)
                         .buyeruid(null)
+                        .eids(null)
                         .ext(maskUserExt(user.getExt()));
             }
 
@@ -648,7 +650,7 @@ public class PrivacyEnforcementService {
      */
     private static ExtUser maskUserExt(ExtUser userExt) {
         return userExt != null
-                ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
+                ? nullIfEmpty(userExt.toBuilder().digitrust(null).build())
                 : null;
     }
 
@@ -656,7 +658,7 @@ public class PrivacyEnforcementService {
      * Returns null if {@link ExtUser} has no data in case of masking was applied.
      */
     private static ExtUser nullIfEmpty(ExtUser userExt) {
-        return Objects.equals(userExt, EMPTY_USER_EXT) ? null : userExt;
+        return userExt.isEmpty() ? null : userExt;
     }
 
     /**

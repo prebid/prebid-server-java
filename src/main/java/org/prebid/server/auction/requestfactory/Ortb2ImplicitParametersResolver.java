@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
@@ -43,8 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -413,13 +412,13 @@ public class Ortb2ImplicitParametersResolver {
         final String tid = source != null ? source.getTid() : null;
         final String populatedTid = populateSourceTid(tid);
 
-        final ExtSource sourceExt = source != null ? source.getExt() : null;
-        final ExtSource populatedSourceExt = populateExtSource(sourceExt, extRequest);
+        final SupplyChain supplyChain = source != null ? source.getSchain() : null;
+        final SupplyChain populatedSupplyChain = populateSupplyChain(supplyChain, extRequest);
 
-        if (ObjectUtils.anyNotNull(populatedTid, populatedSourceExt)) {
+        if (ObjectUtils.anyNotNull(populatedTid, populatedSupplyChain)) {
             return (source != null ? source.toBuilder() : Source.builder())
                     .tid(populatedTid != null ? populatedTid : tid)
-                    .ext(populatedSourceExt != null ? populatedSourceExt : sourceExt)
+                    .schain(populatedSupplyChain != null ? populatedSupplyChain : supplyChain)
                     .build();
         }
 
@@ -436,29 +435,16 @@ public class Ortb2ImplicitParametersResolver {
         return StringUtils.isNotEmpty(generatedId) ? generatedId : null;
     }
 
-    private ExtSource populateExtSource(ExtSource extSource, ExtRequest extRequest) {
-        final ExtSourceSchain extSourceSchain = extSource != null ? extSource.getSchain() : null;
-        if (extSourceSchain != null || extRequest == null) {
+    private SupplyChain populateSupplyChain(SupplyChain supplyChain, ExtRequest extRequest) {
+        if (supplyChain != null || extRequest == null) {
             return null;
         }
 
-        final ExtSourceSchain extRequestSchain;
         try {
-            extRequestSchain = mapper.mapper().convertValue(extRequest.getProperty("schain"), ExtSourceSchain.class);
+            return mapper.mapper().convertValue(extRequest.getProperty("schain"), SupplyChain.class);
         } catch (IllegalArgumentException e) {
             return null;
         }
-
-        return extRequestSchain != null ? modifyExtSource(extSource, extRequestSchain) : null;
-    }
-
-    private static ExtSource modifyExtSource(ExtSource extSource, ExtSourceSchain extSourceSchain) {
-        final ExtSource modifiedExtSource = ExtSource.of(extSourceSchain);
-        if (extSource != null) {
-            modifiedExtSource.addProperties(extSource.getProperties());
-        }
-
-        return modifiedExtSource;
     }
 
     private List<Imp> populateImps(BidRequest bidRequest, HttpRequestContext httpRequest) {
