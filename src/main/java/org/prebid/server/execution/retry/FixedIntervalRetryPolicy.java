@@ -5,7 +5,7 @@ import lombok.experimental.Accessors;
 
 @Value
 @Accessors(fluent = true)
-public class FixedIntervalRetryPolicy implements MakeRetryPolicy {
+public class FixedIntervalRetryPolicy implements Retryable {
 
     long delay;
 
@@ -27,7 +27,7 @@ public class FixedIntervalRetryPolicy implements MakeRetryPolicy {
 
         return retriesLeft - 1 > 0
                 ? limited(delay, retriesLeft - 1)
-                : NoRetryPolicy.instance();
+                : NonRetryable.instance();
     }
 }
 

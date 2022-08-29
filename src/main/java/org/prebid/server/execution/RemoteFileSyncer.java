@@ -18,7 +18,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.Pump;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.retry.MakeRetryPolicy;
+import org.prebid.server.execution.retry.Retryable;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.util.HttpUtil;
 
@@ -107,7 +107,7 @@ public class RemoteFileSyncer {
         return deleteFileIfExists(saveFilePath)
                 .compose(ignored -> syncRemoteFiles(retryPolicy))
                 .recover(error -> Future.failedFuture(new PreBidException(
-                        "Corrupted file %s cant be deleted. Please check permission or delete manually."
+                        "Corrupted file %s can't be deleted. Please check permission or delete manually."
                                 .formatted(saveFilePath), error)));
     }
 
@@ -143,7 +143,7 @@ public class RemoteFileSyncer {
     }
 
     private Future<Void> retrySync(RetryPolicy retryPolicy) {
-        if (retryPolicy instanceof MakeRetryPolicy policy) {
+        if (retryPolicy instanceof Retryable policy) {
             logger.info("Retrying file download from {0} with policy: {1}", downloadUrl, retryPolicy);
 
             final Promise<Void> promise = Promise.promise();

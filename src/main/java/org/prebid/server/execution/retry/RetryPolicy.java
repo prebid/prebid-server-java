@@ -1,4 +1,4 @@
 package org.prebid.server.execution.retry;
 
-public sealed interface RetryPolicy permits MakeRetryPolicy, NoRetryPolicy {
+public sealed interface RetryPolicy permits Retryable, NonRetryable {
 }

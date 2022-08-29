@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Accessors(fluent = true)
 @Value(staticConstructor = "of")
-public class ExponentialBackoffRetryPolicy implements MakeRetryPolicy {
+public class ExponentialBackoffRetryPolicy implements Retryable {
 
     long delay;
 

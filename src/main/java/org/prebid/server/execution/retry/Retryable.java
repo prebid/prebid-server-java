@@ -1,6 +1,6 @@
 package org.prebid.server.execution.retry;
 
-public sealed interface MakeRetryPolicy
+public sealed interface Retryable
         extends RetryPolicy
         permits ExponentialBackoffRetryPolicy, FixedIntervalRetryPolicy {
 
