@@ -25,7 +25,7 @@ public enum MetricName {
     privacy_tcf_vendorlist("privacy.tcf.vendorlist"),
     privacy_usp_specified("privacy.usp.specified"),
     privacy_usp_opt_out("privacy.usp.opt-out"),
-    privacy_coopa("privacy.coopa"),
+    privacy_coppa("privacy.coppa"),
     privacy_lmt("privacy.lmt"),
 
     // connection
@@ -50,6 +50,8 @@ public enum MetricName {
 
     // database
     db_query_time,
+
+    opened,
 
     // geo location
     geolocation_requests,

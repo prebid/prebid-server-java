@@ -60,7 +60,14 @@ public class CollectedMetricsHandler implements Handler<RoutingContext> {
         return meterRegistry.getMeters()
                     .stream()
                     .map(m -> new AbstractMap.SimpleEntry<>(
-                        m.getId().getName(),
+                        String.format(
+                            "%s{%s}",
+                            m.getId().getName(),
+                            m.getId().getTags()
+                                .stream()
+                                .map(t -> String.format("%s=%s", t.getKey(), t.getValue()))
+                                .collect(Collectors.joining(","))
+                        ),
                         (Number) m.match(
                             getGaugeValue,
                             getCounterValue,

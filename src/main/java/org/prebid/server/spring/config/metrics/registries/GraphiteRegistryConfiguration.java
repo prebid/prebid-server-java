@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config.metrics;
+package org.prebid.server.spring.config.metrics.registries;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;

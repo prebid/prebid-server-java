@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config.metrics;
+package org.prebid.server.spring.config.metrics.registries;
 
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
