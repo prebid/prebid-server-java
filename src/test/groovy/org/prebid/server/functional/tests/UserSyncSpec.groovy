@@ -12,7 +12,7 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class UserSyncSpec extends BaseSpec {
 
-    def "PBS should return usersync url with '#userSyncFormat' for #userSyncFormat when format-override absent"() {
+    def "PBS should return usersync url with '#formatParam' format parameter for #userSyncFormat when format-override absent"() {
         given: "Pbs config with usersync.#userSyncFormat"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
@@ -24,13 +24,13 @@ class UserSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain format blank"
+        then: "Response should contain '#formatParam' format parameter"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus?.userSync?.type == userSyncFormat
-        assert HttpUtil.decodeUrl(bidderStatus.userSync?.url).contains("f=$userSyncFormat")
+        assert HttpUtil.decodeUrl(bidderStatus.userSync?.url).contains("f=$formatParam")
 
         where:
-        userSyncFormat || userSyncFormat
+        userSyncFormat || formatParam
         REDIRECT       || PIXEL.name
         IFRAME         || BLANK.name
     }
