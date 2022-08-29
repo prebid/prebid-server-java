@@ -8,6 +8,7 @@ import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
 import org.prebid.server.functional.model.db.typeconverter.ImpConfigTypeConverter
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 
 import static javax.persistence.GenerationType.IDENTITY
@@ -21,9 +22,30 @@ class StoredImp {
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "id")
     Integer id
-    @Column(name = "uuid")
-    String uuid
-    @Column(name = "config")
+    @Column(name = "accountId")
+    String accountId
+    @Column(name = "impid")
+    String impReqId
+    @Column(name = "impData")
     @Convert(converter = ImpConfigTypeConverter)
-    Imp config
+    Imp impData
+
+    static StoredImp getDbStoredImp(BidRequest bidRequest, Imp storedImp) {
+        new StoredImp().tap {
+            if (bidRequest?.site?.publisher?.id) {
+                accountId = bidRequest.site.publisher.id
+            } else if (bidRequest?.app?.publisher?.id) {
+                accountId = bidRequest.app.publisher.id
+            } else if (storedImp?.ext?.prebid?.bidder?.rubicon?.accountId) {
+                accountId = storedImp.ext.prebid.bidder.rubicon.accountId
+            }
+
+            if (bidRequest?.imp[0]?.ext?.prebid?.storedRequest?.id) {
+                it.impReqId = bidRequest.imp[0].ext.prebid.storedRequest.id
+            } else if (storedImp?.id) {
+                it.impReqId = storedImp.id
+            }
+            impData = storedImp
+        }
+    }
 }
