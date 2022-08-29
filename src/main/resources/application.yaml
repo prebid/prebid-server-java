@@ -108,6 +108,7 @@ data-center: dataCenter
 profile: profile
 adapter-defaults:
   enabled: false
+  ortb-version: "2.5"
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -169,6 +170,7 @@ settings:
   enforce-valid-account: false
   database:
     pool-size: 20
+    provider-class: c3p0
   targeting:
     truncate-attr-chars: 20
   default-account-config: >

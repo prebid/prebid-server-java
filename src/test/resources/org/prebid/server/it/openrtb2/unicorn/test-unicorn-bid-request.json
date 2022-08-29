@@ -12,21 +12,17 @@
       "ext": {
         "bidder": {
           "placementId": "placementId",
-          "publisherId": 123,
+          "publisherId": "123",
           "mediaId": "mediaTestId",
           "accountId": 456
         }
       }
     }
   ],
-  "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com",
+  "app": {
+    "id": "mediaTestId",
     "publisher": {
-      "domain": "example.com"
-    },
-    "ext": {
-      "amp": 0
+      "id": "123"
     }
   },
   "device": {
@@ -52,6 +48,9 @@
   "ext": {
     "accountId": 456,
     "prebid": {
+      "channel": {
+        "name": "app"
+      },
       "pbs": {
         "endpoint": "/openrtb2/auction"
       },

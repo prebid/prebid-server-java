@@ -14,7 +14,6 @@
         "h": 600,
         "ext": {
           "rp": {
-            "size_id": 8,
             "mime": "text/html"
           }
         }

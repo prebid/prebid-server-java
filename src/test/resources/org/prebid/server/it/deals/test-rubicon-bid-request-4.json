@@ -12,17 +12,14 @@
         ],
         "ext": {
           "rp": {
-            "size_id": 15,
             "mime": "text/html"
           }
         }
       },
       "pmp": {
-        "private_auction": 0,
         "deals": [
           {
             "id": "dealId3",
-            "bidfloor": 0.0,
             "ext": {
               "line": {
                 "lineitemid": "lineItem3",

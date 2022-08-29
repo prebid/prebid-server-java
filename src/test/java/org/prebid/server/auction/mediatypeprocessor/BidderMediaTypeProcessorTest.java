@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
@@ -169,6 +170,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     private static BidderInfo givenBidderInfo(List<MediaType> appMediaTypes, List<MediaType> siteMediaType) {
         return BidderInfo.create(
                 true,
+                OrtbVersion.ORTB_2_6,
                 false,
                 "endpoint",
                 null,

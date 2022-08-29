@@ -61,6 +61,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
@@ -206,6 +207,10 @@ public class BidResponseCreatorTest extends VertxTest {
                         BidderResponsePayloadImpl.of(((BidderResponse) invocation.getArgument(0))
                                 .getSeatBid()
                                 .getBids()))));
+        given(hookStageExecutor.executeAllProcessedBidResponsesStage(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        HookStageExecutionResult.of(
+                        false, AllProcessedBidResponsesPayloadImpl.of(invocation.getArgument(0)))));
 
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 

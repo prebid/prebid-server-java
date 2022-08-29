@@ -64,6 +64,7 @@ LIMIT 1
 
     static Map<String, String> getDefaultBiddersConfig() {
         ["adapter-defaults.enabled"                   : "false",
+         "adapter-defaults.ortb-version"              : "2.6",
          "adapter-defaults.modifying-vast-xml-allowed": "true",
          "adapter-defaults.pbs-enforces-ccpa"         : "true"
         ].asImmutable()
@@ -72,8 +73,8 @@ LIMIT 1
     static Map<String, String> getBidderConfig(String rootUri = networkServiceContainer.rootUri) {
         ["adapters.generic.enabled"                    : "true",
          "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
-         "adapters.generic.usersync.cookie-family-name": "generic"
-        ]
+         "adapters.generic.usersync.cookie-family-name": "generic",
+         "adapters.generic.ortb-version"               : "2.6"]
     }
 
     static Map<String, String> getPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
@@ -91,7 +92,8 @@ LIMIT 1
          "settings.database.dbname"   : mysql.databaseName,
          "settings.database.user"     : mysql.username,
          "settings.database.password" : mysql.password,
-         "settings.database.pool-size": "2" // setting 2 here to leave some slack for the PBS
+         "settings.database.pool-size": "2", // setting 2 here to leave some slack for the PBS
+         "settings.database.provider-class": "hikari"
         ].asImmutable()
     }
 

@@ -3,6 +3,7 @@ package org.prebid.server.bidder;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
@@ -12,6 +13,8 @@ import java.util.List;
 public class BidderInfo {
 
     boolean enabled;
+
+    OrtbVersion ortbVersion;
 
     boolean debugAllowed;
 
@@ -34,6 +37,7 @@ public class BidderInfo {
     CompressionType compressionType;
 
     public static BidderInfo create(boolean enabled,
+                                    OrtbVersion ortbVersion,
                                     boolean debugAllowed,
                                     String endpoint,
                                     String aliasOf,
@@ -48,6 +52,7 @@ public class BidderInfo {
 
         return of(
                 enabled,
+                ortbVersion,
                 debugAllowed,
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,

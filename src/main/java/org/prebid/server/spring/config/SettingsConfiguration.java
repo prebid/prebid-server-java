@@ -139,16 +139,18 @@ public class SettingsConfiguration {
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),
                     storedRequestsDatabaseProperties.getDbname(),
-                    storedRequestsDatabaseProperties.getType().jdbcUrlSuffix);
+                    storedRequestsDatabaseProperties.getType().jdbcUrlSuffix
+                            + storedRequestsDatabaseProperties.getProviderClass().jdbcUrlSuffix);
 
             return JDBCClient.createShared(vertx, new JsonObject()
-                    .put("url", jdbcUrl)
+                    .put(storedRequestsDatabaseProperties.getProviderClass().url, jdbcUrl)
                     .put("user", storedRequestsDatabaseProperties.getUser())
                     .put("password", storedRequestsDatabaseProperties.getPassword())
                     .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
                     .put("initial_pool_size", storedRequestsDatabaseProperties.getPoolSize())
                     .put("min_pool_size", storedRequestsDatabaseProperties.getPoolSize())
-                    .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize()));
+                    .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize())
+                    .put("provider_class", storedRequestsDatabaseProperties.getProviderClass().jdbcCP));
         }
 
         @Component
@@ -174,6 +176,8 @@ public class SettingsConfiguration {
             private String user;
             @NotBlank
             private String password;
+            @NotNull
+            private DbPoolType providerClass;
         }
 
         @AllArgsConstructor
@@ -183,6 +187,16 @@ public class SettingsConfiguration {
 
             private final String jdbcDriver;
             private final String jdbcUrlPrefix;
+            private final String jdbcUrlSuffix;
+        }
+
+        @AllArgsConstructor
+        private enum DbPoolType {
+            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "&allowPublicKeyRetrieval=true"),
+            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "");
+
+            private final String jdbcCP;
+            private final String url;
             private final String jdbcUrlSuffix;
         }
     }

@@ -14,7 +14,6 @@
         "h": 600,
         "ext": {
           "rp": {
-            "size_id": 10,
             "mime": "text/html"
           }
         }
@@ -113,17 +112,11 @@
         },
         {
           "source": "pubcid",
-          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
-        }
-      ],
-      "tpid": [
-        {
-          "source": "tdid",
-          "uid": "cd96870f-f53d-4986-a08e-cd1612fb13b0"
-        },
-        {
-          "source": "liveintent.com",
-          "uid": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+          "uids": [
+            {
+              "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+            }
+          ]
         }
       ],
       "rp": {

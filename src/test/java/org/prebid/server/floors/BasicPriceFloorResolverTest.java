@@ -1,5 +1,6 @@
 package org.prebid.server.floors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -30,11 +31,13 @@ import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -66,7 +69,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
 
     @Before
     public void setUp() {
-        priceFloorResolver = new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics);
+        priceFloorResolver = new BasicPriceFloorResolver(
+                currencyConversionService,
+                countryCodeMapper,
+                metrics,
+                jacksonMapper);
     }
 
     @Test
@@ -1196,6 +1203,73 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .value("appDomain", BigDecimal.TEN)
                         .build()), givenImp(identity()), null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnEffectiveFloorMinFromImpOverRequestIfBothPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.ONE)
+                                .floorMinCur("USD")
+                                .build())
+                        .build()))
+                .build();
+        final JsonNode impFloorsNode = mapper.valueToTree(ExtImpPrebidFloors.of(
+                null, null, null, BigDecimal.TEN, "USD"));
+        final ObjectNode givenImpExt = mapper.createObjectNode();
+        final ObjectNode givenImpExtPrebid = mapper.createObjectNode();
+        givenImpExtPrebid.set("floors", impFloorsNode);
+        givenImpExt.set("prebid", givenImpExtPrebid);
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.ONE)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldEmitWarningIfRequestFloorMinCurIsDifferentFromImpFloorMinCur() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.ONE)
+                                .floorMinCur("NZD")
+                                .build())
+                        .build()))
+                .build();
+        final JsonNode impFloorsNode = mapper.valueToTree(ExtImpPrebidFloors.of(
+                null, null, null, BigDecimal.TEN, "USD"));
+        final ObjectNode givenImpExt = mapper.createObjectNode();
+        final ObjectNode givenImpExtPrebid = mapper.createObjectNode();
+        givenImpExtPrebid.set("floors", impFloorsNode);
+        givenImpExt.set("prebid", givenImpExtPrebid);
+
+        // when
+        final List<String> warnings = new ArrayList<>();
+        priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.ONE)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), warnings);
+
+        // then
+        assertThat(warnings)
+                .containsExactly("imp[].ext.prebid.floors.floorMinCur and "
+                        + "ext.prebid.floors.floorMinCur has different values");
     }
 
     @Test

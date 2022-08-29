@@ -1,11 +1,10 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ChannelType
 
 @ToString(includeNames = true, ignoreNulls = true)
-class Channel {
+class BrandVersion {
 
-    ChannelType name
-    String version
+    String brand
+    List<String> version
 }
