@@ -11,16 +11,16 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
 class AccountResolutionSpec extends BaseSpec {
 
-    def "PBS should resolve account from AMP request account when present account at AMP request"() {
+    def "PBS should prefer account from AMP request parameter during account resolution"() {
         given: "Default AMP request"
         def randomAccountId = PBSUtils.randomNumber
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             account = randomAccountId
+            tagId = PBSUtils.randomString
         }
 
         and: "Amp stored request"
@@ -40,7 +40,7 @@ class AccountResolutionSpec extends BaseSpec {
         assert bidderRequest.site.publisher.id == randomAccountId as String
     }
 
-    def "PBS should suppress top level stored request when present publisher id"() {
+    def "PBS should suppress top level stored request when publisher id is present"() {
         given: "Default bid with top level stored request"
         def bidRequest = clouseRequest.tap {
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
@@ -96,33 +96,5 @@ class AccountResolutionSpec extends BaseSpec {
         account        | accountConfig
         "not existing" | null
         "inactive"     | new AccountConfig(status: AccountStatus.INACTIVE)
-    }
-
-    def "PBS should resolve accountId from stored request imp id when imp stored request is present"() {
-        given: "BidRequest with imp stored request id and without publisher id and imp[0].id"
-        def storedRequestId = PBSUtils.randomString
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
-            imp[0].ext.prebid.bidder.generic = null
-            imp[0].id = null
-            site.publisher.id = null
-        }
-
-        and: "Stored imp with stored request id"
-        def storedImp = BidRequest.getDefaultBidRequest().imp[0].tap {
-            id = storedRequestId
-        }
-
-        and: "Save stored imp in DB"
-        def storedRequest = StoredImp.getDbStoredImp(bidRequest, storedImp)
-        storedImpDao.save(storedRequest)
-
-        when: "PBS processes auction request"
-        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "BidResponse should contain imp id from imp stored request"
-        def bidResponseDebug = bidResponse?.ext?.debug
-        assert bidResponseDebug?.httpcalls[GENERIC.value]
-        assert bidResponseDebug?.resolvedRequest?.imp?.first()?.id == storedRequestId
     }
 }
