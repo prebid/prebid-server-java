@@ -1624,7 +1624,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateUserExtEidsithAdServerEidSource() {
+    public void makeHttpRequestsShouldCreateUserExtEidsWithAdServerEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
