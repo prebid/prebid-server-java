@@ -24,16 +24,16 @@ public class RequestUpdater {
     }
 
     public BidRequest update(BidRequest bidRequest) {
-        final List<String> blockedAdomain = blockedAttributes.getBadv();
-        final List<String> blockedAdvCat = blockedAttributes.getBcat();
+        final List<String> blockedAdomain = bidRequest.getBadv();
+        final List<String> blockedAdvCat = bidRequest.getBcat();
         final Integer cattax = bidRequest.getCattax();
-        final List<String> blockedApp = blockedAttributes.getBapp();
+        final List<String> blockedApp = bidRequest.getBapp();
 
         return bidRequest.toBuilder()
-                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : bidRequest.getBadv())
-                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : bidRequest.getBcat())
+                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : blockedAttributes.getBadv())
+                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : blockedAttributes.getBcat())
                 .cattax(cattax != null ? cattax : blockedAttributes.getCattaxComplement())
-                .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : bidRequest.getBapp())
+                .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : blockedAttributes.getBapp())
                 .imp(updateImps(bidRequest.getImp()))
                 .build();
     }
@@ -70,8 +70,8 @@ public class RequestUpdater {
 
         return imp.toBuilder()
                 .banner(bannerBuilder
-                        .btype(CollectionUtils.isNotEmpty(btypeForImp) ? btypeForImp : existingBtype)
-                        .battr(CollectionUtils.isNotEmpty(battrForImp) ? battrForImp : existingBattr)
+                        .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btypeForImp)
+                        .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battrForImp)
                         .build())
                 .build();
     }
