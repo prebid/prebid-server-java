@@ -1624,6 +1624,43 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateUserExtEidsithAdServerEidSource() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(Eid.of(
+                                        "adserver.org",
+                                        singletonList(Uid.of(
+                                                "adServerUid",
+                                                null,
+                                                mapper.valueToTree(Map.of("rtiPartner", "TDID")))),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> request.getUser().getExt())
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder()
+                                .eids(singletonList(Eid.of(
+                                        "adserver.org",
+                                        singletonList(Uid.of(
+                                                "adServerUid",
+                                                null,
+                                                mapper.valueToTree(Map.of("rtiPartner", "TDID")))),
+                                        null)))
+                                .build(),
+                        RubiconUserExt.builder().build()));
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateUserExtLiverampId() {
         // given
         final ExtUser extUser = ExtUser.builder()

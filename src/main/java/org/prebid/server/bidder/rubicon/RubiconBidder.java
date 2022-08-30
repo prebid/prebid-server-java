@@ -1090,6 +1090,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         if (userExtRp == null
                 && userExtData == null
+                && resolvedExtUserEids == null
                 && liverampId == null
                 && resolvedId == null
                 && Objects.equals(userBuyeruid, resolvedBuyeruid)
