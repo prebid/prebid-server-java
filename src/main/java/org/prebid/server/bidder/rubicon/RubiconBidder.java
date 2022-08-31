@@ -954,7 +954,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
 
-        final Integer resolvedSizeId = sizeId == null || sizeId == 0
+        final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
                 ? resolveVideoSizeId(video.getPlacement(), imp.getInstl())
                 : sizeId;
         validateVideoSizeId(resolvedSizeId, referer, imp.getId());
