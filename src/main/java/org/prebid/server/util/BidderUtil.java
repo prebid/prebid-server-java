@@ -69,4 +69,8 @@ public class BidderUtil {
 
         return null;
     }
+
+    public static boolean isNullOrZero(Integer value) {
+        return value == null || value == 0;
+    }
 }
