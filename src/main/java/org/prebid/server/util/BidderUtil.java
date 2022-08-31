@@ -70,7 +70,7 @@ public class BidderUtil {
         return null;
     }
 
-    public static boolean isEmptyOrZero(Integer value) {
+    public static boolean isNullOrZero(Integer value) {
         return value == null || value == 0;
     }
 }

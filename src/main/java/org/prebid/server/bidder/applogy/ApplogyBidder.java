@@ -84,7 +84,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            if (BidderUtil.isEmptyOrZero(banner.getH()) || BidderUtil.isEmptyOrZero(banner.getW())) {
+            if (BidderUtil.isNullOrZero(banner.getH()) || BidderUtil.isNullOrZero(banner.getW())) {
                 if (CollectionUtils.isEmpty(banner.getFormat())) {
                     throw new PreBidException("banner size information missing");
                 }

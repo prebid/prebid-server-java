@@ -110,7 +110,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         uriBuilder.addParameter("v", VERSION);
         uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
-        if (!BidderUtil.isEmptyOrZero(test)) {
+        if (!BidderUtil.isNullOrZero(test)) {
             uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
         }
 

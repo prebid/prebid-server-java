@@ -160,7 +160,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final Integer extSecure = impExt.getSecure();
         final Integer impSecure = imp.getSecure();
 
-        return extSecure != null && (BidderUtil.isEmptyOrZero(impSecure)) ? extSecure : impSecure;
+        return extSecure != null && (BidderUtil.isNullOrZero(impSecure)) ? extSecure : impSecure;
     }
 
     private static Banner modifyBanner(Banner impBanner, Integer extPosition) {

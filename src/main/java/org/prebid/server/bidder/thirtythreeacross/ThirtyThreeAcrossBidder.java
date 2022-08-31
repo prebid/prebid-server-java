@@ -155,8 +155,8 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (video == null) {
             return null;
         }
-        if (BidderUtil.isEmptyOrZero(video.getW())
-                || BidderUtil.isEmptyOrZero(video.getH())
+        if (BidderUtil.isNullOrZero(video.getW())
+                || BidderUtil.isNullOrZero(video.getH())
                 || CollectionUtils.isEmpty(video.getProtocols())
                 || CollectionUtils.isEmpty(video.getMimes())
                 || CollectionUtils.isEmpty(video.getPlaybackmethod())) {
@@ -178,7 +178,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (Objects.equals(productId, "instream")) {
             return 1;
         }
-        if (BidderUtil.isEmptyOrZero(videoPlacement)) {
+        if (BidderUtil.isNullOrZero(videoPlacement)) {
             return 2;
         }
         return videoPlacement;

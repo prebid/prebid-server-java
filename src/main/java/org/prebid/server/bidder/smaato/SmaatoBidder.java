@@ -132,7 +132,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final Integer yob = smaatoUserExtData.getYob();
-        if (!BidderUtil.isEmptyOrZero(yob)) {
+        if (!BidderUtil.isNullOrZero(yob)) {
             userBuilder.yob(yob);
         }
 
