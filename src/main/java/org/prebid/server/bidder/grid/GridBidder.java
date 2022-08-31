@@ -35,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -104,7 +105,7 @@ public class GridBidder implements Bidder<BidRequest> {
     private static void validateImpExt(ExtImp extImp, String impId) {
         final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
         final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
-        if (uid == null || uid == 0) {
+        if (BidderUtil.isEmptyOrZero(uid)) {
             throw new PreBidException("Empty uid in imp with id: " + impId);
         }
     }

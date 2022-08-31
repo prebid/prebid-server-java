@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -109,7 +110,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         uriBuilder.addParameter("v", VERSION);
         uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
-        if (test != null && test == 0) {
+        if (!BidderUtil.isEmptyOrZero(test)) {
             uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
         }
 
