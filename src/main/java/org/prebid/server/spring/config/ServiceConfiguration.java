@@ -21,7 +21,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
@@ -51,6 +50,8 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
@@ -643,6 +644,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             DealsProcessor dealsProcessor,
+            @Autowired(required = false) DealsService dealsService,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
@@ -670,6 +672,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
                 supplyChainResolver,

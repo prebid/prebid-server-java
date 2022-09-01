@@ -41,6 +41,10 @@ public class BidderAliases {
         return aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
     }
 
+    public boolean isSame(String bidder1, String bidder2) {
+        return Objects.equals(resolveBidder(bidder1), resolveBidder(bidder2));
+    }
+
     public Integer resolveAliasVendorId(String alias) {
         return aliasToVendorId.containsKey(alias)
                 ? aliasToVendorId.get(alias)
