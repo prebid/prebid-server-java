@@ -50,7 +50,6 @@ import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -132,7 +131,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final Integer yob = smaatoUserExtData.getYob();
-        if (!BidderUtil.isNullOrZero(yob)) {
+        if (yob != null && yob != 0) {
             userBuilder.yob(yob);
         }
 

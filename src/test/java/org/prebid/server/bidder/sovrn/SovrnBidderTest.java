@@ -72,30 +72,8 @@ public class SovrnBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
-                        .mimes(List.of())
                         .maxduration(0)
                         .minduration(0)
-                        .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required video parameter"));
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .video(Video.builder()
-                        .mimes(List.of())
-                        .maxduration(null)
-                        .minduration(null)
                         .build()));
 
         // when

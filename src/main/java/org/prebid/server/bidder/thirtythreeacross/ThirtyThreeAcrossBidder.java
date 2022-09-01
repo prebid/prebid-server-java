@@ -30,7 +30,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -155,8 +154,8 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (video == null) {
             return null;
         }
-        if (BidderUtil.isNullOrZero(video.getW())
-                || BidderUtil.isNullOrZero(video.getH())
+        if (isZeroOrNullInteger(video.getW())
+                || isZeroOrNullInteger(video.getH())
                 || CollectionUtils.isEmpty(video.getProtocols())
                 || CollectionUtils.isEmpty(video.getMimes())
                 || CollectionUtils.isEmpty(video.getPlaybackmethod())) {
@@ -170,6 +169,10 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private static boolean isZeroOrNullInteger(Integer integer) {
+        return integer == null || integer == 0;
+    }
+
     private static Integer resolveStartDelay(Integer startDelay, String productId) {
         return Objects.equals(productId, "instream") ? Integer.valueOf(0) : startDelay;
     }
@@ -178,7 +181,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (Objects.equals(productId, "instream")) {
             return 1;
         }
-        if (BidderUtil.isNullOrZero(videoPlacement)) {
+        if (isZeroOrNullInteger(videoPlacement)) {
             return 2;
         }
         return videoPlacement;
