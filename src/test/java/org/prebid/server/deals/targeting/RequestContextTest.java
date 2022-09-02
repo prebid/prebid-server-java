@@ -19,11 +19,9 @@ import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.deals.targeting.model.GeoLocation;
 import org.prebid.server.deals.targeting.model.LookupResult;
@@ -31,13 +29,8 @@ import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -49,8 +42,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 
 public class RequestContextTest extends VertxTest {
 
@@ -58,9 +49,6 @@ public class RequestContextTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private TxnLog txnLog;
-
-    @Mock
-    private BidderAliases aliases;
 
     @Before
     public void setUp() {
@@ -74,8 +62,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.domain("domain.com")))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -91,8 +77,6 @@ public class RequestContextTest extends VertxTest {
                 request(r -> r.site(site(s -> s
                         .publisher(Publisher.builder().domain("domain.com").build())))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -107,8 +91,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(identity()))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -123,8 +105,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -141,8 +121,6 @@ public class RequestContextTest extends VertxTest {
                         request(r -> r.site(site(s -> s
                                 .publisher(Publisher.builder().domain("domain.com").build())))),
                         imp(identity()),
-                        null,
-                        aliases,
                         txnLog,
                         jacksonMapper);
 
@@ -154,8 +132,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnEmptyResultForPublisherDomainWhenSiteIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
-        final RequestContext context =
-                new RequestContext(request(identity()), imp(identity()), null, aliases, txnLog, jacksonMapper);
+        final RequestContext context = new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
 
         // when and then
         assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
@@ -168,8 +145,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.page("https://domain.com/index")))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -184,8 +159,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.bundle("com.google.calendar")))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -200,8 +173,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(identity()))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -216,8 +187,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -235,8 +204,6 @@ public class RequestContextTest extends VertxTest {
                         .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
                                         .put("pbadslot", "/123/456"))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -254,8 +221,6 @@ public class RequestContextTest extends VertxTest {
                         .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
                                         .set("adserver", obj("adslot", "/234/567")))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -271,8 +236,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
                         .set("data", mapper.createObjectNode().put("pbadslot", "/345/678")))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -289,8 +252,6 @@ public class RequestContextTest extends VertxTest {
                 imp(i -> i.ext(mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .set("adserver", obj("adslot", "/456/789"))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -305,8 +266,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", obj("adserver", obj("adslot", "/123/456")))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -321,8 +280,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", mapper.createObjectNode())))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -340,8 +297,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.ext(extGeo)))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -359,8 +314,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.ext(extGeo)))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -379,8 +332,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.ext(extDevice)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -398,8 +349,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.ext(extDevice)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -414,8 +363,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", "123")))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -431,8 +378,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("inv", obj("code", "123"))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -447,8 +392,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", obj("siteId", mapper.valueToTree(123))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -463,8 +406,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", "phony"))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -479,8 +420,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -496,8 +435,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.buyeruid("123")))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -514,8 +451,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -532,8 +467,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.yob(1800).ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -550,8 +483,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -568,8 +499,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -585,8 +514,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(identity()))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -602,86 +529,11 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
         // when and then
         assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
-    }
-
-    @Test
-    public void lookupStringShouldReturnUserFirstPartyDataFromExt() {
-        // given
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidder",
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnUserFirstPartyDataFromExtConsideringAliases() {
-        // given
-        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
-
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidderAlias"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidder",
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnUserFirstPartyDataFromExtConsideringAliasesInSource() {
-        // given
-        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
-
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidderAlias",
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
@@ -692,8 +544,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", obj("section", obj("sport", "hockey")))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -710,8 +560,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -728,81 +576,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.ext(extApp)))),
                 imp(identity()),
-                null,
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnSiteFirstPartyDataFromExt() {
-        // given
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidder",
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnSiteFirstPartyDataFromExtConsideringAliases() {
-        // given
-        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
-
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidderAlias"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidder",
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnSiteFirstPartyDataFromExtConsideringAliasesInSource() {
-        // given
-        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
-
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
-                        singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
-                imp(identity()),
-                "bidderAlias",
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -818,8 +591,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -835,8 +606,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -851,8 +620,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", mapper.valueToTree(123))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -867,8 +634,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", obj("siteId", mapper.valueToTree(123.456d))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -883,8 +648,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", "phony"))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -900,8 +663,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -917,8 +678,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -933,8 +692,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(identity())).video(Video.builder().build())),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -949,8 +706,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.video(Video.builder().build()).xNative(Native.builder().build())),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -966,8 +721,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.valueToTree(asList("123", "456")))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -983,8 +736,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.createObjectNode())))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1000,8 +751,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", "value")))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1017,8 +766,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.valueToTree(asList("123", 456)))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1034,8 +781,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("prebid", obj("bidder",
                         obj("rubicon", "phony"))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1053,8 +798,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.buyeruid("buyeruid3").ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1071,8 +814,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1090,8 +831,6 @@ public class RequestContextTest extends VertxTest {
                         data(d -> d.id("bluekai").segment(
                                 asList(segment(s -> s.id("3")), segment(s -> s.id("4")))))))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1108,8 +847,6 @@ public class RequestContextTest extends VertxTest {
                         data(d -> d.id("bluekai").segment(
                                 asList(segment(s -> s.id("3")), segment(s -> s.id("4")))))))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1125,8 +862,6 @@ public class RequestContextTest extends VertxTest {
                 request(r -> r.user(user(u -> u.data(singletonList(
                         data(d -> d.id("rubicon").segment(asList(segment(s -> s.id("1")), segment(identity()))))))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1141,8 +876,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(data(d -> d.id("rubicon"))))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1157,8 +890,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(data(identity())))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1173,8 +904,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(identity()))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1189,8 +918,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1206,8 +933,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.valueToTree(asList(123, 456)))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1223,8 +948,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.createObjectNode())))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1240,8 +963,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", 123)))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1257,8 +978,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", obj("siteId", mapper.valueToTree(asList(123, "456")))))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1274,8 +993,6 @@ public class RequestContextTest extends VertxTest {
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
                         obj("rubicon", "phony"))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1291,8 +1008,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.yob(789).ext(extUser)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1308,8 +1023,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1324,8 +1037,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(b -> b.format(asList(format(300, 250), format(400, 300)))))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1341,8 +1052,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(identity()))),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1357,8 +1066,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1373,8 +1080,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1391,8 +1096,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lat(50f).lon(60f)))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1407,8 +1110,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lat(50f)))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1423,8 +1124,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lon(60f)))))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1439,8 +1138,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(identity()))),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1455,8 +1152,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1471,8 +1166,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
-                null,
-                aliases,
                 txnLog,
                 jacksonMapper);
 

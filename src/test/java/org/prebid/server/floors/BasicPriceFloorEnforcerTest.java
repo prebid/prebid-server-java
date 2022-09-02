@@ -619,17 +619,16 @@ public class BasicPriceFloorEnforcerTest {
             BidderSeatBid bidderSeatBid) {
 
         return AuctionParticipation.builder()
-                .bidderRequest(BidderRequest.of(
-                        "bidder",
-                        null,
-                        null,
-                        bidRequestCustomizer.apply(BidRequest.builder()
+                .bidderRequest(BidderRequest.builder()
+                        .bidder("bidder1")
+                        .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()
                                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                                 .floors(PriceFloorRules.builder()
                                                         .enforcement(givenEnforcement(enforcementCustomizer))
                                                         .build())
                                                 .build())))
-                                .build()))
+                                .build())
+                        .build())
                 .bidderResponse(BidderResponse.of("bidder", bidderSeatBid, 0))
                 .build();
     }

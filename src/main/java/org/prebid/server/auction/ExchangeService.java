@@ -299,7 +299,7 @@ public class ExchangeService {
                                 auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
                         .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
                         .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
-                        .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, account, aliases))
+                        .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
 
                 // produce response from bidder results
@@ -1583,9 +1583,9 @@ public class ExchangeService {
      * This method should always be invoked after {@link ExchangeService#validBidderResponse} to make sure
      * {@link Bid#getPrice()} is not empty.
      */
-    private List<AuctionParticipation> updateMetricsFromResponses(List<AuctionParticipation> auctionParticipations,
-                                                                  Account account,
-                                                                  BidderAliases aliases) {
+    private List<AuctionParticipation> updateResponsesMetrics(List<AuctionParticipation> auctionParticipations,
+                                                              Account account,
+                                                              BidderAliases aliases) {
 
         final List<BidderResponse> bidderResponses = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())

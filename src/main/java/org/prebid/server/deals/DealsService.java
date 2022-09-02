@@ -181,7 +181,11 @@ public class DealsService {
         final ObjectNode updatedExtLine = (ObjectNode) updatedExt.get(LINE_FIELD);
         updatedExtLine.remove(BIDDER_FIELD);
 
-        return deal.toBuilder().ext(updatedExt).build();
+        if (updatedExtLine.isEmpty()) {
+            updatedExt.remove(LINE_FIELD);
+        }
+
+        return deal.toBuilder().ext(!updatedExt.isEmpty() ? updatedExt : null).build();
     }
 
     public static BidRequest populateDeals(BidRequest bidRequest, Map<String, List<Deal>> impIdToDeals) {

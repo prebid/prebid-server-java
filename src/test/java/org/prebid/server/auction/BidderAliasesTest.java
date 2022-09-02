@@ -7,6 +7,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.bidder.BidderCatalog;
 
+import java.util.Map;
+
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -70,6 +72,21 @@ public class BidderAliasesTest {
 
         // when and then
         assertThat(aliases.resolveBidder("alias")).isEqualTo("bidder");
+    }
+
+    @Test
+    public void isSameShouldReturnTrueIfBiddersSameConsideringAliases() {
+        // given
+        final BidderAliases aliases = BidderAliases.of(
+                Map.of("alias1", "bidder", "alias2", "bidder"),
+                null,
+                bidderCatalog);
+
+        // when and then
+        assertThat(aliases.isSame("bidder", "bidder")).isTrue();
+        assertThat(aliases.isSame("alias1", "bidder")).isTrue();
+        assertThat(aliases.isSame("alias2", "bidder")).isTrue();
+        assertThat(aliases.isSame("alias1", "alias2")).isTrue();
     }
 
     @Test

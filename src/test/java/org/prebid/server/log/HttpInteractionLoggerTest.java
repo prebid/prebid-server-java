@@ -451,10 +451,11 @@ public class HttpInteractionLoggerTest extends VertxTest {
                 .build();
     }
 
-    private static BidderRequest givenBidderRequest(
-            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
-        final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()).build();
-
-        return BidderRequest.of("bidderName", null, null, bidRequest);
+    private static BidderRequest givenBidderRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        final BidRequest bidRequest = bidRequestCustomizer.apply(BidRequest.builder()).build();
+        return BidderRequest.builder()
+                .bidder("bidderName")
+                .bidRequest(bidRequest)
+                .build();
     }
 }

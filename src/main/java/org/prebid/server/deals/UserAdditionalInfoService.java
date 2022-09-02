@@ -163,8 +163,8 @@ public class UserAdditionalInfoService {
 
     private Device updateDevice(Device device, DeviceInfo deviceInfo, GeoInfo geoInfo) {
         final ExtDevice updatedExtDevice =
-                fillWith(
-                        fillWith(
+                fillExtDeviceWith(
+                        fillExtDeviceWith(
                                 ObjectUtil.getIfNotNull(device, Device::getExt),
                                 ObjectUtil.getIfNotNull(deviceInfo, DeviceInfo::getVendor),
                                 extDeviceVendorFrom(deviceInfo)),
@@ -179,7 +179,7 @@ public class UserAdditionalInfoService {
                 .build();
     }
 
-    private ExtDevice fillWith(ExtDevice extDevice, String vendor, ExtDeviceVendor extDeviceVendor) {
+    private ExtDevice fillExtDeviceWith(ExtDevice extDevice, String vendor, ExtDeviceVendor extDeviceVendor) {
         if (extDeviceVendor.equals(ExtDeviceVendor.EMPTY)) {
             return extDevice;
         }
@@ -220,7 +220,7 @@ public class UserAdditionalInfoService {
             return geo;
         }
 
-        final ExtGeo updatedExtGeo = fillWith(
+        final ExtGeo updatedExtGeo = fillExtGeoWith(
                 ObjectUtil.getIfNotNull(geo, Geo::getExt),
                 geoInfo.getVendor(),
                 extGeoVendorFrom(geoInfo));
@@ -235,7 +235,7 @@ public class UserAdditionalInfoService {
                 .build();
     }
 
-    private ExtGeo fillWith(ExtGeo extGeo, String vendor, ExtGeoVendor extGeoVendor) {
+    private ExtGeo fillExtGeoWith(ExtGeo extGeo, String vendor, ExtGeoVendor extGeoVendor) {
         if (extGeoVendor.equals(ExtGeoVendor.EMPTY)) {
             return extGeo;
         }

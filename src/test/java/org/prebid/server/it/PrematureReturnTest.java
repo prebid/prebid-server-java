@@ -2,6 +2,7 @@ package org.prebid.server.it;
 
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.github.tomakehurst.wiremock.matching.AnythingPattern;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
 import org.junit.BeforeClass;
@@ -120,7 +121,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-order-response.json", response, singletonList(RUBICON)));
@@ -150,7 +151,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-reverse-order-response.json", response,
@@ -180,7 +181,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-order-response.json", response, singletonList(RUBICON)));
@@ -209,7 +210,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-reverse-order-response.json", response,
@@ -239,7 +240,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-first-bid-only-response.json", response,
@@ -269,7 +270,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-second-bid-only-response.json", response,
@@ -299,7 +300,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-third-bid-only-response.json", response,
                 singletonList(RUBICON)));
@@ -328,7 +329,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-first-and-second-response.json", response,
@@ -358,7 +359,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-third-and-second-response.json", response,
@@ -367,7 +368,7 @@ public class PrematureReturnTest extends VertxTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbDeepDebugTimeComparator());
     }
 
-    private io.restassured.response.Response givenResponse() throws IOException {
+    private Response givenResponse() throws IOException {
         return given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")

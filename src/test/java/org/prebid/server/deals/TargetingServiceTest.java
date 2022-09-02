@@ -17,11 +17,9 @@ import com.iab.openrtb.request.User;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.deals.targeting.TargetingDefinition;
@@ -58,9 +56,6 @@ public class TargetingServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private TargetingService targetingService;
-
-    @Mock
-    private BidderAliases aliases;
 
     @Before
     public void setUp() {
@@ -463,10 +458,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -483,7 +475,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
         assertThat(txnLog.lineItemsMatchedDomainTargeting()).containsOnly("lineItemId");
     }
 
@@ -502,15 +494,12 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -528,15 +517,12 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -549,10 +535,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .ext(mapper.createObjectNode()
@@ -562,7 +545,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -578,16 +561,13 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -603,15 +583,12 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -623,10 +600,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -638,7 +612,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -657,16 +631,13 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -678,10 +649,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -693,7 +661,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -709,17 +677,14 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
 
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -731,10 +696,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -746,7 +708,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -770,15 +732,12 @@ public class TargetingServiceTest extends VertxTest {
 
         final TxnLog txnLog = TxnLog.create();
 
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases)).isTrue();
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext)).isTrue();
     }
 
     @Test
@@ -791,10 +750,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .ext(mapper.createObjectNode()
@@ -804,7 +760,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -821,16 +777,13 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -847,15 +800,12 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -868,10 +818,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -883,7 +830,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -903,16 +850,13 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -927,10 +871,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
                 .banner(Banner.builder()
@@ -942,7 +883,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 
@@ -959,17 +900,14 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         final TxnLog txnLog = TxnLog.create();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .txnLog(txnLog)
-                .build();
+        final AuctionContext auctionContext = AuctionContext.builder().txnLog(txnLog).build();
 
         final Imp imp = Imp.builder()
 
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null, aliases))
+        assertThat(targetingService.matchesTargeting(bidRequest, imp, targetingDefinition, auctionContext))
                 .isFalse();
     }
 

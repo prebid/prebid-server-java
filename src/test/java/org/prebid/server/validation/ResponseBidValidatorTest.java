@@ -525,7 +525,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldWarnIfBidHasDealidMissingInImp() {
-        given(bidderAliases.resolveBidder(eq("anotherBidder"))).willReturn("anotherBidder");
+        given(bidderAliases.isSame(eq(BIDDER_NAME), eq(BIDDER_NAME))).willReturn(true);
 
         final ValidationResult result = responseBidValidator.validate(
                 givenVideoBid(bid -> bid.dealid("dealId1")),
