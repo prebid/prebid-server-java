@@ -48,7 +48,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
@@ -155,7 +154,6 @@ public class ExchangeService {
     private final long expectedCacheTime;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
-    private final DealsProcessor dealsProcessor;
     private final DealsService dealsService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
@@ -182,7 +180,6 @@ public class ExchangeService {
     public ExchangeService(long expectedCacheTime,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
-                           DealsProcessor dealsProcessor,
                            DealsService dealsService,
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
@@ -212,7 +209,6 @@ public class ExchangeService {
         this.expectedCacheTime = expectedCacheTime;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
-        this.dealsProcessor = Objects.requireNonNull(dealsProcessor);
         this.dealsService = dealsService;
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
@@ -278,6 +274,7 @@ public class ExchangeService {
                         receivedContext, storedResponseResult, aliases, bidderToMultiBid))
 
                 .map(auctionParticipations -> matchAndPopulateDeals(auctionParticipations, aliases, receivedContext))
+                .map(auctionParticipations -> postProcessDeals(auctionParticipations, receivedContext))
                 .map(auctionParticipations -> fillContext(receivedContext, auctionParticipations))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
@@ -494,8 +491,6 @@ public class ExchangeService {
 
         final List<Imp> imps = storedResponseResult.getRequiredRequestImps().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
-                .map(imp -> dealsProcessor.removePgDealsOnlyBiddersWithoutDeals(context, imp, aliases))
-                .filter(Objects::nonNull)
                 .toList();
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
@@ -960,6 +955,7 @@ public class ExchangeService {
                                      ObjectNode impExt,
                                      BigDecimal adjustedFloor,
                                      boolean useFirstPartyData) {
+
         final ObjectNode modifiedImpExt = impExt.deepCopy();
 
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
@@ -1175,6 +1171,12 @@ public class ExchangeService {
                         .bidderRequest(updatedBidderRequests.get(i))
                         .build())
                 .toList();
+    }
+
+    private static List<AuctionParticipation> postProcessDeals(List<AuctionParticipation> auctionParticipations,
+                                                               AuctionContext context) {
+
+        return DealsService.removePgDealsOnlyImpsWithoutDeals(auctionParticipations, context);
     }
 
     /**

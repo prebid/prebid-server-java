@@ -17,6 +17,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.deals.lineitem.LineItem;
@@ -32,6 +33,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -39,6 +42,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,7 +81,7 @@ public class DealsServiceTest extends VertxTest {
         given(lineItemService.accountHasDeals(any())).willReturn(false);
 
         final BidderRequest bidderRequest = givenBidderRequest(request -> request
-                .imp(singletonList(Imp.builder().build())));
+                .imp(singletonList(givenImp(identity()))));
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
         // when
@@ -104,12 +108,11 @@ public class DealsServiceTest extends VertxTest {
 
         final BidderRequest bidderRequest = givenBidderRequest(request -> request
                 .device(Device.builder().ip("ip").ua("ua").build())
-                .imp(singletonList(Imp.builder()
+                .imp(singletonList(givenImp(imp -> imp
                         .id("impId")
                         .pmp(Pmp.builder()
                                 .deals(singletonList(Deal.builder().id("existingDealId").build()))
-                                .build())
-                        .build())));
+                                .build())))));
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
         // when
@@ -157,14 +160,13 @@ public class DealsServiceTest extends VertxTest {
 
         final BidderRequest bidderRequest = givenBidderRequest(request -> request
                 .device(Device.builder().ip("ip").ua("ua").build())
-                .imp(singletonList(Imp.builder()
+                .imp(singletonList(givenImp(imp -> imp
                         .id("impId")
                         .banner(Banner.builder()
                                 .format(asList(
                                         Format.builder().w(100).h(10).build(),
                                         Format.builder().w(200).h(20).build()))
-                                .build())
-                        .build())));
+                                .build())))));
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
         // when
@@ -217,12 +219,11 @@ public class DealsServiceTest extends VertxTest {
 
         final BidderRequest bidderRequest = givenBidderRequest(request -> request
                 .device(Device.builder().ip("ip").ua("ua").build())
-                .imp(singletonList(Imp.builder()
+                .imp(singletonList(givenImp(imp -> imp
                         .id("impId")
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(100).h(10).build()))
-                                .build())
-                        .build())));
+                                .build())))));
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
         // when
@@ -265,7 +266,7 @@ public class DealsServiceTest extends VertxTest {
 
         final BidderRequest bidderRequest = givenBidderRequest(request -> request
                 .device(Device.builder().ip("ip").ua("ua").build())
-                .imp(singletonList(Imp.builder()
+                .imp(singletonList(givenImp(imp -> imp
                         .id("impId")
                         .pmp(Pmp.builder()
                                 .deals(asList(
@@ -286,8 +287,7 @@ public class DealsServiceTest extends VertxTest {
                                                         null,
                                                         "bidder"))))
                                                 .build()))
-                                .build())
-                        .build())));
+                                .build())))));
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
         // when
@@ -308,6 +308,70 @@ public class DealsServiceTest extends VertxTest {
         });
     }
 
+    @Test
+    public void removePgDealsOnlyImpsWithoutDealsShouldRemovePgDealsOnlyImpsWithoutMatchedDeals() {
+        // given
+        final List<AuctionParticipation> auctionParticipations = asList(
+                givenAuctionParticipation(givenBidderRequest(
+                        "bidder1",
+                        request -> request.imp(asList(
+                                givenImp(imp -> imp.id("imp1").ext(mapper.createObjectNode())),
+                                givenImp(imp -> imp.id("imp2").ext(mapper.createObjectNode())))),
+                        null)),
+                givenAuctionParticipation(givenBidderRequest(
+                        "bidder2",
+                        request -> request.imp(asList(
+                                givenImp(imp -> imp
+                                        .id("imp1")
+                                        .ext(mapper.valueToTree(Map.of("bidder", Map.of("pgdealsonly", true))))),
+                                givenImp(imp -> imp
+                                        .id("imp2")
+                                        .ext(mapper.valueToTree(Map.of("bidder", Map.of("pgdealsonly", true))))))),
+                        emptyMap())),
+                givenAuctionParticipation(givenBidderRequest(
+                        "bidder3",
+                        request -> request.imp(asList(
+                                givenImp(imp -> imp
+                                        .id("imp1")
+                                        .ext(mapper.valueToTree(Map.of("bidder", Map.of("pgdealsonly", true))))),
+                                givenImp(imp -> imp
+                                        .id("imp2")
+                                        .ext(mapper.valueToTree(Map.of("bidder", Map.of("pgdealsonly", true))))))),
+                        singletonMap("imp2", singletonList(Deal.builder().build())))));
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+
+        // when
+        final List<AuctionParticipation> result = DealsService.removePgDealsOnlyImpsWithoutDeals(
+                auctionParticipations, auctionContext);
+
+        // then
+        assertThat(result).containsExactly(
+                givenAuctionParticipation(givenBidderRequest(
+                        "bidder1",
+                        request -> request.imp(asList(
+                                givenImp(imp -> imp.id("imp1").ext(mapper.createObjectNode())),
+                                givenImp(imp -> imp.id("imp2").ext(mapper.createObjectNode())))),
+                        null)),
+                givenAuctionParticipation(givenBidderRequest(
+                        "bidder3",
+                        request -> request.imp(singletonList(
+                                givenImp(imp -> imp
+                                        .id("imp2")
+                                        .ext(mapper.valueToTree(Map.of("bidder", Map.of("pgdealsonly", true))))))),
+                        singletonMap("imp2", singletonList(Deal.builder().build())))));
+        assertThat(auctionContext.getDebugWarnings()).containsExactly(
+                """
+                        Not calling bidder2 bidder for impressions imp1, imp2 \
+                        due to pgdealsonly flag and no available PG line items.""",
+                """
+                        Not calling bidder3 bidder for impressions imp1 \
+                        due to pgdealsonly flag and no available PG line items.""");
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> customizer) {
+        return customizer.apply(Imp.builder()).build();
+    }
+
     private static BidderRequest givenBidderRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer) {
         return BidderRequest.builder()
                 .bidder("bidder")
@@ -315,9 +379,25 @@ public class DealsServiceTest extends VertxTest {
                 .build();
     }
 
+    private static BidderRequest givenBidderRequest(String bidder,
+                                                    UnaryOperator<BidRequest.BidRequestBuilder> customizer,
+                                                    Map<String, List<Deal>> impIdToDeals) {
+
+        return BidderRequest.builder()
+                .bidder(bidder)
+                .bidRequest(customizer.apply(BidRequest.builder()).build())
+                .impIdToDeals(impIdToDeals)
+                .build();
+    }
+
+    private static AuctionParticipation givenAuctionParticipation(BidderRequest bidderRequest) {
+        return AuctionParticipation.builder().bidderRequest(bidderRequest).build();
+    }
+
     private static AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> customizer) {
         return AuctionContext.builder()
                 .account(customizer.apply(Account.builder().id("accountId")).build())
+                .debugWarnings(new ArrayList<>())
                 .build();
     }
 }

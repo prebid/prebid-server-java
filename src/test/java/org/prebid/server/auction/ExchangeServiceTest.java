@@ -65,7 +65,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.DeepDebugLog;
@@ -280,8 +279,6 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
-    private DealsProcessor dealsProcessor;
-
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() {
@@ -371,13 +368,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-        dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
                 0,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
                 dealsService,
                 privacyEnforcementService,
                 fpdResolver,
@@ -409,7 +404,6 @@ public class ExchangeServiceTest extends VertxTest {
                         -1,
                         bidderCatalog,
                         storedResponseProcessor,
-                        dealsProcessor,
                         dealsService,
                         privacyEnforcementService,
                         fpdResolver,
@@ -682,57 +676,38 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
+    public void shouldFilterPgDealsOnlyBiddersWithoutDeals() {
         // given
-        exchangeService = new ExchangeService(
-                100,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsProcessor,
-                dealsService,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                new NoOpMediaTypeProcessor(),
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager);
-
         final Bidder<?> bidder1 = mock(Bidder.class);
         final Bidder<?> bidder2 = mock(Bidder.class);
         givenBidder("bidder1", bidder1, givenEmptySeatBid());
         givenBidder("bidder2", bidder2, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap("bidder1", 1),
-                        identity()),
-                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
-                        identity())));
+                givenImp(
+                        Map.of(
+                                "bidder1", mapper.valueToTree("traceToken"),
+                                "bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
+                        imp -> imp.id("imp1")),
+                givenImp(
+                        singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
+                        imp -> imp.id("imp2"))));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
-        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
-        assertThat(capturedBidRequest.getImp()).hasSize(1)
-                .extracting(imp -> imp.getExt().get("bidder").asInt())
-                .containsOnly(1);
+        verify(httpBidderRequester, times(1))
+                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+
+        assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
+                .extracting(imp -> imp.getExt().get("bidder").asText())
+                .containsExactly("traceToken");
+
+        assertThat(result.result().getDebugWarnings()).containsExactly("""
+                Not calling bidder2 bidder for impressions imp1, imp2 \
+                due to pgdealsonly flag and no available PG line items.""");
     }
 
     @Test
@@ -2696,7 +2671,6 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
                 dealsService,
                 privacyEnforcementService,
                 fpdResolver,
@@ -4324,7 +4298,6 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
                 dealsService,
                 privacyEnforcementService,
                 fpdResolver,

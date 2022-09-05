@@ -13,7 +13,6 @@ import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.AdminCentralService;
 import org.prebid.server.deals.AlertHttpService;
-import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.DeliveryProgressReportFactory;
 import org.prebid.server.deals.DeliveryProgressService;
@@ -73,11 +72,6 @@ import java.util.Map;
 
 @Configuration
 public class DealsConfiguration {
-
-    @Bean
-    DealsProcessor dealsProcessor(JacksonMapper mapper) {
-        return new DealsProcessor(mapper);
-    }
 
     @Configuration
     @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == false")

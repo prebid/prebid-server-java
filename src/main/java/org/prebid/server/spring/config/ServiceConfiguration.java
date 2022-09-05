@@ -49,7 +49,6 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -643,7 +642,6 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
-            DealsProcessor dealsProcessor,
             @Autowired(required = false) DealsService dealsService,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
@@ -671,7 +669,6 @@ public class ServiceConfiguration {
                 expectedCacheTimeMs,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
                 dealsService,
                 privacyEnforcementService,
                 fpdResolver,

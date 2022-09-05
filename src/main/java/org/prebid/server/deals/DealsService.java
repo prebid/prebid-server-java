@@ -12,9 +12,11 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.deals.lineitem.LineItem;
 import org.prebid.server.deals.model.MatchLineItemsResult;
@@ -25,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.util.ObjectUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +45,9 @@ public class DealsService {
     private static final Logger logger = LoggerFactory.getLogger(DealsService.class);
 
     private static final String LINE_FIELD = "line";
+    private static final String LINE_BIDDER_FIELD = "bidder";
     private static final String BIDDER_FIELD = "bidder";
+    private static final String PG_DEALS_ONLY = "pgdealsonly";
 
     private final LineItemService lineItemService;
     private final JacksonMapper mapper;
@@ -163,7 +168,7 @@ public class DealsService {
     private static JsonNode extLineBidder(Deal deal) {
         final ObjectNode ext = deal != null ? deal.getExt() : null;
         final JsonNode extLine = ext != null ? ext.get(LINE_FIELD) : null;
-        return extLine != null ? extLine.get(BIDDER_FIELD) : null;
+        return extLine != null ? extLine.get(LINE_BIDDER_FIELD) : null;
     }
 
     private static boolean isTextual(JsonNode jsonNode) {
@@ -179,7 +184,7 @@ public class DealsService {
         final ObjectNode updatedExt = deal.getExt().deepCopy();
 
         final ObjectNode updatedExtLine = (ObjectNode) updatedExt.get(LINE_FIELD);
-        updatedExtLine.remove(BIDDER_FIELD);
+        updatedExtLine.remove(LINE_BIDDER_FIELD);
 
         if (updatedExtLine.isEmpty()) {
             updatedExt.remove(LINE_FIELD);
@@ -230,5 +235,86 @@ public class DealsService {
         return imp.toBuilder()
                 .pmp(pmpBuilder.deals(combinedDeals).build())
                 .build();
+    }
+
+    public static List<AuctionParticipation> removePgDealsOnlyImpsWithoutDeals(
+            List<AuctionParticipation> auctionParticipations,
+            AuctionContext context) {
+
+        return auctionParticipations.stream()
+                .map(auctionParticipation -> removePgDealsOnlyImpsWithoutDeals(auctionParticipation, context))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private static AuctionParticipation removePgDealsOnlyImpsWithoutDeals(AuctionParticipation auctionParticipation,
+                                                                          AuctionContext context) {
+
+        final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
+        final String bidder = bidderRequest.getBidder();
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final List<Imp> imps = bidRequest.getImp();
+
+        final Set<Integer> impsIndicesToRemove = IntStream.range(0, imps.size())
+                .filter(i -> isPgDealsOnly(imps.get(i)))
+                .filter(i -> !havePgDeal(imps.get(i), bidderRequest.getImpIdToDeals()))
+                .boxed()
+                .collect(Collectors.toSet());
+
+        if (impsIndicesToRemove.isEmpty()) {
+            return auctionParticipation;
+        }
+        if (impsIndicesToRemove.size() == imps.size()) {
+            logImpsExclusion(context, bidder, imps);
+            return null;
+        }
+
+        final List<Imp> impsToRemove = new ArrayList<>();
+        final List<Imp> filteredImps = new ArrayList<>();
+        for (int i = 0; i < imps.size(); i++) {
+            final Imp imp = imps.get(i);
+            if (impsIndicesToRemove.contains(i)) {
+                impsToRemove.add(imp);
+            } else {
+                filteredImps.add(imp);
+            }
+        }
+
+        logImpsExclusion(context, bidder, impsToRemove);
+
+        return auctionParticipation.toBuilder()
+                .bidderRequest(bidderRequest.toBuilder()
+                        .bidRequest(bidRequest.toBuilder()
+                                .imp(filteredImps)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    private static boolean isPgDealsOnly(Imp imp) {
+        final JsonNode extBidder = imp.getExt().get(BIDDER_FIELD);
+        if (extBidder == null || !extBidder.isObject()) {
+            return false;
+        }
+
+        final JsonNode pgDealsOnlyNode = extBidder.path(PG_DEALS_ONLY);
+        return pgDealsOnlyNode.isBoolean() && pgDealsOnlyNode.asBoolean();
+    }
+
+    private static boolean havePgDeal(Imp imp, Map<String, List<Deal>> impIdToDeals) {
+        final List<Deal> matchedPgDeals = MapUtils.emptyIfNull(impIdToDeals).get(imp.getId());
+        return CollectionUtils.isNotEmpty(matchedPgDeals);
+    }
+
+    private static void logImpsExclusion(AuctionContext context,
+                                         String bidder,
+                                         List<Imp> imps) {
+
+        final String impsIds = imps.stream()
+                .map(Imp::getId)
+                .collect(Collectors.joining(", "));
+        context.getDebugWarnings().add(
+                "Not calling %s bidder for impressions %s due to %s flag and no available PG line items."
+                        .formatted(bidder, impsIds, PG_DEALS_ONLY));
     }
 }
