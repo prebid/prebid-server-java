@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -22,15 +23,17 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +55,62 @@ public class NextMillenniumBidderTest extends VertxTest {
     @Before
     public void setUp() {
         nextMillenniumBidder = new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper);
+    }
+
+    @Test
+    public void makeHttpRequestsBidRequestShouldHaveIdenticalParams() {
+        ExtImpNextMillennium initialExt = ExtImpNextMillennium.of("6821", null);
+        Imp initialImp = givenImpWithExt(imp -> imp
+                        .id("custom_imp_id")
+                        .tagid("custom_imp_tagid")
+                        .secure(1)
+                        .banner(Banner.builder()
+                                .w(728)
+                                .h(90)
+                                .format(singletonList(Format.builder()
+                                        .w(728)
+                                        .h(90)
+                                        .build())).build()
+                        ),
+                initialExt
+        );
+        BidRequest bidRequest = givenBidRequest(b -> b
+                .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
+                .test(1)
+                .tmax(845L)
+                .device(Device.builder().w(994).h(1768).build())
+                .imp(singletonList(initialImp))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .schains(emptyList())
+                        .targeting(ExtRequestTargeting.builder()
+                                .includewinners(true)
+                                .includebidderkeys(false)
+                                .build())
+                        .build()))
+                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
+        );
+
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
+        Optional<BidRequest> searchResult = result.getValue()
+                .stream()
+                .map(HttpRequest::getPayload)
+                .findFirst();
+        BidRequest modifiedRequest = searchResult.get();
+        Imp modifiedImp = modifiedRequest.getImp().get(0);
+        // Bid Request
+        assertThat(modifiedRequest)
+                .usingRecursiveComparison()
+                .ignoringFields("imp", "ext")
+                .isEqualTo(bidRequest);
+        // Imp without Ext
+        assertThat(modifiedImp)
+                .usingRecursiveComparison()
+                .ignoringFields("ext")
+                .isEqualTo(initialImp);
+        // Ext
+        assertThat(modifiedImp.getExt()).isNotEqualTo(initialImp.getExt());
+        assertThat(modifiedImp.getExt().get("prebid").get("storedrequest").get("id").asText())
+                .isEqualTo(initialExt.getPlacementId());
     }
 
     @Test
@@ -286,7 +345,7 @@ public class NextMillenniumBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(Collections.emptyList())
+                        .seatbid(emptyList())
                         .build()));
 
         // when
