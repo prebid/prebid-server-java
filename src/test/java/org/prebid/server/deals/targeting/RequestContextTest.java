@@ -362,7 +362,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", "123")))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", "123")))),
                 txnLog,
                 jacksonMapper);
 
@@ -377,7 +377,7 @@ public class RequestContextTest extends VertxTest {
                 "rubicon.inv.code");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("inv", obj("code", "123"))))))),
+                imp(i -> i.ext(obj("bidder", obj("inv", obj("code", "123"))))),
                 txnLog,
                 jacksonMapper);
 
@@ -619,7 +619,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", mapper.valueToTree(123))))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(123))))),
                 txnLog,
                 jacksonMapper);
 
@@ -719,8 +719,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.valueToTree(asList("123", "456")))))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList("123", "456")))))),
                 txnLog,
                 jacksonMapper);
 
@@ -734,8 +733,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.createObjectNode())))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.createObjectNode())))),
                 txnLog,
                 jacksonMapper);
 
@@ -749,8 +747,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", "value")))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", "value")))),
                 txnLog,
                 jacksonMapper);
 
@@ -764,8 +761,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.valueToTree(asList("123", 456)))))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList("123", 456)))))),
                 txnLog,
                 jacksonMapper);
 
@@ -779,8 +775,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder", obj("prebid", obj("bidder",
-                        obj("rubicon", "phony"))))))),
+                imp(i -> i.ext(obj("bidder", obj("bidder", obj("rubicon", "phony"))))),
                 txnLog,
                 jacksonMapper);
 
@@ -931,8 +926,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.valueToTree(asList(123, 456)))))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList(123, 456)))))),
                 txnLog,
                 jacksonMapper);
 
@@ -946,8 +940,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.createObjectNode())))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.createObjectNode())))),
                 txnLog,
                 jacksonMapper);
 
@@ -961,8 +954,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", 123)))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", 123)))),
                 txnLog,
                 jacksonMapper);
 
@@ -976,8 +968,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", obj("siteId", mapper.valueToTree(asList(123, "456")))))))),
+                imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList(123, "456")))))),
                 txnLog,
                 jacksonMapper);
 
@@ -991,8 +982,7 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(obj("prebid", obj("bidder",
-                        obj("rubicon", "phony"))))),
+                imp(i -> i.ext(obj("bidder", "phony"))),
                 txnLog,
                 jacksonMapper);
 
