@@ -148,18 +148,16 @@ public class RequestContext {
     public LookupResult<List<String>> lookupStrings(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
+        final User user = bidRequest.getUser();
 
         return switch (type) {
             case mediaType -> lookupResult(getMediaTypes());
             case bidderParam -> lookupResult(
                     impReader.readFromExt(imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToListOfStrings));
             case userSegment -> lookupResult(getSegments(category));
-            case userFirstPartyData -> {
-                final User user = bidRequest.getUser();
-                yield lookupResult(
-                        listOfNonNulls(userReader.readFromObject(user, path, String.class)),
-                        userReader.readFromExt(user, path, RequestContext::nodeToListOfStrings));
-            }
+            case userFirstPartyData -> lookupResult(
+                    listOfNonNulls(userReader.readFromObject(user, path, String.class)),
+                    userReader.readFromExt(user, path, RequestContext::nodeToListOfStrings));
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToListOfStrings);
             default -> LookupResult.empty();
         };
@@ -168,16 +166,14 @@ public class RequestContext {
     public LookupResult<List<Integer>> lookupIntegers(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
+        final User user = bidRequest.getUser();
 
         return switch (type) {
             case bidderParam -> lookupResult(impReader.readFromExt(
                     imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToListOfIntegers));
-            case userFirstPartyData -> {
-                final User user = bidRequest.getUser();
-                yield lookupResult(
-                        listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
-                        userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers));
-            }
+            case userFirstPartyData -> lookupResult(
+                    listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
+                    userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers));
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToListOfIntegers);
             default -> LookupResult.empty();
         };
