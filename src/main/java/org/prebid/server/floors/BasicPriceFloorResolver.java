@@ -376,7 +376,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final ObjectNode impExt = imp.getExt();
         final String tagId = imp.getTagid();
         if (impExt == null) {
-            return Collections.singletonList(tagId);
+            return catchAllIfBlank(tagId);
         }
 
         final String gpid = stringByPath(impExt, GPID_PATH);
@@ -395,7 +395,13 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
         final String storedRequestId = stringByPath(impExt, STORED_REQUEST_ID_PATH);
 
-        return Collections.singletonList(storedRequestId);
+        return catchAllIfBlank(storedRequestId);
+    }
+
+    private static List<String> catchAllIfBlank(String value) {
+        return StringUtils.isNotBlank(value)
+                ? Collections.singletonList(value)
+                : Collections.singletonList(WILDCARD_CATCH_ALL);
     }
 
     private static String stringByPath(ObjectNode node, String path) {
