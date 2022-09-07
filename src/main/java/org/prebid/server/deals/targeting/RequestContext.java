@@ -114,7 +114,7 @@ public class RequestContext {
             case deviceExt -> lookupResult(
                     deviceReader.readFromExt(bidRequest.getDevice(), path, RequestContext::nodeToString));
             case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToString));
+                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToString));
             case userFirstPartyData ->
                     userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class);
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToString);
@@ -137,7 +137,7 @@ public class RequestContext {
             case deviceGeoExt -> lookupResult(geoReader.readFromExt(
                     getIfNotNull(bidRequest.getDevice(), Device::getGeo), path, RequestContext::nodeToInteger));
             case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToInteger));
+                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToInteger));
             case userFirstPartyData ->
                     userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class);
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToInteger);
@@ -153,7 +153,7 @@ public class RequestContext {
         return switch (type) {
             case mediaType -> lookupResult(getMediaTypes());
             case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToListOfStrings));
+                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToListOfStrings));
             case userSegment -> lookupResult(getSegments(category));
             case userFirstPartyData -> lookupResult(
                     listOfNonNulls(userReader.readFromObject(user, path, String.class)),
@@ -169,8 +169,8 @@ public class RequestContext {
         final User user = bidRequest.getUser();
 
         return switch (type) {
-            case bidderParam -> lookupResult(impReader.readFromExt(
-                    imp, EXT_BIDDER + dropBidderName(path), RequestContext::nodeToListOfIntegers));
+            case bidderParam -> lookupResult(
+                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToListOfIntegers));
             case userFirstPartyData -> lookupResult(
                     listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
                     userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers));
@@ -260,11 +260,6 @@ public class RequestContext {
                 .toList();
 
         return !segments.isEmpty() ? segments : null;
-    }
-
-    private static String dropBidderName(String path) {
-        int index = path.indexOf('.');
-        return path.substring(index + 1);
     }
 
     private static String toJsonPointer(String path) {

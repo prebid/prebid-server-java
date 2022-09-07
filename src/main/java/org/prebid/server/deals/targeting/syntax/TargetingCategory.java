@@ -73,10 +73,15 @@ public class TargetingCategory {
     private static TargetingCategory parseBidderParam(String candidate, Type type) {
         final String candidatePath = StringUtils.substringAfter(candidate, type.attribute());
         if (candidatePath.matches(BIDDER_PARAM_PATH_PATTERN)) {
-            return new TargetingCategory(type, candidatePath);
+            return new TargetingCategory(type, dropBidderName(candidatePath));
         } else {
             throw new TargetingSyntaxException("BidderParam path is incorrect: " + candidatePath);
         }
+    }
+
+    private static String dropBidderName(String path) {
+        int index = path.indexOf('.');
+        return path.substring(index + 1);
     }
 
     public Type type() {

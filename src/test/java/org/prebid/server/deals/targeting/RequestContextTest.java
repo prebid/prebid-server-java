@@ -359,7 +359,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnSimpleBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", "123")))),
@@ -373,8 +373,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNestedBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam,
-                "rubicon.inv.code");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "inv.code");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("inv", obj("code", "123"))))),
@@ -616,7 +615,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(123))))),
@@ -716,7 +715,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList("123", "456")))))),
@@ -744,7 +743,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnListOfSingleStringWhenBidderParamIsString() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", "value")))),
@@ -758,7 +757,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnOnlyStringsWhenNonStringBidderParamPresent() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList("123", 456)))))),
@@ -923,7 +922,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList(123, 456)))))),
@@ -951,7 +950,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnListOfSingleIntegerWhenBidderParamIsInteger() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", 123)))),
@@ -965,7 +964,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnOnlyIntegersWhenNonIntegerBidderParamPresent() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("bidder", obj("siteId", mapper.valueToTree(asList(123, "456")))))),

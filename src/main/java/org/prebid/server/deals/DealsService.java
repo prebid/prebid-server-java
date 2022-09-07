@@ -12,7 +12,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
@@ -302,8 +301,7 @@ public class DealsService {
     }
 
     private static boolean havePgDeal(Imp imp, Map<String, List<Deal>> impIdToDeals) {
-        final List<Deal> matchedPgDeals = MapUtils.emptyIfNull(impIdToDeals).get(imp.getId());
-        return CollectionUtils.isNotEmpty(matchedPgDeals);
+        return impIdToDeals != null && CollectionUtils.isNotEmpty(impIdToDeals.get(imp.getId()));
     }
 
     private static void logImpsExclusion(AuctionContext context,

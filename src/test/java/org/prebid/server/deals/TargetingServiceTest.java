@@ -118,15 +118,15 @@ public class TargetingServiceTest extends VertxTest {
                         new InIntegers(category(Type.pagePosition), asList(1, 3)),
                         new Within(category(Type.location), GeoRegion.of(123.456f, 789.123f, 10.0f)),
                         new Or(asList(
-                                new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321)),
-                                new IntersectsIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321))
+                                new InIntegers(category(Type.bidderParam, "siteId"), asList(123, 321)),
+                                new IntersectsIntegers(category(Type.bidderParam, "siteId"), asList(123, 321))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.bidderParam, "appnexus.placementName"), "*somePlacement*"),
-                                new Matches(category(Type.bidderParam, "appnexus.placementName"), "somePlacement*"),
-                                new InStrings(category(Type.bidderParam, "appnexus.placementName"),
+                                new Matches(category(Type.bidderParam, "placementName"), "*somePlacement*"),
+                                new Matches(category(Type.bidderParam, "placementName"), "somePlacement*"),
+                                new InStrings(category(Type.bidderParam, "placementName"),
                                         asList("somePlacement1", "somePlacement2")),
-                                new IntersectsStrings(category(Type.bidderParam, "appnexus.placementName"),
+                                new IntersectsStrings(category(Type.bidderParam, "placementName"),
                                         asList("somePlacement1", "somePlacement2"))
                         )),
                         new Or(asList(
@@ -423,7 +423,7 @@ public class TargetingServiceTest extends VertxTest {
                                 new Matches(category(Type.publisherDomain), "nba.com"), "lineItemId"),
                         new InIntegers(category(Type.pagePosition), asList(1, 3)),
                         new Within(category(Type.location), GeoRegion.of(50.424744f, 30.506435f, 10.0f)),
-                        new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321)),
+                        new InIntegers(category(Type.bidderParam, "siteId"), asList(123, 321)),
                         new IntersectsStrings(category(Type.userSegment, "rubicon"), asList("123", "234", "345")),
                         new IntersectsIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321)))));
 
@@ -741,7 +741,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotInIntegers() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 778))));
+                new Not(new InIntegers(category(Type.bidderParam, "siteId"), asList(123, 778))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .build();

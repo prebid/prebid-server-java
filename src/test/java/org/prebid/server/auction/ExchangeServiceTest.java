@@ -711,6 +711,56 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldFillAuctionContextWithMatchedDeals() {
+        // given
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        givenBidder("bidder1", bidder1, givenEmptySeatBid());
+        givenBidder("bidder2", bidder2, givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap("bidder1", mapper.createObjectNode()), imp -> imp.id("imp1")),
+                givenImp(singletonMap("bidder2", mapper.createObjectNode()), imp -> imp.id("imp2"))));
+
+        given(dealsService.matchAndPopulateDeals(any(), any(), any()))
+                .willAnswer(arguments -> {
+                    final BidderRequest bidderRequest = arguments.getArgument(0);
+
+                    return bidderRequest.toBuilder()
+                            .impIdToDeals(switch (bidderRequest.getBidder()) {
+                                case "bidder1" ->
+                                        singletonMap("imp1", singletonList(Deal.builder().id("deal1").build()));
+                                case "bidder2" ->
+                                        singletonMap("imp2", singletonList(Deal.builder().id("deal2").build()));
+                                default -> null;
+                            })
+                            .build();
+                });
+
+        // when
+        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getImp)
+                .satisfies(imps -> {
+                    assertThat(imps.get(0))
+                            .extracting(Imp::getPmp)
+                            .extracting(Pmp::getDeals)
+                            .asInstanceOf(InstanceOfAssertFactories.list(Deal.class))
+                            .containsExactly(Deal.builder().id("deal1").build());
+
+                    assertThat(imps.get(1))
+                            .extracting(Imp::getPmp)
+                            .extracting(Pmp::getDeals)
+                            .asInstanceOf(InstanceOfAssertFactories.list(Deal.class))
+                            .containsExactly(Deal.builder().id("deal2").build());
+                });
+
+    }
+
+    @Test
     public void shouldPassRequestWithExtPrebidToDefinedBidder() {
         // given
         final String bidder1Name = "bidder1";
