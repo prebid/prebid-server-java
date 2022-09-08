@@ -510,7 +510,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Stored response in DB"
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account with enabled fetch, fetch.url in the DB"

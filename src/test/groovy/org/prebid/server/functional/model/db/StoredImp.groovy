@@ -24,8 +24,8 @@ class StoredImp {
     Integer id
     @Column(name = "accountId")
     String accountId
-    @Column(name = "impid")
-    String impReqId
+    @Column(name = "impId")
+    String impId
     @Column(name = "impData")
     @Convert(converter = ImpConfigTypeConverter)
     Imp impData

@@ -25,18 +25,18 @@ class StoredRequest {
     @Column(name = "accountId")
     String accountId
     @Column(name = "reqid")
-    String reqid
+    String requestId
     @Column(name = "requestData")
     @Convert(converter = StoredRequestConfigTypeConverter)
     BidRequest requestData
 
     static StoredRequest getDbStoredRequest(AmpRequest ampRequest, BidRequest bidRequest) {
-        new StoredRequest(reqid: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
+        new StoredRequest(requestId: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
     }
 
     static StoredRequest getDbStoredRequest(BidRequest bidRequest, BidRequest storedRequest, String accountId = null) {
         new StoredRequest().tap {
-            reqid = bidRequest?.ext?.prebid?.storedRequest?.id
+            requestId = bidRequest?.ext?.prebid?.storedRequest?.id
             if (accountId) {
                 it.accountId = accountId
             } else if (bidRequest?.site?.publisher?.id) {

@@ -162,7 +162,8 @@ class AmpSpec extends BaseSpec {
 
         and: "Stored response in DB"
         def storedAuctionResponse = SeatBid.getStoredResponse(ampStoredRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes amp request"

@@ -33,9 +33,9 @@ LIMIT 1
             "status-response"                            : "ok",
             "gdpr.default-value"                         : "0",
             "settings.database.account-query"            : DB_ACCOUNT_QUERY,
-            "settings.database.stored-requests-query"    : "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)",
-            "settings.database.amp-stored-requests-query": "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)",
-            "settings.database.stored-responses-query"   : "SELECT resid, COALESCE(storedAuctionResponse, storedBidResponse) as responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)"
+            "settings.database.stored-requests-query"    : "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impId, impData, 'imp' as dataType FROM stored_imps WHERE impId IN (%IMP_ID_LIST%)",
+            "settings.database.amp-stored-requests-query": "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%)",
+            "settings.database.stored-responses-query"   : "SELECT resId, COALESCE(storedAuctionResponse, storedBidResponse) as responseData FROM stored_responses WHERE resId IN (%RESPONSE_ID_LIST%)"
     ].asImmutable()
 
     static Map<String, String> getPubstackAnalyticsConfig(String scopeId) {

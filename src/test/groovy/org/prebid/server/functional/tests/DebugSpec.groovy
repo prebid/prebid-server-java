@@ -331,7 +331,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
