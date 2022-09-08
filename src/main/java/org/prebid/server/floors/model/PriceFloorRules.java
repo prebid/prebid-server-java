@@ -14,6 +14,9 @@ public class PriceFloorRules {
     @JsonProperty("floorMin")
     BigDecimal floorMin;
 
+    @JsonProperty("floorMinCur")
+    String floorMinCur;
+
     @JsonProperty("floorProvider")
     String floorProvider;
 
@@ -35,6 +38,4 @@ public class PriceFloorRules {
 
     Boolean skipped;
 
-    @JsonProperty("floorMinCur")
-    String floorMinCur;
 }

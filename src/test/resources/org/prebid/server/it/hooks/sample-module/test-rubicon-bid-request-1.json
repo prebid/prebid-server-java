@@ -16,10 +16,6 @@
         ],
         "ext": {
           "rp": {
-            "size_id": 15,
-            "alt_size_ids": [
-              10
-            ],
             "mime": "text/html"
           }
         }

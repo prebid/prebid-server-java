@@ -29,6 +29,7 @@ import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -477,7 +478,7 @@ class BidderParamsSpec extends BaseSpec {
                  "adapters.generic.meta-info.site-media-types": "native,video"])
 
         and: "Default basic BidRequest with banner, native"
-        def nativeImp = Imp.nativeImpression
+        def nativeImp = Imp.getDefaultImpression(NATIVE)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite
             imp = [Imp.defaultImpression, nativeImp]

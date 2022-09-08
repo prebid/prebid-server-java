@@ -3,6 +3,7 @@
   "Location": "http://www.example.com",
   "Lid": "",
   "IsTestBid": false,
+  "IsAMP" : false,
   "GdprConsent": "",
   "Gdpr": false,
   "InvibBVLog": false,
