@@ -96,13 +96,31 @@ class SmokeSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         when: "PBS processes cookie sync request"
-        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
 
-        then: "Response should contain have status 'OK'"
+        then: "Response should have status 'OK'"
         assert response.status == CookieSyncResponse.Status.OK
 
         and: "Response should contain all bidders"
         assert !response.getBidderUserSync(GENERIC)
+    }
+
+    def "Call PBS /cookie_sync to bidder which doesn't support syncing should return status OK and error for bidder"() {
+        given: "Default CookieSyncRequest"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        when: "PBS processes cookie sync request"
+        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
+
+        then: "Response should have status 'OK'"
+        assert response.status == CookieSyncResponse.Status.OK
+
+        and: "Status for generic bidder should contain error"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "generic is requested for syncing, but doesn't have appropriate sync method"
+        assert !bidderStatus.userSync
+        assert !bidderStatus.noCookie
     }
 
     def "PBS should set uids cookie"() {
