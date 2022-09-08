@@ -1474,7 +1474,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        final BidderUsersyncStatus expectedAppnexusStatus =  BidderUsersyncStatus.builder()
+        final BidderUsersyncStatus expectedAppnexusStatus = BidderUsersyncStatus.builder()
                 .bidder(APPNEXUS)
                 .noCookie(true)
                 .usersync(UsersyncInfo.of("http://adnxsexample.com", UsersyncMethodType.REDIRECT, false))
