@@ -82,7 +82,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
-    private final Set<String> activeBidders;
+    private final Set<String> usersyncReadyBidders;
     private final TcfDefinerService tcfDefinerService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Integer gdprHostVendorId;
@@ -118,14 +118,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.activeBidders = activeBidders(bidderCatalog);
+        this.usersyncReadyBidders = usersyncReadyBidders(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.defaultCoopSync = defaultCoopSync;
-        this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
-                ? listOfCoopSyncBidders
-                : Collections.singletonList(activeBidders);
+        this.listOfCoopSyncBidders = prepareCoopSyncBidders(listOfCoopSyncBidders, bidderCatalog);
         this.setOfCoopSyncBidders = flatMapToSet(this.listOfCoopSyncBidders);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
@@ -133,8 +131,42 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private static Set<String> activeBidders(BidderCatalog bidderCatalog) {
-        return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+    private static List<Collection<String>> prepareCoopSyncBidders(List<Collection<String>> coopSyncBidders,
+                                                                   BidderCatalog bidderCatalog) {
+
+        if (CollectionUtils.isEmpty(coopSyncBidders)) {
+            logger.info("Coop-sync bidder list is not provided, will use active bidders with configured user-sync");
+            return Collections.singletonList(usersyncReadyBidders(bidderCatalog));
+        }
+
+        final List<Collection<String>> validBidderGroups = new ArrayList<>();
+        for (Collection<String> coopSyncGroup : coopSyncBidders) {
+            final Set<String> validBidderGroup = new HashSet<>();
+
+            for (String bidderName : coopSyncGroup) {
+                if (!bidderCatalog.isActive(bidderName)) {
+                    logger.info("""
+                            bidder {0} is provided for coop-syncing, \
+                            but disabled in current pbs instance, ignoring""", bidderName);
+                } else if (bidderCatalog.usersyncerByName(bidderName).isEmpty()) {
+                    logger.info("""
+                            bidder {0} is provided for coop-syncing, \
+                            but has no user-sync configuration, ignoring""", bidderName);
+                } else {
+                    validBidderGroup.add(bidderName);
+                }
+            }
+            validBidderGroups.add(validBidderGroup);
+        }
+
+        return validBidderGroups;
+    }
+
+    private static Set<String> usersyncReadyBidders(BidderCatalog bidderCatalog) {
+        return bidderCatalog.names().stream()
+                .filter(bidderCatalog::isActive)
+                .filter(bidder -> bidderCatalog.usersyncerByName(bidder).isPresent())
+                .collect(Collectors.toSet());
     }
 
     private static Integer validateHostVendorId(Integer gdprHostVendorId) {
@@ -265,7 +297,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final List<String> requestBidders = cookieSyncRequest.getBidders();
 
         if (CollectionUtils.isEmpty(requestBidders)) {
-            return activeBidders;
+            return usersyncReadyBidders;
         }
 
         final Account account = cookieSyncContext.getAccount();
@@ -520,8 +552,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .orElse(null);
 
         if (usersyncMethod == null) {
-            // there is nothing to sync
-            return null;
+            return bidderStatusBuilder(bidder)
+                    .error(bidder + "is requested for syncing, but doesn't have appropriate sync method")
+                    .build();
         }
 
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
