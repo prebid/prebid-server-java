@@ -365,8 +365,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
-        givenDefaultCookieSyncHandler();
-
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
 
@@ -376,6 +374,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
+
+        givenDefaultCookieSyncHandler();
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -399,8 +399,6 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         final List<Collection<String>> coopBidders = asList(singletonList(RUBICON), singletonList(disabledBidder));
 
-        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, false, coopBidders);
-
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
 
@@ -411,13 +409,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
 
+        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, false, coopBidders);
+
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
-                BidderUsersyncStatus.builder().bidder(disabledBidder).error("Unsupported bidder").build(),
                 BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
                         UsersyncInfo.of("http://adnxsexample.com", UsersyncMethodType.REDIRECT, false)).build(),
                 BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
@@ -430,8 +429,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
         final List<Collection<String>> coopBidders = singletonList(singletonList(RUBICON));
-
-        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, false, coopBidders);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder()
@@ -463,6 +460,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
 
+        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, false, coopBidders);
+
         // when
         cookieSyncHandler.handle(routingContext);
 
@@ -484,8 +483,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         final List<Collection<String>> priorityBidders = asList(singletonList(APPNEXUS), singletonList(RUBICON),
                 asList("bidder1", "bidder2"), singletonList("spam"));
 
-        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, true, priorityBidders);
-
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).limit(2).build()));
 
@@ -495,6 +492,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
+
+        givenCookieSyncHandler("http://external-url", 2000, 100, null, 1, true, priorityBidders);
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -521,14 +520,14 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
 
-        givenDefaultCookieSyncHandler();
-
         appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", UsersyncMethodType.REDIRECT);
         rubiconUsersyncer = createUsersyncer(RUBICON, "http://rubiconexample.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
+
+        givenDefaultCookieSyncHandler();
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -556,8 +555,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
-        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
+        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "https://test.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -572,7 +571,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateUnsupportedBidder() throws IOException {
+    public void shouldReturnErrorStatusForUnsupportedBidder() throws IOException {
         // given
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
@@ -581,7 +580,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(asList(RUBICON, "unsupported")).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
@@ -611,7 +610,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, "disabled")).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
@@ -647,8 +646,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
-        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
+        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "https://test.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
@@ -685,37 +684,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateBiddersWithoutUsersyncUrl() throws IOException {
-        // given
-        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
-                Uids.builder().uids(singletonMap("notRelevantBidder", UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
-                jacksonMapper));
-
-        given(bidderCatalog.isActive(anyString())).willReturn(true);
-
-        given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
-
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
-        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "", null);
-        givenUsersyncersReturningFamilyName();
-
-        givenTcfServiceReturningVendorIdResult(singleton(1));
-        givenTcfServiceReturningBidderNamesResult(Set.of(RUBICON, APPNEXUS));
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok", emptyList()));
-    }
-
-    @Test
     public void shouldSkipVendorHostCheckAndContinueWithBiddersCheckWhenHostVendorIdIsMissing() throws IOException {
         // given
-        givenCookieSyncHandler("http://external-url", 2000, 100, null, null, false, emptyList());
-
         final Uids uids = Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build();
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(uids, jacksonMapper));
@@ -723,8 +693,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
-        rubiconUsersyncer = createUsersyncer(RUBICON, "", null);
-        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "", null);
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
+        appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "https://test.com", UsersyncMethodType.REDIRECT);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
@@ -747,6 +717,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                         CompressionType.NONE));
 
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
+        givenCookieSyncHandler("http://external-url", 2000, 100, null, null, false, emptyList());
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -1503,14 +1474,16 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
+        final BidderUsersyncStatus expectedAppnexusStatus =  BidderUsersyncStatus.builder()
+                .bidder(APPNEXUS)
+                .noCookie(true)
+                .usersync(UsersyncInfo.of("http://adnxsexample.com", UsersyncMethodType.REDIRECT, false))
+                .build();
+
         final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
         assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.builder()
                 .status(200)
-                .bidderStatus(singletonList(BidderUsersyncStatus.builder()
-                        .bidder(APPNEXUS)
-                        .noCookie(true)
-                        .usersync(UsersyncInfo.of("http://adnxsexample.com", UsersyncMethodType.REDIRECT, false))
-                        .build()))
+                .bidderStatus(List.of(expectedAppnexusStatus, unconfiguredBidderStatus(RUBICON)))
                 .build());
     }
 
@@ -1661,6 +1634,13 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .usersyncUrl("http://rubiconexample.com")
                         .supportCORS(false)
                         .build());
+    }
+
+    private static BidderUsersyncStatus unconfiguredBidderStatus(String bidderName) {
+        return BidderUsersyncStatus.builder()
+                .bidder(bidderName)
+                .error(bidderName + " is requested for syncing, but doesn't have appropriate sync method")
+                .build();
     }
 
     private static Usersyncer createUsersyncer(String cookieFamilyName, String usersyncUrl, UsersyncMethodType type) {
