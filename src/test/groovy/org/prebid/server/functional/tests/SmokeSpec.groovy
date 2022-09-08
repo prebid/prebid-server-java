@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
+import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.status.Status.OK
@@ -66,6 +67,7 @@ class SmokeSpec extends BaseSpec {
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 
+    @PendingFeature
     def "Call PBS /cookie_sync without uids cookie should return element.usersync.url"() {
         given: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
@@ -96,6 +98,7 @@ class SmokeSpec extends BaseSpec {
         assert !response.getBidderUserSync(GENERIC)
     }
 
+    @PendingFeature
     def "PBS should set uids cookie"() {
         given: "Default SetuidRequest"
         def request = SetuidRequest.defaultSetuidRequest

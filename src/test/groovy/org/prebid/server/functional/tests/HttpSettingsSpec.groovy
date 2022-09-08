@@ -16,6 +16,7 @@ import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
+import spock.lang.PendingFeature
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -103,6 +104,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert httpSettings.getRequestCount(eventRequest.accountId.toString()) == 1
     }
 
+    @PendingFeature
     def "PBS should take account information from http data source on setuid request"() {
         given: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
