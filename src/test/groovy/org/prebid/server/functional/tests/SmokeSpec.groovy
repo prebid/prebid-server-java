@@ -12,13 +12,22 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
+import spock.lang.Shared
 
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.status.Status.OK
 
 class SmokeSpec extends BaseSpec {
+
+    @Shared
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(
+            ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+             "adapters.generic.usersync.redirect.support-cors"   : "false",
+             "adapters.generic.usersync.redirect.format-override": "blank"])
 
     def "PBS should return BidResponse when there are valid bids"() {
         given: "Default basic BidRequest with generic bidder"
@@ -71,7 +80,7 @@ class SmokeSpec extends BaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
 
         when: "PBS processes cookie sync request"
-        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest)
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain all bidders"
         assert response.status == CookieSyncResponse.Status.NO_COOKIE
@@ -102,7 +111,7 @@ class SmokeSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         when: "PBS processes setuid request"
-        def response = defaultPbsService.sendSetUidRequest(request, uidsCookie)
+        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
         assert response.uidsCookie.bday
