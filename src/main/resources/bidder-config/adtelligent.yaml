@@ -53,8 +53,6 @@ adapters:
           maintainer-email: admin@152media.com
           vendor-id: 1111
         usersync:
-          url:
-          redirect-url:
           cookie-family-name: oftmedia
     meta-info:
       maintainer-email: hb@adtelligent.com
