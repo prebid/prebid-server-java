@@ -725,16 +725,13 @@ public class ExchangeServiceTest extends VertxTest {
         given(dealsService.matchAndPopulateDeals(any(), any(), any()))
                 .willAnswer(arguments -> {
                     final BidderRequest bidderRequest = arguments.getArgument(0);
+                    final Map<String, List<Deal>> impIdToDeals = switch (bidderRequest.getBidder()) {
+                        case "bidder1" -> singletonMap("imp1", singletonList(Deal.builder().id("deal1").build()));
+                        case "bidder2" -> singletonMap("imp2", singletonList(Deal.builder().id("deal2").build()));
+                        default -> null;
+                    };
 
-                    return bidderRequest.toBuilder()
-                            .impIdToDeals(switch (bidderRequest.getBidder()) {
-                                case "bidder1" ->
-                                        singletonMap("imp1", singletonList(Deal.builder().id("deal1").build()));
-                                case "bidder2" ->
-                                        singletonMap("imp2", singletonList(Deal.builder().id("deal2").build()));
-                                default -> null;
-                            })
-                            .build();
+                    return bidderRequest.toBuilder().impIdToDeals(impIdToDeals).build();
                 });
 
         // when
