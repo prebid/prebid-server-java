@@ -35,15 +35,14 @@ class StoredRequest {
     }
 
     static StoredRequest getStoredRequest(BidRequest bidRequest) {
-        String storedRequestId = getStoredRequestId(bidRequest)
-
-        getStoredRequest(storedRequestId, bidRequest)
+        getStoredRequest(getStoredRequestId(bidRequest), bidRequest)
     }
 
     static StoredRequest getStoredRequest(String storedRequestId, BidRequest bidRequest) {
         getStoredRequest(bidRequest.accountId, storedRequestId, bidRequest)
     }
 
+    @Deprecated
     static StoredRequest getStoredRequest(BidRequest bidRequest, BidRequest storedRequest) {
         getStoredRequest(bidRequest.accountId, getStoredRequestId(bidRequest), storedRequest)
     }

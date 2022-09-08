@@ -31,8 +31,7 @@ class StoredImp {
     Imp impData
 
     static StoredImp getStoredImp(BidRequest bidRequest) {
-        def accountId = bidRequest.accountId
-        getStoredImp(accountId, bidRequest.imp[0])
+        getStoredImp(bidRequest.accountId, bidRequest.imp[0])
     }
 
     static StoredImp getStoredImp(String accountId, Imp impression) {
