@@ -553,7 +553,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (usersyncMethod == null) {
             return bidderStatusBuilder(bidder)
-                    .error(bidder + "is requested for syncing, but doesn't have appropriate sync method")
+                    .error(bidder + " is requested for syncing, but doesn't have appropriate sync method")
                     .build();
         }
 
