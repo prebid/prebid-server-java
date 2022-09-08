@@ -35,7 +35,7 @@ class AccountResolutionSpec extends BaseSpec {
         assert bidderRequest.site.publisher.id == accountId as String
     }
 
-    def "PBS should prefer account from publisher id during account resolution"() {
+    def "PBS should prefer account from publisher id during auction account resolution"() {
         given: "Default Bid Request with top level stored request"
         def storedRequestId = PBSUtils.randomString
         def accountId = PBSUtils.randomNumber as String
