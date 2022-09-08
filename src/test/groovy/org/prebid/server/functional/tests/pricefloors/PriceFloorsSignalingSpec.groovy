@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnf
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
@@ -476,7 +477,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     def "PBS should choose appropriate rule for each imp when request contains multiple imps"() {
         given: "Default BidRequest with multiple imp: banner, video"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            imp << Imp.videoImpression
+            imp << Imp.getDefaultImpression(MediaType.VIDEO)
         }
 
         and: "Account in the DB"
