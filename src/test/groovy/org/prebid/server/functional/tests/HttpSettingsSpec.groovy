@@ -19,12 +19,13 @@ import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
 
     @Shared
-    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer)
+    HttpSettings httpSettings = new HttpSettings(networkServiceContainer)
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
@@ -104,7 +105,13 @@ class HttpSettingsSpec extends BaseSpec {
     }
 
     def "PBS should take account information from http data source on setuid request"() {
-        given: "Get default SetuidRequest and set account, gdpr=1 "
+        given: "Pbs config with adapters.generic.usersync.redirect.*"
+        def prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig +
+                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
         request.gdpr = 1
         request.account = PBSUtils.randomNumber.toString()
