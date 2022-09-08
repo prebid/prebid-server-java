@@ -1,24 +1,23 @@
 package org.prebid.server.functional.tests.pricefloors
 
-
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
-import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ChannelType.APP
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
@@ -39,6 +38,8 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PB_
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PUB_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
@@ -60,7 +61,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY])
             modelGroups[0].values = [(rule)       : floorValue,
-                                          (invalidRule): floorValue + 0.1]
+                                     (invalidRule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -79,7 +80,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS should support different delimiters for floor rules"() {
         given: "Default bidRequest"
-        def bidRequest =  BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -89,8 +90,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY], delimiter: delimiter)
-            modelGroups[0].values = [(new Rule(delimiter: delimiter, mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule)       : PBSUtils.randomFloorValue,
-                                          (new Rule(delimiter: delimiter, mediaType: BANNER, country: Country.MULTIPLE).rule): floorValue]}
+            modelGroups[0].values = [(new Rule(delimiter: delimiter, mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule): PBSUtils.randomFloorValue,
+                                     (new Rule(delimiter: delimiter, mediaType: BANNER, country: Country.MULTIPLE).rule)            : floorValue]
+        }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
@@ -103,7 +105,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response =  floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should not contain errors, warnings"
         assert !response.ext?.warnings
@@ -125,8 +127,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-                                            site.domain = domain
-                                            site.publisher.id = accountId}
+            site.domain = domain
+            site.publisher.id = accountId
+        }
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(accountId)
@@ -136,9 +139,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            modelGroups[0].values =
-                    [(new Rule(domain: domain).rule.toUpperCase())               : floorValue,
-                     (new Rule(domain: PBSUtils.randomString).rule.toUpperCase()): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(domain: domain).rule.toUpperCase())               : floorValue,
+                                     (new Rule(domain: PBSUtils.randomString).rule.toUpperCase()): floorValue + 0.1]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -158,8 +160,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-                                            site.domain = domain
-                                            site.publisher.id = accountId}
+            site.domain = domain
+            site.publisher.id = accountId
+        }
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(accountId)
@@ -168,11 +171,11 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups <<  ModelGroup.modelGroup
+            modelGroups << ModelGroup.modelGroup
             modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
-            modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue + 0.1]
             modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
-            modelGroups[1].values = [(new Rule(domain: domain).rule) : floorValue]
+            modelGroups[1].values = [(new Rule(domain: domain).rule): floorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -186,7 +189,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response =  floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should pass bidFloor"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -207,8 +210,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-                                            site.domain = domain
-                                            site.publisher.id = accountId}
+            site.domain = domain
+            site.publisher.id = accountId
+        }
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(accountId)
@@ -218,7 +222,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(FLOOR_MIN, 2), 6)
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue]
+            modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -241,10 +245,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            modelGroups[0].values =
-                    [(new Rule(mediaType: MediaType.MULTIPLE).rule): bothFloorValue,
-                     (new Rule(mediaType: BANNER).rule)            : bannerFloorValue,
-                     (new Rule(mediaType: VIDEO).rule)             : videoFloorValue]
+            modelGroups[0].values = [(new Rule(mediaType: MediaType.MULTIPLE).rule): bothFloorValue,
+                                     (new Rule(mediaType: BANNER).rule)            : bannerFloorValue,
+                                     (new Rule(mediaType: VIDEO).rule)             : videoFloorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -259,9 +262,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == 0.6
 
         where:
-        bidRequest                       | bothFloorValue   | bannerFloorValue | videoFloorValue
-        bidRequestWithMultipleMediaTypes | 0.6              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6              | PBSUtils.randomFloorValue
+        bidRequest                       | bothFloorValue            | bannerFloorValue          | videoFloorValue
+        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       | PBSUtils.randomFloorValue
         BidRequest.defaultVideoRequest   | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.6
     }
 
@@ -285,10 +288,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsProviderFloorValue = requestFloorValue + 0.1
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
-            modelGroups[0].values =
-                    [(new Rule(size: "*").rule)                           : floorsProviderFloorValue,
-                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue + 0.1,
-                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue + 0.2]
+            modelGroups[0].values = [(new Rule(size: "*").rule)                           : floorsProviderFloorValue,
+                                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue + 0.1,
+                                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue + 0.2]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -307,7 +309,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest with size"
         def width = 300
         def height = 250
-        def bidRequest = bidRequestClosure(width, height) as BidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0] = impClosure(width, height)
+        }
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -318,9 +322,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsProviderFloorValue = requestFloorValue + 0.1
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
-            modelGroups[0].values =
-                    [(new Rule(size: "*").rule)                 : floorsProviderFloorValue + 0.1,
-                     (new Rule(size: "${width}x${height}").rule): floorsProviderFloorValue]
+            modelGroups[0].values = [(new Rule(size: "*").rule)                 : floorsProviderFloorValue + 0.1,
+                                     (new Rule(size: "${width}x${height}").rule): floorsProviderFloorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -335,19 +338,28 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
 
         where:
-        bidRequestClosure <<
-                [{ int widthVal, int heightVal -> BidRequest.defaultBidRequest.tap {
-                    imp[0].banner.format = [new Format(w: widthVal, h: heightVal)] } },
-                 { int widthVal, int heightVal -> BidRequest.defaultBidRequest.tap {
-                    imp[0].banner.format = null
-                    imp[0].banner.w = widthVal
-                    imp[0].banner.h = heightVal } },
-                 { int widthVal, int heightVal -> BidRequest.defaultVideoRequest.tap {
-                    imp[0].video.w = widthVal
-                    imp[0].video.h = heightVal } }]
+        mediaType                                                            | impClosure
+        org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
+            Imp.getDefaultImpression(mediaType).tap {
+                banner.format = [new Format(w: widthVal, h: heightVal)]
+            }
+        }
+        org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
+            Imp.getDefaultImpression(mediaType).tap {
+                banner.format = null
+                banner.w = widthVal
+                banner.h = heightVal
+            }
+        }
+        org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
+            Imp.getDefaultImpression(mediaType).tap {
+                video.w = widthVal
+                video.h = heightVal
+            }
+        }
     }
 
-    def "PBS should choose correct rule when domain is defined in rules"() {
+    def "PBS should choose correct rule when domain is defined in rules for #distributionChannel channel"() {
         given: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
@@ -361,9 +373,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            modelGroups[0].values =
-                    [(new Rule(domain: domain).rule)               : floorValue,
-                     (new Rule(domain: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(domain: domain).rule)               : floorValue,
+                                     (new Rule(domain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -378,25 +389,30 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                            site.domain = domainVal
-                                            site.publisher.id = accountIdVal} },
-                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                            site.publisher.domain = domainVal
-                                            site.publisher.id = accountIdVal} },
-                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                            site = null
-                                            app =  App.defaultApp
-                                            app.domain = domainVal
-                                            app.publisher.id = accountIdVal} },
-                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                            site = null
-                                            app =  App.defaultApp
-                                            app.publisher.domain = domainVal
-                                            app.publisher.id = accountIdVal} }]
+        distributionChannel | bidRequestClosure
+        SITE                | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                site.domain = publisherDomain
+                site.publisher.id = publisherAccountId
+        }   }
+        SITE                | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                site.publisher.domain = publisherDomain
+                site.publisher.id = publisherAccountId
+        }   }
+        APP                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                app.domain = publisherDomain
+                app.publisher.id = publisherAccountId
+        }   }
+        APP                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                app.publisher.domain = publisherDomain
+                app.publisher.id = publisherAccountId
+        }   }
     }
 
-    def "PBS should choose correct rule when siteDomain is defined in rules"() {
+    def "PBS should choose correct rule when siteDomain is defined in rules for #distributionChannel channel"() {
         given: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
@@ -410,9 +426,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
-            modelGroups[0].values =
-                    [(new Rule(siteDomain: domain).rule)               : floorValue,
-                     (new Rule(siteDomain: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(siteDomain: domain).rule)               : floorValue,
+                                     (new Rule(siteDomain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -427,21 +442,26 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                    site.domain = domainVal
-                                    site.publisher.id = accountIdVal} },
-                              { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                    site = null
-                                    app =  App.defaultApp
-                                    app.domain = domainVal
-                                    app.publisher.id = accountIdVal} }]
+        distributionChannel | bidRequestClosure
+        SITE                | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                site.domain = publisherDomain
+                site.publisher.id = publisherAccountId
+            }
+        }
+        APP                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                app.domain = publisherDomain
+                app.publisher.id = publisherAccountId
+            }
+        }
     }
 
-     def "PBS should choose correct rule when pubDomain is defined in rules"() {
+    def "PBS should choose correct rule when pubDomain is defined in rules for #distributionChannel channel"() {
         given: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
-        def bidRequest = bidRequestClosure(domain, accountId) as BidRequest
+        def bidRequest = bidRequestClosure(domain, accountId)
 
         and: "Account in the DB"
         def account = getAccountWithEnabledFetch(accountId)
@@ -451,9 +471,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [PUB_DOMAIN])
-            modelGroups[0].values =
-                    [(new Rule(pubDomain: domain).rule)               : floorValue,
-                     (new Rule(pubDomain: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(pubDomain: domain).rule)               : floorValue,
+                                     (new Rule(pubDomain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -468,21 +487,25 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                    site.publisher.domain = domainVal
-                                    site.publisher.id = accountIdVal} },
-                              { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
-                                    site = null
-                                    app =  App.defaultApp
-                                    app.publisher.domain = domainVal
-                                    app.publisher.id = accountIdVal} }]
+        distributionChannel | bidRequestClosure
+        SITE                | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                site.publisher.domain = publisherDomain
+                site.publisher.id = publisherAccountId
+            }
+        }
+        APP                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                app.publisher.domain = publisherDomain
+                app.publisher.id = publisherAccountId
+            }
+        }
     }
 
     def "PBS should choose correct rule when bundle is defined in rules"() {
         given: "BidRequest with domain"
         def bundle = PBSUtils.randomString
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            app = App.defaultApp
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.bundle = bundle
         }
         and: "Account in the DB"
@@ -493,9 +516,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [BUNDLE])
-            modelGroups[0].values =
-                    [(new Rule(bundle: bundle).rule)               : floorValue,
-                     (new Rule(bundle: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(bundle: bundle).rule)               : floorValue,
+                                     (new Rule(bundle: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
@@ -527,9 +549,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [CHANNEL])
-            modelGroups[0].values =
-                    [(new Rule(channel: channel).rule)              : floorValue,
-                     (new Rule(channel: APP).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(channel: channel).rule)        : floorValue,
+                                     (new Rule(channel: ChannelType.APP).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -547,7 +568,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     def "PBS should choose correct rule when gptSlot is defined in rules"() {
         given: "BidRequest with domain"
         def gptSlot = PBSUtils.randomString
-        def bidRequest = bidRequestClosure(gptSlot) as BidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.data = contextDataClosure(gptSlot)
+        }
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -557,9 +580,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [GPT_SLOT])
-            modelGroups[0].values =
-                    [(new Rule(gptSlot: gptSlot).rule)               : floorValue,
-                     (new Rule(gptSlot: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(gptSlot: gptSlot).rule)              : floorValue,
+                                     (new Rule(gptSlot: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -574,10 +596,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        bidRequestClosure << [{ String gptSlotVal -> BidRequest.defaultBidRequest.tap {
-                                    imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: gptSlotVal))} },
-                              { String gptSlotVal -> BidRequest.defaultBidRequest.tap {
-                                    imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal)} }]
+        contextDataClosure <<
+                [{ String gptSlotVal -> new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: gptSlotVal)) },
+                 { String gptSlotVal -> new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal) }]
     }
 
     def "PBS should choose correct rule when pbAdSlot is defined in rules"() {
@@ -595,9 +616,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
-            modelGroups[0].values =
-                    [(new Rule(pbAdSlot: pbAdSlot).rule)             : floorValue,
-                     (new Rule(pbAdSlot: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(pbAdSlot: pbAdSlot).rule)             : floorValue,
+                                     (new Rule(pbAdSlot: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -627,9 +647,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [COUNTRY])
-            modelGroups[0].values =
-                    [(new Rule(country: country).rule)         : floorValue,
-                     (new Rule(country: Country.MULTIPLE).rule): floorValue + 0.1]
+            modelGroups[0].values = [(new Rule(country: country).rule)         : floorValue,
+                                     (new Rule(country: Country.MULTIPLE).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -657,11 +676,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
-            modelGroups[0].values =
-                    [(new Rule(deviceType: PHONE).rule): phoneFloorValue,
-                     (new Rule(deviceType: TABLET).rule): tabletFloorValue,
-                     (new Rule(deviceType: DESKTOP).rule): desktopFloorValue,
-                     (new Rule(deviceType: MULTIPLE).rule): PBSUtils.randomFloorValue]
+            modelGroups[0].values = [(new Rule(deviceType: PHONE).rule)   : phoneFloorValue,
+                                     (new Rule(deviceType: TABLET).rule)  : tabletFloorValue,
+                                     (new Rule(deviceType: DESKTOP).rule) : desktopFloorValue,
+                                     (new Rule(deviceType: MULTIPLE).rule): PBSUtils.randomFloorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -676,16 +694,16 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == 0.8
 
         where:
-        deviceType            | phoneFloorValue  | tabletFloorValue | desktopFloorValue
-        "Phone"               | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        "iPhone"              | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        "Android.*Mobile"     | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        "Mobile.*Android"     | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        "tablet"              | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
-        "iPad"                | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
-        "Windows NT.*touch"   | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
-        "touch.*Windows NT"   | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
-        "Android"             | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        deviceType            | phoneFloorValue           | tabletFloorValue          | desktopFloorValue
+        "Phone"               | 0.8                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "iPhone"              | 0.8                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "Android.*Mobile"     | 0.8                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "Mobile.*Android"     | 0.8                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "tablet"              | PBSUtils.randomFloorValue | 0.8                       | PBSUtils.randomFloorValue
+        "iPad"                | PBSUtils.randomFloorValue | 0.8                       | PBSUtils.randomFloorValue
+        "Windows NT.*touch"   | PBSUtils.randomFloorValue | 0.8                       | PBSUtils.randomFloorValue
+        "touch.*Windows NT"   | PBSUtils.randomFloorValue | 0.8                       | PBSUtils.randomFloorValue
+        "Android"             | PBSUtils.randomFloorValue | 0.8                       | PBSUtils.randomFloorValue
         PBSUtils.randomString | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.8
     }
 
@@ -703,11 +721,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
-            modelGroups[0].values =
-                    [(new Rule(deviceType: PHONE).rule): floorValue + 0.1,
-                     (new Rule(deviceType: TABLET).rule): floorValue + 0.2,
-                     (new Rule(deviceType: DESKTOP).rule): floorValue + 0.3,
-                     (new Rule(deviceType: MULTIPLE).rule): floorValue]
+            modelGroups[0].values = [(new Rule(deviceType: PHONE).rule)   : floorValue + 0.1,
+                                     (new Rule(deviceType: TABLET).rule)  : floorValue + 0.2,
+                                     (new Rule(deviceType: DESKTOP).rule) : floorValue + 0.3,
+                                     (new Rule(deviceType: MULTIPLE).rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -715,7 +732,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request with empty user agent header"
-        floorsPbsService.sendAuctionRequest(bidRequest, ["User-Agent":""])
+        floorsPbsService.sendAuctionRequest(bidRequest, ["User-Agent": ""])
 
         then: "Bidder request bidFloor should correspond to a wildcard rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -751,10 +768,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should choose correct rule based on full match when domain, mediaType, gptSlot are defined in rules"() {
-       given: "Default bidRequest with domain, mediaType, adSlot"
-        def domain ="example.com"
+        given: "Default bidRequest with domain, mediaType, adSlot"
+        def domain = "example.com"
         def adSlot = "/111/k/categorytop/footer_right/300x250"
-        def bidRequest =  BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             site.domain = domain
             imp[0].banner = Banner.defaultBanner
             imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: adSlot))
@@ -779,11 +796,11 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == 0.06
     }
 
-   def "PBS should choose correct rule based on incomplete match when domain, mediaType, gptSlot are defined in rules"() {
+    def "PBS should choose correct rule based on incomplete match when domain, mediaType, gptSlot are defined in rules"() {
         given: "Default bidRequest with domain, mediaType, adSlot"
-        def domain ="example.com"
+        def domain = "example.com"
         def adSlot = "test"
-        def bidRequest =  BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             site.domain = domain
             imp[0].banner = Banner.defaultBanner
             imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: adSlot))

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
@@ -182,7 +181,12 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest with floors"
         def floorValue = PBSUtils.randomFloorValue
         def floorCur = USD
-        def bidRequest = bidRequestClosure(floorValue, floorCur) as BidRequest
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            imp[0].bidFloor = floorValue
+            imp[0].bidFloorCur = floorCur
+            ext.prebid.floors = null
+        }
 
         and: "Account with disabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -204,22 +208,41 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should fetch data"
         assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
+    }
 
-         where:
-        bidRequestClosure << [{ BigDecimal floorValueObj, Currency floorCurObj -> bidRequestWithFloors.tap {
-            cur = [floorCurObj]
+    def "PBS should prefer ext.prebid.floors for PF enforcement"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
             imp[0].bidFloor = PBSUtils.randomFloorValue
-            imp[0].bidFloorCur = floorCurObj
-            ext.prebid.floors.floorMin = floorValueObj
-            ext.prebid.floors.data.modelGroups[0].values = [(rule): floorValueObj]
-            ext.prebid.floors.data.modelGroups[0].currency = floorCurObj
-        } },
-           { BigDecimal floorValueObj, Currency floorCurObj -> bidRequestWithFloors.tap {
-            cur = [floorCurObj]
-            imp[0].bidFloor = floorValueObj
-            imp[0].bidFloorCur = floorCurObj
-            ext.prebid.floors = null
-        } }]
+            imp[0].bidFloorCur = floorCur
+            ext.prebid.floors.floorMin = floorValue
+            ext.prebid.floors.data.modelGroups[0].values = [(rule): floorValue]
+            ext.prebid.floors.data.modelGroups[0].currency = floorCur
+        }
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        and: "Bid response with 2 bids: price = floorValue, price < floorValue"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
+            seatbid.first().bid.first().price = floorValue
+            seatbid.first().bid.last().price = floorValue - 0.1
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should fetch data"
+        assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
     }
 
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
@@ -504,10 +527,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         and: "PBS shouldn't log errors"
         assert !response.ext.errors
 
-        where: bidRequestFloors << [true, false]
+        where:
+        bidRequestFloors << [true, false]
     }
 
-     def "PBS floors shouldn't enforce when floors property disabled"() {
+    def "PBS floors shouldn't enforce when floors property disabled"() {
         given: "BidRequestWithFloors with floors"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             ext.prebid.floors = new ExtPrebidFloors(enabled: bidRequestFloors)
@@ -543,9 +567,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid.first().bid.collect { it.price } == [bidPrice]
 
         where:
-        bidRequestFloors     | accountConfigFloors
-        false                | true
-        true                 | false
-        false                | false
+        bidRequestFloors | accountConfigFloors
+        false            | true
+        true             | false
+        false            | false
     }
 }

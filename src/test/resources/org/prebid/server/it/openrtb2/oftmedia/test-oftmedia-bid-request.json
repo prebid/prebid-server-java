@@ -3,16 +3,17 @@
   "imp": [
     {
       "id": "imp_id",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 800,
-        "h": 600
+      "banner": {
+        "w": 300,
+        "h": 250
       },
+      "bidfloor": 20,
       "ext": {
-        "bidder": {
-          "siteId": 123
+        "adtelligent": {
+          "aid": 1000,
+          "placementId": 10,
+          "siteId": 1234,
+          "bidFloor": 20
         }
       }
     }

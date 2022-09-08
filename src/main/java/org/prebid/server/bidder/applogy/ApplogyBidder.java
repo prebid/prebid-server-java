@@ -23,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -83,7 +84,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            if (banner.getH() == null || banner.getW() == null || banner.getH() == 0 || banner.getW() == 0) {
+            if (BidderUtil.isNullOrZero(banner.getH()) || BidderUtil.isNullOrZero(banner.getW())) {
                 if (CollectionUtils.isEmpty(banner.getFormat())) {
                     throw new PreBidException("banner size information missing");
                 }

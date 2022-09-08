@@ -3,16 +3,16 @@
   "imp": [
     {
       "id": "imp_id",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 800,
-        "h": 600
+      "banner": {
+        "w": 300,
+        "h": 250
       },
       "ext": {
-        "unruly": {
-          "siteId": 123
+        "oftmedia": {
+          "aid": 1000,
+          "siteId": 1234,
+          "bidFloor": 20,
+          "placementId": 10
         }
       }
     }

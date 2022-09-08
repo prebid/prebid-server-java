@@ -648,8 +648,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when fetch request exceeds fetch.timeout-ms"() {
         given: "PBS with minTimeoutMs configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minTimeoutMs": "1"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minTimeoutMs": "1"])
 
         and: "Test start time"
         def startTime = Instant.now()
@@ -805,8 +804,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule ==
-                    bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRule == bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
 
@@ -952,9 +950,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should periodically fetch floor rules when previous response from floors provider is #description"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minMaxAgeSec": "3",
-                 "price-floors.minPeriodSec": "3"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minMaxAgeSec": "3",
+                                                                      "price-floors.minPeriodSec": "3"])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -1350,9 +1347,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minMaxAgeSec": "3",
-                 "price-floors.minPeriodSec": "3"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minMaxAgeSec": "3",
+                                                                      "price-floors.minPeriodSec": "3"])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
