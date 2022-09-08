@@ -55,7 +55,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -80,7 +80,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -107,7 +107,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
@@ -137,7 +137,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
@@ -174,7 +174,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -266,7 +266,7 @@ class AuctionSpec extends BaseSpec {
         and: "Save storedRequest into DB with cur and id"
         def currencies = [Currency.BOGUS]
         def storedBidRequest = new BidRequest(id: "stored-request-id", cur: currencies)
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedBidRequest)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedBidRequest)
         storedRequestDao.save(storedRequest)
 
         when: "Requesting PBS auction"
@@ -300,7 +300,7 @@ class AuctionSpec extends BaseSpec {
         and: "Save storedRequest into DB with cur and id"
         def currencies = [Currency.BOGUS]
         def storedBidRequest = new BidRequest(id: "stored-request-id", cur: currencies)
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedBidRequest)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedBidRequest)
         storedRequestDao.save(storedRequest)
 
         when: "Requesting PBS auction"

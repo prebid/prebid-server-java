@@ -741,7 +741,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def storedRequestModel = bidRequestWithFloors
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel, accountId)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -822,7 +822,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Default stored request with floors "
         def ampStoredRequest = storedRequestWithFloors
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -866,7 +866,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def storedRequestModel = bidRequestWithFloors
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -911,7 +911,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def ampStoredRequest = storedRequestWithFloors.tap {
             ext.prebid.floors.floorMin = FLOOR_MIN
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -1166,7 +1166,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
             ext.prebid.floors.data.modelGroups.last().modelWeight = modelWeight
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"

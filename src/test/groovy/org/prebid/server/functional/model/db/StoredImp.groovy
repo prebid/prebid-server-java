@@ -30,22 +30,21 @@ class StoredImp {
     @Convert(converter = ImpConfigTypeConverter)
     Imp impData
 
-    static StoredImp getDbStoredImp(BidRequest bidRequest, Imp storedImp) {
-        new StoredImp().tap {
-            if (bidRequest?.site?.publisher?.id) {
-                accountId = bidRequest.site.publisher.id
-            } else if (bidRequest?.app?.publisher?.id) {
-                accountId = bidRequest.app.publisher.id
-            } else if (storedImp?.ext?.prebid?.bidder?.rubicon?.accountId) {
-                accountId = storedImp.ext.prebid.bidder.rubicon.accountId
-            }
+    static StoredImp getStoredImp(BidRequest bidRequest) {
+        def accountId = bidRequest.accountId
+        getStoredImp(accountId, bidRequest.imp[0])
+    }
 
-            if (bidRequest?.imp[0]?.ext?.prebid?.storedRequest?.id) {
-                it.impReqId = bidRequest.imp[0].ext.prebid.storedRequest.id
-            } else if (storedImp?.id) {
-                it.impReqId = storedImp.id
-            }
-            impData = storedImp
+    static StoredImp getStoredImp(String accountId, Imp impression) {
+        def impressionId = impression.ext?.prebid?.storedRequest?.id ?: impression.id
+        getStoredImp(accountId, impressionId, impression)
+    }
+
+    static StoredImp getStoredImp(String accountId, String impressionId, Imp impression) {
+        new StoredImp().tap {
+            it.accountId = accountId
+            it.impId = impressionId
+            it.impData = impression
         }
     }
 }

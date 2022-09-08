@@ -83,6 +83,30 @@ class BidRequest {
         bidderList
     }
 
+    @JsonIgnore
+    String getAccountId() {
+        site?.publisher?.id ?: app?.publisher?.id
+    }
+
+    @JsonIgnore
+    void setAccountId(String accountId) {
+        if ((!site && !app) || (site && app)) {
+            throw new IllegalStateException("Either site or app should be defined")
+        }
+
+        if (site) {
+            if (!site.publisher) {
+                site.publisher = new Publisher()
+            }
+            site.publisher.id = accountId
+        } else {
+            if (!app.publisher) {
+                app.publisher = new Publisher()
+            }
+            app.publisher.id = accountId
+        }
+    }
+
     void enableCache() {
         if (ext == null) {
             ext = new BidRequestExt()

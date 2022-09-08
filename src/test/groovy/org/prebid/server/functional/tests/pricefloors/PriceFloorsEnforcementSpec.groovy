@@ -38,7 +38,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             imp[0].ext.prebid.bidder.generic.firstParam = bidderParam
             ext.prebid.floors = floors
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch and fetch.url in the DB"
