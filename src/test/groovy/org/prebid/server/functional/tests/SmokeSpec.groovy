@@ -75,7 +75,7 @@ class SmokeSpec extends BaseSpec {
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 
-    def "Call PBS /cookie_sync with uids cookie should return element.usersync.url"() {
+    def "Call PBS /cookie_sync without uids cookie should return element.usersync.url"() {
         given: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
 
