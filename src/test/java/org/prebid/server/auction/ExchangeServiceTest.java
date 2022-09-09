@@ -160,6 +160,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static java.math.BigDecimal.ONE;
@@ -286,7 +287,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
-        given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", null, null));
+        given(bidderCatalog.usersyncerByName(anyString()))
+                .willReturn(Optional.of(Usersyncer.of("cookieFamily", null, null)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,
@@ -3130,8 +3132,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(metrics).updateRequestBidderCardinalityMetric(1);
         verify(metrics).updateAccountRequestMetrics(any(), eq(MetricName.openrtb2web));
-        verify(metrics)
-                .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
+        verify(metrics).updateAdapterRequestTypeAndNoCookieMetrics(
+                eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
         verify(metrics).updateAdapterResponseTime(eq("someBidder"), any(), anyInt());
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
         verify(metrics).updateAdapterBidMetrics(

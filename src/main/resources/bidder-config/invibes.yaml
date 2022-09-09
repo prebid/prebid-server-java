@@ -8,9 +8,3 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 436
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: invibes
-      type: redirect
-      support-cors: false
