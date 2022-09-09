@@ -54,6 +54,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return BidRequest.builder()
                 .id(bidRequest.getId())
                 .test(bidRequest.getTest())
+                .imp(bidRequest.getImp())
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
                         .build()))
