@@ -811,6 +811,22 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromImpExtData() {
+        // given
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final RequestContext context = new RequestContext(
+                request(identity()),
+                imp(imp -> imp.ext(obj("data", obj("sport", "hockey")))),
+                "bidderAlias",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
     public void lookupIntegerShouldReturnDowFromUserExt() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.dow);
@@ -924,6 +940,22 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupInteger(category).getValues()).containsExactly(123);
+    }
+
+    @Test
+    public void lookupIntegerShouldReturnSiteFirstPartyDataFromImpExtData() {
+        // given
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final RequestContext context = new RequestContext(
+                request(identity()),
+                imp(imp -> imp.ext(obj("data", obj("sport", 1)))),
+                "bidderAlias",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(1);
     }
 
     @Test
@@ -1078,6 +1110,23 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("123", "456"));
+    }
+
+    @Test
+    public void lookupStringsShouldReturnSiteFirstPartyDataFromImpExtData() {
+        // given
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData, "sport");
+        final RequestContext context = new RequestContext(
+                request(identity()),
+                imp(imp -> imp.ext(obj("data", obj("sport", mapper.valueToTree(asList("hockey", "football")))))),
+                "bidderAlias",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("hockey", "football"));
     }
 
     @Test
@@ -1315,6 +1364,22 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(123, 456));
+    }
+
+    @Test
+    public void lookupIntegersShouldReturnSiteFirstPartyDataFromImpExtData() {
+        // given
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final RequestContext context = new RequestContext(
+                request(identity()),
+                imp(imp -> imp.ext(obj("data", obj("sport", mapper.valueToTree(asList(1, 2)))))),
+                "bidderAlias",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(1, 2));
     }
 
     @Test
