@@ -132,23 +132,26 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        place  | bidRequest
-
-        "imp"  | BidRequest.defaultBidRequest.tap {
+        place               | bidRequest
+        "imp[].ext.context" | BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
-                banner = Banner.defaultBanner
                 ext.context = new ImpExtContext(data: new ImpExtContextData(language: stringTargetingValue))
             }]
         }
-        "site" | BidRequest.defaultBidRequest.tap {
+        "site"              | BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite.tap {
                 ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
             }
         }
-        "app"  | BidRequest.defaultBidRequest.tap {
+        "app"               | BidRequest.defaultBidRequest.tap {
             app = new App(id: PBSUtils.randomString).tap {
                 ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
             }
+        }
+        "imp[].ext.data"    | BidRequest.defaultBidRequest.tap {
+            imp = [Imp.defaultImpression.tap {
+                ext.data = new ImpExtContextData(language: stringTargetingValue)
+            }]
         }
     }
 
