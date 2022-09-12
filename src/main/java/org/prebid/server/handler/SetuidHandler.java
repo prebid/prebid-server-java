@@ -338,7 +338,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
-        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
+        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
     }
 
     @Value(staticConstructor = "of")

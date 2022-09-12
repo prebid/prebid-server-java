@@ -182,10 +182,6 @@ public final class HttpUtil {
                 .collect(Collectors.joining("; "));
     }
 
-    public static String toSetCookieHeaderValue(Cookie cookie) {
-        return String.join("; ", cookie.encode(), "SameSite=None; Secure");
-    }
-
     public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,
                                         Consumer<HttpServerResponse> responseConsumer) {
         return executeSafely(routingContext, endpoint.value(), responseConsumer);
