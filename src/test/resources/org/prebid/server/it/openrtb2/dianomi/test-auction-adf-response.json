@@ -1,0 +1,37 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id_banner",
+          "impid": "imp_id_banner",
+          "price":  11.393,
+          "adomain": [],
+          "adm": "<html>",
+          "crid": "test-creative-id-2",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "pt": "gross",
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
+          }
+        }
+      ],
+      "seat": "dianomi",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "dianomi": "{{ dianomi.response_time_ms }}"
+    },
+    "tmaxrequest": 2000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
