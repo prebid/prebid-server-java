@@ -14,7 +14,7 @@
       },
       "ext": {
         "bidder": {
-          "smartadId": "12345",
+          "smartadId": 12345,
           "priceType": "gross"
         }
       }
