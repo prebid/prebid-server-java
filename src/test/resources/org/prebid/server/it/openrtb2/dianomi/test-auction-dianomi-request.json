@@ -13,7 +13,7 @@
       },
       "ext": {
         "dianomi": {
-          "smartadId": "12345",
+          "smartadId": 12345,
           "priceType": "gross"
         }
       }
