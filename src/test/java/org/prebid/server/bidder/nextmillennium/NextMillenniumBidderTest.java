@@ -29,7 +29,6 @@ import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMill
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -416,7 +415,7 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsBidRequestShouldBeIdenticalExceptImp() {
+    public void makeHttpRequestsBidRequestShouldBeIdenticalExceptImpExt() {
         // given
         final String placementId = "6821";
         final Imp initialImp = givenImpWithExt(imp -> imp
