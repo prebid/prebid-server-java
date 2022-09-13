@@ -52,47 +52,16 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-        ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
                 .build());
-        List<Imp> imps = bidRequest.getImp()
+
+        final List<Imp> imps = bidRequest.getImp()
                 .stream()
-                .map(imp -> Imp.builder()
-                        .id(imp.getId())
-                        .metric(imp.getMetric())
-                        .banner(imp.getBanner())
-                        .video(imp.getVideo())
-                        .audio(imp.getAudio())
-                        .xNative(imp.getXNative())
-                        .pmp(imp.getPmp())
-                        .displaymanager(imp.getDisplaymanager())
-                        .displaymanagerver(imp.getDisplaymanagerver())
-                        .instl(imp.getInstl())
-                        .tagid(imp.getTagid())
-                        .bidfloor(imp.getBidfloor())
-                        .bidfloorcur(imp.getBidfloorcur())
-                        .clickbrowser(imp.getClickbrowser())
-                        .secure(imp.getSecure())
-                        .iframebuster(imp.getIframebuster())
-                        .rwdd(imp.getRwdd())
-                        .ssai(imp.getSsai())
-                        .exp(imp.getExp())
-                        .ext(ObjectMapperProvider.mapper().valueToTree(extRequest))
-                        .build())
+                .map(imp -> imp.toBuilder().ext(ObjectMapperProvider.mapper().valueToTree(extRequest)).build())
                 .toList();
 
-        return BidRequest.builder()
-                .id(bidRequest.getId())
-                .test(bidRequest.getTest())
-                .tmax(bidRequest.getTmax())
-                .at(bidRequest.getAt())
-                .site(bidRequest.getSite())
-                .cur(bidRequest.getCur())
-                .source(bidRequest.getSource())
-                .device(bidRequest.getDevice())
-                .imp(imps)
-                .ext(extRequest)
-                .build();
+        return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
     }
 
     private static String resolveStoredRequestId(BidRequest bidRequest, ExtImpNextMillennium extImpNextMillennium) {

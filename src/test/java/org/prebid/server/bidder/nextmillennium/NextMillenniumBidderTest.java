@@ -47,7 +47,6 @@ public class NextMillenniumBidderTest extends VertxTest {
 
     private static Imp givenImpWithExt(UnaryOperator<Imp.ImpBuilder> impCustomizer,
                                        ExtImpNextMillennium extImpNextMillennium) {
-
         return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
                 ExtPrebid.of(null, extImpNextMillennium))))::apply);
     }
@@ -55,62 +54,6 @@ public class NextMillenniumBidderTest extends VertxTest {
     @Before
     public void setUp() {
         nextMillenniumBidder = new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper);
-    }
-
-    @Test
-    public void makeHttpRequestsBidRequestShouldHaveIdenticalParams() {
-        ExtImpNextMillennium initialExt = ExtImpNextMillennium.of("6821", null);
-        Imp initialImp = givenImpWithExt(imp -> imp
-                        .id("custom_imp_id")
-                        .tagid("custom_imp_tagid")
-                        .secure(1)
-                        .banner(Banner.builder()
-                                .w(728)
-                                .h(90)
-                                .format(singletonList(Format.builder()
-                                        .w(728)
-                                        .h(90)
-                                        .build())).build()
-                        ),
-                initialExt
-        );
-        BidRequest bidRequest = givenBidRequest(b -> b
-                .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
-                .test(1)
-                .tmax(845L)
-                .device(Device.builder().w(994).h(1768).build())
-                .imp(singletonList(initialImp))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .schains(emptyList())
-                        .targeting(ExtRequestTargeting.builder()
-                                .includewinners(true)
-                                .includebidderkeys(false)
-                                .build())
-                        .build()))
-                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
-        );
-
-        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
-        Optional<BidRequest> searchResult = result.getValue()
-                .stream()
-                .map(HttpRequest::getPayload)
-                .findFirst();
-        BidRequest modifiedRequest = searchResult.get();
-        Imp modifiedImp = modifiedRequest.getImp().get(0);
-        // Bid Request
-        assertThat(modifiedRequest)
-                .usingRecursiveComparison()
-                .ignoringFields("imp", "ext")
-                .isEqualTo(bidRequest);
-        // Imp without Ext
-        assertThat(modifiedImp)
-                .usingRecursiveComparison()
-                .ignoringFields("ext")
-                .isEqualTo(initialImp);
-        // Ext
-        assertThat(modifiedImp.getExt()).isNotEqualTo(initialImp.getExt());
-        assertThat(modifiedImp.getExt().get("prebid").get("storedrequest").get("id").asText())
-                .isEqualTo(initialExt.getPlacementId());
     }
 
     @Test
@@ -379,6 +322,141 @@ public class NextMillenniumBidderTest extends VertxTest {
                     assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
                 });
 
+    }
+
+    @Test
+    public void makeHttpRequestsImpExtComparison() {
+        // given
+        final String placementId = "6821";
+        final Imp givenImp = givenImpWithExt(imp -> imp
+                        .id("custom_imp_id")
+                        .tagid("custom_imp_tagid")
+                        .secure(1)
+                        .banner(Banner.builder()
+                                .w(728)
+                                .h(90)
+                                .format(singletonList(Format.builder()
+                                        .w(728)
+                                        .h(90)
+                                        .build())).build()
+                        ),
+                ExtImpNextMillennium.of(placementId, null)
+        );
+
+        final BidRequest bidRequest = givenBidRequest(b -> b
+                .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
+                .test(1)
+                .tmax(845L)
+                .device(Device.builder().w(994).h(1768).build())
+                .imp(singletonList(givenImp))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .schains(emptyList())
+                        .targeting(ExtRequestTargeting.builder()
+                                .includewinners(true)
+                                .includebidderkeys(false)
+                                .build())
+                        .build()))
+                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imps -> imps.get(0))
+                .extracting(Imp::getExt)
+                .isNotEqualTo(givenImp.getExt())
+                .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, ExtRequest.class))
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getStoredrequest)
+                .extracting(ExtStoredRequest::getId)
+                .element(0)
+                .isEqualTo(placementId);
+    }
+
+    @Test
+    public void makeHttpRequestsImpShouldBeIdenticalExceptExt() {
+        // given
+        final String placementId = "6821";
+        final Imp givenImp = givenImpWithExt(imp -> imp
+                        .id("custom_imp_id")
+                        .tagid("custom_imp_tagid")
+                        .secure(1)
+                        .banner(Banner.builder()
+                                .w(728)
+                                .h(90)
+                                .format(singletonList(Format.builder()
+                                        .w(728)
+                                        .h(90)
+                                        .build())).build()
+                        ),
+                ExtImpNextMillennium.of(placementId, null)
+        );
+
+        final BidRequest bidRequest = givenBidRequest(b -> b
+                .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
+                .test(1)
+                .imp(singletonList(givenImp))
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imps -> imps.get(0))
+                .element(0)
+                .usingRecursiveComparison()
+                .ignoringFields("ext")
+                .isEqualTo(givenImp);
+    }
+
+    @Test
+    public void makeHttpRequestsBidRequestShouldBeIdenticalExceptImp() {
+        // given
+        final String placementId = "6821";
+        final Imp initialImp = givenImpWithExt(imp -> imp
+                        .id("custom_imp_id")
+                        .tagid("custom_imp_tagid")
+                        .secure(1)
+                        .banner(Banner.builder()
+                                .w(728)
+                                .h(90)
+                                .format(singletonList(Format.builder()
+                                        .w(728)
+                                        .h(90)
+                                        .build())).build()
+                        ),
+                ExtImpNextMillennium.of(placementId, null)
+        );
+        final BidRequest bidRequest = givenBidRequest(b -> b
+                .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
+                .test(1)
+                .tmax(845L)
+                .device(Device.builder().w(994).h(1768).build())
+                .imp(singletonList(initialImp))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .schains(emptyList())
+                        .targeting(ExtRequestTargeting.builder()
+                                .includewinners(true)
+                                .includebidderkeys(false)
+                                .build())
+                        .build()))
+                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
+        );
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .element(0)
+                .usingRecursiveComparison()
+                .ignoringFields("imp", "ext")
+                .isEqualTo(bidRequest);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
