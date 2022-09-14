@@ -192,9 +192,9 @@ public class SettingsConfiguration {
 
         @AllArgsConstructor
         private enum DbPoolType {
-            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "user",
+            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "username",
                     "&allowPublicKeyRetrieval=true"),
-            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "username", "");
+            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "user", "");
 
             private final String jdbcCP;
             private final String url;
