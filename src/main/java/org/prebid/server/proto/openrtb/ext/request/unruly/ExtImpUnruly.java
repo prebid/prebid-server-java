@@ -7,7 +7,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpUnruly {
 
-    @JsonProperty("siteId")
-    @JsonAlias({"siteid"})
+    @JsonProperty("siteid")
+    @JsonAlias({"siteId"})
     Integer siteId;
 }
