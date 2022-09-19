@@ -19,10 +19,12 @@ import org.prebid.server.settings.EnrichingApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
+import org.prebid.server.settings.S3ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
-import org.prebid.server.spring.config.database.DatabaseConfiguration;
+import org.prebid.server.settings.service.S3PeriodicRefreshService;
+import org.prebid.server.spring.config.database.DatabaseConfiguration
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +37,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
@@ -213,6 +222,110 @@ public class SettingsConfiguration {
         }
     }
 
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.s3", name = {"accounts-dir", "stored-imps-dir", "stored-requests-dir"})
+    static class S3SettingsConfiguration {
+
+        @Component
+        @ConfigurationProperties(prefix = "settings.s3")
+        @ConditionalOnProperty(prefix = "settings.s3", name = {"accessKeyId", "secretAccessKey"})
+        @Validated
+        @Data
+        @NoArgsConstructor
+        private static class S3ConfigurationProperties {
+            @NotBlank
+            private String accessKeyId;
+            @NotBlank
+            private String secretAccessKey;
+            @NotBlank
+            private String endpoint;
+            @NotBlank
+            private String bucket;
+            @NotBlank
+            private String accountsDir;
+            @NotBlank
+            private String storedImpsDir;
+            @NotBlank
+            private String storedRequestsDir;
+            @NotBlank
+            private String storedResponsesDir;
+        }
+
+        @Bean
+        S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
+            final AwsBasicCredentials credentials = AwsBasicCredentials.create(
+                    s3ConfigurationProperties.getAccessKeyId(),
+                    s3ConfigurationProperties.getSecretAccessKey());
+
+            return S3AsyncClient
+                    .builder()
+                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
+                    .region(Region.EU_CENTRAL_1)
+                    .build();
+        }
+
+        @Bean
+        S3ApplicationSettings s3ApplicationSettings(
+                JacksonMapper mapper,
+                S3ConfigurationProperties s3ConfigurationProperties,
+                S3AsyncClient s3AsyncClient,
+                Vertx vertx) {
+
+            return new S3ApplicationSettings(
+                    s3AsyncClient,
+                    s3ConfigurationProperties.getBucket(),
+                    s3ConfigurationProperties.getAccountsDir(),
+                    s3ConfigurationProperties.getStoredImpsDir(),
+                    s3ConfigurationProperties.getStoredRequestsDir(),
+                    s3ConfigurationProperties.getStoredResponsesDir(),
+                    mapper,
+                    vertx);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.s3-update",
+            name = {"refresh-rate", "timeout"})
+    static class S3PeriodicRefreshServiceConfiguration {
+
+        @Value("${settings.in-memory-cache.s3-update.refresh-rate}")
+        long refreshPeriod;
+
+        @Value("${settings.in-memory-cache.s3-update.timeout}")
+        long timeout;
+
+        @Autowired
+        Vertx vertx;
+
+        @Autowired
+        HttpClient httpClient;
+        @Autowired
+        Metrics metrics;
+        @Autowired
+        Clock clock;
+
+        @Bean
+        public S3PeriodicRefreshService s3PeriodicRefreshService(
+                S3AsyncClient s3AsyncClient,
+                S3SettingsConfiguration.S3ConfigurationProperties s3ConfigurationProperties,
+                SettingsCache settingsCache,
+                JacksonMapper mapper) {
+            return new S3PeriodicRefreshService(
+                    s3AsyncClient,
+                    s3ConfigurationProperties.getBucket(),
+                    s3ConfigurationProperties.getStoredRequestsDir(),
+                    s3ConfigurationProperties.getStoredImpsDir(),
+                    refreshPeriod,
+                    timeout,
+                    MetricName.stored_request,
+                    settingsCache,
+                    vertx,
+                    metrics,
+                    clock);
+        }
+    }
+
     /**
      * This configuration defines a collection of application settings fetchers and its ordering.
      */
@@ -223,10 +336,12 @@ public class SettingsConfiguration {
         CompositeApplicationSettings compositeApplicationSettings(
                 @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
                 @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
-                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings) {
+                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
+                @Autowired(required = false) S3ApplicationSettings s3ApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
-                    Stream.of(fileApplicationSettings,
+                    Stream.of(s3ApplicationSettings,
+                                    fileApplicationSettings,
                                     jdbcApplicationSettings,
                                     httpApplicationSettings)
                             .filter(Objects::nonNull)
