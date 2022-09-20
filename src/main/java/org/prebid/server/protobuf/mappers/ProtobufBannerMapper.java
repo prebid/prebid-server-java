@@ -43,10 +43,8 @@ public class ProtobufBannerMapper<ProtobufExtensionType>
         setNotNull(banner.getApi(), resultBuilder::addAllApi);
         setNotNull(mapList(banner.getFormat(), formatMapper::map), resultBuilder::addAllFormat);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(banner.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, banner.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

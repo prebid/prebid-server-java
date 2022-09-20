@@ -1,9 +1,12 @@
 package org.prebid.server.protobuf;
 
+import com.google.protobuf.ExtensionLite;
+import com.google.protobuf.Message;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -21,6 +24,21 @@ public class MapperUtils {
     public static <T> void setNotNull(T value, Consumer<T> setter) {
         if (value != null) {
             setter.accept(value);
+        }
+    }
+
+    public static <ContainingType extends Message, FromType, ToType> void mapAndSetExtension(
+            ProtobufExtensionMapper<ContainingType, FromType, ToType> mapper,
+            FromType value,
+            BiConsumer<ExtensionLite<ContainingType, ToType>, ToType> extensionSetter) {
+
+        if (mapper == null || value == null) {
+            return;
+        }
+
+        final ToType mappedExt = mapper.map(value);
+        if (mappedExt != null) {
+            extensionSetter.accept(mapper.extensionType(), mappedExt);
         }
     }
 

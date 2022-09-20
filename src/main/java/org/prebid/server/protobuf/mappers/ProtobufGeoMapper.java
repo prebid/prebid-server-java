@@ -6,6 +6,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.protobuf.ProtobufExtensionMapper;
 import org.prebid.server.protobuf.ProtobufMapper;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
@@ -38,10 +39,8 @@ public class ProtobufGeoMapper<ProtobufExtensionType>
         setNotNull(geo.getZip(), resultBuilder::setZip);
         setNotNull(geo.getUtcoffset(), resultBuilder::setUtcoffset);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(geo.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, geo.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

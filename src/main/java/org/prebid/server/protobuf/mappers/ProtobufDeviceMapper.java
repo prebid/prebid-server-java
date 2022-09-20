@@ -11,6 +11,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
@@ -63,10 +64,8 @@ public class ProtobufDeviceMapper<ProtobufExtensionType>
         setNotNull(device.getMacsha1(), resultBuilder::setMacsha1);
         setNotNull(device.getMacmd5(), resultBuilder::setMacmd5);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(device.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, device.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

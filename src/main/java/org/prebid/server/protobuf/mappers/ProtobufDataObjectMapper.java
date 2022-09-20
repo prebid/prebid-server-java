@@ -5,6 +5,7 @@ import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.prebid.server.protobuf.JsonProtobufExtensionMapper;
 import org.prebid.server.protobuf.ProtobufMapper;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
 public class ProtobufDataObjectMapper<ProtobufExtensionType>
@@ -25,10 +26,8 @@ public class ProtobufDataObjectMapper<ProtobufExtensionType>
         setNotNull(dataObject.getType(), resultBuilder::setType);
         setNotNull(dataObject.getLen(), resultBuilder::setLen);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(dataObject.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, dataObject.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

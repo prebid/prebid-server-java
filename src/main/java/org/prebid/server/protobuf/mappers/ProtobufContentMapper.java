@@ -10,6 +10,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.util.Objects;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapList;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
@@ -62,10 +63,8 @@ public class ProtobufContentMapper<ProtobufExtensionType>
         setNotNull(mapNotNull(content.getEmbeddable(), BooleanUtils::toBoolean), resultBuilder::setEmbeddable);
         setNotNull(mapList(content.getData(), dataMapper::map), resultBuilder::addAllData);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(content.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, content.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

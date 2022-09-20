@@ -8,6 +8,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.util.Objects;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
@@ -45,10 +46,8 @@ public class ProtobufAssetMapper<ProtobufExtensionType>
         setNotNull(mapNotNull(asset.getVideo(), videoMapper::map), resultBuilder::setVideo);
         setNotNull(mapNotNull(asset.getData(), dataMapper::map), resultBuilder::setData);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(asset.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, asset.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

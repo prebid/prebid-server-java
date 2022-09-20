@@ -7,6 +7,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
@@ -32,10 +33,8 @@ public class ProtobufDealMapper<ProtobufExtensionType>
         setNotNull(deal.getWseat(), resultBuilder::addAllWseat);
         setNotNull(deal.getWadomain(), resultBuilder::addAllWadomain);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(deal.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, deal.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

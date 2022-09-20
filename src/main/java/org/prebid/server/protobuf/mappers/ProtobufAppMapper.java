@@ -11,6 +11,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.util.Objects;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
@@ -50,10 +51,8 @@ public class ProtobufAppMapper<ProtobufExtensionType>
         setNotNull(mapNotNull(app.getContent(), contentMapper::map), resultBuilder::setContent);
         setNotNull(app.getKeywords(), resultBuilder::setKeywords);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(app.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, app.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }
