@@ -15,7 +15,8 @@ import static org.prebid.server.protobuf.MapperUtils.mapList;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
-public class ProtobufNativeRequestMapper<ProtobufExtensionType> implements ProtobufMapper<Request, OpenRtb.NativeRequest> {
+public class ProtobufNativeRequestMapper<ProtobufExtensionType>
+        implements ProtobufMapper<Request, OpenRtb.NativeRequest> {
 
     private final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetsMapper;
     private final ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventtrackersMapper;
