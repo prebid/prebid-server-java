@@ -1,4 +1,4 @@
-package org.prebid.server.protobuf.mappers;
+package org.prebid.server.protobuf.mappers.ntv.asset;
 
 import com.iab.openrtb.request.ImageObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
@@ -8,12 +8,12 @@ import org.prebid.server.protobuf.ProtobufMapper;
 import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 
-public class ProtobufImageObjectMapper<ProtobufExtensionType>
+public class ProtobufImageMapper<ProtobufExtensionType>
         implements ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> {
 
     private final JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Image, ProtobufExtensionType> extensionMapper;
 
-    public ProtobufImageObjectMapper(
+    public ProtobufImageMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Image, ProtobufExtensionType> extensionMapper) {
 
         this.extensionMapper = extensionMapper;

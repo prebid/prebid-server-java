@@ -9,6 +9,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.util.Objects;
 
+import static org.prebid.server.protobuf.MapperUtils.mapAndSetExtension;
 import static org.prebid.server.protobuf.MapperUtils.mapList;
 import static org.prebid.server.protobuf.MapperUtils.mapNotNull;
 import static org.prebid.server.protobuf.MapperUtils.setNotNull;
@@ -16,29 +17,28 @@ import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 public class ProtobufVideoMapper<ProtobufExtensionType>
         implements ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> {
 
-    private final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper;
+    private final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> companionadMapper;
     private final JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extensionMapper;
 
     public ProtobufVideoMapper(
-            ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper,
+            ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> companionadMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extensionMapper) {
 
-        this.bannerMapper = Objects.requireNonNull(bannerMapper);
+        this.companionadMapper = Objects.requireNonNull(companionadMapper);
         this.extensionMapper = extensionMapper;
     }
 
     @Override
     public OpenRtb.BidRequest.Imp.Video map(Video video) {
-        final OpenRtb.BidRequest.Imp.Video.Builder resultBuilder =
-                OpenRtb.BidRequest.Imp.Video.newBuilder();
+        final OpenRtb.BidRequest.Imp.Video.Builder resultBuilder = OpenRtb.BidRequest.Imp.Video.newBuilder();
 
         setNotNull(video.getMimes(), resultBuilder::addAllMimes);
         setNotNull(video.getMinduration(), resultBuilder::setMinduration);
         setNotNull(video.getMaxduration(), resultBuilder::setMaxduration);
+        setNotNull(video.getStartdelay(), resultBuilder::setStartdelay);
         setNotNull(video.getProtocols(), resultBuilder::addAllProtocols);
         setNotNull(video.getW(), resultBuilder::setW);
         setNotNull(video.getH(), resultBuilder::setH);
-        setNotNull(video.getStartdelay(), resultBuilder::setStartdelay);
         setNotNull(video.getPlacement(), resultBuilder::setPlacement);
         setNotNull(video.getLinearity(), resultBuilder::setLinearity);
         setNotNull(mapNotNull(video.getSkip(), BooleanUtils::toBoolean), resultBuilder::setSkip);
@@ -48,19 +48,18 @@ public class ProtobufVideoMapper<ProtobufExtensionType>
         setNotNull(video.getBattr(), resultBuilder::addAllBattr);
         setNotNull(video.getMaxextended(), resultBuilder::setMaxextended);
         setNotNull(video.getMinbitrate(), resultBuilder::setMinbitrate);
+        setNotNull(video.getMaxbitrate(), resultBuilder::setMaxbitrate);
         setNotNull(mapNotNull(video.getBoxingallowed(), BooleanUtils::toBoolean), resultBuilder::setBoxingallowed);
         setNotNull(video.getPlaybackmethod(), resultBuilder::addAllPlaybackmethod);
         setNotNull(video.getPlaybackend(), resultBuilder::setPlaybackend);
         setNotNull(video.getDelivery(), resultBuilder::addAllDelivery);
         setNotNull(video.getPos(), resultBuilder::setPos);
-        setNotNull(mapList(video.getCompanionad(), bannerMapper::map), resultBuilder::addAllCompanionad);
+        setNotNull(mapList(video.getCompanionad(), companionadMapper::map), resultBuilder::addAllCompanionad);
         setNotNull(video.getApi(), resultBuilder::addAllApi);
         setNotNull(video.getCompaniontype(), resultBuilder::addAllCompaniontype);
 
-        if (extensionMapper != null) {
-            final ProtobufExtensionType ext = extensionMapper.map(video.getExt());
-            resultBuilder.setExtension(extensionMapper.extensionType(), ext);
-        }
+        mapAndSetExtension(extensionMapper, video.getExt(), resultBuilder::setExtension);
+
         return resultBuilder.build();
     }
 }

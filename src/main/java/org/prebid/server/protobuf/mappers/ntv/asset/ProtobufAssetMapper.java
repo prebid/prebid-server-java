@@ -1,4 +1,4 @@
-package org.prebid.server.protobuf.mappers;
+package org.prebid.server.protobuf.mappers.ntv.asset;
 
 import com.iab.openrtb.request.*;
 import com.iabtechlab.openrtb.v2.OpenRtb;
