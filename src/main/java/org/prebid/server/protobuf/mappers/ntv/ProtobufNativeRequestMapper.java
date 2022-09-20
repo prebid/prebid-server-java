@@ -18,16 +18,16 @@ import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 public class ProtobufNativeRequestMapper<ProtobufExtensionType>
         implements ProtobufMapper<Request, OpenRtb.NativeRequest> {
 
-    private final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetsMapper;
+    private final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper;
     private final ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventtrackersMapper;
     private final JsonProtobufExtensionMapper<OpenRtb.NativeRequest, ProtobufExtensionType> extensionMapper;
 
     public ProtobufNativeRequestMapper(
-            ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetsMapper,
+            ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper,
             ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventtrackersMapper,
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest, ProtobufExtensionType> extensionMapper) {
 
-        this.assetsMapper = Objects.requireNonNull(assetsMapper);
+        this.assetMapper = Objects.requireNonNull(assetMapper);
         this.eventtrackersMapper = Objects.requireNonNull(eventtrackersMapper);
         this.extensionMapper = extensionMapper;
     }
@@ -42,7 +42,7 @@ public class ProtobufNativeRequestMapper<ProtobufExtensionType>
         setNotNull(request.getPlcmttype(), resultBuilder::setPlcmttype);
         setNotNull(request.getPlcmtcnt(), resultBuilder::setPlcmtcnt);
         setNotNull(request.getSeq(), resultBuilder::setSeq);
-        setNotNull(mapList(request.getAssets(), assetsMapper::map), resultBuilder::addAllAssets);
+        setNotNull(mapList(request.getAssets(), assetMapper::map), resultBuilder::addAllAssets);
         setNotNull(mapNotNull(request.getAurlsupport(), BooleanUtils::toBoolean), resultBuilder::setAurlsupport);
         setNotNull(mapNotNull(request.getDurlsupport(), BooleanUtils::toBoolean), resultBuilder::setDurlsupport);
         setNotNull(mapList(request.getEventtrackers(), eventtrackersMapper::map), resultBuilder::addAllEventtrackers);

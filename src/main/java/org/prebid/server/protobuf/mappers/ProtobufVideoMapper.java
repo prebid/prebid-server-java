@@ -17,14 +17,14 @@ import static org.prebid.server.protobuf.MapperUtils.setNotNull;
 public class ProtobufVideoMapper<ProtobufExtensionType>
         implements ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> {
 
-    private final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> companionadMapper;
+    private final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper;
     private final JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extensionMapper;
 
     public ProtobufVideoMapper(
-            ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> companionadMapper,
+            ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extensionMapper) {
 
-        this.companionadMapper = Objects.requireNonNull(companionadMapper);
+        this.bannerMapper = Objects.requireNonNull(bannerMapper);
         this.extensionMapper = extensionMapper;
     }
 
@@ -54,7 +54,7 @@ public class ProtobufVideoMapper<ProtobufExtensionType>
         setNotNull(video.getPlaybackend(), resultBuilder::setPlaybackend);
         setNotNull(video.getDelivery(), resultBuilder::addAllDelivery);
         setNotNull(video.getPos(), resultBuilder::setPos);
-        setNotNull(mapList(video.getCompanionad(), companionadMapper::map), resultBuilder::addAllCompanionad);
+        setNotNull(mapList(video.getCompanionad(), bannerMapper::map), resultBuilder::addAllCompanionad);
         setNotNull(video.getApi(), resultBuilder::addAllApi);
         setNotNull(video.getCompaniontype(), resultBuilder::addAllCompaniontype);
 
