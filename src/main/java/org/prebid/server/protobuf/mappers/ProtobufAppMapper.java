@@ -4,6 +4,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Publisher;
 import com.iabtechlab.openrtb.v2.OpenRtb;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.protobuf.ProtobufExtensionMapper;
 import org.prebid.server.protobuf.ProtobufMapper;
@@ -43,6 +44,8 @@ public class ProtobufAppMapper<ProtobufExtensionType>
         setNotNull(app.getSectioncat(), resultBuilder::addAllSectioncat);
         setNotNull(app.getPagecat(), resultBuilder::addAllPagecat);
         setNotNull(app.getVer(), resultBuilder::setVer);
+        setNotNull(mapNotNull(app.getPrivacypolicy(), BooleanUtils::toBoolean), resultBuilder::setPrivacypolicy);
+        setNotNull(mapNotNull(app.getPaid(), BooleanUtils::toBoolean), resultBuilder::setPaid);
         setNotNull(mapNotNull(app.getPublisher(), publisherMapper::map), resultBuilder::setPublisher);
         setNotNull(mapNotNull(app.getContent(), contentMapper::map), resultBuilder::setContent);
         setNotNull(app.getKeywords(), resultBuilder::setKeywords);
