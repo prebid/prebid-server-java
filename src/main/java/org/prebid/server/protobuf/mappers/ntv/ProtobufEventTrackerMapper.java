@@ -1,4 +1,4 @@
-package org.prebid.server.protobuf.mappers;
+package org.prebid.server.protobuf.mappers.ntv;
 
 import com.iab.openrtb.request.EventTracker;
 import com.iabtechlab.openrtb.v2.OpenRtb;
