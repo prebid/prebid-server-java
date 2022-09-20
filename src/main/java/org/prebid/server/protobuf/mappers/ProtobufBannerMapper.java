@@ -27,9 +27,9 @@ public class ProtobufBannerMapper<ProtobufExtensionType>
 
     @Override
     public OpenRtb.BidRequest.Imp.Banner map(Banner banner) {
-        final OpenRtb.BidRequest.Imp.Banner.Builder resultBuilder = OpenRtb.BidRequest.Imp.Banner.newBuilder()
-                .setId(banner.getId());
+        final OpenRtb.BidRequest.Imp.Banner.Builder resultBuilder = OpenRtb.BidRequest.Imp.Banner.newBuilder();
 
+        setNotNull(banner.getId(), resultBuilder::setId);
         setNotNull(banner.getW(), resultBuilder::setW);
         setNotNull(banner.getH(), resultBuilder::setH);
         setNotNull(banner.getPos(), resultBuilder::setPos);
