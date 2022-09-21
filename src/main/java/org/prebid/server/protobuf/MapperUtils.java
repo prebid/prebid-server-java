@@ -6,7 +6,6 @@ import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.Message;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -29,9 +28,9 @@ public class MapperUtils {
         }
     }
 
-    public static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, ExtensionType>
-    ObjectNode extractAndMapExtension(
-            ProtobufExtensionMapper<ContainingType, ExtensionType, ObjectNode> mapper,
+    public static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, FromType, ToType>
+    ToType extractExtension(
+            ProtobufExtensionMapper<ContainingType, FromType, ToType> mapper,
             ContainingType value) {
 
         if (mapper == null || value == null) {
@@ -57,8 +56,6 @@ public class MapperUtils {
     }
 
     public static <T, U> List<U> mapList(List<T> values, Function<T, U> mapper) {
-        return CollectionUtils.isEmpty(values)
-                ? Collections.emptyList()
-                : values.stream().map(mapper).toList();
+        return CollectionUtils.emptyIfNull(values).stream().map(mapper).toList();
     }
 }

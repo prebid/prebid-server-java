@@ -7,7 +7,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
 
-import static org.prebid.server.protobuf.MapperUtils.extractAndMapExtension;
+import static org.prebid.server.protobuf.MapperUtils.extractExtension;
 
 public class ProtobufBidMapper<ProtobufExtensionType>
         implements ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> {
@@ -49,7 +49,7 @@ public class ProtobufBidMapper<ProtobufExtensionType>
                 .wratio(bid.getWratio())
                 .hratio(bid.getHratio())
                 .exp(bid.getExp())
-                .ext(extractAndMapExtension(extensionMapper, bid))
+                .ext(extractExtension(extensionMapper, bid))
                 .build();
     }
 }
