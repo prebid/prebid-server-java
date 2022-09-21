@@ -10,5 +10,5 @@ public interface ProtobufExtensionMapper<ContainingType extends Message, FromTyp
 
     ToType map(FromType fromType);
 
-    Extension<ContainingType, ToType> extensionType();
+    <ExtensionType> Extension<ContainingType, ExtensionType> extensionType();
 }

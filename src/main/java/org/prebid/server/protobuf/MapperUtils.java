@@ -1,6 +1,8 @@
 package org.prebid.server.protobuf;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ExtensionLite;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.Message;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -25,6 +27,18 @@ public class MapperUtils {
         if (value != null) {
             setter.accept(value);
         }
+    }
+
+    public static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, ExtensionType>
+    ObjectNode extractAndMapExtension(
+            ProtobufExtensionMapper<ContainingType, ExtensionType, ObjectNode> mapper,
+            ContainingType value) {
+
+        if (mapper == null || value == null) {
+            return null;
+        }
+
+        return mapper.map(value.getExtension(mapper.extensionType()));
     }
 
     public static <ContainingType extends Message, FromType, ToType> void mapAndSetExtension(

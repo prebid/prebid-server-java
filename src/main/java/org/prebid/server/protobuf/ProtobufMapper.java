@@ -1,7 +1,5 @@
 package org.prebid.server.protobuf;
 
-import com.google.protobuf.Message;
-
 /**
  * Generic interface for mapping internal models to protobuf models.
  * MapStruct is not used for implementations, because models have extensions,
@@ -10,7 +8,7 @@ import com.google.protobuf.Message;
  * See <a href="https://github.com/mapstruct/mapstruct/issues/2257">corresponding issue</a>
  */
 @FunctionalInterface
-public interface ProtobufMapper<FromType, ToType extends Message> {
+public interface ProtobufMapper<FromType, ToType> {
 
     ToType map(FromType value);
 }
