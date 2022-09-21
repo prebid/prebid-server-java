@@ -320,7 +320,6 @@ public class NextMillenniumBidderTest extends VertxTest {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
                 });
-
     }
 
     @Test
@@ -337,10 +336,9 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder()
                                         .w(728)
                                         .h(90)
-                                        .build())).build()
-                        ),
-                ExtImpNextMillennium.of(placementId, null)
-        );
+                                        .build()))
+                                .build()),
+                ExtImpNextMillennium.of(placementId, null));
 
         final BidRequest bidRequest = givenBidRequest(b -> b
                 .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
@@ -355,8 +353,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .includebidderkeys(false)
                                 .build())
                         .build()))
-                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
-        );
+                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
@@ -389,16 +386,14 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder()
                                         .w(728)
                                         .h(90)
-                                        .build())).build()
-                        ),
-                ExtImpNextMillennium.of(placementId, null)
-        );
+                                        .build()))
+                                .build()),
+                ExtImpNextMillennium.of(placementId, null));
 
         final BidRequest bidRequest = givenBidRequest(b -> b
                 .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
                 .test(1)
-                .imp(singletonList(givenImp))
-        );
+                .imp(singletonList(givenImp)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
@@ -428,10 +423,9 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder()
                                         .w(728)
                                         .h(90)
-                                        .build())).build()
-                        ),
-                ExtImpNextMillennium.of(placementId, null)
-        );
+                                        .build()))
+                                .build()),
+                ExtImpNextMillennium.of(placementId, null));
         final BidRequest bidRequest = givenBidRequest(b -> b
                 .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
                 .test(1)
@@ -445,8 +439,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .includebidderkeys(false)
                                 .build())
                         .build()))
-                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build())
-        );
+                .site(Site.builder().page("https://www.advfn.com").domain("www.advfn.com").build()));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = nextMillenniumBidder.makeHttpRequests(bidRequest);
         // then

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -22,7 +23,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -51,14 +51,16 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
+
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
                 .build());
 
-        final List<Imp> imps = bidRequest.getImp()
-                .stream()
-                .map(imp -> imp.toBuilder().ext(ObjectMapperProvider.mapper().valueToTree(extRequest)).build())
+        final ObjectNode impExt = mapper.mapper().valueToTree(extRequest);
+
+        final List<Imp> imps = bidRequest.getImp().stream()
+                .map(imp -> imp.toBuilder().ext(impExt).build())
                 .toList();
 
         return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
@@ -90,8 +92,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private List<ExtImpNextMillennium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
-        return bidRequest.getImp()
-                .stream()
+        return bidRequest.getImp().stream()
                 .map(imp -> convertExt(imp, errors))
                 .filter(Objects::nonNull)
                 .toList();
