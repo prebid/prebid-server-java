@@ -167,16 +167,14 @@ class GroupResult<T> {
     }
 
     private static ExecutionAction toExecutionAction(InvocationAction action) {
-        if (action == null) {
-            return null;
-        }
-
         if (action instanceof InvocationAction.Reject rejectAction) {
             return ExecutionAction.reject(rejectAction.nbr());
         } else if (action instanceof InvocationAction.Update) {
             return ExecutionAction.update();
-        } else {
+        } else if (action instanceof InvocationAction.NoAction) {
             return ExecutionAction.noAction();
+        } else {
+            return null;
         }
     }
 

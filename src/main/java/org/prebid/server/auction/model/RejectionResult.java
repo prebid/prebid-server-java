@@ -10,7 +10,7 @@ public sealed interface RejectionResult permits RejectionResult.Allowed, Rejecti
         return new Rejected(nbr);
     }
 
-    final class Allowed implements RejectionResult {
+    record Allowed() implements RejectionResult {
 
         private static final Allowed INSTANCE = new Allowed();
     }
