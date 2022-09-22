@@ -29,6 +29,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -856,6 +857,7 @@ public class AmpHandlerTest extends VertxTest {
                 .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
                 .debugContext(DebugContext.empty())
+                .requestRejectionResult(RejectionResult.allowed())
                 .build();
     }
 

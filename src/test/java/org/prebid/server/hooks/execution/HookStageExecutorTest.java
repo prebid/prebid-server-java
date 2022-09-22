@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.TimeoutFactory;
@@ -275,7 +276,7 @@ public class HookStageExecutorTest extends VertxTest {
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
             assertThat(result).isNotNull();
-            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.allowed());
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body-abc-ghi-jkl-def"));
 
@@ -298,7 +299,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
@@ -306,7 +307,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(80L, 100L);
                                         });
 
@@ -317,7 +318,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
@@ -325,7 +326,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(40L, 60L);
                                         });
                                     }));
@@ -491,7 +492,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
@@ -605,7 +606,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
@@ -693,7 +694,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -703,14 +704,14 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.no_action);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.noAction());
                                         });
                                     }));
 
@@ -758,7 +759,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.rejected(123));
             assertThat(result.getPayload()).isNull();
 
             assertThat(hookExecutionContext.getStageOutcomes())
@@ -777,14 +778,14 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject(123));
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
                                         });
                                     }));
@@ -838,7 +839,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.rejected(123));
             assertThat(result.getPayload()).isNull();
 
             assertThat(hookExecutionContext.getStageOutcomes())
@@ -859,14 +860,14 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -876,14 +877,14 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject(123));
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
                                         });
                                     }));
@@ -914,7 +915,7 @@ public class HookStageExecutorTest extends VertxTest {
                 "hook-a",
                 immediateHook(InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.success)
-                        .action(InvocationAction.update)
+                        .action(InvocationAction.update())
                         .build()));
 
         givenEntrypointHook(
@@ -1012,7 +1013,7 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.success)
                         .message("Updated the request")
-                        .action(InvocationAction.update)
+                        .action(InvocationAction.update())
                         .payloadUpdate(identity())
                         .errors(singletonList("There have been some errors though"))
                         .warnings(singletonList("Not without warnings too"))
@@ -1048,7 +1049,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                                 assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                                 assertThat(hookOutcome.getMessage()).isEqualTo("Updated the request");
-                                                assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                                assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                                 assertThat(hookOutcome.getErrors())
                                                         .containsOnly("There have been some errors though");
                                                 assertThat(hookOutcome.getWarnings())
@@ -1312,7 +1313,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update());
                                             assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
                                     }));
@@ -1485,7 +1486,7 @@ public class HookStageExecutorTest extends VertxTest {
                     vertx.setTimer(20, timerId -> promise.complete(
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.success)
-                                    .action(InvocationAction.update)
+                                    .action(InvocationAction.update())
                                     .payloadUpdate(identity())
                                     .moduleContext(
                                             StringUtils.trimToEmpty((String) invocationContext.moduleContext()) + "a")
@@ -1599,7 +1600,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.rejected(123));
             assertThat(result.getPayload()).isNull();
 
             async.complete();
@@ -1772,7 +1773,7 @@ public class HookStageExecutorTest extends VertxTest {
                     vertx.setTimer(20, timerId -> promise.complete(
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.success)
-                                    .action(InvocationAction.update)
+                                    .action(InvocationAction.update())
                                     .payloadUpdate(identity())
                                     .moduleContext(
                                             StringUtils.trimToEmpty((String) invocationContext.moduleContext()) + "a")
@@ -1889,7 +1890,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.rejected(123));
             assertThat(result.getPayload()).isNull();
 
             async.complete();
@@ -2091,10 +2092,11 @@ public class HookStageExecutorTest extends VertxTest {
                 BidderResponse.of(
                         "bidder1",
                         BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                        null,
                         0),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 = executor.executeRawBidderResponseStage(
-                BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
+                BidderResponse.of("bidder2", BidderSeatBid.empty(), null, 0),
                 auctionContext);
 
         // then
@@ -2148,6 +2150,7 @@ public class HookStageExecutorTest extends VertxTest {
                 BidderResponse.of(
                         "bidder1",
                         BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                        null,
                         0),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
@@ -2248,11 +2251,12 @@ public class HookStageExecutorTest extends VertxTest {
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
                                         BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                null,
                                 0),
                         auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
                 executor.executeProcessedBidderResponseStage(
-                        BidderResponse.of("bidder2", BidderSeatBid.empty(), 0),
+                        BidderResponse.of("bidder2", BidderSeatBid.empty(), null, 0),
                         auctionContext);
 
         // then
@@ -2309,6 +2313,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
                                         BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                null,
                                 0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
@@ -2423,10 +2428,14 @@ public class HookStageExecutorTest extends VertxTest {
                                 BidderResponse.of(
                                         "bidder1",
                                         BidderSeatBid.of(singletonList(
-                                                BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))), 0),
+                                                BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                        null,
+                                        0),
                                 BidderResponse.of("bidder2",
                                         BidderSeatBid.of(singletonList(
-                                                BidderBid.of(Bid.builder().build(), BidType.video, "UAH"))), 0)),
+                                                BidderBid.of(Bid.builder().build(), BidType.video, "UAH"))),
+                                        null,
+                                        0)),
                         auctionContext);
 
         // then
@@ -2444,13 +2453,19 @@ public class HookStageExecutorTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> expectedBidderResponses = List.of(
-                BidderResponse.of("bidder1", BidderSeatBid.of(singletonList(
-                        BidderBid.of(expectedBid1, BidType.banner, "USD"))), 0),
-                BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                        BidderBid.of(expectedBid2, BidType.video, "UAH"))), 0));
+                BidderResponse.of(
+                        "bidder1",
+                        BidderSeatBid.of(singletonList(BidderBid.of(expectedBid1, BidType.banner, "USD"))),
+                        null,
+                        0),
+                BidderResponse.of(
+                        "bidder2",
+                        BidderSeatBid.of(singletonList(BidderBid.of(expectedBid2, BidType.video, "UAH"))),
+                        null,
+                        0));
 
-        assertThat(result).succeededWith(
-                HookStageExecutionResult.of(false, AllProcessedBidResponsesPayloadImpl.of(expectedBidderResponses)));
+        assertThat(result).succeededWith(HookStageExecutionResult.of(
+                RejectionResult.allowed(), AllProcessedBidResponsesPayloadImpl.of(expectedBidderResponses)));
     }
 
     @Test
@@ -2477,6 +2492,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
                                         BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                null,
                                 0)),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
@@ -2535,7 +2551,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.rejected(123));
             assertThat(result.getPayload()).isNull();
 
             async.complete();
@@ -2684,7 +2700,7 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getRejectionResult()).isEqualTo(RejectionResult.allowed());
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidResponse()).isNotNull());
 

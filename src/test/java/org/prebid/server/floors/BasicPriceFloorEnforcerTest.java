@@ -210,7 +210,7 @@ public class BasicPriceFloorEnforcerTest {
 
         final AuctionParticipation auctionParticipation = AuctionParticipation.builder()
                 .bidderRequest(null)
-                .bidderResponse(BidderResponse.of("bidder", givenBidderSeatBid(identity()), 0))
+                .bidderResponse(BidderResponse.of("bidder", givenBidderSeatBid(identity()), null, 0))
                 .build();
 
         final Account account = givenAccount(identity());
@@ -630,7 +630,7 @@ public class BasicPriceFloorEnforcerTest {
                                                         .build())
                                                 .build())))
                                 .build()))
-                .bidderResponse(BidderResponse.of("bidder", bidderSeatBid, 0))
+                .bidderResponse(BidderResponse.of("bidder", bidderSeatBid, null, 0))
                 .build();
     }
 

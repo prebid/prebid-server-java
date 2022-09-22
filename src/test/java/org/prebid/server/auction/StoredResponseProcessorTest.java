@@ -367,6 +367,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
 
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
@@ -395,6 +396,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
 
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
@@ -422,8 +424,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<BidderBid> bids = List.of(
                 BidderBid.of(Bid.builder().impid("##PBSIMPID##").build(), BidType.banner, "USD"),
                 BidderBid.of(Bid.builder().impid("##PBSIMPID##").build(), BidType.video, "USD"));
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "rubicon", BidderSeatBid.of(bids), 100);
+        final BidderResponse bidderResponse = BidderResponse.of("rubicon", BidderSeatBid.of(bids), null, 100);
 
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -440,7 +441,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "USD"),
                 BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, "USD"));
         final BidderResponse expectedBidderResponse = BidderResponse.of(
-                "rubicon", BidderSeatBid.of(expectedBids), 100);
+                "rubicon", BidderSeatBid.of(expectedBids), null, 100);
 
         assertThat(result).containsExactly(requestAuctionParticipation.with(expectedBidderResponse));
     }
@@ -451,6 +452,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -494,6 +496,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                                                 .build(),
                                                         BidType.banner,
                                                         "USD"))),
+                                null,
                                 100),
                         null);
     }
@@ -504,6 +507,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -527,6 +531,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "appnexus",
                 BidderSeatBid.of(singletonList(
                         BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"))),
+                null,
                 0);
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -557,6 +562,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         Bid.builder().id("bid2").impid("storedImp").build(),
                                         BidType.banner,
                                         "USD"))),
+                        null,
                         0));
     }
 
@@ -567,6 +573,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR"))),
+                null,
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -600,7 +607,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                                 Bid.builder().id("bid1").build(),
                                                 BidType.banner,
                                                 "EUR"))),
-
+                        null,
                         100));
     }
 
@@ -611,6 +618,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -650,6 +658,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         BidType.video, "USD"),
                                 BidderBid.of(
                                         Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                        null,
                         100));
     }
 
@@ -680,6 +689,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
+                null,
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")

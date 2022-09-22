@@ -32,6 +32,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
@@ -283,7 +284,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .when(ortb2RequestFactory)
                 .executeEntrypointHooks(any(), any(), any());
 
-        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .requestRejectionResult(RejectionResult.rejected(null))
+                .build();
         doReturn(Future.succeededFuture(auctionContext))
                 .when(ortb2RequestFactory)
                 .restoreResultFromRejection(eq(exception));
@@ -1535,7 +1538,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .when(ortb2RequestFactory)
                 .executeProcessedAuctionRequestHooks(any());
 
-        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .requestRejectionResult(RejectionResult.rejected(null))
+                .build();
         doReturn(Future.succeededFuture(auctionContext))
                 .when(ortb2RequestFactory)
                 .restoreResultFromRejection(eq(exception));

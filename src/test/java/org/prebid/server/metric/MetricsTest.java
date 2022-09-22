@@ -1225,16 +1225,16 @@ public class MetricsTest {
     public void updateHooksMetricsShouldIncrementMetrics() {
         // when
         metrics.updateHooksMetrics(
-                "module1", Stage.entrypoint, "hook1", ExecutionStatus.success, 5L, ExecutionAction.update);
+                "module1", Stage.entrypoint, "hook1", ExecutionStatus.success, 5L, ExecutionAction.update());
         metrics.updateHooksMetrics(
-                "module1", Stage.raw_auction_request, "hook2", ExecutionStatus.success, 5L, ExecutionAction.no_action);
+                "module1", Stage.raw_auction_request, "hook2", ExecutionStatus.success, 5L, ExecutionAction.noAction());
         metrics.updateHooksMetrics(
                 "module1",
                 Stage.processed_auction_request,
                 "hook3",
                 ExecutionStatus.success,
                 5L,
-                ExecutionAction.reject);
+                ExecutionAction.reject(null));
         metrics.updateHooksMetrics(
                 "module2", Stage.bidder_request, "hook1", ExecutionStatus.failure, 6L, null);
         metrics.updateHooksMetrics(
@@ -1307,7 +1307,7 @@ public class MetricsTest {
 
         // when
         metrics.updateAccountHooksMetrics(
-                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update);
+                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update());
         metrics.updateAccountHooksMetrics(
                 Account.empty("accountId"), "module2", ExecutionStatus.failure, null);
         metrics.updateAccountHooksMetrics(
@@ -1337,7 +1337,7 @@ public class MetricsTest {
 
         // when
         metrics.updateAccountHooksMetrics(
-                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update);
+                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update());
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())

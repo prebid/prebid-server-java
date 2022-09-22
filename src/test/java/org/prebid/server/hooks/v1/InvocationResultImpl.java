@@ -33,7 +33,7 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
     public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate) {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.success)
-                .action(InvocationAction.update)
+                .action(InvocationAction.update())
                 .payloadUpdate(payloadUpdate)
                 .build();
     }
@@ -48,14 +48,14 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
     public static <PAYLOAD> InvocationResult<PAYLOAD> noAction() {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .action(InvocationAction.noAction())
                 .build();
     }
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> rejected(String message) {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.success)
-                .action(InvocationAction.reject)
+                .action(InvocationAction.reject(123))
                 .message(message)
                 .build();
     }

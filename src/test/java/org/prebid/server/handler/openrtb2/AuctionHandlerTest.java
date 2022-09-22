@@ -22,6 +22,7 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -750,7 +751,8 @@ public class AuctionHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .timeout(this.timeout);
+                .timeout(this.timeout)
+                .requestRejectionResult(RejectionResult.allowed());
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();
