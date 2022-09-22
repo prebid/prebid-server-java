@@ -695,6 +695,18 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>xapi_proto_file</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/MagniteEngineering/xapi-proto/main/src/proto/com/magnite/openrtb/v2/openrtb-xapi.proto</url>
+                            <outputDirectory>${project.basedir}/src/main/proto</outputDirectory>
+                            <outputFileName>openrtb-xapi.proto</outputFileName>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>tld_names</id>
                         <phase>generate-resources</phase>
                         <goals>
