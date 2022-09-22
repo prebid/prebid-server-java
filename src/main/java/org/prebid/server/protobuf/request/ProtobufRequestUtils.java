@@ -33,8 +33,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
-import lombok.Builder;
-import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -57,14 +55,56 @@ import java.util.function.Function;
 
 public class ProtobufRequestUtils {
 
-    public ProtobufRequestUtils() {
+    private ProtobufRequestUtils() {
     }
 
-    @Value
-    @Builder
-    public static class ExtensionMappersSpecification {
+    public static ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(ExtensionMappersSpecification spec) {
+        final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper =
+                bannerMapper(formatMapper(spec.formatExtMapper()), spec.bannerExtMapper());
 
-        ProtobufForwardExtensionMapper<OpenRtb.BidRequest, ExtRequest, ?> bidRequestExtMapper;
+        final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper = assetMapper(
+                titleMapper(spec.nativeTitleExtMapper()),
+                nativeImageMapper(spec.nativeImageExtMapper()),
+                nativeVideoMapper(spec.nativeVideoExtMapper()),
+                nativeDataMapper(spec.nativeDataExtMapper()),
+                spec.nativeAssetExtMapper());
+
+        final ProtobufMapper<String, OpenRtb.NativeRequest> nativeRequestMapper = nativeRequestMapper(
+                spec.objectMapper(),
+                nativeRequestMapper(
+                        assetMapper,
+                        eventTrackerMapper(spec.nativeEventTrackerExtMapper()),
+                        spec.nativeRequestExtMapper()));
+
+        final ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper = impMapper(
+                metricMapper(spec.metricExtMapper()),
+                bannerMapper,
+                videoMapper(bannerMapper, spec.videoExtMapper()),
+                audioMapper(bannerMapper, spec.audioExtMapper()),
+                nativeMapper(nativeRequestMapper, spec.nativeExtMapper()),
+                pmpMapper(dealMapper(spec.dealExtMapper()), spec.pmpExtMapper()),
+                spec.impExtMapper());
+
+        final ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper =
+                dataMapper(segmentMapper(spec.segmentExtMapper()), spec.dataExtMapper());
+
+        final ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper =
+                publisherMapper(spec.publisherExtMapper());
+
+        final ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper =
+                contentMapper(producerMapper(spec.producerExtMapper()), dataMapper, spec.contentExtMapper());
+
+        final ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper = geoMapper(spec.geoExtMapper());
+
+        return bidRequestMapper(
+                impMapper,
+                siteMapper(publisherMapper, contentMapper, spec.siteExtMapper()),
+                appMapper(publisherMapper, contentMapper, spec.appExtMapper()),
+                deviceMapper(geoMapper, spec.deviceExtMapper()),
+                userMapper(geoMapper, dataMapper, spec.userExtMapper()),
+                sourceMapper(spec.sourceExtMapper()),
+                regsMapper(spec.regsExtMapper()),
+                spec.bidRequestExtMapper());
     }
 
     public static <ProtobufExtensionType> ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(
@@ -574,7 +614,7 @@ public class ProtobufRequestUtils {
         };
     }
 
-    public ProtobufMapper<String, OpenRtb.NativeRequest> nativeRequestMapper(
+    public static ProtobufMapper<String, OpenRtb.NativeRequest> nativeRequestMapper(
             ObjectMapper objectMapper,
             ProtobufMapper<Request, OpenRtb.NativeRequest> nativeRequestMapper) {
 
