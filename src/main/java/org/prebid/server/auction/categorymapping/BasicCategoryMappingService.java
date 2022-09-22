@@ -666,8 +666,10 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                 .filter(bidderBid -> !rejectedBidIds.contains(bidderBid.getBid().getId()))
                 .toList();
 
-        return BidderResponse.of(bidder,
+        return BidderResponse.of(
+                bidder,
                 bidderSeatBid.with(survivedBidderBids),
+                null,
                 bidderResponse.getResponseTime());
     }
 

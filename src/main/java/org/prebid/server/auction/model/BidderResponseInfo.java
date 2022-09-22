@@ -12,9 +12,11 @@ public class BidderResponseInfo {
 
     BidderSeatBidInfo seatBid;
 
+    Integer nbr;
+
     int responseTime;
 
     public BidderResponseInfo with(BidderSeatBidInfo seatBid) {
-        return of(this.bidder, seatBid, this.responseTime);
+        return of(this.bidder, seatBid, this.nbr, this.responseTime);
     }
 }

@@ -26,6 +26,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
@@ -141,7 +142,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        if (!context.isRequestRejected()) {
+        if (context.getRequestRejectionResult() instanceof RejectionResult.Allowed) {
             final BidRequest bidRequest = context.getBidRequest();
             final UidsCookie uidsCookie = context.getUidsCookie();
 

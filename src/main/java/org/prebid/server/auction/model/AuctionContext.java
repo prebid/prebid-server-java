@@ -58,7 +58,7 @@ public class AuctionContext {
 
     DebugContext debugContext;
 
-    boolean requestRejected;
+    RejectionResult requestRejectionResult;
 
     @JsonIgnore
     TxnLog txnLog;
@@ -103,9 +103,9 @@ public class AuctionContext {
                 .build();
     }
 
-    public AuctionContext withRequestRejected() {
+    public AuctionContext withRequestRejected(Integer nbr) {
         return this.toBuilder()
-                .requestRejected(true)
+                .requestRejectionResult(RejectionResult.rejected(nbr))
                 .build();
     }
 }

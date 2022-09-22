@@ -3,6 +3,7 @@ package org.prebid.server.hooks.execution;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
@@ -27,7 +28,7 @@ class GroupResult<T> {
 
     private static final double LOG_SAMPLING_RATE = 0.01d;
 
-    private boolean shouldReject;
+    private RejectionResult rejectionResult;
 
     private T payload;
 
@@ -36,7 +37,7 @@ class GroupResult<T> {
     private final List<HookExecutionOutcome> hookExecutionOutcomes = new ArrayList<>();
 
     private GroupResult(T payload, boolean rejectAllowed) {
-        this.shouldReject = false;
+        this.rejectionResult = RejectionResult.allowed();
         this.payload = payload;
         this.rejectAllowed = rejectAllowed;
     }
@@ -75,13 +76,14 @@ class GroupResult<T> {
     }
 
     private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
-        switch (action) {
-            case reject -> applyReject(hookId);
-            case update -> applyPayloadUpdate(hookId, payloadUpdate);
+        if (action instanceof InvocationAction.Reject reject) {
+            applyReject(hookId, reject);
+        } else if (action instanceof InvocationAction.Update) {
+            applyPayloadUpdate(hookId, payloadUpdate);
         }
     }
 
-    private void applyReject(HookId hookId) {
+    private void applyReject(HookId hookId, InvocationAction.Reject reject) {
         if (!rejectAllowed) {
             conditionalLogger.error(
                     "Hook implementation %s requested to reject an entity on a stage that does not support rejection"
@@ -91,7 +93,7 @@ class GroupResult<T> {
             throw new RejectionNotSupportedException("Rejection is not supported during this stage");
         }
 
-        shouldReject = true;
+        rejectionResult = RejectionResult.rejected(reject.nbr());
         payload = null;
     }
 
@@ -169,11 +171,13 @@ class GroupResult<T> {
             return null;
         }
 
-        return switch (action) {
-            case reject -> ExecutionAction.reject;
-            case update -> ExecutionAction.update;
-            case no_action -> ExecutionAction.no_action;
-        };
+        if (action instanceof InvocationAction.Reject rejectAction) {
+            return ExecutionAction.reject(rejectAction.nbr());
+        } else if (action instanceof InvocationAction.Update) {
+            return ExecutionAction.update();
+        } else {
+            return ExecutionAction.noAction();
+        }
     }
 
     private static class RejectionNotSupportedException extends RuntimeException {

@@ -2,6 +2,7 @@ package org.prebid.server.hooks.execution;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
@@ -106,7 +107,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     private static <PAYLOAD> Future<StageResult<PAYLOAD>> propagateRejection(StageResult<PAYLOAD> stageResult) {
-        return stageResult.shouldReject()
+        return stageResult.rejectionResult() instanceof RejectionResult.Rejected
                 ? Future.failedFuture(new RejectedException(stageResult))
                 : Future.succeededFuture(stageResult);
 
@@ -124,8 +125,8 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         hookExecutionContext.getStageOutcomes().computeIfAbsent(stage.stage(), key -> new ArrayList<>())
                 .add(stageResult.toStageExecutionOutcome());
 
-        return stageResult.shouldReject()
-                ? HookStageExecutionResult.reject()
+        return stageResult.rejectionResult() instanceof RejectionResult.Rejected rejected
+                ? HookStageExecutionResult.reject(rejected)
                 : HookStageExecutionResult.success(stageResult.payload());
     }
 }

@@ -2,6 +2,7 @@ package org.prebid.server.hooks.execution;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 
@@ -12,7 +13,7 @@ import java.util.List;
 @Getter
 class StageResult<T> {
 
-    private boolean shouldReject;
+    private RejectionResult rejectionResult;
 
     private T payload;
     private final String entity;
@@ -20,7 +21,7 @@ class StageResult<T> {
     private final List<GroupResult<T>> groupResults = new ArrayList<>();
 
     private StageResult(T payload, String entity) {
-        this.shouldReject = false;
+        this.rejectionResult = RejectionResult.allowed();
         this.payload = payload;
         this.entity = entity;
     }
@@ -32,7 +33,7 @@ class StageResult<T> {
     public StageResult<T> applyGroupResult(GroupResult<T> groupResult) {
         groupResults.add(groupResult);
 
-        shouldReject = groupResult.shouldReject();
+        rejectionResult = groupResult.rejectionResult();
         payload = groupResult.payload();
 
         return this;

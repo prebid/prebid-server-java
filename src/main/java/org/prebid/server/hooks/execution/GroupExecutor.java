@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
@@ -178,10 +179,9 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     private Future<GroupResult<PAYLOAD>> propagateRejection(GroupResult<PAYLOAD> groupResult) {
-        return groupResult.shouldReject()
+        return groupResult.rejectionResult() instanceof RejectionResult.Rejected
                 ? Future.failedFuture(new RejectedException(groupResult))
                 : Future.succeededFuture(groupResult);
-
     }
 
     private static <T> Future<T> restoreResultFromRejection(Throwable throwable) {

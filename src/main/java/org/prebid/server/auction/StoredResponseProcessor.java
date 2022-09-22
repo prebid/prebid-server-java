@@ -311,13 +311,16 @@ public class StoredResponseProcessor {
             final BidderSeatBid updatedSeatBid = storedSeatBid == null
                     ? bidderSeatBid
                     : makeBidderSeatBid(bidderSeatBid, storedSeatBid, impIdToBidType);
-            final BidderResponse updatedBidderResponse = BidderResponse.of(bidderResponse.getBidder(),
-                    updatedSeatBid, bidderResponse.getResponseTime());
+            final BidderResponse updatedBidderResponse = BidderResponse.of(
+                    bidderResponse.getBidder(),
+                    updatedSeatBid,
+                    null,
+                    bidderResponse.getResponseTime());
             return auctionParticipation.with(updatedBidderResponse);
         } else {
             final String bidder = storedSeatBid != null ? storedSeatBid.getSeat() : null;
             final BidderSeatBid updatedSeatBid = makeBidderSeatBid(null, storedSeatBid, impIdToBidType);
-            final BidderResponse updatedBidderResponse = BidderResponse.of(bidder, updatedSeatBid, 0);
+            final BidderResponse updatedBidderResponse = BidderResponse.of(bidder, updatedSeatBid, null, 0);
             return AuctionParticipation.builder()
                     .bidder(bidder)
                     .bidderResponse(updatedBidderResponse)

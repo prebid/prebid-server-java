@@ -20,6 +20,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
@@ -128,7 +129,7 @@ public class Ortb2RequestFactory {
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
-                .requestRejected(false)
+                .requestRejectionResult(RejectionResult.allowed())
                 .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
                 .build();
@@ -222,10 +223,11 @@ public class Ortb2RequestFactory {
     }
 
     public Future<AuctionContext> restoreResultFromRejection(Throwable throwable) {
-        if (throwable instanceof RejectedRequestException) {
-            final AuctionContext auctionContext = ((RejectedRequestException) throwable).getAuctionContext();
+        if (throwable instanceof RejectedRequestException rejectedRequestException) {
+            final AuctionContext auctionContext = rejectedRequestException.getAuctionContext();
+            final Integer nbr = rejectedRequestException.getNbr();
 
-            return Future.succeededFuture(auctionContext.withRequestRejected());
+            return Future.succeededFuture(auctionContext.withRequestRejected(nbr));
         }
 
         return Future.failedFuture(throwable);
@@ -235,8 +237,8 @@ public class Ortb2RequestFactory {
                                                     RoutingContext routingContext,
                                                     AuctionContext auctionContext) {
 
-        if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(auctionContext);
+        if (stageResult.getRejectionResult() instanceof RejectionResult.Rejected rejected) {
+            throw new RejectedRequestException(auctionContext, rejected.nbr());
         }
 
         return HttpRequestContext.builder()
@@ -252,8 +254,8 @@ public class Ortb2RequestFactory {
     private static BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
                                            AuctionContext auctionContext) {
 
-        if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(auctionContext);
+        if (stageResult.getRejectionResult() instanceof RejectionResult.Rejected rejected) {
+            throw new RejectedRequestException(auctionContext, rejected.nbr());
         }
 
         return stageResult.getPayload().bidRequest();
@@ -486,12 +488,19 @@ public class Ortb2RequestFactory {
 
         private final AuctionContext auctionContext;
 
-        RejectedRequestException(AuctionContext auctionContext) {
+        private final Integer nbr;
+
+        RejectedRequestException(AuctionContext auctionContext, Integer nbr) {
             this.auctionContext = auctionContext;
+            this.nbr = nbr;
         }
 
         public AuctionContext getAuctionContext() {
             return auctionContext;
+        }
+
+        public Integer getNbr() {
+            return nbr;
         }
     }
 }

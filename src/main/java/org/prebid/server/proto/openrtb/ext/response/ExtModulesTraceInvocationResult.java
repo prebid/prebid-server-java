@@ -3,7 +3,6 @@ package org.prebid.server.proto.openrtb.ext.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.HookId;
 
@@ -23,7 +22,7 @@ public class ExtModulesTraceInvocationResult {
 
     String message;
 
-    ExecutionAction action;
+    String action;
 
     @JsonProperty("debugmessages")
     List<String> debugMessages;

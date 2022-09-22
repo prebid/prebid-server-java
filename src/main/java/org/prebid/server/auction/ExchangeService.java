@@ -37,6 +37,7 @@ import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -248,15 +249,21 @@ public class ExchangeService {
     }
 
     private Future<AuctionContext> processAuctionRequest(AuctionContext context) {
-        return context.isRequestRejected()
-                ? Future.succeededFuture(context.with(emptyResponse()))
+        final RejectionResult rejectionResult = context.getRequestRejectionResult();
+
+        return rejectionResult instanceof RejectionResult.Rejected rejected
+                ? responseForRejectedRequest(context, rejected)
                 : runAuction(context);
     }
 
-    private static BidResponse emptyResponse() {
-        return BidResponse.builder()
-                .seatbid(Collections.emptyList())
-                .build();
+    private static Future<AuctionContext> responseForRejectedRequest(AuctionContext context,
+                                                                     RejectionResult.Rejected rejected) {
+
+        return Future.succeededFuture(context.with(
+                BidResponse.builder()
+                        .seatbid(Collections.emptyList())
+                        .nbr(rejected.nbr())
+                        .build()));
     }
 
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
@@ -1245,8 +1252,12 @@ public class ExchangeService {
             BidderAliases aliases) {
 
         httpInteractionLogger.maybeLogBidderRequest(auctionContext, bidderRequest);
-        if (hookStageResult.isShouldReject()) {
-            return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
+        if (hookStageResult.getRejectionResult() instanceof RejectionResult.Rejected rejected) {
+            return Future.succeededFuture(BidderResponse.of(
+                    bidderRequest.getBidder(),
+                    BidderSeatBid.empty(),
+                    rejected.nbr(),
+                    0));
         }
 
         final BidderRequest enrichedBidderRequest = bidderRequest.with(hookStageResult.getPayload().bidRequest());
@@ -1282,7 +1293,7 @@ public class ExchangeService {
                     Collections.emptyList(),
                     mediaTypeProcessingResult.getErrors());
 
-            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, null, 0));
         }
 
         final BidRequest convertedBidRequest = ortbVersionConversionManager.convertFromAuctionSupportedVersion(
@@ -1297,17 +1308,21 @@ public class ExchangeService {
                         seatBid.getHttpCalls(),
                         seatBid.getErrors(),
                         ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
-                .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
+                .map(seatBid -> BidderResponse.of(bidderName, seatBid, null, responseTime(startTime)));
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
                                                          BidderResponse bidderResponse) {
 
-        final List<BidderBid> bids = stageResult.isShouldReject()
-                ? Collections.emptyList()
-                : stageResult.getPayload().bids();
+        if (stageResult.getRejectionResult() instanceof RejectionResult.Rejected rejected) {
+            return BidderResponse.of(
+                    bidderResponse.getBidder(),
+                    bidderResponse.getSeatBid().with(Collections.emptyList()),
+                    rejected.nbr(),
+                    bidderResponse.getResponseTime());
+        }
 
-        return bidderResponse.with(bidderResponse.getSeatBid().with(bids));
+        return bidderResponse.with(bidderResponse.getSeatBid().with(stageResult.getPayload().bids()));
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
@@ -1786,10 +1801,22 @@ public class ExchangeService {
                 .executionTime(hook.getExecutionTime())
                 .status(hook.getStatus())
                 .message(hook.getMessage())
-                .action(hook.getAction())
+                .action(actionName(hook.getAction()))
                 .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
                 .analyticsTags(level == TraceLevel.verbose ? toTraceAnalyticsTags(hook.getAnalyticsTags()) : null)
                 .build();
+    }
+
+    private static String actionName(ExecutionAction action) {
+        if (action instanceof ExecutionAction.NoAction) {
+            return "no_action";
+        } else if (action instanceof ExecutionAction.Update) {
+            return "update";
+        } else if (action instanceof ExecutionAction.Reject) {
+            return "reject";
+        } else {
+            return null;
+        }
     }
 
     private static ExtModulesTraceAnalyticsTags toTraceAnalyticsTags(Tags analyticsTags) {

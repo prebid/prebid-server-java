@@ -14,6 +14,7 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -103,7 +104,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        if (!context.isRequestRejected()) {
+        if (context.getRequestRejectionResult() instanceof RejectionResult.Allowed) {
             final BidRequest bidRequest = context.getBidRequest();
             final UidsCookie uidsCookie = context.getUidsCookie();
 

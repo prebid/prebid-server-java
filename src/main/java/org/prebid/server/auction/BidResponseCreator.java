@@ -33,6 +33,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.RejectionResult;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
@@ -398,7 +399,11 @@ public class BidResponseCreator {
                     seatBid.getErrors(),
                     seatBid.getWarnings());
 
-            result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
+            result.add(BidderResponseInfo.of(
+                    bidder,
+                    bidderSeatBidInfo,
+                    bidderResponse.getNbr(),
+                    bidderResponse.getResponseTime()));
         }
 
         return result;
@@ -458,12 +463,15 @@ public class BidResponseCreator {
             HookStageExecutionResult<BidderResponsePayload> stageResult,
             BidderResponse bidderResponse) {
 
-        final List<BidderBid> bids =
-                stageResult.isShouldReject() ? Collections.emptyList() : stageResult.getPayload().bids();
+        if (stageResult.getRejectionResult() instanceof RejectionResult.Rejected rejected) {
+            return BidderResponse.of(
+                    bidderResponse.getBidder(),
+                    bidderResponse.getSeatBid().with(Collections.emptyList()),
+                    rejected.nbr(),
+                    bidderResponse.getResponseTime());
+        }
 
-        return bidderResponse
-                .with(bidderResponse.getSeatBid()
-                        .with(bids));
+        return bidderResponse.with(bidderResponse.getSeatBid().with(stageResult.getPayload().bids()));
     }
 
     private Future<CategoryMappingResult> createCategoryMapping(AuctionContext auctionContext,
@@ -511,7 +519,7 @@ public class BidResponseCreator {
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
-                    .nbr(0) // signal "Unknown Error"
+                    .nbr(ObjectUtils.defaultIfNull(resolveNbr(bidderResponses), 0)) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
                     .ext(extBidResponse)
                     .build());
@@ -1154,8 +1162,22 @@ public class BidResponseCreator {
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
                 .seatbid(seatBids)
+                .nbr(resolveNbr(bidderResponseInfos))
                 .ext(extBidResponse)
                 .build();
+    }
+
+    private static Integer resolveNbr(List<BidderResponseInfo> bidderResponseInfos) {
+        final Set<Integer> uniqueNoBidResponseValues = bidderResponseInfos.stream()
+                .map(BidderResponseInfo::getNbr)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (uniqueNoBidResponseValues.size() > 1) {
+            return 0;
+        }
+
+        return uniqueNoBidResponseValues.stream().findFirst().orElse(null);
     }
 
     private Future<VideoStoredDataResult> videoStoredDataResult(AuctionContext auctionContext) {

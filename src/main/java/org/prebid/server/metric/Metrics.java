@@ -654,18 +654,12 @@ public class Metrics extends UpdatableMetrics {
 
         private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =
                 new EnumMap<>(ExecutionStatus.class);
-        private static final EnumMap<ExecutionAction, MetricName> ACTION_TO_METRIC =
-                new EnumMap<>(ExecutionAction.class);
 
         static {
             STATUS_TO_METRIC.put(ExecutionStatus.failure, MetricName.failure);
             STATUS_TO_METRIC.put(ExecutionStatus.timeout, MetricName.timeout);
             STATUS_TO_METRIC.put(ExecutionStatus.invocation_failure, MetricName.execution_error);
             STATUS_TO_METRIC.put(ExecutionStatus.execution_failure, MetricName.execution_error);
-
-            ACTION_TO_METRIC.put(ExecutionAction.no_action, MetricName.noop);
-            ACTION_TO_METRIC.put(ExecutionAction.update, MetricName.update);
-            ACTION_TO_METRIC.put(ExecutionAction.reject, MetricName.reject);
         }
 
         static MetricName fromStatus(ExecutionStatus status) {
@@ -673,7 +667,15 @@ public class Metrics extends UpdatableMetrics {
         }
 
         static MetricName fromAction(ExecutionAction action) {
-            return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
+            if (action instanceof ExecutionAction.NoAction) {
+                return MetricName.noop;
+            } else if (action instanceof ExecutionAction.Update) {
+                return MetricName.update;
+            } else if (action instanceof ExecutionAction.Reject) {
+                return MetricName.reject;
+            } else {
+                return MetricName.unknown;
+            }
         }
     }
 
