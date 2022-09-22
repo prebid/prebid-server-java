@@ -1,4 +1,4 @@
-package org.prebid.server.protobuf.mappers;
+package org.prebid.server.protobuf.request;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ExtensionLite;
@@ -33,6 +33,8 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
+import lombok.Builder;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -44,8 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.protobuf.JsonProtobufExtensionMapper;
-import org.prebid.server.protobuf.ProtobufExtensionMapper;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
@@ -55,9 +55,58 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ProtobufOrtbRequestMapperFactory {
+public class ProtobufRequestUtils {
 
-    public <ProtobufExtensionType> ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> nativeVideoMapper(
+    public ProtobufRequestUtils() {
+    }
+
+    @Value
+    @Builder
+    public static class ExtensionMappersSpecification {
+
+        ProtobufForwardExtensionMapper<OpenRtb.BidRequest, ExtRequest, ?> bidRequestExtMapper;
+    }
+
+    public static <ProtobufExtensionType> ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(
+            ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper,
+            ProtobufMapper<Site, OpenRtb.BidRequest.Site> siteMapper,
+            ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper,
+            ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper,
+            ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper,
+            ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper,
+            ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper,
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest, ExtRequest, ProtobufExtensionType> extMapper) {
+
+        return (BidRequest bidRequest) -> {
+            final OpenRtb.BidRequest.Builder resultBuilder = OpenRtb.BidRequest.newBuilder();
+
+            setNotNull(bidRequest.getId(), resultBuilder::setId);
+            setNotNull(mapList(bidRequest.getImp(), impMapper::map), resultBuilder::addAllImp);
+            setNotNull(mapNotNull(bidRequest.getSite(), siteMapper::map), resultBuilder::setSite);
+            setNotNull(mapNotNull(bidRequest.getApp(), appMapper::map), resultBuilder::setApp);
+            setNotNull(mapNotNull(bidRequest.getDevice(), deviceMapper::map), resultBuilder::setDevice);
+            setNotNull(mapNotNull(bidRequest.getUser(), userMapper::map), resultBuilder::setUser);
+            setNotNull(mapNotNull(bidRequest.getTest(), BooleanUtils::toBoolean), resultBuilder::setTest);
+            setNotNull(bidRequest.getAt(), resultBuilder::setAt);
+            setNotNull(mapNotNull(bidRequest.getTmax(), Long::intValue), resultBuilder::setTmax);
+            setNotNull(bidRequest.getWseat(), resultBuilder::addAllWseat);
+            setNotNull(bidRequest.getBseat(), resultBuilder::addAllBseat);
+            setNotNull(mapNotNull(bidRequest.getAllimps(), BooleanUtils::toBoolean), resultBuilder::setAllimps);
+            setNotNull(bidRequest.getCur(), resultBuilder::addAllCur);
+            setNotNull(bidRequest.getWlang(), resultBuilder::addAllWlang);
+            setNotNull(bidRequest.getBcat(), resultBuilder::addAllBcat);
+            setNotNull(bidRequest.getBadv(), resultBuilder::addAllBadv);
+            setNotNull(bidRequest.getBapp(), resultBuilder::addAllBapp);
+            setNotNull(mapNotNull(bidRequest.getSource(), sourceMapper::map), resultBuilder::setSource);
+            setNotNull(mapNotNull(bidRequest.getRegs(), regsMapper::map), resultBuilder::setRegs);
+
+            mapAndSetExtension(extMapper, bidRequest.getExt(), resultBuilder::setExtension);
+
+            return resultBuilder.build();
+        };
+    }
+
+    public static <ProtobufExtensionType> ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> nativeVideoMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extMapper) {
 
         return (VideoObject video) -> {
@@ -74,7 +123,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Producer, OpenRtb.BidRequest.Producer> producerMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Producer, OpenRtb.BidRequest.Producer> producerMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Producer, ProtobufExtensionType> extMapper) {
 
         return (Producer producer) -> {
@@ -91,7 +140,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Pmp, OpenRtb.BidRequest.Imp.Pmp> pmpMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Pmp, OpenRtb.BidRequest.Imp.Pmp> pmpMapper(
             ProtobufMapper<Deal, OpenRtb.BidRequest.Imp.Pmp.Deal> dealsMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Pmp, ProtobufExtensionType> extMapper) {
 
@@ -107,10 +156,10 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Site, OpenRtb.BidRequest.Site> siteMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Site, OpenRtb.BidRequest.Site> siteMapper(
             ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper,
             ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper,
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Site, ExtSite, ProtobufExtensionType> extMapper) {
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Site, ExtSite, ProtobufExtensionType> extMapper) {
 
         return (Site site) -> {
             final OpenRtb.BidRequest.Site.Builder resultBuilder = OpenRtb.BidRequest.Site.newBuilder();
@@ -136,8 +185,8 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper(
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Geo, ExtGeo, ProtobufExtensionType> extMapper) {
+    public static <ProtobufExtensionType> ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper(
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Geo, ExtGeo, ProtobufExtensionType> extMapper) {
 
         return (Geo geo) -> {
             final OpenRtb.BidRequest.Geo.Builder resultBuilder = OpenRtb.BidRequest.Geo.newBuilder();
@@ -162,7 +211,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper(
             ProtobufMapper<Format, OpenRtb.BidRequest.Imp.Banner.Format> formatMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Banner, ProtobufExtensionType> extMapper) {
 
@@ -188,7 +237,8 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper(
+    public static <ProtobufExtensionType>
+    ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Image, ProtobufExtensionType> extMapper) {
 
         return (ImageObject imageObject) -> {
@@ -208,8 +258,8 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper(
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Source, ExtSource, ProtobufExtensionType> extMapper) {
+    public static <ProtobufExtensionType> ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper(
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Source, ExtSource, ProtobufExtensionType> extMapper) {
 
         return (Source source) -> {
             final OpenRtb.BidRequest.Source.Builder resultBuilder = OpenRtb.BidRequest.Source.newBuilder();
@@ -224,7 +274,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper(
             ProtobufMapper<Producer, OpenRtb.BidRequest.Producer> producerMapper,
             ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Content, ProtobufExtensionType> extMapper) {
@@ -265,9 +315,9 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper(
             ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper,
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Device, ExtDevice, ProtobufExtensionType> extMapper) {
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Device, ExtDevice, ProtobufExtensionType> extMapper) {
 
         return (Device device) -> {
             final OpenRtb.BidRequest.Device.Builder resultBuilder = OpenRtb.BidRequest.Device.newBuilder();
@@ -309,7 +359,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<DataObject, OpenRtb.NativeRequest.Asset.Data> nativeDataMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<DataObject, OpenRtb.NativeRequest.Asset.Data> nativeDataMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Data, ProtobufExtensionType> extMapper) {
 
         return (DataObject data) -> {
@@ -325,7 +375,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper(
             ProtobufMapper<Segment, OpenRtb.BidRequest.Data.Segment> segmentMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Data, ProtobufExtensionType> extMapper) {
 
@@ -342,7 +392,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> titleMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> titleMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Title, ProtobufExtensionType> extMapper) {
 
         return (TitleObject titleObject) -> {
@@ -357,7 +407,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> metricMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> metricMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Metric, ProtobufExtensionType> extMapper) {
 
         return (Metric metric) -> {
@@ -373,7 +423,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Format, OpenRtb.BidRequest.Imp.Banner.Format> formatMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Format, OpenRtb.BidRequest.Imp.Banner.Format> formatMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Banner.Format, ProtobufExtensionType> extMapper) {
 
         return (Format format) -> {
@@ -392,8 +442,12 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper(
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Publisher, ExtPublisher, ProtobufExtensionType> extMapper) {
+    public static <ProtobufExtensionType> ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper(
+            ProtobufForwardExtensionMapper<
+                    OpenRtb.BidRequest.Publisher,
+                    ExtPublisher,
+                    ProtobufExtensionType
+                    > extMapper) {
 
         return (Publisher publisher) -> {
             final OpenRtb.BidRequest.Publisher.Builder resultBuilder = OpenRtb.BidRequest.Publisher.newBuilder();
@@ -409,7 +463,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Deal, OpenRtb.BidRequest.Imp.Pmp.Deal> dealMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Deal, OpenRtb.BidRequest.Imp.Pmp.Deal> dealMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Pmp.Deal, ProtobufExtensionType> extMapper) {
 
         return (Deal deal) -> {
@@ -428,7 +482,8 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper(
+    public static <ProtobufExtensionType>
+    ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.EventTrackers, ProtobufExtensionType> extMapper) {
 
         return (EventTracker eventTracker) -> {
@@ -444,47 +499,8 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(
-            ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper,
-            ProtobufMapper<Site, OpenRtb.BidRequest.Site> siteMapper,
-            ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper,
-            ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper,
-            ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper,
-            ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper,
-            ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper,
-            ProtobufExtensionMapper<OpenRtb.BidRequest, ExtRequest, ProtobufExtensionType> extMapper) {
-
-        return (BidRequest bidRequest) -> {
-            final OpenRtb.BidRequest.Builder resultBuilder = OpenRtb.BidRequest.newBuilder();
-
-            setNotNull(bidRequest.getId(), resultBuilder::setId);
-            setNotNull(mapList(bidRequest.getImp(), impMapper::map), resultBuilder::addAllImp);
-            setNotNull(mapNotNull(bidRequest.getSite(), siteMapper::map), resultBuilder::setSite);
-            setNotNull(mapNotNull(bidRequest.getApp(), appMapper::map), resultBuilder::setApp);
-            setNotNull(mapNotNull(bidRequest.getDevice(), deviceMapper::map), resultBuilder::setDevice);
-            setNotNull(mapNotNull(bidRequest.getUser(), userMapper::map), resultBuilder::setUser);
-            setNotNull(mapNotNull(bidRequest.getTest(), BooleanUtils::toBoolean), resultBuilder::setTest);
-            setNotNull(bidRequest.getAt(), resultBuilder::setAt);
-            setNotNull(mapNotNull(bidRequest.getTmax(), Long::intValue), resultBuilder::setTmax);
-            setNotNull(bidRequest.getWseat(), resultBuilder::addAllWseat);
-            setNotNull(bidRequest.getBseat(), resultBuilder::addAllBseat);
-            setNotNull(mapNotNull(bidRequest.getAllimps(), BooleanUtils::toBoolean), resultBuilder::setAllimps);
-            setNotNull(bidRequest.getCur(), resultBuilder::addAllCur);
-            setNotNull(bidRequest.getWlang(), resultBuilder::addAllWlang);
-            setNotNull(bidRequest.getBcat(), resultBuilder::addAllBcat);
-            setNotNull(bidRequest.getBadv(), resultBuilder::addAllBadv);
-            setNotNull(bidRequest.getBapp(), resultBuilder::addAllBapp);
-            setNotNull(mapNotNull(bidRequest.getSource(), sourceMapper::map), resultBuilder::setSource);
-            setNotNull(mapNotNull(bidRequest.getRegs(), regsMapper::map), resultBuilder::setRegs);
-
-            mapAndSetExtension(extMapper, bidRequest.getExt(), resultBuilder::setExtension);
-
-            return resultBuilder.build();
-        };
-    }
-
-    public <ProtobufExtensionType> ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper(
-            ProtobufExtensionMapper<OpenRtb.BidRequest.Regs, ExtRegs, ProtobufExtensionType> extMapper) {
+    public static <ProtobufExtensionType> ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper(
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Regs, ExtRegs, ProtobufExtensionType> extMapper) {
 
         return (Regs regs) -> {
             final OpenRtb.BidRequest.Regs.Builder resultBuilder = OpenRtb.BidRequest.Regs.newBuilder();
@@ -497,10 +513,10 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper(
             ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper,
             ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper,
-            ProtobufExtensionMapper<OpenRtb.BidRequest.App, ExtApp, ProtobufExtensionType> extMapper) {
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.App, ExtApp, ProtobufExtensionType> extMapper) {
 
         return (App app) -> {
             final OpenRtb.BidRequest.App.Builder resultBuilder = OpenRtb.BidRequest.App.newBuilder();
@@ -526,7 +542,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Audio, OpenRtb.BidRequest.Imp.Audio> audioMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Audio, OpenRtb.BidRequest.Imp.Audio> audioMapper(
             ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Audio, ProtobufExtensionType> extMapper) {
 
@@ -572,7 +588,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Request, OpenRtb.NativeRequest> nativeRequestMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Request, OpenRtb.NativeRequest> nativeRequestMapper(
             ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetsMapper,
             ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper,
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest, ProtobufExtensionType> extMapper) {
@@ -600,7 +616,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> nativeMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> nativeMapper(
             ProtobufMapper<String, OpenRtb.NativeRequest> nativeRequestMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Native, ProtobufExtensionType> extMapper) {
 
@@ -624,7 +640,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper(
             ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> titleMapper,
             ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> imgMapper,
             ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> videoMapper,
@@ -647,7 +663,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Segment, OpenRtb.BidRequest.Data.Segment> segmentMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Segment, OpenRtb.BidRequest.Data.Segment> segmentMapper(
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Data.Segment, ProtobufExtensionType> extMapper) {
 
         return (Segment segment) -> {
@@ -663,7 +679,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper(
             ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> metricMapper,
             ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper,
             ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> videoMapper,
@@ -699,7 +715,7 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> videoMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> videoMapper(
             ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper,
             JsonProtobufExtensionMapper<OpenRtb.BidRequest.Imp.Video, ProtobufExtensionType> extMapper) {
 
@@ -738,10 +754,10 @@ public class ProtobufOrtbRequestMapperFactory {
         };
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper(
             ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper,
             ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper,
-            ProtobufExtensionMapper<OpenRtb.BidRequest.User, ExtUser, ProtobufExtensionType> extMapper) {
+            ProtobufForwardExtensionMapper<OpenRtb.BidRequest.User, ExtUser, ProtobufExtensionType> extMapper) {
 
         return (User user) -> {
             final OpenRtb.BidRequest.User.Builder resultBuilder = OpenRtb.BidRequest.User.newBuilder();
@@ -778,7 +794,7 @@ public class ProtobufOrtbRequestMapperFactory {
     }
 
     private static <ContainingType extends Message, FromType, ToType> void mapAndSetExtension(
-            ProtobufExtensionMapper<ContainingType, FromType, ToType> mapper,
+            ProtobufForwardExtensionMapper<ContainingType, FromType, ToType> mapper,
             FromType value,
             BiConsumer<ExtensionLite<ContainingType, ToType>, ToType> extensionSetter) {
 

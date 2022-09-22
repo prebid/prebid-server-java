@@ -1,4 +1,4 @@
-package org.prebid.server.protobuf.mappers;
+package org.prebid.server.protobuf.response;
 
 import com.google.protobuf.GeneratedMessageV3;
 import com.iab.openrtb.response.Asset;
@@ -15,15 +15,16 @@ import com.iab.openrtb.response.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.protobuf.ProtobufExtensionMapper;
-import org.prebid.server.protobuf.ProtobufJsonExtensionMapper;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
 
-public class ProtobufOrtbResponseMapperFactory {
+public class ProtobufResponseUtils {
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper(
+    private ProtobufResponseUtils() {
+    }
+
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper(
             ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper,
             ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> imageMapper,
             ProtobufMapper<OpenRtb.NativeResponse.Asset.Video, VideoObject> videoMapper,
@@ -44,7 +45,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper(
             ProtobufJsonExtensionMapper<OpenRtb.BidResponse.SeatBid.Bid, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.BidResponse.SeatBid.Bid bid) ->
@@ -79,9 +80,13 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse, BidResponse> bidResponseMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse, BidResponse> bidResponseMapper(
             ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper,
-            ProtobufExtensionMapper<OpenRtb.BidResponse, ProtobufExtensionType, ExtBidResponse> extensionMapper) {
+            ProtobufBackwardExtensionMapper<
+                    OpenRtb.BidResponse,
+                    ProtobufExtensionType,
+                    ExtBidResponse
+                    > extensionMapper) {
 
         return (OpenRtb.BidResponse bidResponse) ->
                 BidResponse.builder()
@@ -95,7 +100,8 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> nativeDataMapper(
+    public static <ProtobufExtensionType>
+    ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> nativeDataMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset.Data, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset.Data data) ->
@@ -107,7 +113,8 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper(
+    public static <ProtobufExtensionType>
+    ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.EventTracker, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.EventTracker eventTracker) ->
@@ -119,7 +126,8 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> nativeImageMapper(
+    public static <ProtobufExtensionType>
+    ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> nativeImageMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset.Image, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset.Image image) ->
@@ -132,7 +140,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Link, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Link link) ->
@@ -143,7 +151,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         extractExtension(extensionMapper, link));
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper(
             ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper,
             ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper,
             ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper,
@@ -164,7 +172,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper(
             ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper,
             ProtobufJsonExtensionMapper<OpenRtb.BidResponse.SeatBid, ProtobufExtensionType> extensionMapper) {
 
@@ -177,7 +185,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper(
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset.Title, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset.Title title) ->
@@ -188,7 +196,7 @@ public class ProtobufOrtbResponseMapperFactory {
                         .build();
     }
 
-    public ProtobufMapper<OpenRtb.NativeResponse.Asset.Video, VideoObject> nativeVideoMapper() {
+    public static ProtobufMapper<OpenRtb.NativeResponse.Asset.Video, VideoObject> nativeVideoMapper() {
         return (OpenRtb.NativeResponse.Asset.Video video) ->
                 VideoObject.builder()
                         .vasttag(video.getVasttag())
@@ -196,7 +204,9 @@ public class ProtobufOrtbResponseMapperFactory {
     }
 
     private static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, FromType, ToType>
-    ToType extractExtension(ProtobufExtensionMapper<ContainingType, FromType, ToType> mapper, ContainingType value) {
+    ToType extractExtension(
+            ProtobufBackwardExtensionMapper<ContainingType, FromType, ToType> mapper, ContainingType value) {
+
         if (mapper == null || value == null) {
             return null;
         }
