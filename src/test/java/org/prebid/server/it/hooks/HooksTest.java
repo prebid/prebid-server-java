@@ -19,6 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(SpringRunner.class)
 public class HooksTest extends IntegrationTest {
@@ -55,7 +56,8 @@ public class HooksTest extends IntegrationTest {
                 .post("/openrtb2/auction")
                 .then()
                 .statusCode(200)
-                .body("seatbid", empty());
+                .body("seatbid", empty())
+                .body("nbr", equalTo(123));
     }
 
     @Test
@@ -66,7 +68,8 @@ public class HooksTest extends IntegrationTest {
                 .post("/openrtb2/auction")
                 .then()
                 .statusCode(200)
-                .body("seatbid", empty());
+                .body("seatbid", empty())
+                .body("nbr", equalTo(123));
     }
 
     @Test
@@ -77,7 +80,8 @@ public class HooksTest extends IntegrationTest {
                 .post("/openrtb2/auction")
                 .then()
                 .statusCode(200)
-                .body("seatbid", empty());
+                .body("seatbid", empty())
+                .body("nbr", equalTo(123));
     }
 
     @Test

@@ -1,6 +1,7 @@
 {
   "id": "tid",
   "seatbid": [],
+  "nbr": 123,
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
