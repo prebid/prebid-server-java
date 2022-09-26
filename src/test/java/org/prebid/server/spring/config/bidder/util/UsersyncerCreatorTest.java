@@ -97,4 +97,24 @@ public class UsersyncerCreatorTest {
 
         assertThat(result).isEqualTo(Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
     }
+
+    @Test
+    public void createShouldTolerateMissingUid() {
+        // given
+        final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
+        final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
+        methodConfig.setUrl("//redirect-url?uid=");
+        methodConfig.setSupportCors(false);
+
+        config.setCookieFamilyName("rubicon");
+        config.setRedirect(methodConfig);
+
+        // when and then
+        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config))
+                .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
+                .isEqualTo("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=\
+                        """);
+    }
 }
