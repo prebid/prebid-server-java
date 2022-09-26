@@ -226,7 +226,7 @@ public class TrafficGateBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfUnknownStringIsPresentInBidExtPrebidType() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfUnknownTypeIsPresentInBidExtPrebidType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()

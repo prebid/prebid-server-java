@@ -99,7 +99,7 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-       return bidResponse.getSeatbid().stream()
+        return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
