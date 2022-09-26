@@ -27,6 +27,7 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -41,6 +42,12 @@ public class TrafficGateBidderTest extends VertxTest {
     @Before
     public void setUp() {
         trafficGate = new TrafficGateBidder(ENDPOINT_URL, jacksonMapper);
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new TrafficGateBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -124,7 +131,7 @@ public class TrafficGateBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInBidExtPrebid() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInBidExtPrebidType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -143,7 +150,7 @@ public class TrafficGateBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInBidExtPrebid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInBidExtPrebidType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -162,7 +169,7 @@ public class TrafficGateBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnAudioBidIfAudioIsPresentInBidExtPrebid() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBidIfAudioIsPresentInBidExtPrebidType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -181,7 +188,7 @@ public class TrafficGateBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInBidExtPrebid() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInBidExtPrebidType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -197,6 +204,44 @@ public class TrafficGateBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder()
                 .ext(givenExtPrebidType("native")).impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfNullIsPresentInBidExtPrebidType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType(null)))));
+
+        // when
+        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder()
+                .ext(givenExtPrebidType(null)).impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfUnknownStringIsPresentInBidExtPrebidType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("unknown")))));
+
+        // when
+        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder()
+                .ext(givenExtPrebidType("unknown")).impid("123").build(), banner, "USD"));
     }
 
     @Test

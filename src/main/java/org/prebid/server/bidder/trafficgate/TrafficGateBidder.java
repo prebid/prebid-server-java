@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.trafficgate;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -40,14 +41,14 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public TrafficGateBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        ExtImpTrafficGate extImpTrafficGate = null;
+        ExtImpTrafficGate extImpTrafficGate;
         for (Imp imp : request.getImp()) {
             try {
                 extImpTrafficGate = parseImpExt(imp);
@@ -98,9 +99,12 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+       return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur()))
                 .toList();
     }
@@ -108,8 +112,10 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     private static BidType getBidType(ObjectNode bidExt) {
         return Optional.ofNullable(bidExt)
                 .map(ext -> ext.get("prebid"))
-                .map(prebid -> prebid.get("type").asText())
+                .map(prebid -> prebid.get("type"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::asText)
                 .map(BidType::fromString)
-                .orElseGet(() -> BidType.banner);
+                .orElse(BidType.banner);
     }
 }
