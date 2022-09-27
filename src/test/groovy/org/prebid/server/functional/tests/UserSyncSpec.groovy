@@ -60,4 +60,25 @@ class UserSyncSpec extends BaseSpec {
         IFRAME         || BLANK
         IFRAME         || PIXEL
     }
+
+    def "PBS should return uid in usersync url when uid is present but empty"() {
+        given: "Pbs config with usersync.#userSyncFormat.url"
+        var parameter = "?uid="
+        def prebidServerService = pbsServiceFactory.getService(
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}$parameter".toString(),
+                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+
+        and: "Default CookieSyncRequest"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response userSync url should contain uid"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus?.userSync?.url?.contains(parameter)
+
+        where:
+        userSyncFormat << [REDIRECT, IFRAME]
+    }
 }
