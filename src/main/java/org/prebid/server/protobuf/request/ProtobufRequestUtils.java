@@ -844,7 +844,7 @@ public class ProtobufRequestUtils {
 
         final ToType mappedExt = mapper.map(value);
         if (mappedExt != null) {
-            extensionSetter.accept(mapper.extensionType(), mappedExt);
+            extensionSetter.accept(mapper.extensionDescriptor(), mappedExt);
         }
     }
 }

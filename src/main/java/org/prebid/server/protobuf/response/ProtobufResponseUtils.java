@@ -211,6 +211,6 @@ public class ProtobufResponseUtils {
             return null;
         }
 
-        return mapper.map(value.getExtension(mapper.extensionType()));
+        return mapper.map(value.getExtension(mapper.extensionDescriptor()));
     }
 }

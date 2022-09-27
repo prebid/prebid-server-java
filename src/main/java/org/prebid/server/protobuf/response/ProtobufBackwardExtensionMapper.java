@@ -10,5 +10,5 @@ public interface ProtobufBackwardExtensionMapper<ContainingType extends Message,
 
     ToType map(FromType fromType);
 
-    Extension<ContainingType, FromType> extensionType();
+    Extension<ContainingType, FromType> extensionDescriptor();
 }
