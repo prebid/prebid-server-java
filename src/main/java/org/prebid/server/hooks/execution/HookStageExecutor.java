@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
@@ -61,6 +62,7 @@ public class HookStageExecutor {
     private static final String ENTITY_AUCTION_REQUEST = "auction-request";
     private static final String ENTITY_AUCTION_RESPONSE = "auction-response";
     private static final String ENTITY_ALL_PROCESSED_BID_RESPONSES = "all-processed-bid-responses";
+    private static final Account EMPTY_ACCOUNT = Account.empty(StringUtils.EMPTY);
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
@@ -235,7 +237,7 @@ public class HookStageExecutor {
             BidResponse bidResponse,
             AuctionContext auctionContext) {
 
-        final Account account = auctionContext.getAccount();
+        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
@@ -360,7 +362,11 @@ public class HookStageExecutor {
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
-        return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout);
+        return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout, moduleContext);
+    }
+
+    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout, Object moduleContext) {
+        return InvocationContextImpl.of(createTimeout(timeout), endpoint, moduleContext);
     }
 
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
@@ -371,6 +377,18 @@ public class HookStageExecutor {
                 endpoint, timeout, auctionContext, hookId, moduleContext);
     }
 
+    private AuctionInvocationContextImpl auctionInvocationContext(Endpoint endpoint,
+                                                                  Long timeout,
+                                                                  AuctionContext auctionContext,
+                                                                  HookId hookId,
+                                                                  Object moduleContext) {
+
+        return AuctionInvocationContextImpl.of(
+                invocationContext(endpoint, timeout, moduleContext),
+                auctionContext.getDebugContext().isDebugEnabled(),
+                accountConfigFor(auctionContext.getAccount(), hookId));
+    }
+
     private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
             Endpoint endpoint,
             AuctionContext auctionContext,
@@ -379,23 +397,6 @@ public class HookStageExecutor {
         return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
                 auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
                 bidder);
-    }
-
-    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout) {
-        return InvocationContextImpl.of(createTimeout(timeout), endpoint);
-    }
-
-    private AuctionInvocationContextImpl auctionInvocationContext(Endpoint endpoint,
-                                                                  Long timeout,
-                                                                  AuctionContext auctionContext,
-                                                                  HookId hookId,
-                                                                  Object moduleContext) {
-
-        return AuctionInvocationContextImpl.of(
-                invocationContext(endpoint, timeout),
-                auctionContext.getDebugContext().isDebugEnabled(),
-                accountConfigFor(auctionContext.getAccount(), hookId),
-                moduleContext);
     }
 
     private Timeout createTimeout(Long timeout) {

@@ -243,6 +243,7 @@ public class ExchangeService {
      */
     public Future<AuctionContext> holdAuction(AuctionContext context) {
         return processAuctionRequest(context)
+                .compose(this::invokeResponseHooks)
                 .map(this::enrichWithHooksDebugInfo)
                 .map(this::updateHooksMetrics);
     }
@@ -311,9 +312,7 @@ public class ExchangeService {
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 receivedContext.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
 
-                        .map(context::with))
-
-                .compose(this::invokeResponseHooks);
+                        .map(context::with));
     }
 
     private BidderAliases aliases(BidRequest bidRequest) {

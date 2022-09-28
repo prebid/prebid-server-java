@@ -8,4 +8,6 @@ public interface InvocationContext {
     Timeout timeout();
 
     Endpoint endpoint();
+
+    Object moduleContext();
 }

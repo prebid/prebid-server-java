@@ -11,7 +11,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder(toBuilder = true)
 public class ExtRequestBidAdjustmentFactors {
 

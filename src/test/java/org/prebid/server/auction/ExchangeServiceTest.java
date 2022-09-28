@@ -3579,11 +3579,13 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        verifyNoInteractions(storedResponseProcessor, httpBidderRequester, hookStageExecutor, bidResponseCreator);
-        assertThat(result.getBidResponse())
-                .isEqualTo(BidResponse.builder()
-                        .seatbid(emptyList())
-                        .build());
+        final BidResponse emptyResponse = BidResponse.builder()
+                .seatbid(emptyList())
+                .build();
+
+        verifyNoInteractions(storedResponseProcessor, httpBidderRequester, bidResponseCreator);
+        verify(hookStageExecutor).executeAuctionResponseStage(eq(emptyResponse), any());
+        assertThat(result.getBidResponse()).isEqualTo(emptyResponse);
     }
 
     @Test
