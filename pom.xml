@@ -646,6 +646,20 @@
         </extensions>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>add-test-sources</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <executions>
@@ -673,6 +687,7 @@
                 <configuration>
                     <additionalProtoPathElements>
                         <additionalProtoPathElement>${project.basedir}/src/main/proto</additionalProtoPathElement>
+                        <additionalProtoPathElement>${project.basedir}/src/test/proto</additionalProtoPathElement>
                     </additionalProtoPathElements>
                     <protocArtifact>com.google.protobuf:protoc:3.17.0:exe:${os.detected.classifier}</protocArtifact>
                 </configuration>

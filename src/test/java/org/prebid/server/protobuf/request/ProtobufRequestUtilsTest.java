@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -25,6 +27,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
@@ -37,6 +40,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -85,6 +89,9 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper;
 
+    @Mock
+    private ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper;
+
     @Before
     public void setUp() {
         given(segmentMapper.map(givenSegment())).willReturn(givenProtobufSegment());
@@ -96,37 +103,40 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         given(publisherMapper.map(givenPublisher())).willReturn(givenProtobufPublisher());
         given(siteMapper.map(givenSite())).willReturn(givenProtobufSite());
         given(geoMapper.map(givenGeo())).willReturn(givenProtobufGeo());
+        given(bannerMapper.map(givenBanner())).willReturn(givenProtobufBanner());
     }
 
     @Test
     public void bidRequestMapperShouldReturnValidMapper() {
+        throw new RuntimeException();
 //        final BidRequest bidRequest = BidRequest.builder()
 //                        .id("id")
 //                                .imp(Collections.si)
-//        setNotNull(bidRequest.getId(), resultBuilder::setId);
-//        setNotNull(mapList(bidRequest.getImp(), impMapper::map), resultBuilder::addAllImp);
-//        setNotNull(mapNotNull(bidRequest.getSite(), siteMapper::map), resultBuilder::setSite);
-//        setNotNull(mapNotNull(bidRequest.getApp(), appMapper::map), resultBuilder::setApp);
-//        setNotNull(mapNotNull(bidRequest.getDevice(), deviceMapper::map), resultBuilder::setDevice);
-//        setNotNull(mapNotNull(bidRequest.getUser(), userMapper::map), resultBuilder::setUser);
-//        setNotNull(mapNotNull(bidRequest.getTest(), BooleanUtils::toBoolean), resultBuilder::setTest);
-//        setNotNull(bidRequest.getAt(), resultBuilder::setAt);
-//        setNotNull(mapNotNull(bidRequest.getTmax(), Long::intValue), resultBuilder::setTmax);
-//        setNotNull(bidRequest.getWseat(), resultBuilder::addAllWseat);
-//        setNotNull(bidRequest.getBseat(), resultBuilder::addAllBseat);
-//        setNotNull(mapNotNull(bidRequest.getAllimps(), BooleanUtils::toBoolean), resultBuilder::setAllimps);
-//        setNotNull(bidRequest.getCur(), resultBuilder::addAllCur);
-//        setNotNull(bidRequest.getWlang(), resultBuilder::addAllWlang);
-//        setNotNull(bidRequest.getBcat(), resultBuilder::addAllBcat);
-//        setNotNull(bidRequest.getBadv(), resultBuilder::addAllBadv);
-//        setNotNull(bidRequest.getBapp(), resultBuilder::addAllBapp);
-//        setNotNull(mapNotNull(bidRequest.getSource(), sourceMapper::map), resultBuilder::setSource);
-//        setNotNull(mapNotNull(bidRequest.getRegs(), regsMapper::map), resultBuilder::setRegs);
+//        .Id()
+//        .Imp()
+//        .Site()
+//        .App()
+//        .Device()
+//        .User()
+//        .Test()
+//        .At()
+//        .Tmax()
+//        .Wseat()
+//        .Bseat()
+//        .Allimps()
+//        .Cur()
+//        .Wlang()
+//        .Bcat()
+//        .Badv()
+//        .Bapp()
+//        .Source()
+//        .Regs()
 //                .build();
     }
 
     @Test
     public void testBidRequestMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
@@ -305,7 +315,19 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void deviceMapper() {
+    public void deviceMapperShouldReturnValidMapper() {
+        // given
+        final Device device = givenDevice();
+
+        // when
+        final ProtobufMapper<Device, OpenRtb.BidRequest.Device> mapper =
+                ProtobufRequestUtils.deviceMapper(geoMapper, givenFlexibleExtensionMapper(OpenRtbTest.device));
+
+        // then
+        final OpenRtb.BidRequest.Device result = mapper.map(device);
+        final OpenRtb.BidRequest.Device expectedResult = givenProtobufDevice();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -505,23 +527,39 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void audioMapper() {
+    public void audioMapperShouldReturnValidMapper() {
+        // given
+        final Audio audio = givenAudio();
+
+        // when
+        final ProtobufMapper<Audio, OpenRtb.BidRequest.Imp.Audio> mapper =
+                ProtobufRequestUtils.audioMapper(bannerMapper, givenJsonExtensionMapper(OpenRtbTest.audio));
+
+        // then
+        final OpenRtb.BidRequest.Imp.Audio result = mapper.map(audio);
+        final OpenRtb.BidRequest.Imp.Audio expectedResult = givenProtobufAudio();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
     public void nativeRequestMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
     public void testNativeRequestMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
     public void nativeMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
     public void assetMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
@@ -548,10 +586,23 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
     @Test
     public void impMapper() {
+        throw new UnsupportedOperationException();
     }
 
     @Test
     public void videoMapper() {
+        // given
+        final Video video = givenVideo();
+
+        // when
+        final ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> mapper =
+                ProtobufRequestUtils.videoMapper(bannerMapper, givenJsonExtensionMapper(OpenRtbTest.video));
+
+        // then
+        final OpenRtb.BidRequest.Imp.Video result = mapper.map(video);
+        final OpenRtb.BidRequest.Imp.Video expectedResult = givenProtobufVideo();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -568,6 +619,191 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         final OpenRtb.BidRequest.User expectedResult = givenProtobufUser();
 
         assertThat(result).isEqualTo(expectedResult);
+    }
+
+    private static Video givenVideo() {
+        return Video.builder()
+                .mimes(singletonList("mimes"))
+                .minduration(1)
+                .maxduration(2)
+                .startdelay(3)
+                .protocols(singletonList(4))
+                .w(5)
+                .h(6)
+                .placement(7)
+                .linearity(8)
+                .skip(9)
+                .skipmin(10)
+                .skipafter(11)
+                .sequence(12)
+                .battr(singletonList(13))
+                .maxextended(14)
+                .minbitrate(15)
+                .maxbitrate(16)
+                .boxingallowed(17)
+                .playbackmethod(singletonList(18))
+                .playbackend(19)
+                .delivery(singletonList(20))
+                .pos(21)
+                .companionad(singletonList(givenBanner()))
+                .api(singletonList(22))
+                .companiontype(singletonList(23))
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Video givenProtobufVideo() {
+        return OpenRtb.BidRequest.Imp.Video.newBuilder()
+                .addMimes("mimes")
+                .setMinduration(1)
+                .setMaxduration(2)
+                .setStartdelay(3)
+                .addProtocols(4)
+                .setW(5)
+                .setH(6)
+                .setPlacement(7)
+                .setLinearity(8)
+                .setSkip(true)
+                .setSkipmin(10)
+                .setSkipafter(11)
+                .setSequence(12)
+                .addBattr(13)
+                .setMaxextended(14)
+                .setMinbitrate(15)
+                .setMaxbitrate(16)
+                .setBoxingallowed(true)
+                .addPlaybackmethod(18)
+                .setPlaybackend(19)
+                .addDelivery(20)
+                .setPos(21)
+                .addCompanionad(givenProtobufBanner())
+                .addApi(22)
+                .addCompaniontype(23)
+                .setExtension(OpenRtbTest.video, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static Audio givenAudio() {
+        return Audio.builder()
+                .mimes(singletonList("mimes"))
+                .minduration(1)
+                .maxduration(2)
+                .protocols(singletonList(3))
+                .startdelay(4)
+                .sequence(5)
+                .battr(singletonList(6))
+                .maxextended(7)
+                .minbitrate(8)
+                .maxbitrate(9)
+                .delivery(singletonList(10))
+                .companionad(singletonList(givenBanner()))
+                .api(singletonList(11))
+                .companiontype(singletonList(12))
+                .maxseq(13)
+                .feed(14)
+                .stitched(15)
+                .nvol(16)
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Audio givenProtobufAudio() {
+        return OpenRtb.BidRequest.Imp.Audio.newBuilder()
+                .addMimes("mimes")
+                .setMinduration(1)
+                .setMaxduration(2)
+                .addProtocols(3)
+                .setStartdelay(4)
+                .setSequence(5)
+                .addBattr(6)
+                .setMaxextended(7)
+                .setMinbitrate(8)
+                .setMaxbitrate(9)
+                .addDelivery(10)
+                .addCompanionad(givenProtobufBanner())
+                .addApi(11)
+                .addCompaniontype(12)
+                .setMaxseq(13)
+                .setFeed(14)
+                .setStitched(true)
+                .setNvol(16)
+                .setExtension(OpenRtbTest.audio, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static Device givenDevice() {
+        final ExtDevice extDevice = ExtDevice.of(null, null);
+        extDevice.addProperty("field", TextNode.valueOf("fieldValue"));
+
+        return Device.builder()
+                .geo(givenGeo())
+                .dnt(1)
+                .lmt(2)
+                .ua("ua")
+                .ip("ip")
+                .ipv6("ipv6")
+                .devicetype(3)
+                .make("make")
+                .model("model")
+                .os("os")
+                .osv("osv")
+                .hwv("hwv")
+                .h(4)
+                .w(5)
+                .ppi(6)
+                .pxratio(BigDecimal.ONE)
+                .js(7)
+                .geofetch(8)
+                .flashver("flashver")
+                .language("language")
+                .carrier("carrier")
+                .mccmnc("mccmnc")
+                .connectiontype(9)
+                .ifa("ifa")
+                .didsha1("didsha1")
+                .didmd5("didmd5")
+                .dpidsha1("dpidsha1")
+                .dpidmd5("dpidmd5")
+                .macsha1("macsha1")
+                .macmd5("macmd5")
+                .ext(extDevice)
+                .build();
+    }
+
+    private OpenRtb.BidRequest.Device givenProtobufDevice() {
+        return OpenRtb.BidRequest.Device.newBuilder()
+                .setGeo(givenProtobufGeo())
+                .setDnt(true)
+                .setLmt(true)
+                .setUa("ua")
+                .setIp("ip")
+                .setIpv6("ipv6")
+                .setDevicetype(3)
+                .setMake("make")
+                .setModel("model")
+                .setOs("os")
+                .setOsv("osv")
+                .setHwv("hwv")
+                .setH(4)
+                .setW(5)
+                .setPpi(6)
+                .setPxratio(1.0)
+                .setJs(true)
+                .setGeofetch(true)
+                .setFlashver("flashver")
+                .setLanguage("language")
+                .setCarrier("carrier")
+                .setMccmnc("mccmnc")
+                .setConnectiontype(9)
+                .setIfa("ifa")
+                .setDidsha1("didsha1")
+                .setDidmd5("didmd5")
+                .setDpidsha1("dpidsha1")
+                .setDpidmd5("dpidmd5")
+                .setMacsha1("macsha1")
+                .setMacmd5("macmd5")
+                .setExtension(OpenRtbTest.device, givenProtobufExt("fieldValue"))
+                .build();
     }
 
     private static Banner givenBanner() {
