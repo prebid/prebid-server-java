@@ -1,5 +1,6 @@
 package org.prebid.server.functional.util
 
+import org.apache.http.client.utils.URLEncodedUtils
 import org.prebid.server.functional.model.UidsCookie
 
 import static java.nio.charset.StandardCharsets.UTF_8
@@ -26,7 +27,7 @@ class HttpUtil implements ObjectMapperWrapper {
         [(COOKIE_HEADER): makeUidsCookieHeaderValue(encode(uidsCookie))]
     }
 
-    static String decodeUrl(String url) {
+    private static String decodeUrl(String url) {
         URLDecoder.decode(url, UTF_8)
     }
 
@@ -36,5 +37,9 @@ class HttpUtil implements ObjectMapperWrapper {
 
     private static String encodeWithBase64(String string) {
         Base64.encoder.encodeToString(string.bytes)
+    }
+
+    static String findUrlParameterValueByName(String url, String parameter) {
+        URLEncodedUtils.parse(decodeUrl(url), UTF_8).find { it.name == parameter }.value
     }
 }
