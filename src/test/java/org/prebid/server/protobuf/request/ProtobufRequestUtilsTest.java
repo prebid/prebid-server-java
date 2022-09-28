@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Content;
@@ -17,6 +18,7 @@ import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.ImageObject;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Producer;
@@ -52,6 +54,7 @@ import org.prebid.server.protobuf.ProtobufMapper;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,6 +95,30 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper;
 
+    @Mock
+    private ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> nativeTitleMapper;
+
+    @Mock
+    private ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper;
+
+    @Mock
+    private ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> nativeVideoMapper;
+
+    @Mock
+    private ProtobufMapper<DataObject, OpenRtb.NativeRequest.Asset.Data> nativeDataMapper;
+
+    @Mock
+    private ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> metricMapper;
+
+    @Mock
+    private ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> videoMapper;
+
+    @Mock
+    private ProtobufMapper<Audio, OpenRtb.BidRequest.Imp.Audio> audioMapper;
+
+    @Mock
+    private ProtobufMapper<Pmp, OpenRtb.BidRequest.Imp.Pmp> pmpMapper;
+
     @Before
     public void setUp() {
         given(segmentMapper.map(givenSegment())).willReturn(givenProtobufSegment());
@@ -104,6 +131,14 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         given(siteMapper.map(givenSite())).willReturn(givenProtobufSite());
         given(geoMapper.map(givenGeo())).willReturn(givenProtobufGeo());
         given(bannerMapper.map(givenBanner())).willReturn(givenProtobufBanner());
+        given(nativeTitleMapper.map(givenNativeTitle())).willReturn(givenProtobufNativeTitle());
+        given(nativeImageMapper.map(givenNativeImage())).willReturn(givenProtobufNativeImage());
+        given(nativeVideoMapper.map(givenNativeVideo())).willReturn(givenProtobufNativeVideo());
+        given(nativeDataMapper.map(givenNativeData())).willReturn(givenProtobufNativeData());
+        given(metricMapper.map(givenMetric())).willReturn(givenProtobufMetric());
+        given(videoMapper.map(givenVideo())).willReturn(givenProtobufVideo());
+        given(audioMapper.map(givenAudio())).willReturn(givenProtobufAudio());
+        given(pmpMapper.map(givenPmp())).willReturn(givenProtobufPmp());
     }
 
     @Test
@@ -142,13 +177,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void nativeVideoMapperShouldReturnValidMapper() {
         // given
-        final VideoObject videoObject = VideoObject.builder()
-                .protocols(singletonList(1))
-                .mimes(singletonList("mimes"))
-                .minduration(2)
-                .maxduration(3)
-                .ext(givenJsonExt("fieldValue"))
-                .build();
+        final VideoObject videoObject = givenNativeVideo();
 
         // when
         final ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> mapper =
@@ -156,14 +185,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.BidRequest.Imp.Video result = mapper.map(videoObject);
-        final OpenRtb.BidRequest.Imp.Video expectedResult =
-                OpenRtb.BidRequest.Imp.Video.newBuilder()
-                        .addProtocols(1)
-                        .addMimes("mimes")
-                        .setMinduration(2)
-                        .setMaxduration(3)
-                        .setExtension(OpenRtbTest.video, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.BidRequest.Imp.Video expectedResult = givenProtobufNativeVideo();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -251,15 +273,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void nativeImageMapperShouldReturnValidMapper() {
         // when
-        final ImageObject imageObject = ImageObject.builder()
-                .type(1)
-                .w(2)
-                .h(3)
-                .wmin(4)
-                .hmin(5)
-                .mimes(singletonList("mimes"))
-                .ext(givenJsonExt("fieldValue"))
-                .build();
+        final ImageObject imageObject = givenNativeImage();
 
         // when
         final ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> mapper =
@@ -267,16 +281,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.NativeRequest.Asset.Image result = mapper.map(imageObject);
-        final OpenRtb.NativeRequest.Asset.Image expectedResult =
-                OpenRtb.NativeRequest.Asset.Image.newBuilder()
-                        .setType(1)
-                        .setW(2)
-                        .setH(3)
-                        .setWmin(4)
-                        .setHmin(5)
-                        .addMimes("mimes")
-                        .setExtension(OpenRtbTest.nativeImage, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.NativeRequest.Asset.Image expectedResult = givenProtobufNativeImage();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -365,10 +370,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void titleMapperShouldReturnValidMapper() {
         // given
-        final TitleObject title = TitleObject.builder()
-                .len(1)
-                .ext(givenJsonExt("fieldValue"))
-                .build();
+        final TitleObject title = givenNativeTitle();
 
         // when
         final ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> mapper =
@@ -376,11 +378,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.NativeRequest.Asset.Title result = mapper.map(title);
-        final OpenRtb.NativeRequest.Asset.Title expectedResult =
-                OpenRtb.NativeRequest.Asset.Title.newBuilder()
-                        .setLen(1)
-                        .setExtension(OpenRtbTest.nativeTitle, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.NativeRequest.Asset.Title expectedResult = givenProtobufNativeTitle();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -388,12 +386,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void metricMapperShouldReturnValidMapper() {
         // given
-        final Metric metric = Metric.builder()
-                .type("type")
-                .value(1.0f)
-                .vendor("vendor")
-                .ext(givenJsonExt("fieldValue"))
-                .build();
+        final Metric metric = givenMetric();
 
         // when
         final ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> mapper =
@@ -401,13 +394,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.BidRequest.Imp.Metric result = mapper.map(metric);
-        final OpenRtb.BidRequest.Imp.Metric expectedResult =
-                OpenRtb.BidRequest.Imp.Metric.newBuilder()
-                        .setType("type")
-                        .setValue(1.0)
-                        .setVendor("vendor")
-                        .setExtension(OpenRtbTest.metric, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.BidRequest.Imp.Metric expectedResult = givenProtobufMetric();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -558,8 +545,87 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void assetMapper() {
-        throw new UnsupportedOperationException();
+    public void assetMapperShouldReturnValidMapperWhichMapsTitle() {
+        // given
+        final Asset asset = givenAssetWithTitle();
+
+        // when
+        final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> mapper =
+                ProtobufRequestUtils.assetMapper(
+                        nativeTitleMapper,
+                        nativeImageMapper,
+                        nativeVideoMapper,
+                        nativeDataMapper,
+                        givenJsonExtensionMapper(OpenRtbTest.nativeAsset));
+
+        // then
+        final OpenRtb.NativeRequest.Asset result = mapper.map(asset);
+        final OpenRtb.NativeRequest.Asset expectedResult = givenProtobufNativeAssetWithTitle();
+
+        assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void assetMapperShouldReturnValidMapperWhichMapsVideo() {
+        // given
+        final Asset asset = givenAssetWithVideo();
+
+        // when
+        final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> mapper =
+                ProtobufRequestUtils.assetMapper(
+                        nativeTitleMapper,
+                        nativeImageMapper,
+                        nativeVideoMapper,
+                        nativeDataMapper,
+                        givenJsonExtensionMapper(OpenRtbTest.nativeAsset));
+
+        // then
+        final OpenRtb.NativeRequest.Asset result = mapper.map(asset);
+        final OpenRtb.NativeRequest.Asset expectedResult = givenProtobufNativeAssetWithVideo();
+
+        assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void assetMapperShouldReturnValidMapperWhichMapsImage() {
+        // given
+        final Asset asset = givenAssetWithImage();
+
+        // when
+        final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> mapper =
+                ProtobufRequestUtils.assetMapper(
+                        nativeTitleMapper,
+                        nativeImageMapper,
+                        nativeVideoMapper,
+                        nativeDataMapper,
+                        givenJsonExtensionMapper(OpenRtbTest.nativeAsset));
+
+        // then
+        final OpenRtb.NativeRequest.Asset result = mapper.map(asset);
+        final OpenRtb.NativeRequest.Asset expectedResult = givenProtobufNativeAssetWithImage();
+
+        assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void assetMapperShouldReturnValidMapperWhichMapsData() {
+        // given
+        final Asset asset = givenAssetWithData();
+
+        // when
+        final ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> mapper =
+                ProtobufRequestUtils.assetMapper(
+                        nativeTitleMapper,
+                        nativeImageMapper,
+                        nativeVideoMapper,
+                        nativeDataMapper,
+                        givenJsonExtensionMapper(OpenRtbTest.nativeAsset));
+
+        // then
+        final OpenRtb.NativeRequest.Asset result = mapper.map(asset);
+        final OpenRtb.NativeRequest.Asset expectedResult = givenProtobufNativeAssetWithData();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -585,12 +651,30 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void impMapper() {
-        throw new UnsupportedOperationException();
+    public void impMapperShouldReturnValidMapper() {
+        // given
+        final Imp imp = givenImp();
+
+        // when
+        final ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> mapper =
+                ProtobufRequestUtils.impMapper(
+                        metricMapper,
+                        bannerMapper,
+                        videoMapper,
+                        audioMapper,
+                        null,
+                        pmpMapper,
+                        givenJsonExtensionMapper(OpenRtbTest.imp));
+
+        // then
+        final OpenRtb.BidRequest.Imp result = mapper.map(imp);
+        final OpenRtb.BidRequest.Imp expectedResult = givenProtobufImp();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
-    public void videoMapper() {
+    public void videoMapperShouldReturnValidMapper() {
         // given
         final Video video = givenVideo();
 
@@ -619,6 +703,140 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         final OpenRtb.BidRequest.User expectedResult = givenProtobufUser();
 
         assertThat(result).isEqualTo(expectedResult);
+    }
+
+    private static Imp givenImp() {
+        throw new RuntimeException();
+    }
+
+    private static OpenRtb.BidRequest.Imp givenProtobufImp() {
+        throw new RuntimeException();
+    }
+
+    private static Metric givenMetric() {
+        return Metric.builder()
+                .type("type")
+                .value(1.0f)
+                .vendor("vendor")
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Metric givenProtobufMetric() {
+        return OpenRtb.BidRequest.Imp.Metric.newBuilder()
+                .setType("type")
+                .setValue(1.0)
+                .setVendor("vendor")
+                .setExtension(OpenRtbTest.metric, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static Asset givenAssetWithVideo() {
+        return givenAsset(assetBuilder -> assetBuilder.video(givenNativeVideo()));
+    }
+
+    private static Asset givenAssetWithImage() {
+        return givenAsset(assetBuilder -> assetBuilder.img(givenNativeImage()));
+    }
+
+    private static Asset givenAssetWithData() {
+        return givenAsset(assetBuilder -> assetBuilder.data(givenNativeData()));
+    }
+
+    private static Asset givenAssetWithTitle() {
+        return givenAsset(assetBuilder ->  assetBuilder.title(givenNativeTitle()));
+    }
+
+    private static Asset givenAsset(UnaryOperator<Asset.AssetBuilder> assetModifier) {
+        final Asset.AssetBuilder builder = Asset.builder()
+                .id(1)
+                .required(2);
+
+        return assetModifier.apply(builder).build();
+    }
+
+    private static OpenRtb.NativeRequest.Asset givenProtobufNativeAssetWithVideo() {
+        return givenProtobufNativeAsset(assetBuilder -> assetBuilder.setVideo(givenProtobufNativeVideo()));
+    }
+
+    private static OpenRtb.NativeRequest.Asset givenProtobufNativeAssetWithImage() {
+        return givenProtobufNativeAsset(assetBuilder -> assetBuilder.setImg(givenProtobufNativeImage()));
+    }
+
+    private static OpenRtb.NativeRequest.Asset givenProtobufNativeAssetWithData() {
+        return givenProtobufNativeAsset(assetBuilder -> assetBuilder.setData(givenProtobufNativeData()));
+    }
+
+    private static OpenRtb.NativeRequest.Asset givenProtobufNativeAssetWithTitle() {
+        return givenProtobufNativeAsset(assetBuilder -> assetBuilder.setTitle(givenProtobufNativeTitle()));
+    }
+
+    private static OpenRtb.NativeRequest.Asset givenProtobufNativeAsset(
+            UnaryOperator<OpenRtb.NativeRequest.Asset.Builder> assetModifier) {
+
+        final OpenRtb.NativeRequest.Asset.Builder assetBuilder = OpenRtb.NativeRequest.Asset.newBuilder()
+                .setId(1)
+                .setRequired(true);
+
+        return assetModifier.apply(assetBuilder).build();
+    }
+
+    private static ImageObject givenNativeImage() {
+        return ImageObject.builder()
+                .type(1)
+                .w(2)
+                .h(3)
+                .wmin(4)
+                .hmin(5)
+                .mimes(singletonList("mimes"))
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.NativeRequest.Asset.Image givenProtobufNativeImage() {
+        return OpenRtb.NativeRequest.Asset.Image.newBuilder()
+                .setType(1)
+                .setW(2)
+                .setH(3)
+                .setWmin(4)
+                .setHmin(5)
+                .addMimes("mimes")
+                .setExtension(OpenRtbTest.nativeImage, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static TitleObject givenNativeTitle() {
+        return TitleObject.builder()
+                .len(1)
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.NativeRequest.Asset.Title givenProtobufNativeTitle() {
+        return OpenRtb.NativeRequest.Asset.Title.newBuilder()
+                .setLen(1)
+                .setExtension(OpenRtbTest.nativeTitle, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static VideoObject givenNativeVideo() {
+        return VideoObject.builder()
+                .protocols(singletonList(1))
+                .mimes(singletonList("mimes"))
+                .minduration(2)
+                .maxduration(3)
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Video givenProtobufNativeVideo() {
+        return OpenRtb.BidRequest.Imp.Video.newBuilder()
+                .addProtocols(1)
+                .addMimes("mimes")
+                .setMinduration(2)
+                .setMaxduration(3)
+                .setExtension(OpenRtbTest.video, givenProtobufExt("fieldValue"))
+                .build();
     }
 
     private static Video givenVideo() {
