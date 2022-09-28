@@ -26,7 +26,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
     protected static final AccountDao accountDao = repository.accountDao
-    protected static final StoredImpDao storedImp = repository.storedImpDao
+    protected static final StoredImpDao storedImpDao = repository.storedImpDao
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
 

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
@@ -15,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
@@ -26,6 +28,7 @@ import static org.prebid.server.functional.model.pricefloors.DeviceType.PHONE
 import static org.prebid.server.functional.model.pricefloors.DeviceType.TABLET
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
+import static org.prebid.server.functional.model.pricefloors.PriceFloorField.AD_UNIT_CODE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BOGUS
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BUNDLE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.CHANNEL
@@ -34,7 +37,6 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.DEV
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.GPT_SLOT
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.MEDIA_TYPE
-import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PB_AD_SLOT
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PUB_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
@@ -601,11 +603,11 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                  { String gptSlotVal -> new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal) }]
     }
 
-    def "PBS should choose correct rule when pbAdSlot is defined in rules"() {
+    def "PBS should choose correct rule when adUnitCode is defined in rules"() {
         given: "BidRequest with domain"
-        def pbAdSlot = PBSUtils.randomString
+        def randomStringValue = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.data = new ImpExtContextData(pbAdSlot: pbAdSlot)
+            updateImpClosure(randomStringValue, it.imp[0])
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -615,9 +617,50 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
-            modelGroups[0].values = [(new Rule(pbAdSlot: pbAdSlot).rule)             : floorValue,
-                                     (new Rule(pbAdSlot: PBSUtils.randomString).rule): floorValue + 0.1]
+            modelGroups[0].schema = new PriceFloorSchema(fields: [AD_UNIT_CODE])
+            modelGroups[0].values = [(new Rule(adUnitCode: randomStringValue).rule)    : floorValue,
+                                     (new Rule(adUnitCode: PBSUtils.randomString).rule): floorValue + 0.1]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloor == floorValue
+
+        where:
+        updateImpClosure << [{anyStr, imp -> imp.ext.gpid = anyStr},
+                             {anyStr, imp -> imp.tagId = anyStr},
+                             {anySrt, imp -> imp.ext.data = new ImpExtContextData(pbAdSlot: anySrt)}]
+    }
+
+     def "PBS should choose correct rule when adUnitCode is defined in rules with stored request"() {
+        given: "BidRequest with stored request"
+        def randomString = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: randomString)
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getDbStoredImp(bidRequest, Imp.defaultImpression)
+        storedImpDao.save(storedImp)
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [AD_UNIT_CODE])
+            modelGroups[0].values =
+                    [(new Rule(adUnitCode: randomString).rule)    : floorValue,
+                     (new Rule(adUnitCode: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
