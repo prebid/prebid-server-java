@@ -5,7 +5,35 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Asset;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.EventTracker;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.ImageObject;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Metric;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.request.Producer;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Request;
+import com.iab.openrtb.request.Segment;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.TitleObject;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,7 +44,15 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
-import org.prebid.server.proto.openrtb.ext.request.*;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
@@ -103,6 +139,24 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> nativeMapper;
 
+    @Mock
+    private ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper;
+
+    @Mock
+    private ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper;
+
+    @Mock
+    private ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper;
+
+    @Mock
+    private ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper;
+
+    @Mock
+    private ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper;
+
+    @Mock
+    private ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper;
+
     @Before
     public void setUp() {
         given(segmentMapper.map(givenSegment())).willReturn(givenProtobufSegment());
@@ -133,39 +187,83 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .willReturn(givenProtobufNativeRequest());
         given(nativeMapper.map(givenNativeWithRequestWhichCanBeParsed()))
                 .willReturn(givenProtobufNativeWithRequestNative());
+        given(impMapper.map(givenImp())).willReturn(givenProtobufImp());
+        given(appMapper.map(givenApp())).willReturn(givenProtobufApp());
+        given(deviceMapper.map(givenDevice())).willReturn(givenProtobufDevice());
+        given(userMapper.map(givenUser())).willReturn(givenProtobufUser());
+        given(sourceMapper.map(givenSource())).willReturn(givenProtobufSource());
+        given(regsMapper.map(givenRegs())).willReturn(givenProtobufRegs());
+    }
+
+    @Test
+    public void bidRequestMapperShouldReturnValidMapperForMapperSpec() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final ExtensionMappersSpecification spec = ExtensionMappersSpecification.builder(jacksonMapper.mapper())
+                .segmentExtMapper(givenJsonExtensionMapper(OpenRtbTest.segment))
+                .formatExtMapper(givenJsonExtensionMapper(OpenRtbTest.format))
+                .dealExtMapper(givenJsonExtensionMapper(OpenRtbTest.deal))
+                .producerExtMapper(givenJsonExtensionMapper(OpenRtbTest.producer))
+                .dataExtMapper(givenJsonExtensionMapper(OpenRtbTest.data))
+                .contentExtMapper(givenJsonExtensionMapper(OpenRtbTest.content))
+                .publisherExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.publisher))
+                .siteExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.site))
+                .geoExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.geo))
+                .bannerExtMapper(givenJsonExtensionMapper(OpenRtbTest.banner))
+                .nativeTitleExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeTitle))
+                .nativeImageExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeImage))
+                .nativeVideoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
+                .nativeDataExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeData))
+                .metricExtMapper(givenJsonExtensionMapper(OpenRtbTest.metric))
+                .videoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
+                .audioExtMapper(givenJsonExtensionMapper(OpenRtbTest.audio))
+                .pmpExtMapper(givenJsonExtensionMapper(OpenRtbTest.pmp))
+                .nativeAssetExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeAsset))
+                .nativeEventTrackerExtMapper(givenJsonExtensionMapper(OpenRtbTest.eventTrackers))
+                .nativeRequestExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeRequest))
+                .nativeExtMapper(givenJsonExtensionMapper(OpenRtbTest.native_))
+                .impExtMapper(givenJsonExtensionMapper(OpenRtbTest.imp))
+                .appExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.app))
+                .deviceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.device))
+                .userExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.user))
+                .sourceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.source))
+                .regsExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.regs))
+                .bidRequestExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.bidRequest))
+                .build();
+
+        // when
+        final ProtobufMapper<BidRequest, OpenRtb.BidRequest> mapper =
+                ProtobufRequestUtils.bidRequestMapper(spec);
+
+        // then
+        final OpenRtb.BidRequest result = mapper.map(bidRequest);
+        final OpenRtb.BidRequest expectedResult = givenProtobufBidRequest();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
     public void bidRequestMapperShouldReturnValidMapper() {
-        throw new RuntimeException();
-//        final BidRequest bidRequest = BidRequest.builder()
-//                        .id("id")
-//                                .imp(Collections.si)
-//        .Id()
-//        .Imp()
-//        .Site()
-//        .App()
-//        .Device()
-//        .User()
-//        .Test()
-//        .At()
-//        .Tmax()
-//        .Wseat()
-//        .Bseat()
-//        .Allimps()
-//        .Cur()
-//        .Wlang()
-//        .Bcat()
-//        .Badv()
-//        .Bapp()
-//        .Source()
-//        .Regs()
-//                .build();
-    }
+        // given
+        final BidRequest bidRequest = givenBidRequest();
 
-    @Test
-    public void testBidRequestMapper() {
-        throw new UnsupportedOperationException();
+        // when
+        final ProtobufMapper<BidRequest, OpenRtb.BidRequest> mapper =
+                ProtobufRequestUtils.bidRequestMapper(
+                        impMapper,
+                        siteMapper,
+                        appMapper,
+                        deviceMapper,
+                        userMapper,
+                        sourceMapper,
+                        regsMapper,
+                        givenFlexibleExtensionMapper(OpenRtbTest.bidRequest));
+
+        // then
+        final OpenRtb.BidRequest result = mapper.map(bidRequest);
+        final OpenRtb.BidRequest expectedResult = givenProtobufBidRequest();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -459,13 +557,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void regsMapperShouldReturnValidMapper() {
         // given
-        final ExtRegs extRegs = ExtRegs.of(0, "");
-        extRegs.addProperty("field", TextNode.valueOf("fieldValue"));
-
-        final Regs regs = Regs.builder()
-                .coppa(1)
-                .ext(extRegs)
-                .build();
+        final Regs regs = givenRegs();
 
         // when
         final ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> mapper =
@@ -473,11 +565,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.BidRequest.Regs result = mapper.map(regs);
-        final OpenRtb.BidRequest.Regs expectedResult =
-                OpenRtb.BidRequest.Regs.newBuilder()
-                        .setCoppa(true)
-                        .setExtension(OpenRtbTest.regs, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.BidRequest.Regs expectedResult = givenProtobufRegs();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -740,6 +828,76 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         assertThat(result).isEqualTo(expectedResult);
     }
 
+    private static BidRequest givenBidRequest() {
+        final ExtRequest extRequest = ExtRequest.of(null);
+        extRequest.addProperty("field", TextNode.valueOf("fieldValue"));
+
+        return BidRequest.builder()
+                .id("id")
+                .imp(singletonList(givenImp()))
+                .site(givenSite())
+                .app(givenApp())
+                .device(givenDevice())
+                .user(givenUser())
+                .test(1)
+                .at(2)
+                .tmax(3L)
+                .wseat(singletonList("wseat"))
+                .bseat(singletonList("bseat"))
+                .allimps(4)
+                .cur(singletonList("cur"))
+                .wlang(singletonList("wlang"))
+                .bcat(singletonList("bcat"))
+                .badv(singletonList("badv"))
+                .bapp(singletonList("bapp"))
+                .source(givenSource())
+                .regs(givenRegs())
+                .ext(extRequest)
+                .build();
+    }
+
+    private static OpenRtb.BidRequest givenProtobufBidRequest() {
+        return OpenRtb.BidRequest.newBuilder()
+                .setId("id")
+                .addImp(givenProtobufImp())
+                .setSite(givenProtobufSite())
+                .setApp(givenProtobufApp())
+                .setDevice(givenProtobufDevice())
+                .setUser(givenProtobufUser())
+                .setTest(true)
+                .setAt(2)
+                .setTmax(3)
+                .addWseat("wseat")
+                .addBseat("bseat")
+                .setAllimps(true)
+                .addCur("cur")
+                .addWlang("wlang")
+                .addBcat("bcat")
+                .addBadv("badv")
+                .addBapp("bapp")
+                .setSource(givenProtobufSource())
+                .setRegs(givenProtobufRegs())
+                .setExtension(OpenRtbTest.bidRequest, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static Regs givenRegs() {
+        final ExtRegs extRegs = ExtRegs.of(0, "");
+        extRegs.addProperty("field", TextNode.valueOf("fieldValue"));
+
+        return Regs.builder()
+                .coppa(1)
+                .ext(extRegs)
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Regs givenProtobufRegs() {
+        return OpenRtb.BidRequest.Regs.newBuilder()
+                .setCoppa(true)
+                .setExtension(OpenRtbTest.regs, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
     private static Imp givenImp() {
         return Imp.builder()
                 .id("id")
@@ -759,6 +917,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .secure(3)
                 .iframebuster(singletonList("iframebuster"))
                 .exp(5)
+                .ext(givenJsonExt("fieldValue"))
                 .build();
     }
 
@@ -781,6 +940,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .setSecure(true)
                 .addIframebuster("iframebuster")
                 .setExp(5)
+                .setExtension(OpenRtbTest.imp, givenProtobufExt("fieldValue"))
                 .build();
     }
 
@@ -1140,7 +1300,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .build();
     }
 
-    private OpenRtb.BidRequest.Device givenProtobufDevice() {
+    private static OpenRtb.BidRequest.Device givenProtobufDevice() {
         return OpenRtb.BidRequest.Device.newBuilder()
                 .setGeo(givenProtobufGeo())
                 .setDnt(true)
