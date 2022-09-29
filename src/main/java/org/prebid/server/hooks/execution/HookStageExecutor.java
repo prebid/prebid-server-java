@@ -362,11 +362,11 @@ public class HookStageExecutor {
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
-        return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout, moduleContext);
+        return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout);
     }
 
-    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout, Object moduleContext) {
-        return InvocationContextImpl.of(createTimeout(timeout), endpoint, moduleContext);
+    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout) {
+        return InvocationContextImpl.of(createTimeout(timeout), endpoint);
     }
 
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
@@ -384,9 +384,10 @@ public class HookStageExecutor {
                                                                   Object moduleContext) {
 
         return AuctionInvocationContextImpl.of(
-                invocationContext(endpoint, timeout, moduleContext),
+                invocationContext(endpoint, timeout),
                 auctionContext.getDebugContext().isDebugEnabled(),
-                accountConfigFor(auctionContext.getAccount(), hookId));
+                accountConfigFor(auctionContext.getAccount(), hookId),
+                moduleContext);
     }
 
     private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(

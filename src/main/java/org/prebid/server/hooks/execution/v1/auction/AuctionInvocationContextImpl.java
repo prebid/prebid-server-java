@@ -17,4 +17,6 @@ public class AuctionInvocationContextImpl implements AuctionInvocationContext {
     boolean debugEnabled;
 
     ObjectNode accountConfig;
+
+    Object moduleContext;
 }
