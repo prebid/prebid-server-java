@@ -70,10 +70,11 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpAndBeyondMedia extImpAndBeyondMedia) {
-        final AndBeyondMediaImpExtBidder AndBeyondMediaImpExtBidderWithType = getImpExtAndBeyondMediaWithType(extImpAndBeyondMedia);
+        final AndBeyondMediaImpExtBidder andBeyondMediaImpExtBidderWithType
+                = getImpExtAndBeyondMediaWithType(extImpAndBeyondMedia);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
-        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(AndBeyondMediaImpExtBidderWithType));
+        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(andBeyondMediaImpExtBidderWithType));
 
         return imp.toBuilder()
                 .ext(modifiedImpExtBidder)
