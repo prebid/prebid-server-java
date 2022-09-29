@@ -5,32 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
-import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Asset;
-import com.iab.openrtb.request.Audio;
-import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Content;
-import com.iab.openrtb.request.Data;
-import com.iab.openrtb.request.DataObject;
-import com.iab.openrtb.request.Deal;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.EventTracker;
-import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
-import com.iab.openrtb.request.ImageObject;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Metric;
-import com.iab.openrtb.request.Pmp;
-import com.iab.openrtb.request.Producer;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Segment;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.TitleObject;
-import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.Video;
-import com.iab.openrtb.request.VideoObject;
+import com.iab.openrtb.request.*;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,14 +16,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
-import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.*;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
@@ -58,6 +26,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class ProtobufRequestUtilsTest extends VertxTest {
@@ -119,6 +88,21 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<Pmp, OpenRtb.BidRequest.Imp.Pmp> pmpMapper;
 
+    @Mock
+    private ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper;
+
+    @Mock
+    private ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper;
+
+    @Mock
+    private ProtobufMapper<Request, OpenRtb.NativeRequest> nativeRequestMapper;
+
+    @Mock
+    private ProtobufMapper<String, OpenRtb.NativeRequest> stringNativeRequestMapper;
+
+    @Mock
+    private ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> nativeMapper;
+
     @Before
     public void setUp() {
         given(segmentMapper.map(givenSegment())).willReturn(givenProtobufSegment());
@@ -139,6 +123,16 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         given(videoMapper.map(givenVideo())).willReturn(givenProtobufVideo());
         given(audioMapper.map(givenAudio())).willReturn(givenProtobufAudio());
         given(pmpMapper.map(givenPmp())).willReturn(givenProtobufPmp());
+        given(assetMapper.map(givenAssetWithData())).willReturn(givenProtobufNativeAssetWithData());
+        given(assetMapper.map(givenAssetWithImage())).willReturn(givenProtobufNativeAssetWithImage());
+        given(assetMapper.map(givenAssetWithVideo())).willReturn(givenProtobufNativeAssetWithVideo());
+        given(assetMapper.map(givenAssetWithTitle())).willReturn(givenProtobufNativeAssetWithTitle());
+        given(eventTrackerMapper.map(givenEventTracker())).willReturn(givenProtobufEventTrackers());
+        given(nativeRequestMapper.map(givenNativeRequest())).willReturn(givenProtobufNativeRequest());
+        given(stringNativeRequestMapper.map(jacksonMapper.encodeToString(givenNativeRequest())))
+                .willReturn(givenProtobufNativeRequest());
+        given(nativeMapper.map(givenNativeWithRequestWhichCanBeParsed()))
+                .willReturn(givenProtobufNativeWithRequestNative());
     }
 
     @Test
@@ -449,11 +443,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Test
     public void eventTrackerMapperShouldReturnValidMapper() {
         // given
-        final EventTracker eventTracker = EventTracker.builder()
-                .event(1)
-                .methods(List.of(2, 3))
-                .ext(givenJsonExt("fieldValue"))
-                .build();
+        final EventTracker eventTracker = givenEventTracker();
 
         // when
         final ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> mapper =
@@ -461,12 +451,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         // then
         final OpenRtb.NativeRequest.EventTrackers result = mapper.map(eventTracker);
-        final OpenRtb.NativeRequest.EventTrackers expectedResult =
-                OpenRtb.NativeRequest.EventTrackers.newBuilder()
-                        .setEvent(1)
-                        .addAllMethods(List.of(2, 3))
-                        .setExtension(OpenRtbTest.eventTrackers, givenProtobufExt("fieldValue"))
-                        .build();
+        final OpenRtb.NativeRequest.EventTrackers expectedResult = givenProtobufEventTrackers();
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -530,18 +515,68 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void nativeRequestMapper() {
-        throw new UnsupportedOperationException();
+    public void nativeRequestMapperShouldReturnValidMapper() {
+        // given
+        final Request nativeRequest = givenNativeRequest();
+
+        // when
+        final ProtobufMapper<Request, OpenRtb.NativeRequest> mapper = ProtobufRequestUtils.nativeRequestMapper(
+                assetMapper, eventTrackerMapper, givenJsonExtensionMapper(OpenRtbTest.nativeRequest));
+
+        // then
+        final OpenRtb.NativeRequest result = mapper.map(nativeRequest);
+        final OpenRtb.NativeRequest expectedResult = givenProtobufNativeRequest();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
-    public void testNativeRequestMapper() {
-        throw new UnsupportedOperationException();
+    public void stringNativeRequestMapperShouldReturnValidMapper() {
+        // given
+        final String request = jacksonMapper.encodeToString(givenNativeRequest());
+
+        // when
+        final ProtobufMapper<String, OpenRtb.NativeRequest> mapper =
+                ProtobufRequestUtils.nativeRequestMapper(jacksonMapper.mapper(), nativeRequestMapper);
+
+        // then
+        final OpenRtb.NativeRequest result = mapper.map(request);
+        final OpenRtb.NativeRequest expectedResult = givenProtobufNativeRequest();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
-    public void nativeMapper() {
-        throw new UnsupportedOperationException();
+    public void nativeMapperShouldReturnValidMapperForRequestWhichCantBeParsed() {
+        // given
+        final Native xNative = givenNativeWithRequestWhichCantBeParsed();
+
+        // when
+        final ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> mapper = ProtobufRequestUtils.nativeMapper(
+                stringNativeRequestMapper, givenJsonExtensionMapper(OpenRtbTest.native_));
+
+        // then
+        final OpenRtb.BidRequest.Imp.Native result = mapper.map(xNative);
+        final OpenRtb.BidRequest.Imp.Native expectedResult = givenProtobufNativeWithRequest();
+
+        assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void nativeMapperShouldReturnValidMapperForRequestWhichCanBeParsed() {
+        // given
+        final Native xNative = givenNativeWithRequestWhichCanBeParsed();
+        given(stringNativeRequestMapper.map(eq("request"))).willReturn(null);
+
+        // when
+        final ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> mapper = ProtobufRequestUtils.nativeMapper(
+                stringNativeRequestMapper, givenJsonExtensionMapper(OpenRtbTest.native_));
+
+        // then
+        final OpenRtb.BidRequest.Imp.Native result = mapper.map(xNative);
+        final OpenRtb.BidRequest.Imp.Native expectedResult = givenProtobufNativeWithRequestNative();
+
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -662,7 +697,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                         bannerMapper,
                         videoMapper,
                         audioMapper,
-                        null,
+                        nativeMapper,
                         pmpMapper,
                         givenJsonExtensionMapper(OpenRtbTest.imp));
 
@@ -706,11 +741,128 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     private static Imp givenImp() {
-        throw new RuntimeException();
+        return Imp.builder()
+                .id("id")
+                .metric(singletonList(givenMetric()))
+                .banner(givenBanner())
+                .video(givenVideo())
+                .audio(givenAudio())
+                .xNative(givenNativeWithRequestWhichCanBeParsed())
+                .pmp(givenPmp())
+                .displaymanager("displaymanager")
+                .displaymanagerver("displaymanagerver")
+                .instl(1)
+                .tagid("tagid")
+                .bidfloor(BigDecimal.ONE)
+                .bidfloorcur("bidfloorcur")
+                .clickbrowser(2)
+                .secure(3)
+                .iframebuster(singletonList("iframebuster"))
+                .exp(5)
+                .build();
     }
 
     private static OpenRtb.BidRequest.Imp givenProtobufImp() {
-        throw new RuntimeException();
+        return OpenRtb.BidRequest.Imp.newBuilder()
+                .setId("id")
+                .addMetric(givenProtobufMetric())
+                .setBanner(givenProtobufBanner())
+                .setVideo(givenProtobufVideo())
+                .setAudio(givenProtobufAudio())
+                .setNative(givenProtobufNativeWithRequestNative())
+                .setPmp(givenProtobufPmp())
+                .setDisplaymanager("displaymanager")
+                .setDisplaymanagerver("displaymanagerver")
+                .setInstl(true)
+                .setTagid("tagid")
+                .setBidfloor(1.0)
+                .setBidfloorcur("bidfloorcur")
+                .setClickbrowser(true)
+                .setSecure(true)
+                .addIframebuster("iframebuster")
+                .setExp(5)
+                .build();
+    }
+
+    private static Native givenNativeWithRequestWhichCanBeParsed() {
+        return Native.builder()
+                .request(jacksonMapper.encodeToString(givenNativeRequest()))
+                .ver("ver")
+                .battr(singletonList(1))
+                .api(singletonList(2))
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static Native givenNativeWithRequestWhichCantBeParsed() {
+        return givenNativeWithRequestWhichCanBeParsed().toBuilder().request("request").build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Native givenProtobufNativeWithRequest() {
+        return OpenRtb.BidRequest.Imp.Native.newBuilder()
+                .setRequest("request")
+                .setVer("ver")
+                .addBattr(1)
+                .addApi(2)
+                .setExtension(OpenRtbTest.native_, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.BidRequest.Imp.Native givenProtobufNativeWithRequestNative() {
+        return OpenRtb.BidRequest.Imp.Native.newBuilder(givenProtobufNativeWithRequest())
+                .setRequest("")
+                .setRequestNative(givenProtobufNativeRequest())
+                .build();
+    }
+
+    private static Request givenNativeRequest() {
+        return Request.builder()
+                .assets(singletonList(givenAssetWithData()))
+                .context(1)
+                .contextsubtype(2)
+                .plcmttype(3)
+                .plcmtcnt(4)
+                .seq(5)
+                .privacy(6)
+                .aurlsupport(7)
+                .durlsupport(8)
+                .ver("ver")
+                .eventtrackers(singletonList(givenEventTracker()))
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.NativeRequest givenProtobufNativeRequest() {
+        return OpenRtb.NativeRequest.newBuilder()
+                .setVer("ver")
+                .setContext(1)
+                .setContextsubtype(2)
+                .setPlcmttype(3)
+                .setPlcmtcnt(4)
+                .setSeq(5)
+                .addAssets(givenProtobufNativeAssetWithData())
+                .setAurlsupport(true)
+                .setDurlsupport(true)
+                .addEventtrackers(givenProtobufEventTrackers())
+                .setPrivacy(true)
+                .setExtension(OpenRtbTest.nativeRequest, givenProtobufExt("fieldValue"))
+                .build();
+    }
+
+    private static EventTracker givenEventTracker() {
+        return EventTracker.builder()
+                .event(1)
+                .methods(List.of(2, 3))
+                .ext(givenJsonExt("fieldValue"))
+                .build();
+    }
+
+    private static OpenRtb.NativeRequest.EventTrackers givenProtobufEventTrackers() {
+        return OpenRtb.NativeRequest.EventTrackers.newBuilder()
+                .setEvent(1)
+                .addAllMethods(List.of(2, 3))
+                .setExtension(OpenRtbTest.eventTrackers, givenProtobufExt("fieldValue"))
+                .build();
     }
 
     private static Metric givenMetric() {
@@ -744,7 +896,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     private static Asset givenAssetWithTitle() {
-        return givenAsset(assetBuilder ->  assetBuilder.title(givenNativeTitle()));
+        return givenAsset(assetBuilder -> assetBuilder.title(givenNativeTitle()));
     }
 
     private static Asset givenAsset(UnaryOperator<Asset.AssetBuilder> assetModifier) {
