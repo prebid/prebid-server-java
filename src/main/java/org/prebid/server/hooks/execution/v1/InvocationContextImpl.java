@@ -13,6 +13,4 @@ public class InvocationContextImpl implements InvocationContext {
     Timeout timeout;
 
     Endpoint endpoint;
-
-    Object moduleContext;
 }
