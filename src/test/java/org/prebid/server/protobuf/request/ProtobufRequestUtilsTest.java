@@ -5,35 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
-import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Asset;
-import com.iab.openrtb.request.Audio;
-import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Content;
-import com.iab.openrtb.request.Data;
-import com.iab.openrtb.request.DataObject;
-import com.iab.openrtb.request.Deal;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.EventTracker;
-import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
-import com.iab.openrtb.request.ImageObject;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Metric;
-import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Pmp;
-import com.iab.openrtb.request.Producer;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Request;
-import com.iab.openrtb.request.Segment;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.TitleObject;
-import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.Video;
-import com.iab.openrtb.request.VideoObject;
+import com.iab.openrtb.request.*;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,15 +16,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
-import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.*;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
@@ -199,7 +163,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     public void bidRequestMapperShouldReturnValidMapperForMapperSpec() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtensionMappersSpecification spec = ExtensionMappersSpecification.builder(jacksonMapper.mapper())
+        final RequestExtensionMappersSpecification spec = RequestExtensionMappersSpecification.builder(jacksonMapper.mapper())
                 .segmentExtMapper(givenJsonExtensionMapper(OpenRtbTest.segment))
                 .formatExtMapper(givenJsonExtensionMapper(OpenRtbTest.format))
                 .dealExtMapper(givenJsonExtensionMapper(OpenRtbTest.deal))
@@ -1062,7 +1026,8 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     private static Asset givenAsset(UnaryOperator<Asset.AssetBuilder> assetModifier) {
         final Asset.AssetBuilder builder = Asset.builder()
                 .id(1)
-                .required(2);
+                .required(2)
+                .ext(givenJsonExt("fieldValue"));
 
         return assetModifier.apply(builder).build();
     }
@@ -1088,7 +1053,8 @@ public class ProtobufRequestUtilsTest extends VertxTest {
 
         final OpenRtb.NativeRequest.Asset.Builder assetBuilder = OpenRtb.NativeRequest.Asset.newBuilder()
                 .setId(1)
-                .setRequired(true);
+                .setRequired(true)
+                .setExtension(OpenRtbTest.nativeAsset, givenProtobufExt("fieldValue"));
 
         return assetModifier.apply(assetBuilder).build();
     }

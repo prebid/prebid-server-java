@@ -58,7 +58,9 @@ public class ProtobufRequestUtils {
     private ProtobufRequestUtils() {
     }
 
-    public static ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(ExtensionMappersSpecification spec) {
+    public static ProtobufMapper<BidRequest, OpenRtb.BidRequest> bidRequestMapper(
+            RequestExtensionMappersSpecification spec) {
+
         final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper =
                 bannerMapper(formatMapper(spec.formatExtMapper()), spec.bannerExtMapper());
 

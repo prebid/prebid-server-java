@@ -20,7 +20,7 @@ import java.util.Objects;
 @Value
 @Builder
 @Accessors(fluent = true)
-public class ExtensionMappersSpecification {
+public class RequestExtensionMappersSpecification {
 
     ObjectMapper objectMapper;
 
@@ -82,11 +82,11 @@ public class ExtensionMappersSpecification {
 
     ProtobufForwardExtensionMapper<OpenRtb.BidRequest.Geo, ExtGeo, ?> geoExtMapper;
 
-    private static ExtensionMappersSpecificationBuilder builder() {
-        return new ExtensionMappersSpecificationBuilder();
+    private static RequestExtensionMappersSpecificationBuilder builder() {
+        return new RequestExtensionMappersSpecificationBuilder();
     }
 
-    public static ExtensionMappersSpecificationBuilder builder(ObjectMapper objectMapper) {
+    public static RequestExtensionMappersSpecificationBuilder builder(ObjectMapper objectMapper) {
         return builder().objectMapper(Objects.requireNonNull(objectMapper));
     }
 }

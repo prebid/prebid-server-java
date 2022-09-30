@@ -155,3 +155,58 @@ extend com.iabtechlab.openrtb.v2.NativeRequest.Asset.Title {
 
     optional TestExt nativeTitle = 8871;
 }
+
+extend com.iabtechlab.openrtb.v2.BidResponse {
+
+    optional TestExt bidResponse = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Image {
+
+    optional TestExt responseImage = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse {
+
+    optional TestExt nativeResponse = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid {
+
+    optional TestExt seatBid = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset {
+
+    optional TestExt responseAsset = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Title {
+
+    optional TestExt responseTitle = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Data {
+
+    optional TestExt responseData = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Link {
+
+    optional TestExt responseLink = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid.Bid {
+
+    optional TestExt bid = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Video {
+
+    optional TestExt responseVideo = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.EventTracker {
+
+    optional TestExt eventTracker = 8871;
+}

@@ -1,5 +1,7 @@
 package org.prebid.server.protobuf.response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.GeneratedMessageV3;
 import com.iab.openrtb.response.Asset;
 import com.iab.openrtb.response.Bid;
@@ -24,6 +26,50 @@ public class ProtobufResponseUtils {
     private ProtobufResponseUtils() {
     }
 
+    public static ProtobufMapper<OpenRtb.BidResponse, BidResponse> bidResponseMapper(
+            ResponseExtensionMappersSpecification spec) {
+
+        final ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper = linkMapper(spec.linkExtMapper());
+        final ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper =
+                nativeResponseMapper(
+                        assetMapper(
+                                titleMapper(spec.titleExtMapper()),
+                                nativeImageMapper(spec.imageExtMapper()),
+                                nativeVideoMapper(),
+                                nativeDataMapper(spec.dataExtMapper()),
+                                linkMapper,
+                                spec.assetExtMapper()),
+                        linkMapper,
+                        eventTrackerMapper(spec.eventTrackerExtMapper()),
+                        spec.nativeResponseExtMapper());
+
+        final ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper = seatBidMapper(
+                bidMapper(nativeResponseMapper(spec.objectMapper(), nativeResponseMapper), spec.bidExtMapper()),
+                spec.seatBidExtMapper());
+
+        return bidResponseMapper(seatBidMapper, spec.bidResponseExtMapper());
+    }
+
+    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse, BidResponse> bidResponseMapper(
+            ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper,
+            ProtobufBackwardExtensionMapper<
+                    OpenRtb.BidResponse,
+                    ProtobufExtensionType,
+                    ExtBidResponse
+                    > extensionMapper) {
+
+        return (OpenRtb.BidResponse bidResponse) ->
+                BidResponse.builder()
+                        .id(bidResponse.getId())
+                        .seatbid(bidResponse.getSeatbidList().stream().map(seatBidMapper::map).toList())
+                        .bidid(bidResponse.getBidid())
+                        .cur(bidResponse.getCur())
+                        .customdata(bidResponse.getCustomdata())
+                        .nbr(bidResponse.getNbr())
+                        .ext(extractExtension(extensionMapper, bidResponse))
+                        .build();
+    }
+
     public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper(
             ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper,
             ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> imageMapper,
@@ -46,58 +92,44 @@ public class ProtobufResponseUtils {
     }
 
     public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper(
+            ProtobufMapper<OpenRtb.NativeResponse, String> nativeResponseMapper,
             ProtobufJsonExtensionMapper<OpenRtb.BidResponse.SeatBid.Bid, ProtobufExtensionType> extensionMapper) {
 
-        return (OpenRtb.BidResponse.SeatBid.Bid bid) ->
-                Bid.builder()
-                        .id(bid.getId())
-                        .impid(bid.getImpid())
-                        .price(BigDecimal.valueOf(bid.getPrice()))
-                        .nurl(bid.getNurl())
-                        .burl(bid.getBurl())
-                        .lurl(bid.getLurl())
-                        .adm(bid.getAdm())
-                        .adid(bid.getAdid())
-                        .adomain(bid.getAdomainList())
-                        .bundle(bid.getBundle())
-                        .iurl(bid.getIurl())
-                        .cid(bid.getCid())
-                        .crid(bid.getCrid())
-                        .tactic(bid.getTactic())
-                        .cat(bid.getCatList())
-                        .attr(bid.getAttrList())
-                        .api(bid.getApi())
-                        .protocol(bid.getProtocol())
-                        .qagmediarating(bid.getQagmediarating())
-                        .language(bid.getLanguage())
-                        .dealid(bid.getDealid())
-                        .w(bid.getW())
-                        .h(bid.getH())
-                        .wratio(bid.getWratio())
-                        .hratio(bid.getHratio())
-                        .exp(bid.getExp())
-                        .ext(extractExtension(extensionMapper, bid))
-                        .build();
-    }
 
-    public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.BidResponse, BidResponse> bidResponseMapper(
-            ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper,
-            ProtobufBackwardExtensionMapper<
-                    OpenRtb.BidResponse,
-                    ProtobufExtensionType,
-                    ExtBidResponse
-                    > extensionMapper) {
+        return (OpenRtb.BidResponse.SeatBid.Bid bid) -> {
+            final String adm = bid.getAdm();
+            final String resolvedAdm = adm.isEmpty() ? nativeResponseMapper.map(bid.getAdmNative()) : adm;
 
-        return (OpenRtb.BidResponse bidResponse) ->
-                BidResponse.builder()
-                        .id(bidResponse.getId())
-                        .seatbid(bidResponse.getSeatbidList().stream().map(seatBidMapper::map).toList())
-                        .bidid(bidResponse.getBidid())
-                        .cur(bidResponse.getCur())
-                        .customdata(bidResponse.getCustomdata())
-                        .nbr(bidResponse.getNbr())
-                        .ext(extractExtension(extensionMapper, bidResponse))
-                        .build();
+            return Bid.builder()
+                    .id(bid.getId())
+                    .impid(bid.getImpid())
+                    .price(BigDecimal.valueOf(bid.getPrice()))
+                    .nurl(bid.getNurl())
+                    .burl(bid.getBurl())
+                    .lurl(bid.getLurl())
+                    .adm(resolvedAdm)
+                    .adid(bid.getAdid())
+                    .adomain(bid.getAdomainList())
+                    .bundle(bid.getBundle())
+                    .iurl(bid.getIurl())
+                    .cid(bid.getCid())
+                    .crid(bid.getCrid())
+                    .tactic(bid.getTactic())
+                    .cat(bid.getCatList())
+                    .attr(bid.getAttrList())
+                    .api(bid.getApi())
+                    .protocol(bid.getProtocol())
+                    .qagmediarating(bid.getQagmediarating())
+                    .language(bid.getLanguage())
+                    .dealid(bid.getDealid())
+                    .w(bid.getW())
+                    .h(bid.getH())
+                    .wratio(bid.getWratio())
+                    .hratio(bid.getHratio())
+                    .exp(bid.getExp())
+                    .ext(extractExtension(extensionMapper, bid))
+                    .build();
+        };
     }
 
     public static <ProtobufExtensionType>
@@ -149,6 +181,20 @@ public class ProtobufResponseUtils {
                         link.getClicktrackersList(),
                         link.getFallback(),
                         extractExtension(extensionMapper, link));
+    }
+
+    public static ProtobufMapper<OpenRtb.NativeResponse, String> nativeResponseMapper(
+            ObjectMapper objectMapper,
+            ProtobufMapper<OpenRtb.NativeResponse, Response> responseMapper) {
+
+        return (OpenRtb.NativeResponse nativeResponse) -> {
+            try {
+                final Response response = responseMapper.map(nativeResponse);
+                return objectMapper.writeValueAsString(response);
+            } catch (JsonProcessingException e) {
+                return null;
+            }
+        };
     }
 
     public static <ProtobufExtensionType> ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper(
