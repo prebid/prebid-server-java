@@ -19,6 +19,9 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncFormat;
+import org.prebid.server.bidder.UsersyncMethod;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
@@ -41,8 +44,10 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SetuidHandler implements Handler<RoutingContext> {
 
@@ -63,7 +68,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Map<String, String> cookieNameToSyncType;
+    private final Map<String, UsersyncMethodType> cookieNameToSyncType;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -89,6 +94,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
         cookieNameToSyncType = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .distinct() // built-in aliases looks like bidders with the same usersyncers
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
@@ -100,8 +107,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return gdprHostVendorId;
     }
 
-    private static String preferredUserSyncType(Usersyncer usersyncer) {
-        return usersyncer.getPrimaryMethod().getType();
+    private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
+        return Stream.of(usersyncer.getIframe(), usersyncer.getRedirect())
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(UsersyncMethod::getType)
+                .get(); // when usersyncer is present, it will contain at least one method
     }
 
     @Override
@@ -290,10 +301,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .end();
     }
 
-    private boolean shouldRespondWithPixel(String format, String syncType) {
-        return StringUtils.equals(format, UsersyncUtil.IMG_FORMAT)
-                || (!StringUtils.equals(format, UsersyncUtil.BLANK_FORMAT)
-                && StringUtils.equals(syncType, Usersyncer.UsersyncMethod.REDIRECT_TYPE));
+    private boolean shouldRespondWithPixel(String format, UsersyncMethodType syncType) {
+        return UsersyncFormat.PIXEL.name.equals(format)
+                || (!UsersyncFormat.BLANK.name.equals(format) && syncType == UsersyncMethodType.REDIRECT);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
@@ -328,7 +338,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
-        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
+        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
     }
 
     @Value(staticConstructor = "of")

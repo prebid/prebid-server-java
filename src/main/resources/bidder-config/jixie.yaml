@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=jixie&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%%JXUID%%
       cookie-family-name: jixie
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '%%JXUID%%'

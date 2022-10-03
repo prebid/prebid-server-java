@@ -723,21 +723,21 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldReturnNullWhenPbAdSlotDoesNotMatchRule() {
+    public void resolveShouldReturnNullWhenAdUnitCodeDoesNotMatchRule() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pbAdSlot)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("somePbAdSlot", BigDecimal.TEN)
                         .build()),
                 givenImp(identity()), null)).isNull();
     }
 
     @Test
-    public void resolveShouldReturnPriceFloorIfPbAdSlotMatchesRule() {
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByPbAdSlot() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
         final ObjectNode impExt = mapper.createObjectNode();
@@ -748,10 +748,103 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pbAdSlot)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("somePbAdSlot", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByStoredRequestId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ObjectNode impExt = mapper.createObjectNode();
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        final ObjectNode storedRequestNode = mapper.createObjectNode();
+        storedRequestNode.put("id", "someStoredRequestId");
+        prebidNode.set("storedrequest", storedRequestNode);
+        impExt.set("prebid", prebidNode);
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
+                        .value("someStoredRequestId", BigDecimal.TEN)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByGpid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.put("gpid", "someGpid");
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
+                        .value("someGpid", BigDecimal.TEN)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByTagId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
+                        .value("someTagId", BigDecimal.TEN)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.tagid("someTagId")), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByGpidHighestPriority() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.put("gpid", "someGpid");
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
+                        .value("someGpid", BigDecimal.TEN)
+                        .build()),
+                givenImp(impBuilder -> impBuilder
+                        .tagid("someTagId")
+                        .ext(impExt)), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorIfAdUnitCodeMatchesRuleByTagIdHighestPriority() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ObjectNode impExt = mapper.createObjectNode();
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("pbadslot", "somePbAdSlot");
+        impExt.set("data", dataNode);
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
+                        .value("someTagId", BigDecimal.TEN)
+                        .build()),
+                givenImp(impBuilder -> impBuilder
+                        .tagid("someTagId")
+                        .ext(impExt)), null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 

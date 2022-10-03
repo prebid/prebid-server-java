@@ -9,8 +9,7 @@ adapters:
       supported-vendors:
       vendor-id: 16
     usersync:
-      url: https://creativecdn.com/cm-notify?pi=rp-pbserv
-      redirect-url:
       cookie-family-name: rtbhouse
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://creativecdn.com/cm-notify?pi=rp-pbserv
+        support-cors: false

@@ -12,7 +12,7 @@
       },
       "ext": {
         "bidder": {
-          "siteId": 123
+          "siteid": 123
         }
       }
     }

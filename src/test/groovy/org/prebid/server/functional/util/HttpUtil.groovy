@@ -2,6 +2,8 @@ package org.prebid.server.functional.util
 
 import org.prebid.server.functional.model.UidsCookie
 
+import static java.nio.charset.StandardCharsets.UTF_8
+
 class HttpUtil implements ObjectMapperWrapper {
 
     public static final String UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
@@ -22,6 +24,10 @@ class HttpUtil implements ObjectMapperWrapper {
 
     static HashMap<String, String> getCookieHeader(UidsCookie uidsCookie) {
         [(COOKIE_HEADER): makeUidsCookieHeaderValue(encode(uidsCookie))]
+    }
+
+    static String decodeUrl(String url) {
+        URLDecoder.decode(url, UTF_8)
     }
 
     private static String makeUidsCookieHeaderValue(String uidsCookieJson) {

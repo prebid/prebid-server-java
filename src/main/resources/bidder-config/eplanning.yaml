@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 90
     usersync:
-      url: https://ads.us.e-planning.net/uspd/1/?du=
-      redirect-url: /setuid?bidder=eplanning&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: eplanning
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://ads.us.e-planning.net/uspd/1/?du={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

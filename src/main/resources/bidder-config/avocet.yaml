@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 63
     usersync:
-      url: https://ads.avct.cloud/getuid?&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-      redirect-url: /setuid?bidder=avocet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{UUID}}
       cookie-family-name: avocet
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ads.avct.cloud/getuid?&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '{{UUID}}'

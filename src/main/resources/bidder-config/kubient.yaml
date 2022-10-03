@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 794
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: kubient
-      type: redirect
-      support-cors: false

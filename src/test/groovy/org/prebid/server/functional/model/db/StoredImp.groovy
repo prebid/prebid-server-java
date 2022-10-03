@@ -8,7 +8,6 @@ import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
 import org.prebid.server.functional.model.db.typeconverter.ImpConfigTypeConverter
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 
 import static javax.persistence.GenerationType.IDENTITY

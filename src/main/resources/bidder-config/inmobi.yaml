@@ -13,8 +13,8 @@ adapters:
       supported-vendors:
       vendor-id: 333
     usersync:
-      url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=inmobi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={ID5UID}
       cookie-family-name: inmobi
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '{ID5UID}'

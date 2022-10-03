@@ -1,16 +1,10 @@
 adapters:
   coinzilla:
-    endpoint: "http://request-global.czilladx.com/serve/prebid-server.php"
+    endpoint: http://request-global.czilladx.com/serve/prebid-server.php
     meta-info:
-      maintainer-email: "technical@sevio.com"
+      maintainer-email: technical@sevio.com
       app-media-types:
         - banner
       site-media-types:
         - banner
       vendor-id: 0
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: coinzilla
-      type: redirect
-      support-cors: false
