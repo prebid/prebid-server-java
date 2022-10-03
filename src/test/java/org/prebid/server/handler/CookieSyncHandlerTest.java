@@ -1532,6 +1532,42 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .containsOnly(tuple(RUBICON, "Rejected by CCPA"));
     }
 
+    @Test
+    public void shouldReturnErrorStatusForUnsupportedBidderInCcpaContext() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder()
+                        .bidders(asList(RUBICON, NON_EXISTING_BIDDER))
+                        .usPrivacy("1YYY")
+                        .build()));
+
+        given(privacyEnforcementService.isCcpaEnforced(any(), any()))
+                .willReturn(true);
+
+        given(bidderCatalog.bidderInfoByName(NON_EXISTING_BIDDER))
+                .willReturn(null);
+
+        rubiconUsersyncer = createUsersyncer(RUBICON, "https://test.com", UsersyncMethodType.REDIRECT);
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isValidName(NON_EXISTING_BIDDER)).willReturn(false);
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("no_cookie");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
+                .containsExactlyInAnyOrder(tuple(NON_EXISTING_BIDDER, "Unsupported bidder"),
+                        tuple(RUBICON, null));
+    }
+
     private void givenCookieSyncHandler(String externalUrl,
                                         int defaultTimeout,
                                         Integer defaultLimit,

@@ -2,9 +2,6 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountCcpaConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -227,11 +224,5 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         WEB            | PBJS
         PBJS           | WEB
         PBJS           | PBJS
-    }
-
-    private Account getAccountWithCcpa(String accountId, AccountCcpaConfig ccpaConfig) {
-        def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        new Account(uuid: accountId, config: accountConfig)
     }
 }

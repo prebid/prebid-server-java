@@ -19,6 +19,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.UsersyncInfoBuilder;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodChooser;
@@ -458,10 +459,15 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
         if (privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
             return biddersToSync.stream()
-                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidder).isCcpaEnforced())
+                    .filter(this::isBidderCcpaEnforced)
                     .collect(Collectors.toSet());
         }
         return Collections.emptySet();
+    }
+
+    private boolean isBidderCcpaEnforced(String bidder) {
+        final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(bidder);
+        return bidderInfo != null && bidderInfo.isCcpaEnforced();
     }
 
     /**

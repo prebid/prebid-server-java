@@ -1,10 +1,7 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
-import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -219,11 +216,5 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         WEB            | PBJS
         PBJS           | WEB
         PBJS           | PBJS
-    }
-
-    private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        new Account(uuid: accountId, config: accountConfig)
     }
 }
