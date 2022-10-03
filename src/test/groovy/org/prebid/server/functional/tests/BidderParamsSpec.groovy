@@ -321,7 +321,7 @@ class BidderParamsSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -351,7 +351,7 @@ class BidderParamsSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

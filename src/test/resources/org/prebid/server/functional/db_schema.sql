@@ -22,7 +22,7 @@ CREATE TABLE stored_requests
 (
     id          SERIAL PRIMARY KEY,
     accountId   varchar(40),
-    reqid       varchar(40),
+    reqId       varchar(40),
     requestData json
 );
 
@@ -30,14 +30,14 @@ CREATE TABLE stored_imps
 (
     id          SERIAL PRIMARY KEY,
     accountId   varchar(40),
-    impid       varchar(40),
+    impId       varchar(40),
     impData     json
 );
 
 CREATE TABLE stored_responses
 (
     id     SERIAL PRIMARY KEY,
-    resid   varchar(40) NOT NULL,
+    resId   varchar(40) NOT NULL,
     storedAuctionResponse varchar(1024),
     storedBidResponse varchar(1024)
 );

@@ -294,7 +294,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
                     [(rule)                                                       : requestFloorValue + 0.1,
                      (new Rule(mediaType: BANNER, country: Country.MULTIPLE).rule): requestFloorValue]
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with maxRules in the DB"

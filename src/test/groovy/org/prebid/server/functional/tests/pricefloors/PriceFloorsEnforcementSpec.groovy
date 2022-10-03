@@ -38,7 +38,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             imp[0].ext.prebid.bidder.generic.firstParam = bidderParam
             ext.prebid.floors = floors
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch and fetch.url in the DB"
@@ -510,7 +510,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Stored response in DB"
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account with enabled fetch, fetch.url in the DB"

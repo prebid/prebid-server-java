@@ -83,24 +83,60 @@ class BidRequest {
         bidderList
     }
 
+    @JsonIgnore
+    String getAccountId() {
+        site?.publisher?.id ?: app?.publisher?.id
+    }
+
+    @JsonIgnore
+    void setAccountId(String accountId) {
+        if ((!site && !app) || (site && app)) {
+            throw new IllegalStateException("Either site or app should be defined")
+        }
+
+        if (site) {
+            if (!site.publisher) {
+                site.publisher = new Publisher()
+            }
+            site.publisher.id = accountId
+        } else {
+            if (!app.publisher) {
+                app.publisher = new Publisher()
+            }
+            app.publisher.id = accountId
+        }
+    }
+
     void enableCache() {
-        if (ext == null) {
+        if (!ext) {
             ext = new BidRequestExt()
         }
-        if (ext.prebid == null) {
+        if (!ext.prebid) {
             ext.prebid = new Prebid()
         }
-        if (ext.prebid.targeting == null) {
+        if (!ext.prebid.targeting) {
             ext.prebid.targeting = new Targeting()
         }
-        if (ext.prebid.cache == null) {
+        if (!ext.prebid.cache) {
             ext.prebid.cache = new PrebidCache()
         }
-        if (ext.prebid.cache.bids == null) {
+        if (!ext.prebid.cache.bids) {
             ext.prebid.cache.bids = new PrebidCacheSettings()
         }
-        if (ext.prebid.cache.vastXml == null) {
+        if (!ext.prebid.cache.vastXml) {
             ext.prebid.cache.vastXml = new PrebidCacheSettings()
+        }
+    }
+
+    void enableEvents() {
+        if (!ext) {
+            ext = new BidRequestExt()
+        }
+        if (!ext.prebid) {
+            ext.prebid = new Prebid()
+        }
+        if (!ext.prebid.events) {
+            ext.prebid.events = new Events()
         }
     }
 }

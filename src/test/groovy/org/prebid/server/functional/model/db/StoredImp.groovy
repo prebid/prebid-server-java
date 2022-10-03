@@ -24,17 +24,26 @@ class StoredImp {
     Integer id
     @Column(name = "accountId")
     String accountId
-    @Column(name = "impid")
-    String impReqId
+    @Column(name = "impId")
+    String impId
     @Column(name = "impData")
     @Convert(converter = ImpConfigTypeConverter)
     Imp impData
 
-    static StoredImp getDbStoredImp(BidRequest bidRequest, Imp storedImp) {
+    static StoredImp getStoredImp(BidRequest bidRequest) {
+        getStoredImp(bidRequest.accountId, bidRequest.imp[0])
+    }
+
+    static StoredImp getStoredImp(String accountId, Imp impression) {
+        def impressionId = impression.ext?.prebid?.storedRequest?.id ?: impression.id
+        getStoredImp(accountId, impressionId, impression)
+    }
+
+    static StoredImp getStoredImp(String accountId, String impressionId, Imp impression) {
         new StoredImp().tap {
-            accountId = bidRequest?.site?.publisher?.id
-            impReqId = bidRequest?.imp[0]?.ext?.prebid?.storedRequest?.id
-            impData = storedImp
+            it.accountId = accountId
+            it.impId = impressionId
+            it.impData = impression
         }
     }
 }

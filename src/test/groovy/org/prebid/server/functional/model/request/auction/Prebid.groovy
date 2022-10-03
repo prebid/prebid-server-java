@@ -28,6 +28,7 @@ class Prebid {
     Map<BidderName, Map<String, Integer>> bidderParams
     ExtPrebidFloors floors
     Map passThrough
+    Events events
 
     static class Channel {
 
