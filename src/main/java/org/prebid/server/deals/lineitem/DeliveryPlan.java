@@ -139,8 +139,7 @@ public class DeliveryPlan {
     }
 
     public Long getDeliveryRateInMilliseconds() {
-        final int unspentTokens = getUnspentTokens();
-        return unspentTokens > 0
+        return getUnspentTokens() > 0
                 ? (deliverySchedule.getEndTimeStamp().toInstant().toEpochMilli()
                 - deliverySchedule.getStartTimeStamp().toInstant().toEpochMilli())
                 / getTotalTokens()

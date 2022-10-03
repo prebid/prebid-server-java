@@ -30,6 +30,8 @@ import org.prebid.server.deals.proto.Price;
 import org.prebid.server.deals.proto.Token;
 import org.prebid.server.deals.targeting.TargetingDefinition;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -1856,6 +1858,7 @@ public class LineItemServiceTest extends VertxTest {
 
     private AuctionContext givenAuctionContext(List<String> fcaps) {
         return AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.empty()).build())
                 .account(Account.builder().id("accountId").build())
                 .deepDebugLog(DeepDebugLog.create(true, clock))
                 .txnLog(TxnLog.create())
