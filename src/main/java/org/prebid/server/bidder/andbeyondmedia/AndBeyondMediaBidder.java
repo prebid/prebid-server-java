@@ -35,6 +35,7 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAndBeyondMedia>> AND_BEYOND_MEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String TYPE_PUBLISHER = "publisher";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -71,7 +72,7 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpAndBeyondMedia extImpAndBeyondMedia) {
         final AndBeyondMediaImpExtBidder andBeyondMediaImpExtBidderWithType
-                = getImpExtAndBeyondMediaWithType(extImpAndBeyondMedia);
+                = resolveOutgoingImpExt(extImpAndBeyondMedia);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
         modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(andBeyondMediaImpExtBidderWithType));
@@ -81,13 +82,13 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private AndBeyondMediaImpExtBidder getImpExtAndBeyondMediaWithType(ExtImpAndBeyondMedia extImpAndBeyondMedia) {
+    private AndBeyondMediaImpExtBidder resolveOutgoingImpExt(ExtImpAndBeyondMedia extImpAndBeyondMedia) {
         final AndBeyondMediaImpExtBidder.AndBeyondMediaImpExtBidderBuilder impExtAndBeyondMedia
                 = AndBeyondMediaImpExtBidder.builder();
 
         if (StringUtils.isNotEmpty(extImpAndBeyondMedia.getPlacementId())) {
             impExtAndBeyondMedia
-                    .type("publisher")
+                    .type(TYPE_PUBLISHER)
                     .placementId(extImpAndBeyondMedia.getPlacementId());
         }
 
