@@ -10,4 +10,6 @@ public class ExtImpAdnuntius {
     String auId;
 
     String network;
+
+    Boolean noCookies;
 }
