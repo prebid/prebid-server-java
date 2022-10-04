@@ -18,3 +18,7 @@ adapters:
         url: https://ap.lijit.com/pixel?redir={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
+      iframe:
+        url: https://ap.lijit.com/beacon/prebid-server/?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
