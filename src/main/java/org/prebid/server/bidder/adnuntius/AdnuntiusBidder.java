@@ -105,13 +105,13 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final Banner banner = imp.getBanner();
 
         if (banner.getFormat() != null && banner.getFormat().size() > 0) {
-            final List<List<Integer>> listFormat = new ArrayList<>();
+            final List<List<Integer>> formats = new ArrayList<>();
             for (Format format : banner.getFormat()) {
                 if (format.getW() != null && format.getH() != null) {
-                    listFormat.add(List.of(format.getW(), format.getH()));
+                    formats.add(List.of(format.getW(), format.getH()));
                 }
             }
-            return listFormat;
+            return formats;
         }
 
         if (banner.getW() != null && banner.getH() != null) {
@@ -210,6 +210,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .map(Device::getExt)
                 .map(FlexibleExtension::getProperties)
                 .map(properties -> properties.get(URL_NO_COOKIES_PARAMETER))
+                .filter(JsonNode::isBoolean)
                 .map(JsonNode::asBoolean)
                 .orElse(false);
     }
