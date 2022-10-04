@@ -24,7 +24,7 @@ class StoredRequest {
     Integer id
     @Column(name = "accountId")
     String accountId
-    @Column(name = "reqid")
+    @Column(name = "reqId")
     String requestId
     @Column(name = "requestData")
     @Convert(converter = StoredRequestConfigTypeConverter)
