@@ -101,7 +101,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
     }
 
-    private List<List<Integer>> createDimensions(Imp imp) {
+    private static List<List<Integer>> createDimensions(Imp imp) {
         final Banner banner = imp.getBanner();
 
         if (banner.getFormat() != null && banner.getFormat().size() > 0) {
