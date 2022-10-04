@@ -39,7 +39,7 @@ class HttpUtil implements ObjectMapperWrapper {
         Base64.encoder.encodeToString(string.bytes)
     }
 
-    static String findUrlParameterValueByName(String url, String parameter) {
+    static String findUrlParameterValue(String url, String parameter) {
         URLEncodedUtils.parse(decodeUrl(url), UTF_8).find { it.name == parameter }.value
     }
 }

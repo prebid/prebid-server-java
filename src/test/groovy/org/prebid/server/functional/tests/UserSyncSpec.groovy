@@ -27,7 +27,7 @@ class UserSyncSpec extends BaseSpec {
         then: "Response should contain '#formatParam' format parameter"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus?.userSync?.type == userSyncFormat
-        assert HttpUtil.findUrlParameterValueByName(bidderStatus.userSync?.url, "f") == formatParam
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "f") == formatParam
 
         where:
         userSyncFormat || formatParam
@@ -51,7 +51,7 @@ class UserSyncSpec extends BaseSpec {
         then: "Response usersync url should contain #formatOverride format"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus?.userSync?.type == userSyncFormat
-        assert HttpUtil.findUrlParameterValueByName(bidderStatus.userSync?.url, "f") == formatOverride.name
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "f") == formatOverride.name
 
         where:
         userSyncFormat || formatOverride
@@ -61,10 +61,10 @@ class UserSyncSpec extends BaseSpec {
         IFRAME         || PIXEL
     }
 
-    def "PBS should return empty uid in usersync url when uid macro not resolve"() {
+    def "PBS should return empty uid in usersync url when uid macro is not present in config"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
         def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}&uid=null".toString(),
                  "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
 
         and: "Default CookieSyncRequest"
@@ -75,7 +75,7 @@ class UserSyncSpec extends BaseSpec {
 
         then: "Response userSync url should contain empty uid"
         def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert HttpUtil.findUrlParameterValueByName(bidderStatus.userSync?.url, "uid").isEmpty()
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "uid").isEmpty()
 
         where:
         userSyncFormat << [REDIRECT, IFRAME]
