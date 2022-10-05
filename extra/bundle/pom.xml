@@ -20,11 +20,8 @@
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-
         <spring.boot.version>2.5.6</spring.boot.version>
-        <jackson.version>2.13.2</jackson.version>
-        <!--TODO: Replace this with jackson.version after dependencies update-->
-        <jackson.databind.version>2.13.2.2</jackson.databind.version>
+        <jackson.version>2.14.0-rc1</jackson.version>
         <httpclient.version>4.5.13</httpclient.version>
     </properties>
 
@@ -39,7 +36,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.databind.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
