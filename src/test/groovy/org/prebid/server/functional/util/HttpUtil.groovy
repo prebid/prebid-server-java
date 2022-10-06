@@ -14,6 +14,7 @@ class HttpUtil implements ObjectMapperWrapper {
     public static final String CONTENT_TYPE_HEADER = "Content-Type"
     public static final String COOKIE_HEADER = "cookie"
     public static final String CONTENT_ENCODING_HEADER = "Content-Encoding"
+    public static final String PG_IGNORE_PACING = "X-Prebid-PG-ignore-pacing"
 
     public static final String CONTENT_TYPE_HEADER_VALUE = "application/json"
     public static final String CHARSET_HEADER_VALUE = "charset=utf-8"
