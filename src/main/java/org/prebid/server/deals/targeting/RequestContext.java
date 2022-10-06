@@ -118,8 +118,8 @@ public class RequestContext {
             case referrer -> lookupResult(getIfNotNull(bidRequest.getSite(), Site::getPage));
             case appBundle -> lookupResult(getIfNotNull(bidRequest.getApp(), App::getBundle));
             case adslot -> lookupResult(
-                    impReader.readFromExt(imp, "context.data.pbadslot", RequestContext::nodeToString),
-                    impReader.readFromExt(imp, "context.data.adserver.adslot", RequestContext::nodeToString),
+                    imp.getTagid(),
+                    impReader.readFromExt(imp, "gpid", RequestContext::nodeToString),
                     impReader.readFromExt(imp, "data.pbadslot", RequestContext::nodeToString),
                     impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString));
             case deviceGeoExt -> lookupResult(geoReader.readFromExt(

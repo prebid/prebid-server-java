@@ -2,6 +2,7 @@ package org.prebid.server.deals.targeting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -226,15 +227,12 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
-    public void lookupStringShouldReturnAdslotFromContextDataPbadslot() {
+    public void lookupStringShouldReturnAdslotFromTagId() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(mapper.createObjectNode()
-                        .set("context", mapper.createObjectNode()
-                                .set("data", mapper.createObjectNode()
-                                        .put("pbadslot", "/123/456"))))),
+                imp(i -> i.tagid("/123/456")),
                 null,
                 aliases,
                 txnLog,
@@ -245,15 +243,12 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
-    public void lookupStringShouldReturnAdslotFromContextDataAdserverAdslot() {
+    public void lookupStringShouldReturnAdslotFromGpid() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.ext(mapper.createObjectNode()
-                        .set("context", mapper.createObjectNode()
-                                .set("data", mapper.createObjectNode()
-                                        .set("adserver", obj("adslot", "/234/567")))))),
+                imp(i -> i.ext(mapper.createObjectNode().set("gpid", TextNode.valueOf("/234/567")))),
                 null,
                 aliases,
                 txnLog,
@@ -296,22 +291,6 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupString(category).getValues()).containsExactly("/456/789");
-    }
-
-    @Test
-    public void lookupStringShouldReturnAdslotFromAlternativeAdServerAdSlotPath() {
-        // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
-        final RequestContext context = new RequestContext(
-                request(identity()),
-                imp(i -> i.ext(obj("context", obj("data", obj("adserver", obj("adslot", "/123/456")))))),
-                null,
-                aliases,
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("/123/456");
     }
 
     @Test
