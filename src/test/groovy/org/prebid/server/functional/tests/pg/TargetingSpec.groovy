@@ -466,7 +466,7 @@ class TargetingSpec extends BasePgSpec {
                 tagId = impTagId
                 ext.gpid = impExtGrid
                 ext.data = new ImpExtContextData(pbAdSlot: adSlot,
-                            adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
+                        adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
         }
 
