@@ -95,7 +95,6 @@ public class ProtobufResponseUtils {
             ProtobufMapper<OpenRtb.NativeResponse, String> nativeResponseMapper,
             ProtobufJsonExtensionMapper<OpenRtb.BidResponse.SeatBid.Bid, ProtobufExtensionType> extensionMapper) {
 
-
         return (OpenRtb.BidResponse.SeatBid.Bid bid) -> {
             final String adm = bid.getAdm();
             final String resolvedAdm = adm.isEmpty() ? nativeResponseMapper.map(bid.getAdmNative()) : adm;
@@ -133,7 +132,7 @@ public class ProtobufResponseUtils {
     }
 
     public static <ProtobufExtensionType>
-    ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> nativeDataMapper(
+            ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> nativeDataMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset.Data, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset.Data data) ->
@@ -146,7 +145,7 @@ public class ProtobufResponseUtils {
     }
 
     public static <ProtobufExtensionType>
-    ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper(
+            ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.EventTracker, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.EventTracker eventTracker) ->
@@ -159,7 +158,7 @@ public class ProtobufResponseUtils {
     }
 
     public static <ProtobufExtensionType>
-    ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> nativeImageMapper(
+            ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> nativeImageMapper(
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset.Image, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset.Image image) ->
@@ -250,7 +249,7 @@ public class ProtobufResponseUtils {
     }
 
     private static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, FromType, ToType>
-    ToType extractExtension(
+            ToType extractExtension(
             ProtobufBackwardExtensionMapper<ContainingType, FromType, ToType> mapper, ContainingType value) {
 
         if (mapper == null || value == null) {

@@ -280,7 +280,7 @@ public class ProtobufRequestUtils {
     }
 
     public static <ProtobufExtensionType>
-    ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper(
+            ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.Asset.Image, ProtobufExtensionType> extMapper) {
 
         return (ImageObject imageObject) -> {
@@ -525,7 +525,7 @@ public class ProtobufRequestUtils {
     }
 
     public static <ProtobufExtensionType>
-    ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper(
+            ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper(
             JsonProtobufExtensionMapper<OpenRtb.NativeRequest.EventTrackers, ProtobufExtensionType> extMapper) {
 
         return (EventTracker eventTracker) -> {

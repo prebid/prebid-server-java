@@ -5,7 +5,35 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Asset;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.EventTracker;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.ImageObject;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Metric;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.request.Producer;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Request;
+import com.iab.openrtb.request.Segment;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.TitleObject;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,7 +44,15 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
-import org.prebid.server.proto.openrtb.ext.request.*;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.protobuf.ProtobufMapper;
 
 import java.math.BigDecimal;
@@ -25,7 +61,6 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
@@ -163,37 +198,38 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     public void bidRequestMapperShouldReturnValidMapperForMapperSpec() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final RequestExtensionMappersSpecification spec = RequestExtensionMappersSpecification.builder(jacksonMapper.mapper())
-                .segmentExtMapper(givenJsonExtensionMapper(OpenRtbTest.segment))
-                .formatExtMapper(givenJsonExtensionMapper(OpenRtbTest.format))
-                .dealExtMapper(givenJsonExtensionMapper(OpenRtbTest.deal))
-                .producerExtMapper(givenJsonExtensionMapper(OpenRtbTest.producer))
-                .dataExtMapper(givenJsonExtensionMapper(OpenRtbTest.data))
-                .contentExtMapper(givenJsonExtensionMapper(OpenRtbTest.content))
-                .publisherExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.publisher))
-                .siteExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.site))
-                .geoExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.geo))
-                .bannerExtMapper(givenJsonExtensionMapper(OpenRtbTest.banner))
-                .nativeTitleExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeTitle))
-                .nativeImageExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeImage))
-                .nativeVideoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
-                .nativeDataExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeData))
-                .metricExtMapper(givenJsonExtensionMapper(OpenRtbTest.metric))
-                .videoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
-                .audioExtMapper(givenJsonExtensionMapper(OpenRtbTest.audio))
-                .pmpExtMapper(givenJsonExtensionMapper(OpenRtbTest.pmp))
-                .nativeAssetExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeAsset))
-                .nativeEventTrackerExtMapper(givenJsonExtensionMapper(OpenRtbTest.eventTrackers))
-                .nativeRequestExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeRequest))
-                .nativeExtMapper(givenJsonExtensionMapper(OpenRtbTest.native_))
-                .impExtMapper(givenJsonExtensionMapper(OpenRtbTest.imp))
-                .appExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.app))
-                .deviceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.device))
-                .userExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.user))
-                .sourceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.source))
-                .regsExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.regs))
-                .bidRequestExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.bidRequest))
-                .build();
+        final RequestExtensionMappersSpecification spec =
+                RequestExtensionMappersSpecification.builder(jacksonMapper.mapper())
+                        .segmentExtMapper(givenJsonExtensionMapper(OpenRtbTest.segment))
+                        .formatExtMapper(givenJsonExtensionMapper(OpenRtbTest.format))
+                        .dealExtMapper(givenJsonExtensionMapper(OpenRtbTest.deal))
+                        .producerExtMapper(givenJsonExtensionMapper(OpenRtbTest.producer))
+                        .dataExtMapper(givenJsonExtensionMapper(OpenRtbTest.data))
+                        .contentExtMapper(givenJsonExtensionMapper(OpenRtbTest.content))
+                        .publisherExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.publisher))
+                        .siteExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.site))
+                        .geoExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.geo))
+                        .bannerExtMapper(givenJsonExtensionMapper(OpenRtbTest.banner))
+                        .nativeTitleExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeTitle))
+                        .nativeImageExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeImage))
+                        .nativeVideoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
+                        .nativeDataExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeData))
+                        .metricExtMapper(givenJsonExtensionMapper(OpenRtbTest.metric))
+                        .videoExtMapper(givenJsonExtensionMapper(OpenRtbTest.video))
+                        .audioExtMapper(givenJsonExtensionMapper(OpenRtbTest.audio))
+                        .pmpExtMapper(givenJsonExtensionMapper(OpenRtbTest.pmp))
+                        .nativeAssetExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeAsset))
+                        .nativeEventTrackerExtMapper(givenJsonExtensionMapper(OpenRtbTest.eventTrackers))
+                        .nativeRequestExtMapper(givenJsonExtensionMapper(OpenRtbTest.nativeRequest))
+                        .nativeExtMapper(givenJsonExtensionMapper(OpenRtbTest.native_))
+                        .impExtMapper(givenJsonExtensionMapper(OpenRtbTest.imp))
+                        .appExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.app))
+                        .deviceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.device))
+                        .userExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.user))
+                        .sourceExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.source))
+                        .regsExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.regs))
+                        .bidRequestExtMapper(givenFlexibleExtensionMapper(OpenRtbTest.bidRequest))
+                        .build();
 
         // when
         final ProtobufMapper<BidRequest, OpenRtb.BidRequest> mapper =
@@ -1744,14 +1780,14 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     private static <ContainingType extends Message, FromType extends FlexibleExtension>
-    ProtobufForwardExtensionMapper<ContainingType, FromType, OpenRtbTest.TestExt> givenFlexibleExtensionMapper(
+            ProtobufForwardExtensionMapper<ContainingType, FromType, OpenRtbTest.TestExt> givenFlexibleExtensionMapper(
             Extension<ContainingType, OpenRtbTest.TestExt> extensionDescriptor) {
 
         return givenExtensionMapper(ext -> givenProtobufExt(ext.getProperty("field").asText()), extensionDescriptor);
     }
 
     private static <ContainingType extends Message, FromType>
-    ProtobufForwardExtensionMapper<ContainingType, FromType, OpenRtbTest.TestExt> givenExtensionMapper(
+            ProtobufForwardExtensionMapper<ContainingType, FromType, OpenRtbTest.TestExt> givenExtensionMapper(
             Function<FromType, OpenRtbTest.TestExt> mapper,
             Extension<ContainingType, OpenRtbTest.TestExt> extensionDescriptor) {
 
@@ -1768,9 +1804,8 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         };
     }
 
-    private static <ContainingType extends Message>
-    JsonProtobufExtensionMapper<ContainingType, OpenRtbTest.TestExt> givenJsonExtensionMapper(
-            Extension<ContainingType, OpenRtbTest.TestExt> extensionDescriptor) {
+    private static <ContainingType extends Message> JsonProtobufExtensionMapper<ContainingType, OpenRtbTest.TestExt>
+            givenJsonExtensionMapper(Extension<ContainingType, OpenRtbTest.TestExt> extensionDescriptor) {
 
         return new JsonProtobufExtensionMapper<>() {
 

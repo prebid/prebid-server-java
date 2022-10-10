@@ -4,7 +4,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.protobuf.Extension;
 import com.google.protobuf.Message;
-import com.iab.openrtb.response.*;
+import com.iab.openrtb.response.Asset;
+import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.DataObject;
+import com.iab.openrtb.response.EventTracker;
+import com.iab.openrtb.response.ImageObject;
+import com.iab.openrtb.response.Link;
+import com.iab.openrtb.response.Response;
+import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.response.TitleObject;
+import com.iab.openrtb.response.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.Before;
 import org.junit.Rule;
@@ -740,7 +750,7 @@ public class ProtobufResponseUtilsTest extends VertxTest {
     }
 
     private static <ContainingType extends Message>
-    ProtobufJsonExtensionMapper<ContainingType, OpenRtbTest.TestExt> givenExtensionJsonMapper(
+            ProtobufJsonExtensionMapper<ContainingType, OpenRtbTest.TestExt> givenExtensionJsonMapper(
             Extension<ContainingType, OpenRtbTest.TestExt> extensionDescriptor) {
 
         return new ProtobufJsonExtensionMapper<>() {
