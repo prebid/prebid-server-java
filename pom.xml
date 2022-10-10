@@ -678,6 +678,7 @@
                 <extensions>true</extensions>
                 <executions>
                     <execution>
+                        <phase>process-sources</phase>
                         <goals>
                             <goal>compile</goal>
                             <goal>test-compile</goal>
