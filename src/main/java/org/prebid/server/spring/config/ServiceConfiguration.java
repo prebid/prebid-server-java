@@ -7,6 +7,7 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
+import org.prebid.server.auction.ApPostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.DebugResolver;
@@ -95,6 +96,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
@@ -891,6 +893,10 @@ public class ServiceConfiguration {
                 clock,
                 mapper);
     }
+
+    @Bean
+    @Primary
+    ApPostProcessor apPostProcessor() { return new ApPostProcessor(); }
 
     @Bean
     HttpInteractionLogger httpInteractionLogger(JacksonMapper mapper) {
