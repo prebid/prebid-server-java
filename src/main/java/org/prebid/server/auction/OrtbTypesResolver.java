@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,6 +15,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +48,9 @@ public class OrtbTypesResolver {
     private static final String UNKNOWN_REFERER = "unknown referer";
     private static final String DATA = "data";
     private static final String EXT = "ext";
+
+    private static final JsonPointer APP_BUNDLE = JsonPointer.valueOf("/" + APP + "/bundle");
+    private static final JsonPointer SITE_PAGE = JsonPointer.valueOf("/" + SITE + "/page");
 
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_STANDARD_FIELDS;
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_REQUEST_FIELDS;
@@ -92,11 +97,13 @@ public class OrtbTypesResolver {
         final List<String> resolverWarnings = new ArrayList<>();
         final String rowOriginBidRequest = getOriginalRowContainerNode(bidRequest);
         normalizeRequestFpdFields(bidRequest, resolverWarnings);
+
+        final String source = source(bidRequest);
         final JsonNode bidderConfigs = bidRequest.path("ext").path("prebid").path("bidderconfig");
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
 
-                mergeFpdFieldsToOrtb2(bidderConfig);
+                mergeFpdFieldsToOrtb2(bidderConfig, source);
 
                 final JsonNode ortb2Config = bidderConfig.path("config").path("ortb2");
                 if (!ortb2Config.isMissingNode()) {
@@ -116,18 +123,33 @@ public class OrtbTypesResolver {
         }
     }
 
+    private static String source(JsonNode bidRequest) {
+        return ObjectUtil.firstNonNull(
+                () -> stringAt(bidRequest, APP_BUNDLE),
+                () -> stringAt(bidRequest, SITE_PAGE));
+    }
+
+    private static String stringAt(JsonNode node, JsonPointer path) {
+        final JsonNode at = node.at(path);
+        return at.isMissingNode() || at.isNull() || !at.isTextual()
+                ? null
+                : at.textValue();
+    }
+
     /**
      * Merges fpd fields into ortb2:
      * config.fpd.context -> config.ortb2.site
      * config.fpd.user -> config.ortb2.user
      */
-    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig) {
+    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig, String source) {
         final JsonNode config = bidderConfig.path("config");
         final JsonNode configFpd = config.path("fpd");
 
         if (configFpd.isMissingNode()) {
             return;
         }
+
+        logDeprecatedFpdConfig(source);
 
         final JsonNode configOrtb = config.path("ortb2");
 
@@ -160,6 +182,10 @@ public class OrtbTypesResolver {
         }
 
         ((ObjectNode) config).set("ortb2", ortbObjectNode);
+    }
+
+    private void logDeprecatedFpdConfig(String source) {
+        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path on " + source, 0.01);
     }
 
     /**
