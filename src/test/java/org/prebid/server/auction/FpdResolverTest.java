@@ -814,7 +814,7 @@ public class FpdResolverTest extends VertxTest {
         // then
         final ExtRequestPrebidBidderConfig expectedBidderConfig = ExtRequestPrebidBidderConfig.of(
                 Collections.singletonList("*"),
-                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode)));
+                ExtBidderConfig.of(ExtBidderConfigOrtb.of(siteNode, null, userNode)));
 
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(Collections.singletonList(expectedBidderConfig))
@@ -849,7 +849,7 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null))
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 mapper.valueToTree(Site.builder().id("id").build()), null,
                                 mapper.valueToTree(User.builder().id("id").build())))))).build()));
     }

@@ -303,8 +303,8 @@ public class FpdResolver {
         }
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
-        return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode))));
+        return Collections.singletonList(ExtRequestPrebidBidderConfig.of(
+                bidders, ExtBidderConfig.of(ExtBidderConfigOrtb.of(siteNode, null, userNode))));
     }
 
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {

@@ -619,7 +619,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
                 .build());
         final RequestContext context = new RequestContext(
@@ -644,7 +644,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidderAlias"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
                 .build());
         final RequestContext context = new RequestContext(
@@ -669,7 +669,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
                 .build());
         final RequestContext context = new RequestContext(
@@ -745,7 +745,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
                 .build());
         final RequestContext context = new RequestContext(
@@ -770,7 +770,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidderAlias"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
                 .build());
         final RequestContext context = new RequestContext(
@@ -795,7 +795,7 @@ public class RequestContextTest extends VertxTest {
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
                         singletonList("bidder"),
-                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                        ExtBidderConfig.of(ExtBidderConfigOrtb.of(
                                 obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
                 .build());
         final RequestContext context = new RequestContext(
