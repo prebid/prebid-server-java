@@ -1579,6 +1579,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler = new CookieSyncHandler(
                 externalUrl,
                 defaultTimeout,
+                0.01,
                 defaultLimit,
                 defaultMaxLimit,
                 uidsCookieService,

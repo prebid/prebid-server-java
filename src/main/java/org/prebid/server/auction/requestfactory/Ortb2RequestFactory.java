@@ -73,6 +73,7 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
+    private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
@@ -89,6 +90,7 @@ public class Ortb2RequestFactory {
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
+                               double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
@@ -105,6 +107,7 @@ public class Ortb2RequestFactory {
                                Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
+        this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -345,7 +348,7 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 0.01);
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 
