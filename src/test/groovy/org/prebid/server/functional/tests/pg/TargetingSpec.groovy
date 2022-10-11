@@ -464,7 +464,7 @@ class TargetingSpec extends BasePgSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
                 tagId = impTagId
-                ext.gpid = impExtGrid
+                ext.gpid = impExtGpid
                 ext.data = new ImpExtContextData(pbAdSlot: adSlot,
                         adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
@@ -489,7 +489,7 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
 
         where:
-        impTagId              | impExtGrid            | adSlot                | adServerAdSlot
+        impTagId              | impExtGpid            | adSlot                | adServerAdSlot
         stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString
