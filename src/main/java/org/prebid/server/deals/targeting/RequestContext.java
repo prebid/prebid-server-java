@@ -59,6 +59,7 @@ public class RequestContext {
 
     private static final String EXT_PREBID_BIDDER = "prebid.bidder.";
     private static final String EXT_CONTEXT_DATA = "context.data.";
+    private static final String EXT_DATA = "data.";
 
     private final BidRequest bidRequest;
     private final Imp imp;
@@ -300,6 +301,7 @@ public class RequestContext {
     private <T> LookupResult<T> getSiteFirstPartyData(String path, Function<JsonNode, T> valueExtractor) {
         return lookupResult(
                 impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
+                impReader.readFromExt(imp, EXT_DATA + path, valueExtractor),
                 siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
                 appReader.readFromExt(bidRequest.getApp(), path, valueExtractor))
                 .orElse(getFirstPartyDataFromRequestExt(ExtBidderConfigOrtb::getSite, path, valueExtractor));
