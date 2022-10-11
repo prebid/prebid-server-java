@@ -9,12 +9,12 @@ class HttpUtil implements ObjectMapperWrapper {
     public static final String UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
     public static final String PG_TRX_ID_HEADER = "pg-trx-id"
+    public static final String PG_IGNORE_PACING_HEADER = "X-Prebid-PG-ignore-pacing"
     public static final String AUTHORIZATION_HEADER = "Authorization"
     public static final String ACCEPT_HEADER = "Authorization"
     public static final String CONTENT_TYPE_HEADER = "Content-Type"
     public static final String COOKIE_HEADER = "cookie"
     public static final String CONTENT_ENCODING_HEADER = "Content-Encoding"
-    public static final String PG_IGNORE_PACING = "X-Prebid-PG-ignore-pacing"
 
     public static final String CONTENT_TYPE_HEADER_VALUE = "application/json"
     public static final String CHARSET_HEADER_VALUE = "charset=utf-8"

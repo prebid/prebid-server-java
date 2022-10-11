@@ -238,7 +238,7 @@ class TokenSpec extends BasePgSpec {
         assert !secondAuctionResponse.ext?.debug?.pgmetrics?.sentToBidder
     }
 
-    def "PBS should start using line item in auction when pacing header is provided"() {
+    def "PBS should ignore line item pacing when ignore pacing header is present in the request"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -256,14 +256,14 @@ class TokenSpec extends BasePgSpec {
         updateLineItemsAndWait()
 
         and: "Pg ignore pacing header"
-        def pgIgnorePacingHeader = ["${HttpUtil.PG_IGNORE_PACING}": "1"]
+        def pgIgnorePacingHeader = ["${HttpUtil.PG_IGNORE_PACING_HEADER}": "1"]
 
         when: "Auction is requested"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, pgIgnorePacingHeader)
 
         then: "PBS should process PG deals"
         def pgMetrics = auctionResponse.ext?.debug?.pgmetrics
-        def sentToBidder = pgMetrics.sentToBidder.get(GENERIC.value)
+        def sentToBidder = pgMetrics?.sentToBidder[GENERIC.value]
         assert sentToBidder?.size() == plansResponse.lineItems.size()
         assert sentToBidder[0] == plansResponse.lineItems[0].lineItemId
         assert pgMetrics.readyToServe == [plansResponse.lineItems[0].lineItemId] as Set
