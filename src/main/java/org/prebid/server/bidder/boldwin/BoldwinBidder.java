@@ -83,14 +83,14 @@ public class BoldwinBidder implements Bidder<BidRequest> {
     private BoldwinImpExtBidder getImpExtBoldwinWithType(ExtImpBoldwin extImpBoldwin) {
         final BoldwinImpExtBidder.BoldwinImpExtBidderBuilder impExtBoldwin = BoldwinImpExtBidder.builder();
 
-        if (StringUtils.isNotEmpty(extImpBoldwin.getEndpointId())) {
-            impExtBoldwin
-                    .type("network")
-                    .endpointId(extImpBoldwin.getEndpointId());
-        } else if (StringUtils.isNotEmpty(extImpBoldwin.getPlacementId())) {
+        if (StringUtils.isNotEmpty(extImpBoldwin.getPlacementId())) {
             impExtBoldwin
                     .type("publisher")
                     .placementId(extImpBoldwin.getPlacementId());
+        } else if (StringUtils.isNotEmpty(extImpBoldwin.getEndpointId())) {
+            impExtBoldwin
+                    .type("network")
+                    .endpointId(extImpBoldwin.getEndpointId());
         }
 
         return impExtBoldwin.build();
