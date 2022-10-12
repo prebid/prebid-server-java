@@ -57,7 +57,7 @@ class Bid implements ObjectMapperWrapper {
             crid = 1
             h = imp.banner && imp.banner.format ? imp.banner.format.first().h : null
             w = imp.banner && imp.banner.format ? imp.banner.format.first().w : null
-            if (imp.nativeObj) {
+            if (imp.nativeObj || imp.video) {
                 adm = new Adm(assets: [Asset.defaultAsset])
             }
         }
