@@ -463,8 +463,8 @@ class TargetingSpec extends BasePgSpec {
         given: "Bid request with set ad slot info in different request places"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
-                ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
-                        adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
+                tagId = impTagId
+                ext.gpid = impExtGpid
                 ext.data = new ImpExtContextData(pbAdSlot: adSlot,
                         adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
@@ -489,7 +489,7 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
 
         where:
-        contextAdSlot         | contextAdServerAdSlot | adSlot                | adServerAdSlot
+        impTagId              | impExtGpid            | adSlot                | adServerAdSlot
         stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString
