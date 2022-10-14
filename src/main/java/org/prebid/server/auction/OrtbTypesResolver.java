@@ -185,7 +185,7 @@ public class OrtbTypesResolver {
     }
 
     private void logDeprecatedFpdConfig(String source) {
-        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path on " + source, 0.01);
+        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path on " + source, logSamplingRate);
     }
 
     /**
