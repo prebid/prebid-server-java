@@ -52,7 +52,12 @@ Functional tests need to have name template **.\*Spec.groovy**
 
 An application running inside a Docker container is treated as a remote application, so you can attach the debugger to it.
 
-In order to obtain the debug port you need to use `getMappedPort(8000)` based on the desired container.
+In order to obtain the debug port you need to use `<tests.fixed-container-ports>` property in pom to `true` by default `false`.
+Next several ports will expose when `<tests.fixed-container-ports>` is `true`.
+-    Debug port is `8000` but can be overridden by `<debug.port>` in pom.
+-    Admin port is `8060` but can be overridden by `<admin.port>` in pom.
+-    Default port is `8080` but can be overridden by `<port>` in pom.
+-    Prometheus port is `8070` but can't be overridden in pom. If needed can change in `PrebidServerContainer` constant `PROMETHEUS_PORT`.
 
 ### Containers
 
