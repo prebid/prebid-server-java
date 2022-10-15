@@ -64,8 +64,9 @@ class UserSyncSpec extends BaseSpec {
     def "PBS should return empty uid in usersync url when uid macro is not present in config"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
         def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}&uid=null".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false",
+                 "adapters.generic.usersync.${userSyncFormat.value}.uid-macro"   : null])
 
         and: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
