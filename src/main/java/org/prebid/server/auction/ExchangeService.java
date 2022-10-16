@@ -876,7 +876,9 @@ public class ExchangeService {
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
         if (preparedApp != null && preparedSite != null) {
-            context.getDebugWarnings().add("After FPD merge BidRequest contains app and site.");
+            context.getDebugWarnings()
+                    .add("BidRequest contains App and Site for bidder %s. Request rejected.".formatted(bidder));
+
             return AuctionParticipation.builder()
                     .bidder(bidder)
                     .requestBlocked(true)
