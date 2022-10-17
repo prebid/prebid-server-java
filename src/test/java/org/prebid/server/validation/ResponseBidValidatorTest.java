@@ -62,7 +62,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(enforce, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(enforce, enforce, metrics, jacksonMapper, true, 0.01);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
     }
@@ -359,7 +359,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true, 0.01);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -375,7 +375,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfBannerSizeEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(warn, enforce, metrics, jacksonMapper, true, 0.01);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -396,7 +396,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, skip, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(enforce, skip, metrics, jacksonMapper, true, 0.01);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -412,7 +412,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfSecureMarkupEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(enforce, warn, metrics, jacksonMapper, true, 0.01);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -446,7 +446,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSizeValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true, 0.01);
 
         // when
         responseBidValidator.validate(
@@ -475,7 +475,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSecureValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true, 0.01);
 
         // when
         responseBidValidator.validate(
@@ -552,7 +552,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailIfBidIsBannerAndImpHasNoBanner() {
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true, 0.01);
 
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(bid -> bid.dealid("dealId1")),

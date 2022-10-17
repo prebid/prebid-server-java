@@ -26,6 +26,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
 import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
 
@@ -278,6 +281,7 @@ public class InvibesBidderTest extends VertxTest {
                 .bidParamsJson(mapper.writeValueAsString(invibesBidParams))
                 .isTestBid(true)
                 .location(PAGE_URL)
+                .isAmp(false)
                 .gdpr(true)
                 .gdprConsent(StringUtils.EMPTY)
                 .invibBVLog(true)
@@ -291,7 +295,55 @@ public class InvibesBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .containsOnly(expectedRequest);
+                .containsExactly(expectedRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateInvibesAmpBidRequestWithCorrectParams() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .device(Device.builder().w(DEVICE_W).h(DEVICE_H).build())
+                        .user(User.builder().buyeruid(BUYER_UID).build())
+                        .site(Site.builder().page(PAGE_URL).build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder().amp(ExtRequestPrebidAmp.of(Collections.emptyMap())).build()
+                        )),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, InvibesPlacementProperty> properties = new HashMap<>();
+        properties.put(FIRST_PLACEMENT_ID, InvibesPlacementProperty.builder()
+                .formats(Collections.singletonList(Format.builder().w(BANNER_W).h(BANNER_H).build())).build());
+
+        final InvibesBidParams invibesBidParams = InvibesBidParams.builder()
+                .placementIds(Collections.singletonList(FIRST_PLACEMENT_ID))
+                .bidVersion(BID_VERSION)
+                .properties(properties)
+                .build();
+
+        final InvibesBidRequest expectedRequest = InvibesBidRequest.builder()
+                .bidParamsJson(mapper.writeValueAsString(invibesBidParams))
+                .isTestBid(true)
+                .location(PAGE_URL)
+                .isAmp(true)
+                .gdpr(true)
+                .gdprConsent(StringUtils.EMPTY)
+                .invibBVLog(true)
+                .videoAdDebug(true)
+                .lid(BUYER_UID)
+                .bvid("test")
+                .width(String.valueOf(DEVICE_W))
+                .height(String.valueOf(DEVICE_H))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(expectedRequest);
     }
 
     @Test

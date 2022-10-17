@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 553
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adhese
-      type: redirect
-      support-cors: false

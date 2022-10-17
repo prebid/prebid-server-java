@@ -48,6 +48,8 @@ public class AnalyticsReporterDelegator {
     private static final ConditionalLogger UNKNOWN_ADAPTERS_LOGGER = new ConditionalLogger(logger);
     private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = Collections.singleton("logAnalytics");
 
+    private final double logSamplingRate;
+
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -56,11 +58,13 @@ public class AnalyticsReporterDelegator {
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
 
-    public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
+    public AnalyticsReporterDelegator(double logSamplingRate,
+                                      List<AnalyticsReporter> delegates,
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
                                       Metrics metrics) {
 
+        this.logSamplingRate = logSamplingRate;
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -130,7 +134,7 @@ public class AnalyticsReporterDelegator {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;
                 UNKNOWN_ADAPTERS_LOGGER.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
-                        .formatted(unknownAdapterNames, refererUrl), 0.01);
+                        .formatted(unknownAdapterNames, refererUrl), logSamplingRate);
             }
         }
     }

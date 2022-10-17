@@ -1,0 +1,18 @@
+adapters:
+  trafficgate:
+    endpoint: http://{{subdomain}}.bc-plugin.com/?c=o&m=rtb
+    modifyingVastXmlAllowed: true
+    meta-info:
+      maintainer-email: "support@bidscube.com"
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 0

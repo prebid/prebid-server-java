@@ -167,6 +167,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         target = new Ortb2RequestFactory(
                 false,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -188,6 +189,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -228,6 +230,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -267,6 +270,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -611,6 +615,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,

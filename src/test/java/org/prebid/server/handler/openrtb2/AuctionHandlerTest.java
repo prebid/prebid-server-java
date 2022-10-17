@@ -122,6 +122,7 @@ public class AuctionHandlerTest extends VertxTest {
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
+                0.01,
                 auctionRequestFactory,
                 exchangeService,
                 analyticsReporterDelegator,

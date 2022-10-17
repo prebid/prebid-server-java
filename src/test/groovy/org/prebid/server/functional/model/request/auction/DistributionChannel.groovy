@@ -5,6 +5,6 @@ enum DistributionChannel {
     SITE, APP
 
     String getValue() {
-        name()
+        name().toLowerCase()
     }
 }

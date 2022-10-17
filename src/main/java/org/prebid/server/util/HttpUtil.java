@@ -70,6 +70,7 @@ public final class HttpUtil {
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
     private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
+    public static final CharSequence PG_IGNORE_PACING = HttpHeaders.createOptimized("X-Prebid-PG-ignore-pacing");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
 
@@ -180,10 +181,6 @@ public final class HttpUtil {
                 .map(entry -> Cookie.cookie(entry.getKey(), entry.getValue().getValue()))
                 .map(Cookie::encode)
                 .collect(Collectors.joining("; "));
-    }
-
-    public static String toSetCookieHeaderValue(Cookie cookie) {
-        return String.join("; ", cookie.encode(), "SameSite=None; Secure");
     }
 
     public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,

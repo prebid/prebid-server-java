@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -151,6 +152,8 @@ public class UidsCookieService {
         return Cookie
                 .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
                 .setPath("/")
+                .setSameSite(CookieSameSite.NONE)
+                .setSecure(true)
                 .setMaxAge(ttlSeconds)
                 .setDomain(hostCookieDomain);
     }

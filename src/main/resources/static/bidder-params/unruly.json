@@ -4,12 +4,22 @@
   "description": "A schema which validates params accepted by the Unruly adapter",
   "type": "object",
   "properties": {
+    "siteId": {
+      "type": "integer",
+      "description": "ID for publisher site"
+    },
     "siteid": {
       "type": "integer",
       "description": "ID for publisher site"
     }
   },
-  "required": [
-    "siteid"
+
+  "oneOf": [
+    {
+      "required": ["siteId"]
+    },
+    {
+      "required": ["siteid"]
+    }
   ]
 }

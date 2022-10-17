@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -161,9 +162,10 @@ public class BidderCatalog {
      * Therefore this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
-    public Usersyncer usersyncerByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getUsersyncer() : null;
+    public Optional<Usersyncer> usersyncerByName(String name) {
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getUsersyncer);
     }
 
     /**

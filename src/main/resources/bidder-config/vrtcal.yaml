@@ -9,9 +9,3 @@ adapters:
       site-media-types:
       supported-vendors:
       vendor-id: 706
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: vrtcal
-      type: redirect
-      support-cors: false

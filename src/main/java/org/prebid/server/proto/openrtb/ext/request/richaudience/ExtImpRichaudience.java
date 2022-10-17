@@ -7,7 +7,7 @@ import lombok.Value;
 import java.math.BigDecimal;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class ExtImpRichaudience {
 
     String pid;

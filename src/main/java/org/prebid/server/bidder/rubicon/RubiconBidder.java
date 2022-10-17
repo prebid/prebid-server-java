@@ -97,7 +97,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -173,8 +172,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final int PORTRAIT_MOBILE_SIZE_ID = 67;
-    private static final int LANDSCAPE_MOBILE_SIZE_ID = 101;
 
     private final String endpointUrl;
     private final Set<String> supportedVendors;
@@ -418,11 +415,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         final ExtRequest extRequest = bidRequest.getExt();
-        final boolean isVideo = isVideo(imp);
+        final ImpMediaType impType = impType(imp);
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
-        final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp,
-                isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
+        final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp, impType, priceFloorsWarnings);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null
@@ -456,20 +452,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .bidfloor(resolvedBidFloor);
         }
 
-        if (isVideo) {
+        if (impType == ImpMediaType.video) {
             builder
                     .banner(null)
                     .xNative(null)
                     .video(makeVideo(imp, extImpRubicon.getVideo(), extImpPrebid, referer(site)));
-        } else if (imp.getBanner() != null) {
+        } else if (impType == ImpMediaType.banner) {
             builder
-                    .banner(makeBanner(imp, overriddenSizes(extImpRubicon)))
+                    .banner(makeBanner(imp))
                     .xNative(null)
                     .video(null);
         } else {
             builder
                     .video(null)
-                    .xNative(makeNative(imp, errors));
+                    .xNative(makeNative(imp));
         }
 
         processWarnings(errors, priceFloorsWarnings);
@@ -927,13 +923,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static boolean isVideo(Imp imp) {
+    private static ImpMediaType impType(Imp imp) {
         final Video video = imp.getVideo();
-        if (video != null) {
-            // Do any other media types exist? Or check required video fields.
-            return imp.getBanner() == null || isFullyPopulatedVideo(video);
+        final Banner banner = imp.getBanner();
+        final Native xNative = imp.getXNative();
+        if (video != null && ((banner == null && xNative == null) || isFullyPopulatedVideo(video))) {
+            return ImpMediaType.video;
         }
-        return false;
+        if (banner == null && xNative != null) {
+            return ImpMediaType.xNative;
+        }
+
+        return ImpMediaType.banner;
     }
 
     private static boolean isFullyPopulatedVideo(Video video) {
@@ -953,7 +954,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
 
-        final Integer resolvedSizeId = sizeId == null || sizeId == 0
+        final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
                 ? resolveVideoSizeId(video.getPlacement(), imp.getInstl())
                 : sizeId;
         validateVideoSizeId(resolvedSizeId, referer, imp.getId());
@@ -999,70 +1000,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private static List<Format> overriddenSizes(ExtImpRubicon rubiconImpExt) {
-        final List<Format> overriddenSizes;
-
-        final List<Integer> sizeIds = rubiconImpExt.getSizes();
-        if (sizeIds != null) {
-            final List<Format> resolvedSizes = RubiconSize.idToSize(sizeIds);
-            if (resolvedSizes.isEmpty()) {
-                throw new PreBidException("Bad request.imp[].ext.rubicon.sizes");
-            }
-            overriddenSizes = resolvedSizes;
-        } else {
-            overriddenSizes = null;
-        }
-
-        return overriddenSizes;
-    }
-
-    private Banner makeBanner(Imp imp, List<Format> overriddenSizes) {
+    private Banner makeBanner(Imp imp) {
         final Banner banner = imp.getBanner();
-        final boolean isInterstitial = Objects.equals(imp.getInstl(), 1);
-        final List<Format> sizes = ObjectUtils.defaultIfNull(overriddenSizes, banner.getFormat());
-        if (CollectionUtils.isEmpty(sizes)) {
-            throw new PreBidException("rubicon imps must have at least one imp.format element");
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
+        final List<Format> format = banner.getFormat();
+        if ((width == null || height == null) && CollectionUtils.isEmpty(format)) {
+            throw new PreBidException("rubicon imps must have at least one size element [w, h, format]");
         }
 
         return banner.toBuilder()
-                .format(sizes)
-                .ext(mapper.mapper().valueToTree(makeBannerExt(sizes, isInterstitial)))
+                .ext(mapper.mapper().valueToTree(
+                        RubiconBannerExt.of(RubiconBannerExtRp.of("text/html"))))
                 .build();
     }
 
-    private static RubiconBannerExt makeBannerExt(List<Format> sizes, boolean isInterstitial) {
-        final List<Integer> rubiconSizeIds = mapToRubiconSizeIds(sizes, isInterstitial);
-        final Integer primarySizeId = rubiconSizeIds.get(0);
-        final List<Integer> altSizeIds = rubiconSizeIds.size() > 1
-                ? rubiconSizeIds.subList(1, rubiconSizeIds.size())
-                : null;
-
-        return RubiconBannerExt.of(RubiconBannerExtRp.of(primarySizeId, altSizeIds, "text/html"));
-    }
-
-    private static List<Integer> mapToRubiconSizeIds(List<Format> sizes, boolean isInterstitial) {
-        final List<Integer> validRubiconSizeIds = sizes.stream()
-                .map(RubiconSize::toId)
-                .filter(id -> id > 0)
-                .sorted(RubiconSize.comparator())
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        if (validRubiconSizeIds.isEmpty()) {
-            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits (PR #1003)
-            if (isInterstitial) {
-                validRubiconSizeIds.add(resolveNotStandardSizeForInstl(sizes.get(0)));
-            } else {
-                throw new PreBidException("No valid sizes");
-            }
-        }
-        return validRubiconSizeIds;
-    }
-
-    private static int resolveNotStandardSizeForInstl(Format size) {
-        return size.getH() > size.getW() ? PORTRAIT_MOBILE_SIZE_ID : LANDSCAPE_MOBILE_SIZE_ID;
-    }
-
-    private Native makeNative(Imp imp, List<BidderError> errors) {
+    private Native makeNative(Imp imp) {
         final Native xNative = imp.getXNative();
         final String version = ObjectUtil.getIfNotNull(xNative, Native::getVer);
         if (StringUtils.equalsAny(version, "1.0", "1.1")) {
@@ -1127,9 +1080,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Map<String, List<Eid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
                 : null;
-        final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
-                ? extractExtUserTpIds(sourceToUserEidExt)
-                : null;
         final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
         final List<Eid> resolvedExtUserEids = hasStypeToRemove
                 ? prepareExtUserEids(extUserEids)
@@ -1139,8 +1089,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
         if (userExtRp == null
-                && userExtTpIds == null
                 && userExtData == null
+                && resolvedExtUserEids == null
                 && liverampId == null
                 && resolvedId == null
                 && Objects.equals(userBuyeruid, resolvedBuyeruid)
@@ -1158,7 +1108,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
-                .tpid(userExtTpIds)
                 .liverampIdl(liverampId)
                 .build();
 
@@ -1271,51 +1220,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
                 .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
                 .collect(Collectors.groupingBy(Eid::getSource));
-    }
-
-    /**
-     * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpIdRubicon}s for supported vendors.
-     */
-    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(Map<String, List<Eid>> specialExtUserEids) {
-        final List<ExtUserTpIdRubicon> result = new ArrayList<>();
-
-        specialExtUserEids.getOrDefault(ADSERVER_EID, Collections.emptyList()).stream()
-                .map(extUserEid -> extUserTpIdForAdServer(extUserEid.getUids().get(0)))
-                .filter(Objects::nonNull)
-                .forEach(result::add);
-
-        specialExtUserEids.getOrDefault(LIVEINTENT_EID, Collections.emptyList()).stream()
-                .map(extUserEid -> extUserTpIdForLiveintent(extUserEid.getUids().get(0)))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .ifPresent(result::add);
-
-        return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Extracts {@link ExtUserTpIdRubicon} for AdServer.
-     */
-    private static ExtUserTpIdRubicon extUserTpIdForAdServer(Uid adServerEidUid) {
-        return Objects.equals(getUserEidUidRtiPartner(adServerEidUid), "TDID")
-                ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
-                : null;
-    }
-
-    private static String getUserEidUidRtiPartner(Uid uid) {
-        final ObjectNode uidExt = uid != null ? uid.getExt() : null;
-        final JsonNode rtiPartner = uidExt != null ? uidExt.path(RTI_PARTNER_FIELD) : null;
-        return rtiPartner != null && !rtiPartner.isMissingNode()
-                ? rtiPartner.asText()
-                : null;
-    }
-
-    /**
-     * Extracts {@link ExtUserTpIdRubicon} for Liveintent.
-     */
-    private static ExtUserTpIdRubicon extUserTpIdForLiveintent(Uid adServerEidUid) {
-        final String id = adServerEidUid != null ? adServerEidUid.getId() : null;
-        return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user,
@@ -1715,7 +1619,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidType bidType(BidRequest bidRequest) {
-        return isVideo(bidRequest.getImp().get(0)) ? BidType.video : BidType.banner;
+        final ImpMediaType impMediaType = impType(bidRequest.getImp().get(0));
+        return switch (impMediaType) {
+            case video -> BidType.video;
+            case banner -> BidType.banner;
+            case xNative -> BidType.xNative;
+            default -> throw new PreBidException("Unsupported bid mediaType");
+        };
     }
 
     private ObjectNode toObjectNode(JsonNode node) {

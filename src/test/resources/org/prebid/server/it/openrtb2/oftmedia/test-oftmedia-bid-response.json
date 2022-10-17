@@ -1,0 +1,20 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 8.43,
+          "adm": "adm14",
+          "crid": "crid14",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "adtelligent",
+      "group": 0
+    }
+  ]
+}

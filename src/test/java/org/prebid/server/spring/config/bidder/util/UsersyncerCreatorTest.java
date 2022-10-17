@@ -1,8 +1,11 @@
 package org.prebid.server.spring.config.bidder.util;
 
 import org.junit.Test;
+import org.prebid.server.bidder.UsersyncMethod;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
 
 import java.net.MalformedURLException;
 
@@ -15,41 +18,32 @@ public class UsersyncerCreatorTest {
     public void createShouldReturnUsersyncerWithConcatenatedExternalAndRedirectUrl() {
         // given
         final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
+        final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
+        methodConfig.setUrl("//redirect-url?uid=");
+        methodConfig.setUidMacro("uid-macro");
+        methodConfig.setSupportCors(false);
+
         config.setCookieFamilyName("rubicon");
-        config.setUrl("//usersync-url");
-        config.setRedirectUrl("/redirect-url");
-        config.setType("redirect");
-        config.setSupportCors(true);
+        config.setRedirect(methodConfig);
 
         // when and then
         assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config))
-                .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
-                .isEqualTo("http://localhost:8000/redirect-url");
-    }
-
-    @Test
-    public void createShouldReturnUsersyncerWithEmptyRedirectUrlWhenItWasNotDefined() {
-        // given
-        final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
-        config.setCookieFamilyName("rubicon");
-        config.setUrl("//usersync-url");
-        config.setType("redirect");
-        config.setSupportCors(true);
-
-        // when and then
-        assertThat(UsersyncerCreator.create(null).apply(config))
-                .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
-                .isEqualTo("");
+                .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
+                .isEqualTo("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro\
+                        """);
     }
 
     @Test
     public void createShouldValidateExternalUrl() {
         // given
         final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
-        config.setUrl("//usersync-url");
-        config.setRedirectUrl("not-valid-url");
-        config.setType("redirect");
-        config.setSupportCors(true);
+        final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
+        methodConfig.setUrl("//usersync-url");
+        methodConfig.setUidMacro("not-valid-macro");
+        methodConfig.setSupportCors(true);
+        config.setRedirect(methodConfig);
 
         // given, when and then
         assertThatThrownBy(() -> UsersyncerCreator.create(null).apply(config))
@@ -62,58 +56,65 @@ public class UsersyncerCreatorTest {
         // given
         final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
         config.setCookieFamilyName("rubicon");
-        config.setUrl("//usersync-url");
-        config.setRedirectUrl("/redirect-url");
-        config.setType("redirect");
-        config.setSupportCors(true);
 
-        final UsersyncConfigurationProperties.SecondaryConfigurationProperties secondaryMethodConfig =
-                new UsersyncConfigurationProperties.SecondaryConfigurationProperties();
-        secondaryMethodConfig.setUrl("//usersync-url-secondary");
-        secondaryMethodConfig.setRedirectUrl("/redirect-url-secondary");
-        secondaryMethodConfig.setType("iframe");
-        secondaryMethodConfig.setSupportCors(false);
+        final UsersyncMethodConfigurationProperties iframeConfig = new UsersyncMethodConfigurationProperties();
+        iframeConfig.setUrl("//usersync-url-iframe?uid=");
+        iframeConfig.setUidMacro("uid-macro-iframe");
+        iframeConfig.setSupportCors(true);
 
-        config.setSecondary(secondaryMethodConfig);
+        final UsersyncMethodConfigurationProperties redirectConfig = new UsersyncMethodConfigurationProperties();
+        redirectConfig.setUrl("//usersync-url-redirect?u=");
+        redirectConfig.setUidMacro("uid-macro-redirect");
+        redirectConfig.setSupportCors(false);
 
-        // when and then
-        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config)).isEqualTo(
-                Usersyncer.of(
-                        "rubicon",
-                        Usersyncer.UsersyncMethod.of(
-                                "redirect",
-                                "//usersync-url",
-                                "http://localhost:8000/redirect-url",
-                                true),
-                        Usersyncer.UsersyncMethod.of(
-                                "iframe",
-                                "//usersync-url-secondary",
-                                "http://localhost:8000/redirect-url-secondary",
-                                false)));
+        config.setIframe(iframeConfig);
+        config.setRedirect(redirectConfig);
+
+        // when
+        final Usersyncer result = UsersyncerCreator.create("http://localhost:8000").apply(config);
+
+        // then
+        final UsersyncMethod expectedIframeMethod = UsersyncMethod.builder()
+                .type(UsersyncMethodType.IFRAME)
+                .usersyncUrl("//usersync-url-iframe?uid=")
+                .redirectUrl("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro-iframe\
+                        """)
+                .supportCORS(true)
+                .build();
+
+        final UsersyncMethod expectedRedirectMethod = UsersyncMethod.builder()
+                .type(UsersyncMethodType.REDIRECT)
+                .usersyncUrl("//usersync-url-redirect?u=")
+                .redirectUrl("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}\
+                        &uid=uid-macro-redirect\
+                        """)
+                .supportCORS(false)
+                .build();
+
+        assertThat(result).isEqualTo(Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
     }
 
     @Test
-    public void createShouldFailWhenSecondaryMethodPresentAndPrimaryAbsent() {
+    public void createShouldTolerateMissingUid() {
         // given
         final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
-        config.setUrl("");
+        final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
+        methodConfig.setUrl("//redirect-url?uid=");
+        methodConfig.setSupportCors(false);
+
         config.setCookieFamilyName("rubicon");
-        config.setType("redirect");
-        config.setSupportCors(true);
-
-        final UsersyncConfigurationProperties.SecondaryConfigurationProperties secondaryMethodConfig =
-                new UsersyncConfigurationProperties.SecondaryConfigurationProperties();
-        secondaryMethodConfig.setUrl("//usersync-url-secondary");
-        secondaryMethodConfig.setRedirectUrl("/redirect-url-secondary");
-        secondaryMethodConfig.setType("iframe");
-        secondaryMethodConfig.setSupportCors(false);
-
-        config.setSecondary(secondaryMethodConfig);
+        config.setRedirect(methodConfig);
 
         // when and then
-        assertThatThrownBy(() -> UsersyncerCreator.create("http://localhost:8000").apply(config))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageStartingWith("Invalid usersync configuration: primary method is missing while secondary is"
-                        + " present. Configuration:");
+        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config))
+                .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
+                .isEqualTo("""
+                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=\
+                        """);
     }
 }

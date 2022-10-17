@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.util.HttpUtil
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -235,5 +236,36 @@ class TokenSpec extends BasePgSpec {
         assert secondAuctionResponse.ext?.debug?.pgmetrics?.pacingDeferred ==
                 [plansResponse.lineItems[0].lineItemId] as Set
         assert !secondAuctionResponse.ext?.debug?.pgmetrics?.sentToBidder
+    }
+
+    def "PBS should ignore line item pacing when ignore pacing header is present in the request"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Planner Mock zero tokens line item"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].deliverySchedules[0].tokens[0].total = 0
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Bid response"
+        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        and: "Pg ignore pacing header"
+        def pgIgnorePacingHeader = ["${HttpUtil.PG_IGNORE_PACING_HEADER}": "1"]
+
+        when: "Auction is requested"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, pgIgnorePacingHeader)
+
+        then: "PBS should process PG deals"
+        def pgMetrics = auctionResponse.ext?.debug?.pgmetrics
+        def sentToBidder = pgMetrics?.sentToBidder[GENERIC.value]
+        assert sentToBidder?.size() == plansResponse.lineItems.size()
+        assert sentToBidder[0] == plansResponse.lineItems[0].lineItemId
+        assert pgMetrics.readyToServe == [plansResponse.lineItems[0].lineItemId] as Set
     }
 }

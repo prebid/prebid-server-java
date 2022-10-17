@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -166,6 +167,54 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uidsCookie.allowsSync()).isFalse();
         assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
         assertThat(uidsCookie.uidFrom(ADNXS)).isNull();
+    }
+
+    @Test
+    public void toCookieShouldSetSameSiteNone() {
+        // given
+        final Uids uids = Uids.builder()
+                .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
+                .build();
+
+        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        assertThat(cookie.getSameSite()).isEqualTo(CookieSameSite.NONE);
+    }
+
+    @Test
+    public void toCookieShouldSetSecure() {
+        // given
+        final Uids uids = Uids.builder()
+                .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
+                .build();
+
+        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        assertThat(cookie.isSecure()).isTrue();
+    }
+
+    @Test
+    public void toCookieShouldSetPath() {
+        // given
+        final Uids uids = Uids.builder()
+                .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
+                .build();
+
+        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        assertThat(cookie.getPath()).isEqualTo("/");
     }
 
     @Test

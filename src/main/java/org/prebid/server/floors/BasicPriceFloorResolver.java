@@ -83,6 +83,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private static final Set<String> PHONE_PATTERNS = Set.of("Phone", "iPhone", "Android.*Mobile", "Mobile.*Android");
     private static final Set<String> TABLET_PATTERNS = Set.of("tablet", "iPad", "Windows NT.*touch",
             "touch.*Windows NT", "Android");
+    private static final String GPID_PATH = "/gpid";
+    private static final String PBADSLOT_PATH = "/data/pbadslot";
+    private static final String STORED_REQUEST_ID_PATH = "/prebid/storedrequest/id";
 
     private final CurrencyConversionService currencyConversionService;
     private final CountryCodeMapper countryCodeMapper;
@@ -209,7 +212,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case size ->
                     sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
             case gptSlot -> gptAdSlotFromImp(imp);
-            case pbAdSlot -> pbAdSlotFromImp(imp);
+            case adUnitCode -> adUnitCodeFromImp(imp);
             case country -> countryFromRequest(bidRequest);
             case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
         };
@@ -377,17 +380,41 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return Collections.singletonList(gptAdSlot);
     }
 
-    private static List<String> pbAdSlotFromImp(Imp imp) {
+    private static List<String> adUnitCodeFromImp(Imp imp) {
         final ObjectNode impExt = imp.getExt();
-
+        final String tagId = imp.getTagid();
         if (impExt == null) {
-            return null;
+            return catchAllIfBlank(tagId);
         }
 
-        final JsonNode adSlotNode = impExt.at(PB_ADSLOT_POINTER);
-        final String adSlot = !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
+        final String gpid = stringByPath(impExt, GPID_PATH);
+        if (StringUtils.isNotBlank(gpid)) {
+            return Collections.singletonList(gpid);
+        }
 
-        return Collections.singletonList(adSlot);
+        if (StringUtils.isNotBlank(tagId)) {
+            return Collections.singletonList(tagId);
+        }
+
+        final String adSlot = stringByPath(impExt, PBADSLOT_PATH);
+        if (StringUtils.isNotBlank(adSlot)) {
+            return Collections.singletonList(adSlot);
+        }
+
+        final String storedRequestId = stringByPath(impExt, STORED_REQUEST_ID_PATH);
+
+        return catchAllIfBlank(storedRequestId);
+    }
+
+    private static List<String> catchAllIfBlank(String value) {
+        return StringUtils.isNotBlank(value)
+                ? Collections.singletonList(value)
+                : Collections.singletonList(WILDCARD_CATCH_ALL);
+    }
+
+    private static String stringByPath(ObjectNode node, String path) {
+        final JsonNode gpidNode = node.at(path);
+        return !gpidNode.isMissingNode() ? gpidNode.asText() : null;
     }
 
     private List<String> countryFromRequest(BidRequest bidRequest) {

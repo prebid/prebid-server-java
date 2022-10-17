@@ -239,6 +239,7 @@ public class ExchangeService {
      */
     public Future<AuctionContext> holdAuction(AuctionContext context) {
         return processAuctionRequest(context)
+                .compose(this::invokeResponseHooks)
                 .map(this::enrichWithHooksDebugInfo)
                 .map(this::updateHooksMetrics);
     }
@@ -311,9 +312,7 @@ public class ExchangeService {
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
 
-                        .map(context::with))
-
-                .compose(this::invokeResponseHooks);
+                        .map(context::with));
     }
 
     private BidderAliases aliases(BidRequest bidRequest) {
@@ -749,7 +748,10 @@ public class ExchangeService {
      * Extract cookie family name from bidder's {@link Usersyncer} if it is enabled. If not - return null.
      */
     private String resolveCookieFamilyName(String bidder) {
-        return bidderCatalog.isActive(bidder) ? bidderCatalog.usersyncerByName(bidder).getCookieFamilyName() : null;
+        return bidderCatalog.usersyncerByName(bidder)
+                .filter(usersyncer -> bidderCatalog.isActive(bidder))
+                .map(Usersyncer::getCookieFamilyName)
+                .orElse(null);
     }
 
     /**
@@ -1201,8 +1203,10 @@ public class ExchangeService {
             final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
             final String bidder = aliases.resolveBidder(bidderRequest.getBidder());
             final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
-            final boolean noBuyerId = !bidderCatalog.isActive(bidder) || StringUtils.isBlank(
-                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
+            final boolean noBuyerId = bidderCatalog.usersyncerByName(bidder)
+                    .map(Usersyncer::getCookieFamilyName)
+                    .map(cookieFamily -> StringUtils.isBlank(uidsCookie.uidFrom(cookieFamily)))
+                    .orElse(false);
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestTypeMetric, !isApp && noBuyerId);
         }

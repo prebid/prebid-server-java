@@ -23,8 +23,8 @@ class StoredResponse {
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "id")
     Integer id
-    @Column(name = "resid")
-    String resid
+    @Column(name = "resId")
+    String responseId
     @Column(name = "storedAuctionResponse")
     @Convert(converter = StoredAuctionResponseConfigTypeConverter)
     SeatBid storedAuctionResponse

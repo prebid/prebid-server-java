@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 816
     usersync:
-      url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=nobid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: nobid
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -10,9 +10,3 @@ adapters:
       site-media-types:
       supported-vendors:
       vendor-id: 803
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: yeahmobi
-      type: redirect
-      support-cors: false

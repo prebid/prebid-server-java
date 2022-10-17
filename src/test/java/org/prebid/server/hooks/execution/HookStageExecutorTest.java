@@ -236,8 +236,10 @@ public class HookStageExecutorTest extends VertxTest {
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
-                        payload.queryParams(), payload.headers(), payload.body() + "-abc"))));
+                immediateHook(InvocationResultImpl.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-abc"),
+                        "moduleAlphaContext")));
 
         givenEntrypointHook(
                 "module-alpha",
@@ -254,8 +256,10 @@ public class HookStageExecutorTest extends VertxTest {
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
-                        payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
+                immediateHook(InvocationResultImpl.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-jkl"),
+                        "moduleBetaContext")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -330,10 +334,15 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
+            final Map<String, Object> expectedModuleContexts = new HashMap<>();
+            expectedModuleContexts.put("module-alpha", null);
+            expectedModuleContexts.put("module-beta", "moduleBetaContext");
+            assertThat(hookExecutionContext.getModuleContexts()).containsExactlyEntriesOf(expectedModuleContexts);
+
             async.complete();
         }));
 
-        async.awaitSuccess(150L);
+        async.awaitSuccess();
     }
 
     @Test

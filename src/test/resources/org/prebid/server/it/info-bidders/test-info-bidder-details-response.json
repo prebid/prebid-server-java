@@ -8,13 +8,15 @@
     "app": {
       "mediaTypes": [
         "banner",
-        "video"
+        "video",
+        "native"
       ]
     },
     "site": {
       "mediaTypes": [
         "banner",
-        "video"
+        "video",
+        "native"
       ]
     }
   }

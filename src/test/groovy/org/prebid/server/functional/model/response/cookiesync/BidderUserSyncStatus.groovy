@@ -1,13 +1,16 @@
 package org.prebid.server.functional.model.response.cookiesync
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-class BidderUsersyncStatus {
+class BidderUserSyncStatus {
 
     BidderName bidder
     String error
-    Boolean no_cookie
-    UsersyncInfo usersync
+    @JsonProperty("no_cookie")
+    Boolean noCookie
+    @JsonProperty("usersync")
+    UserSyncInfo userSync
 }

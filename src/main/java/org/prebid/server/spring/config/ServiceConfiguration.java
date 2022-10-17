@@ -110,6 +110,9 @@ import java.util.stream.Stream;
 @Configuration
 public class ServiceConfiguration {
 
+    @Value("${logging.sampling-rate:0.01}")
+    private double logSamplingRate;
+
     @Bean
     CacheService cacheService(
             @Value("${cache.scheme}") String scheme,
@@ -185,7 +188,7 @@ public class ServiceConfiguration {
 
     @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
-        return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+        return new OrtbTypesResolver(logSamplingRate, jacksonMapper, jsonMerger);
     }
 
     @Bean
@@ -273,6 +276,7 @@ public class ServiceConfiguration {
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
+                logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
                 requestValidator,
@@ -812,7 +816,8 @@ public class ServiceConfiguration {
                 secureMarkupEnforcement,
                 metrics,
                 mapper,
-                dealsEnabled);
+                dealsEnabled,
+                logSamplingRate);
     }
 
     @Bean

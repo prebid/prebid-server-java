@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 998
     usersync:
-      url: https://cookie.lmgssp.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=sa_lunamedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
       cookie-family-name: sa_lunamedia
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cookie.lmgssp.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
