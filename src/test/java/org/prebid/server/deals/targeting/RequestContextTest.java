@@ -570,8 +570,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(imp -> imp.ext(obj("data", obj("sport", "hockey")))),
-                "bidderAlias",
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -688,8 +686,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(imp -> imp.ext(obj("data", obj("sport", 1)))),
-                "bidderAlias",
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -836,8 +832,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(imp -> imp.ext(obj("data", obj("sport", mapper.valueToTree(asList("hockey", "football")))))),
-                "bidderAlias",
-                aliases,
                 txnLog,
                 jacksonMapper);
 
@@ -1056,8 +1050,6 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(imp -> imp.ext(obj("data", obj("sport", mapper.valueToTree(asList(1, 2)))))),
-                "bidderAlias",
-                aliases,
                 txnLog,
                 jacksonMapper);
 
