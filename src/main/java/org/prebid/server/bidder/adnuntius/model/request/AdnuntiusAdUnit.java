@@ -14,6 +14,5 @@ public class AdnuntiusAdUnit {
     @JsonProperty("targetId")
     String targetId;
 
-    @JsonProperty("dimensions")
     List<List<Integer>> dimensions;
 }

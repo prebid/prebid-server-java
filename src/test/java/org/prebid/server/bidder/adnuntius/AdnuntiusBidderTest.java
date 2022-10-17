@@ -250,8 +250,68 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(0);
     }
 
-    private void makeHttpRequestsShouldReturnRequestsWithCorrectUri(Integer gdpr, String consent) {
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprAndConsentAreAbsent() {
         // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null)).build())
+                        .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
+                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(null, null);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null)).build())
+                        .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build()),
+                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(null, "consent");
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfConsentIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build())
+                        .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
+                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(1, null);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUri() {
+        // given
+        final Integer gdpr = 1;
+        final String consent = "con sent";
         final BidRequest bidRequest = givenBidRequest(request -> request
                         .regs(Regs.builder().ext(ExtRegs.of(gdpr, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(consent).build()).build()),
@@ -261,19 +321,92 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
-        if (gdpr != null && consent != null) {
-            expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
-            expectedUri.append("&consentString=").append(HttpUtil.encodeUrl(consent));
-        }
+        final String expectedUrl = givenExpectedUrl(gdpr, consent);
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly(expectedUri.toString(), expectedUri.toString());
+                .containsExactly(expectedUrl, expectedUrl);
         assertThat(result.getErrors()).hasSize(0);
     }
 
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtDeviceWithNoCookies(Boolean noCookies) {
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsNull() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                givenImp(identity()),
+                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(null);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsFalse() {
+        // given
+        final Boolean noCookies = false;
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                givenImp(identity()),
+                givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(noCookies);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsTrue() {
+        // given
+        final Boolean noCookies = true;
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                givenImp(identity()),
+                givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(noCookies);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtDeviceWithNoCookies() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .device(Device.builder().ext(givenExtDeviceNoCookies(null)).build()),
+                givenImp(identity()),
+                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = givenExpectedUrl(null);
+
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUrl, expectedUrl);
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtDeviceImpNoCookiesIsFalse() {
+        // given
+        final Boolean noCookies = false;
         final BidRequest bidRequest = givenBidRequest(request -> request
                         .device(Device.builder().ext(givenExtDeviceNoCookies(noCookies)).build()),
                 givenImp(identity()),
@@ -283,84 +416,31 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
-        if (BooleanUtils.isTrue(noCookies)) {
-            expectedUri.append("&noCookies=").append(HttpUtil.encodeUrl(noCookies.toString()));
-        }
+        final String expectedUrl = givenExpectedUrl(noCookies);
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly(expectedUri.toString(), expectedUri.toString());
+                .containsExactly(expectedUrl, expectedUrl);
         assertThat(result.getErrors()).hasSize(0);
     }
 
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtImpWithNoCookies(Boolean noCookies) {
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtDeviceImpNoCookiesIsTrue() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
+        final Boolean noCookies = true;
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .device(Device.builder().ext(givenExtDeviceNoCookies(noCookies)).build()),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
+                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
-        if (BooleanUtils.isTrue(noCookies)) {
-            expectedUri.append("&noCookies=").append(HttpUtil.encodeUrl(noCookies.toString()));
-        }
+        final String expectedUrl = givenExpectedUrl(noCookies);
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly(expectedUri.toString(), expectedUri.toString());
+                .containsExactly(expectedUrl, expectedUrl);
         assertThat(result.getErrors()).hasSize(0);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprAndConsentAreAbsent() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUri(null, null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprIsAbsent() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUri(null, "con sent");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfConsentIsAbsent() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUri(1, null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprAndConsentArePresent() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUri(1, "con sent");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsNull() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtImpWithNoCookies(null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsFalse() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtImpWithNoCookies(false);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtImpNoCookiesIsTrue() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtImpWithNoCookies(true);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtDeviceNoCookiesIsNull() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtDeviceWithNoCookies(null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtDeviceImpNoCookiesIsFalse() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtDeviceWithNoCookies(false);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfExtDeviceImpNoCookiesIsTrue() {
-        makeHttpRequestsShouldReturnRequestsWithCorrectUriAndPopulateExtDeviceWithNoCookies(true);
     }
 
     @Test
@@ -592,5 +672,25 @@ public class AdnuntiusBidderTest extends VertxTest {
                 ? BooleanNode.valueOf(noCookies)
                 : NullNode.getInstance());
         return extDevice;
+    }
+
+    private static String givenExpectedUrl(Integer gdpr, String consent) {
+        return buildExpectedUrl(gdpr, consent, false);
+    }
+
+    private static String givenExpectedUrl(Boolean noCookies) {
+        return buildExpectedUrl(null, null, noCookies);
+    }
+
+    private static String buildExpectedUrl(Integer gdpr, String consent, Boolean noCookies) {
+        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
+        if (gdpr != null && consent != null) {
+            expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
+            expectedUri.append("&consentString=").append(HttpUtil.encodeUrl(consent));
+        }
+        if (BooleanUtils.isTrue(noCookies)) {
+            expectedUri.append("&noCookies=").append(HttpUtil.encodeUrl(noCookies.toString()));
+        }
+        return expectedUri.toString();
     }
 }

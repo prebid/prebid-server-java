@@ -11,5 +11,6 @@ public class ExtImpAdnuntius {
 
     String network;
 
+    @JsonProperty("noCookies")
     Boolean noCookies;
 }
