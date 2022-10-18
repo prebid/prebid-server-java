@@ -2486,7 +2486,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRemoveSiteObjectIfBothSiteAndAppPresentAfterFpdStage() {
+    public void shouldRejectIfBothSiteAndAppPresentAfterFpdStage() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2508,19 +2508,12 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(auctionContext);
 
         // then
-        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
-        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
-
-        assertThat(capturedBidRequests)
-                .extracting(BidderRequest::getBidRequest)
-                .extracting(BidRequest::getApp, BidRequest::getSite)
-                .containsExactly(tuple(App.builder().id("appId").build(), null));
+        verifyNoInteractions(httpBidderRequester);
         assertThat(auctionContext)
                 .extracting(AuctionContext::getDebugWarnings)
                 .asInstanceOf(InstanceOfAssertFactories.list(Site.class))
                 .asList()
-                .containsExactly("BidRequest contains app and site. Removed site object");
+                .containsExactly("After FPD merge BidRequest contains app and site.");
     }
 
     @Test
@@ -2645,46 +2638,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedUser = captureBidRequest().getUser();
         assertThat(capturedUser).isEqualTo(User.builder().buyeruid("buyerid").build());
-    }
-
-    @Test
-    public void shouldRemoveSiteIfBothSiteAndAppPresent() {
-        // given
-        givenBidder(givenEmptySeatBid());
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .site(Site.builder().build())
-                        .app(App.builder().build()));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final BidRequest captureBidRequest = captureBidRequest();
-        assertThat(captureBidRequest)
-                .extracting(BidRequest::getSite)
-                .isNull();
-        assertThat(captureBidRequest)
-                .extracting(BidRequest::getApp)
-                .isNotNull();
-    }
-
-    @Test
-    public void shouldAddDebugWarningIfBothSiteAndAppPresent() {
-        // given
-        givenBidder(givenEmptySeatBid());
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .site(Site.builder().build())
-                        .app(App.builder().build()));
-        final AuctionContext givenContext = givenRequestContext(bidRequest);
-
-        // when
-        exchangeService.holdAuction(givenContext);
-        // then
-        assertThat(givenContext)
-                .extracting(AuctionContext::getDebugWarnings)
-                .isEqualTo(singletonList("BidRequest contains app and site. Removed site object"));
     }
 
     @Test
