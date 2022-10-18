@@ -31,7 +31,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2511,9 +2510,8 @@ public class ExchangeServiceTest extends VertxTest {
         verifyNoInteractions(httpBidderRequester);
         assertThat(auctionContext)
                 .extracting(AuctionContext::getDebugWarnings)
-                .asInstanceOf(InstanceOfAssertFactories.list(Site.class))
                 .asList()
-                .containsExactly("After FPD merge BidRequest contains app and site.");
+                .containsExactly("BidRequest contains App and Site for bidder someBidder. Request rejected.");
     }
 
     @Test
