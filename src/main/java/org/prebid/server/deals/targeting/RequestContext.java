@@ -212,25 +212,26 @@ public class RequestContext {
             throw new TargetingSyntaxException("Unexpected category for fetching sizes for: " + type);
         }
 
-        final List<Size> sizes = Stream.concat(sizesFromBanner(imp), sizesFromVideo(imp)).toList();
+        final List<Size> sizes = ListUtils.union(sizesFromBanner(imp), sizesFromVideo(imp));
 
         return !sizes.isEmpty() ? LookupResult.ofValue(sizes) : LookupResult.empty();
     }
 
-    private static Stream<Size> sizesFromBanner(Imp imp) {
+    private static List<Size> sizesFromBanner(Imp imp) {
         final List<Format> formats = getIfNotNull(imp.getBanner(), Banner::getFormat);
         return ListUtils.emptyIfNull(formats).stream()
-                .map(format -> Size.of(format.getW(), format.getH()));
+                .map(format -> Size.of(format.getW(), format.getH()))
+                .toList();
     }
 
-    private static Stream<Size> sizesFromVideo(Imp imp) {
+    private static List<Size> sizesFromVideo(Imp imp) {
         final Video video = imp.getVideo();
         final Integer width = video != null ? video.getW() : null;
         final Integer height = video != null ? video.getH() : null;
 
         return width != null && height != null
-                ? Stream.of(Size.of(width, height))
-                : Stream.empty();
+                ? Collections.singletonList(Size.of(width, height))
+                : Collections.emptyList();
     }
 
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
