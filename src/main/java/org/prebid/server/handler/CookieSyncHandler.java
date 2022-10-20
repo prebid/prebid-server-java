@@ -19,11 +19,10 @@ import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.CookieSyncException;
-import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
+import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
@@ -45,8 +44,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
-
-    private static final String DEBUG_PARAM = "debug";
 
     private final long defaultTimeout;
     private final double logSamplingRate;
@@ -101,7 +98,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return Future.failedFuture(e);
         }
 
-        final boolean debug = BooleanUtils.toBoolean(routingContext.request().getParam(DEBUG_PARAM));
+        final boolean debug = BooleanUtils.toBoolean(cookieSyncRequest.getDebug());
         final String requestAccount = cookieSyncRequest.getAccount();
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -175,7 +172,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final HttpResponseStatus status;
         final String body;
 
-        if (error instanceof InvalidCookieSyncRequestException) {
+        if (error instanceof InvalidRequestException) {
             status = HttpResponseStatus.BAD_REQUEST;
             body = "Invalid request format: " + message;
 

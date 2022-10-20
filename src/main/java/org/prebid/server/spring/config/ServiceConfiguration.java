@@ -563,7 +563,7 @@ public class ServiceConfiguration {
     @Bean
     CookieSyncService cookieSyncService(
             @Value("${external-url}") String externalUrl,
-            @Value("${cookie-sync.default-limit:#{null}}") Integer defaultLimit,
+            @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
             @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
             BidderCatalog bidderCatalog,
             HostVendorTcfDefinerService hostVendorTcfDefinerService,
@@ -574,7 +574,7 @@ public class ServiceConfiguration {
 
         return new CookieSyncService(
                 externalUrl,
-                ObjectUtils.defaultIfNull(defaultLimit, Integer.MAX_VALUE),
+                defaultLimit,
                 ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,

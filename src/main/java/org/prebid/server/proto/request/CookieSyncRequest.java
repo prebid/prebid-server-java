@@ -22,6 +22,8 @@ public class CookieSyncRequest {
     @JsonProperty("coopSync")
     Boolean coopSync;
 
+    Boolean debug;
+
     Integer limit;
 
     String account;
