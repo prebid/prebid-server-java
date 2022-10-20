@@ -12,14 +12,11 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.UsersyncInfoBuilder;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncUtil;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.exception.CookieSyncException;
 import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.cookie.model.RejectionReason;
-import org.prebid.server.cookie.model.UidWithExpiry;
-import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.UnauthorizedUidsException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -46,7 +43,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -93,9 +89,9 @@ public class CookieSyncService {
                 .map(this::resolveBiddersToSync)
                 .map(this::filterInvalidBidders)
                 .map(this::filterDisabledBidders)
-                .map(this::filterInSyncBidders)
                 .map(this::applyRequestFilterSettings)
-                .compose(this::applyPrivacyFilteringRules);
+                .compose(this::applyPrivacyFilteringRules)
+                .map(this::filterInSyncBidders);
     }
 
     private CookieSyncContext validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
@@ -120,6 +116,23 @@ public class CookieSyncService {
 
     private static boolean isGdprParamsInconsistent(CookieSyncRequest request) {
         return Objects.equals(request.getGdpr(), 1) && StringUtils.isBlank(request.getGdprConsent());
+    }
+
+    private CookieSyncContext resolveLimit(CookieSyncContext cookieSyncContext) {
+        final AccountCookieSyncConfig accountCookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
+
+        final int resolvedLimit = ObjectUtils.firstNonNull(
+                cookieSyncContext.getCookieSyncRequest().getLimit(),
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getDefaultLimit),
+                defaultLimit);
+        final int adjustedLimit = resolvedLimit <= 0 ? Integer.MAX_VALUE : resolvedLimit;
+
+        final int resolvedMaxLimit = ObjectUtils.firstNonNull(
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getMaxLimit),
+                maxLimit);
+        final int adjustedMaxLimit = resolvedMaxLimit <= 0 ? Integer.MAX_VALUE : resolvedMaxLimit;
+
+        return cookieSyncContext.with(Math.min(adjustedLimit, adjustedMaxLimit));
     }
 
     private CookieSyncContext resolveBiddersToSync(CookieSyncContext cookieSyncContext) {
@@ -159,14 +172,17 @@ public class CookieSyncService {
     private CookieSyncContext filterInSyncBidders(CookieSyncContext cookieSyncContext) {
         return filterBidders(
                 cookieSyncContext,
-                bidder -> {
-                    final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
-                    final boolean uidFromHostCookieAbsent = bidderCatalog.cookieFamilyName(bidder)
-                            .map(cookieFamilyName -> resolveUidFromHostCookie(routingContext, cookieFamilyName))
-                            .isEmpty();
-                    return uidFromHostCookieAbsent && cookieSyncContext.getUidsCookie().hasLiveUidFrom(bidder);
-                },
+                bidder -> isBidderInSync(cookieSyncContext, bidder),
                 RejectionReason.ALREADY_IN_SYNC);
+    }
+
+    private boolean isBidderInSync(CookieSyncContext cookieSyncContext, String bidder) {
+        final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+        final String uidFromHostCookie = uidsCookieService.uidFromHostCookieToSync(routingContext, cookieFamilyName);
+
+        return StringUtils.isEmpty(uidFromHostCookie)
+                && cookieSyncContext.getUidsCookie().hasLiveUidFrom(cookieFamilyName);
     }
 
     private CookieSyncContext filterBidders(CookieSyncContext cookieSyncContext,
@@ -189,8 +205,7 @@ public class CookieSyncService {
         final Set<String> allowedBidders = biddersContext.allowedBidders();
 
         for (String bidder : allowedBidders) {
-            final Optional<Usersyncer> usersyncer = bidderCatalog.usersyncerByName(bidder);
-            final UsersyncMethod usersyncMethod = usersyncer
+            final UsersyncMethod usersyncMethod = bidderCatalog.usersyncerByName(bidder)
                     .map(syncer -> cookieSyncContext.getUsersyncMethodChooser().choose(syncer, bidder))
                     .orElse(null);
 
@@ -273,49 +288,6 @@ public class CookieSyncService {
         return bidderInfo != null && bidderInfo.isCcpaEnforced();
     }
 
-    private String resolveUidFromHostCookie(RoutingContext routingContext, String cookieFamilyName) {
-        if (!Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
-            return null;
-        }
-
-        final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
-        final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
-
-        if (hostCookieUid == null) {
-            return null;
-        }
-
-        final Uids parsedUids = uidsCookieService.parseUids(cookies);
-        final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
-        final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
-        final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
-
-        if (Objects.equals(hostCookieUid, uid)) {
-            return null;
-        }
-
-        return hostCookieUid;
-    }
-
-    private CookieSyncContext resolveLimit(CookieSyncContext cookieSyncContext) {
-        final AccountCookieSyncConfig accountCookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
-
-        final int resolvedLimit = ObjectUtils.firstNonNull(
-                cookieSyncContext.getCookieSyncRequest().getLimit(),
-                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getDefaultLimit),
-                defaultLimit);
-
-        final int resolvedMaxLimit = ObjectUtils.firstNonNull(
-                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getMaxLimit),
-                maxLimit);
-
-        return cookieSyncContext.with(Math.min(resolvedLimit, resolvedMaxLimit));
-    }
-
-    private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {
-        throw new CookieSyncException(error, tcfContext);
-    }
-
     public CookieSyncResponse prepareResponse(CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         updateCookieSyncTcfMetrics(biddersContext);
@@ -350,8 +322,8 @@ public class CookieSyncService {
 
         final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(bidder);
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
-        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).get();
-        final String uidFromHostCookie = resolveUidFromHostCookie(routingContext, cookieFamilyName);
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+        final String uidFromHostCookie = uidsCookieService.uidFromHostCookieToSync(routingContext, cookieFamilyName);
 
         final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, cookieFamilyName, uidFromHostCookie, privacy);
 
@@ -360,13 +332,6 @@ public class CookieSyncService {
                 .noCookie(true)
                 .usersync(usersyncInfo)
                 .build();
-    }
-
-    private void updateCookieSyncTcfMetrics(BiddersContext biddersContext) {
-//        biddersContext.tcfRejectedBidders()
-//                .forEach(bidder -> metrics.updateCookieSyncTcfBlockedMetric(
-//                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER));
-//        biddersContext.tcfAllowedBidders().forEach(metrics::updateCookieSyncGenMetric);
     }
 
     private List<BidderUsersyncStatus> statusesForRejectedBidders(CookieSyncContext cookieSyncContext) {
@@ -425,10 +390,21 @@ public class CookieSyncService {
         return UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod));
     }
 
+    private void updateCookieSyncTcfMetrics(BiddersContext biddersContext) {
+//        biddersContext.tcfRejectedBidders()
+//                .forEach(bidder -> metrics.updateCookieSyncTcfBlockedMetric(
+//                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER));
+//        biddersContext.tcfAllowedBidders().forEach(metrics::updateCookieSyncGenMetric);
+    }
+
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,
                                               Collection<BidderUsersyncStatus> requiredUsersyncs) {
         syncBidders.stream()
                 .filter(bidder -> requiredUsersyncs.stream().noneMatch(usersync -> bidder.equals(usersync.getBidder())))
                 .forEach(metrics::updateCookieSyncMatchesMetric);
+    }
+
+    private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {
+        throw new CookieSyncException(error, tcfContext);
     }
 }
