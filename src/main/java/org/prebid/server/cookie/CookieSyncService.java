@@ -135,11 +135,7 @@ public class CookieSyncService {
     }
 
     private static Set<String> resolveBiddersFromRequest(CookieSyncContext cookieSyncContext) {
-        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final Set<String> biddersFromRequest = new HashSet<>(CollectionUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
-        biddersFromRequest.removeIf(uidsCookie::hasLiveUidFrom);
-
-        return biddersFromRequest;
+        return new HashSet<>(CollectionUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
     }
 
     private CookieSyncContext filterInvalidBidders(CookieSyncContext cookieSyncContext) {
@@ -161,10 +157,12 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> {
                     final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
-                    final boolean uidFromHostCookieAbsent = bidderCatalog.cookieFamilyName(bidder)
-                            .map(cookieFamilyName -> resolveUidFromHostCookie(routingContext, cookieFamilyName))
-                            .isEmpty();
-                    return uidFromHostCookieAbsent && cookieSyncContext.getUidsCookie().hasLiveUidFrom(bidder);
+                    final Optional<String> cookieFamilyName = bidderCatalog.cookieFamilyName(bidder);
+                    if (cookieFamilyName.isEmpty()) {
+                        return false;
+                    }
+                    return resolveUidFromHostCookie(routingContext, cookieFamilyName.get()) == null &&
+                            cookieSyncContext.getUidsCookie().hasLiveUidFrom(cookieFamilyName.get());
                 },
                 RejectionReason.ALREADY_IN_SYNC);
     }
@@ -309,7 +307,8 @@ public class CookieSyncService {
                 ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getMaxLimit),
                 maxLimit);
 
-        return cookieSyncContext.with(Math.min(resolvedLimit, resolvedMaxLimit));
+        int finalLimit = Math.min(resolvedLimit, resolvedMaxLimit);
+        return cookieSyncContext.with(finalLimit <= 0 ? Integer.MAX_VALUE : finalLimit);
     }
 
     private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {
