@@ -74,16 +74,14 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
-                .id("id")
+                .id("fpdid")
                 .keywords("fpdkeywords")
                 .yob(2)
                 .gender("fpdgender")
-                .buyeruid("buyeruid")
-                .customdata("customdata")
-                .geo(Geo.builder().country("country").build())
+                .buyeruid("fpdbuyeruid")
+                .customdata("fpdcustomdata")
+                .geo(Geo.builder().country("fpdcountry").build())
                 .data(Collections.singletonList(Data.builder().id("fpdid").build()))
-                .ext(ExtUser.builder().data(mapper.createObjectNode()
-                        .set("geo", mapper.createObjectNode().put("country", "fpdcountry"))).build())
                 .build());
     }
 
@@ -97,55 +95,6 @@ public class FpdResolverTest extends VertxTest {
     public void resolveUserShouldReturnFpdUserIfOriginUserIsNull() {
         assertThat(fpdResolver.resolveUser(null, mapper.valueToTree(User.builder().gender("male").build())))
                 .isEqualTo(User.builder().gender("male").build());
-    }
-
-    @Test
-    public void resolveUserShouldAddExtDataAttributesIfOriginDoesNotHaveExtData() {
-        // given
-        final User originUser = User.builder()
-                .build();
-
-        final User fpdUser = User.builder()
-                .geo(Geo.builder().country("country").build())
-                .build();
-
-        // when
-        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
-
-        // then
-        assertThat(resultUser).isEqualTo(User.builder()
-                .ext(ExtUser.builder().data(mapper.createObjectNode()
-                                .set("geo", mapper.createObjectNode().put("country", "country")))
-                        .build())
-                .build());
-    }
-
-    @Test
-    public void resolveAppShouldAddExtDataAttributesIfOriginDoesNotHaveExtData() {
-        // given
-        final App originApp = App.builder().build();
-        final App fpdApp = App.builder().id("id").build();
-
-        // when
-        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp));
-
-        // then
-        assertThat(resultApp).isEqualTo(App.builder().ext(ExtApp.of(null, mapper.createObjectNode()
-                .put("id", "id"))).build());
-    }
-
-    @Test
-    public void resolveSiteShouldAddExtDataAttributesIfOriginDoesNotHaveExtData() {
-        // given
-        final Site originSite = Site.builder().build();
-        final Site fpdSite = Site.builder().id("id").build();
-
-        // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite));
-
-        // then
-        assertThat(resultSite).isEqualTo(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode()
-                .put("id", "id"))).build());
     }
 
     @Test
@@ -211,6 +160,7 @@ public class FpdResolverTest extends VertxTest {
                 .publisher(Publisher.builder().id("originId").build())
                 .content(Content.builder().language("originLan").build())
                 .keywords("originKeywords")
+                .ext(ExtApp.of(ExtAppPrebid.of("originalSource", null), mapper.createObjectNode()))
                 .build();
 
         final App fpdApp = App.builder()
@@ -228,17 +178,17 @@ public class FpdResolverTest extends VertxTest {
                 .publisher(Publisher.builder().id("fpdId").build())
                 .content(Content.builder().language("fpdLan").build())
                 .keywords("fpdKeywords")
+                .ext(ExtApp.of(
+                        ExtAppPrebid.of(null, "fpdVersion"),
+                        mapper.createObjectNode().put("data", "fpdData")))
                 .build();
         // when
         final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp));
 
         // then
-        final ObjectNode dataResult = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2)
-                .set("publisher", mapper.createObjectNode().put("id", "fpdId"));
-        dataResult.set("content", mapper.createObjectNode().put("language", "fpdLan"));
         assertThat(resultApp)
                 .isEqualTo(App.builder()
-                        .id("originId")
+                        .id("fpdId")
                         .name("fpdName")
                         .bundle("fpdBundle")
                         .domain("fpdDomain")
@@ -246,13 +196,15 @@ public class FpdResolverTest extends VertxTest {
                         .cat(Collections.singletonList("fpdCat"))
                         .sectioncat(Collections.singletonList("fpdSectionCat"))
                         .pagecat(Collections.singletonList("fpdPageCat"))
-                        .publisher(Publisher.builder().id("originId").build())
-                        .content(Content.builder().language("originLan").build())
-                        .ver("originVer")
-                        .privacypolicy(1)
-                        .paid(1)
+                        .publisher(Publisher.builder().id("fpdId").build())
+                        .content(Content.builder().language("fpdLan").build())
+                        .ver("fpdVer")
+                        .privacypolicy(2)
+                        .paid(2)
                         .keywords("fpdKeywords")
-                        .ext(ExtApp.of(null, dataResult))
+                        .ext(ExtApp.of(
+                                ExtAppPrebid.of("originalSource", "fpdVersion"),
+                                mapper.createObjectNode().put("data", "fpdData")))
                         .build());
     }
 
@@ -336,9 +288,6 @@ public class FpdResolverTest extends VertxTest {
         final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite));
 
         // then
-        final ObjectNode extData = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2).put("mobile", 2)
-                .set("publisher", mapper.createObjectNode().put("id", "fpdId"));
-        extData.set("content", mapper.createObjectNode().put("language", "fpdLan"));
         assertThat(resultSite).isEqualTo(
                 Site.builder()
                         .name("fpdName")
@@ -350,12 +299,11 @@ public class FpdResolverTest extends VertxTest {
                         .ref("fpdRef")
                         .search("fpdSearch")
                         .keywords("fpdKeywords")
-                        .id("originId")
-                        .content(Content.builder().language("originLan").build())
-                        .publisher(Publisher.builder().id("originId").build())
-                        .privacypolicy(1)
-                        .mobile(1)
-                        .ext(ExtSite.of(null, extData))
+                        .id("fpdId")
+                        .content(Content.builder().language("fpdLan").build())
+                        .publisher(Publisher.builder().id("fpdId").build())
+                        .privacypolicy(2)
+                        .mobile(2)
                         .build());
     }
 
