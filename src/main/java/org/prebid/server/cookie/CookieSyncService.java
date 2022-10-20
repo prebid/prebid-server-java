@@ -82,7 +82,7 @@ public class CookieSyncService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public Future<CookieSyncContext> prepareContext(CookieSyncContext cookieSyncContext) {
+    public Future<CookieSyncContext> processContext(CookieSyncContext cookieSyncContext) {
         return Future.succeededFuture(cookieSyncContext)
                 .map(this::validateCookieSyncContext)
                 .map(this::resolveLimit)

@@ -8,7 +8,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -37,7 +37,6 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.HashSet;
 import java.util.Objects;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
@@ -84,10 +83,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         metrics.updateCookieSyncRequestMetric();
 
         toCookieSyncContext(routingContext)
-                .compose(cookieSyncService::prepareContext)
+                .compose(cookieSyncService::processContext)
+                .onFailure(error -> respondWithError(error, routingContext))
                 .onSuccess(cookieSyncContext ->
-                        respondWithResult(cookieSyncContext, cookieSyncService.prepareResponse(cookieSyncContext)))
-                .onFailure(error -> respondWithError(error, routingContext));
+                        respondWithResult(cookieSyncContext, cookieSyncService.prepareResponse(cookieSyncContext)));
     }
 
     private Future<CookieSyncContext> toCookieSyncContext(RoutingContext routingContext) {
@@ -103,7 +102,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final BiddersContext biddersContext = BiddersContext.builder()
-                .requestedBidders(new HashSet<>(ListUtils.emptyIfNull(cookieSyncRequest.getBidders())))
+                .requestedBidders(SetUtils.emptyIfNull(cookieSyncRequest.getBidders()))
                 .build();
 
         return accountById(requestAccount, timeout)
@@ -146,21 +145,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithResult(CookieSyncContext cookieSyncContext, CookieSyncResponse cookieSyncResponse) {
-        final String body = mapper.encodeToString(cookieSyncResponse);
         final HttpResponseStatus status = HttpResponseStatus.OK;
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
                 response -> response
                         .setStatusCode(status.code())
                         .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                        .end(body));
+                        .end(mapper.encodeToString(cookieSyncResponse)));
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())
                 .bidderStatus(cookieSyncResponse.getBidderStatus())
                 .build();
-        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-        analyticsDelegator.processEvent(event, tcfContext);
+
+        analyticsDelegator.processEvent(event, cookieSyncContext.getPrivacyContext().getTcfContext());
     }
 
     private void respondWithError(Throwable error, RoutingContext routingContext) {

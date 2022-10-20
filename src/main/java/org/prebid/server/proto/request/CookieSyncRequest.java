@@ -5,13 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
-import java.util.List;
+import java.util.Set;
 
 @Builder
 @Value
 public class CookieSyncRequest {
 
-    List<String> bidders;
+    Set<String> bidders;
 
     Integer gdpr;
 
