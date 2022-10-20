@@ -237,7 +237,7 @@ public class UidsCookieService {
                 || StringUtils.isEmpty(entry.getValue().getUid());
     }
 
-    public String uidFromHostCookieToSync(RoutingContext routingContext, String cookieFamilyName) {
+    public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
         if (!StringUtils.equals(cookieFamilyName, hostCookieFamily)) {
             return null;
         }

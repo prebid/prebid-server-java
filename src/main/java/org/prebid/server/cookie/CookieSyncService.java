@@ -184,7 +184,7 @@ public class CookieSyncService {
     private boolean isBidderInSync(CookieSyncContext cookieSyncContext, String bidder) {
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
-        final String uidFromHostCookie = uidsCookieService.uidFromHostCookieToSync(routingContext, cookieFamilyName);
+        final String uidFromHostCookie = uidsCookieService.hostCookieUidToSync(routingContext, cookieFamilyName);
 
         return StringUtils.isEmpty(uidFromHostCookie)
                 && cookieSyncContext.getUidsCookie().hasLiveUidFrom(cookieFamilyName);
@@ -328,9 +328,9 @@ public class CookieSyncService {
         final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(bidder);
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
-        final String uidFromHostCookie = uidsCookieService.uidFromHostCookieToSync(routingContext, cookieFamilyName);
+        final String hostCookieUid = uidsCookieService.hostCookieUidToSync(routingContext, cookieFamilyName);
 
-        final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, cookieFamilyName, uidFromHostCookie, privacy);
+        final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, cookieFamilyName, hostCookieUid, privacy);
 
         return BidderUsersyncStatus.builder()
                 .bidder(bidder)
@@ -364,7 +364,8 @@ public class CookieSyncService {
                     the service and tell them to check their configuration.""");
             case REJECTED_BY_TCF -> builder.error("Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.error("Rejected by CCPA");
-            case UNCONFIGURED_USERSYNC, REJECTED_BY_FILTER, ALREADY_IN_SYNC -> builder;
+            case UNCONFIGURED_USERSYNC -> builder.error("No sync config");
+            case REJECTED_BY_FILTER, ALREADY_IN_SYNC -> builder;
         };
 
         return builder.build();
@@ -372,31 +373,23 @@ public class CookieSyncService {
 
     private UsersyncInfo toUsersyncInfo(UsersyncMethod usersyncMethod,
                                         String cookieFamilyName,
-                                        String uidFromHostCookieToSet,
+                                        String hostCookieUid,
                                         Privacy privacy) {
 
         final UsersyncInfoBuilder usersyncInfoBuilder = UsersyncInfoBuilder.from(usersyncMethod);
-        if (uidFromHostCookieToSet != null) {
+
+        if (hostCookieUid != null) {
+            final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
+                    externalUrl, cookieFamilyName, HttpUtil.encodeUrl(hostCookieUid));
+
             usersyncInfoBuilder
-                    .usersyncUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet))
+                    .usersyncUrl(UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod)))
                     .redirectUrl(null);
         }
 
         return usersyncInfoBuilder
                 .privacy(privacy)
                 .build();
-    }
-
-    private String toHostBidderUsersyncUrl(String cookieFamilyName,
-                                           UsersyncMethod usersyncMethod,
-                                           String hostCookieUid) {
-
-        final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
-                externalUrl,
-                cookieFamilyName,
-                HttpUtil.encodeUrl(hostCookieUid));
-
-        return UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod));
     }
 
     private void updateCookieSyncTcfMetrics(BiddersContext biddersContext) {
