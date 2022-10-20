@@ -148,11 +148,7 @@ public class CookieSyncService {
     }
 
     private static Set<String> resolveBiddersFromRequest(CookieSyncContext cookieSyncContext) {
-        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final Set<String> biddersFromRequest = new HashSet<>(CollectionUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
-        biddersFromRequest.removeIf(uidsCookie::hasLiveUidFrom);
-
-        return biddersFromRequest;
+        return new HashSet<>(CollectionUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
     }
 
     private CookieSyncContext filterInvalidBidders(CookieSyncContext cookieSyncContext) {
