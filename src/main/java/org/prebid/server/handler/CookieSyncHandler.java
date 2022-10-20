@@ -9,6 +9,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -45,6 +46,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
 
+    private static final String DEBUG_PARAM = "debug";
 
     private final long defaultTimeout;
     private final double logSamplingRate;
@@ -99,6 +101,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return Future.failedFuture(e);
         }
 
+        final boolean debug = BooleanUtils.toBoolean(routingContext.request().getParam(DEBUG_PARAM));
         final String requestAccount = cookieSyncRequest.getAccount();
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -119,6 +122,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 .timeout(timeout)
                                 .account(account)
                                 .privacyContext(privacyContext)
+                                .debug(debug)
                                 .build()));
     }
 

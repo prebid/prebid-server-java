@@ -166,6 +166,7 @@ public class CookieSyncService {
     }
 
     private CookieSyncContext filterInSyncBidders(CookieSyncContext cookieSyncContext) {
+        // should be called after applying request filter, as it will populate usersync data
         return filterBidders(
                 cookieSyncContext,
                 bidder -> isBidderInSync(cookieSyncContext, bidder),
@@ -331,6 +332,10 @@ public class CookieSyncService {
     }
 
     private List<BidderUsersyncStatus> statusesForRejectedBidders(CookieSyncContext cookieSyncContext) {
+        if (!cookieSyncContext.isDebug()) {
+            return Collections.emptyList();
+        }
+
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         return biddersContext.rejectedBidders().entrySet().stream()
                 .map(bidderWithReason ->

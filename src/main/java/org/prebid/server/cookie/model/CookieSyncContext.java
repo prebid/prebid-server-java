@@ -39,6 +39,9 @@ public class CookieSyncContext {
     @JsonIgnore
     int limit;
 
+    @JsonIgnore
+    boolean debug;
+
     public CookieSyncContext with(BiddersContext biddersContext) {
         return toBuilder().biddersContext(biddersContext).build();
     }
