@@ -252,7 +252,7 @@ public class CookieSyncService {
         final AccountPrivacyConfig accountPrivacyConfig = updatedContext.getAccount().getPrivacy();
         final AccountGdprConfig accountGdprConfig =
                 accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
-        final Set<String> bidders = new HashSet<>(biddersContext.requestedBidders());
+        final Set<String> bidders = new HashSet<>(biddersContext.allowedBidders());
 
         return tcfDefinerService.resultForBidderNames(bidders, tcfContext, accountGdprConfig)
                 .map(tcfResponse -> updateWithPrivacy(tcfResponse, updatedContext));
@@ -260,14 +260,14 @@ public class CookieSyncService {
 
     private CookieSyncContext updateWithPrivacy(TcfResponse<String> tcfResponse, CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final Set<String> requestedBidders = biddersContext.requestedBidders();
+        final Set<String> allowedBidders = biddersContext.allowedBidders();
 
         final Account account = cookieSyncContext.getAccount();
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
-        final Set<String> rejectedByCcpaBidders = extractCcpaEnforcedBidders(account, requestedBidders, privacy);
+        final Set<String> rejectedByCcpaBidders = extractCcpaEnforcedBidders(account, allowedBidders, privacy);
 
         final Map<String, PrivacyEnforcementAction> bidderToAction = tcfResponse.getActions();
-        final Set<String> rejectedByTcfBidders = requestedBidders.stream()
+        final Set<String> rejectedByTcfBidders = allowedBidders.stream()
                 .filter(bidder -> !rejectedByCcpaBidders.contains(bidder))
                 .filter(bidder -> !bidderToAction.containsKey(bidder) || bidderToAction.get(bidder).isBlockPixelSync())
                 .collect(Collectors.toSet());

@@ -29,7 +29,7 @@ public class BiddersContext {
     @Builder.Default
     Map<String, UsersyncMethod> bidderUsersyncMethod = new HashMap<>();
 
-    public Set<String> involvedBidders() {
+    private Set<String> involvedBidders() {
         return SetUtils.union(
                 multiSyncBidders,
                 SetUtils.union(requestedBidders, coopSyncBidders));
