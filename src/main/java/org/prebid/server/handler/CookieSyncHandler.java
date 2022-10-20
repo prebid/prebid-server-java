@@ -23,7 +23,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.UnauthorizedUidsException;
+import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;

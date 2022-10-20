@@ -13,11 +13,11 @@ import org.prebid.server.bidder.UsersyncInfoBuilder;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.cookie.exception.CookieSyncException;
-import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.cookie.model.RejectionReason;
-import org.prebid.server.exception.UnauthorizedUidsException;
+import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -103,13 +103,13 @@ public class CookieSyncService {
 
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsInconsistent(cookieSyncRequest)) {
-            throw new InvalidCookieSyncRequestException("gdpr_consent is required if gdpr is 1");
+            throw new InvalidRequestException("gdpr_consent is required if gdpr is 1");
         }
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric();
-            throw new InvalidCookieSyncRequestException("Consent string is invalid");
+            throw new InvalidRequestException("Consent string is invalid");
         }
 
         return cookieSyncContext;

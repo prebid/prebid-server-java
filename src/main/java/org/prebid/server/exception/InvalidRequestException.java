@@ -6,23 +6,23 @@ import org.prebid.server.cookie.exception.CookieSyncException;
 import java.util.Collections;
 import java.util.List;
 
-public class InvalidRequestException extends CookieSyncException {
+public class InvalidRequestException extends RuntimeException {
 
     @Getter
     private final List<String> messages;
 
     public InvalidRequestException(String message) {
-        super(message, null);
+        super(message);
         this.messages = Collections.singletonList(message);
     }
 
     public InvalidRequestException(String message, Throwable cause) {
-        super(message, cause, null);
+        super(message, cause);
         this.messages = Collections.singletonList(message);
     }
 
     public InvalidRequestException(List<String> messages) {
-        super(String.join("\n", messages), null);
+        super(String.join("\n", messages));
         this.messages = messages;
     }
 }
