@@ -167,9 +167,6 @@
         "gvlid": 1,
         "datacenter": "local"
       },
-      "aliases": {
-        "appnexusAlias": "appnexus"
-      },
       "currency": {
         "rates": {
           "EUR": {

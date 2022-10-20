@@ -1141,13 +1141,16 @@ public class ExchangeService {
         final boolean suppressBidderConfig = extPrebidBidderconfig != null;
         final boolean suppressPrebidData = extPrebidData != null;
         final boolean suppressBidderParameters = extPrebid != null && extPrebid.getBidderparams() != null;
+        final boolean suppressAliases = extPrebid != null && extPrebid.getAliases() != null;
 
         if (bidderToPrebidBidders.isEmpty()
                 && bidderToMultiBid.isEmpty()
                 && !suppressSchains
                 && !suppressBidderConfig
                 && !suppressPrebidData
-                && !suppressBidderParameters) {
+                && !suppressBidderParameters
+                && !suppressAliases) {
+
             return requestExt;
         }
 
@@ -1167,6 +1170,7 @@ public class ExchangeService {
                         .schains(null)
                         .data(null)
                         .bidderconfig(null)
+                        .aliases(null)
                         .build());
     }
 
