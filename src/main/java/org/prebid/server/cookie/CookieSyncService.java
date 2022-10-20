@@ -89,6 +89,7 @@ public class CookieSyncService {
                 .map(this::resolveBiddersToSync)
                 .map(this::filterInvalidBidders)
                 .map(this::filterDisabledBidders)
+                .map(this::filterBiddersWithoutUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
                 .map(this::filterInSyncBidders);
@@ -163,6 +164,13 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> !bidderCatalog.isActive(bidder),
                 RejectionReason.DISABLED_BIDDER);
+    }
+
+    private CookieSyncContext filterBiddersWithoutUsersync(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> bidderCatalog.usersyncerByName(bidder).isEmpty(),
+                RejectionReason.UNCONFIGURED_USERSYNC);
     }
 
     private CookieSyncContext filterInSyncBidders(CookieSyncContext cookieSyncContext) {
@@ -356,7 +364,7 @@ public class CookieSyncService {
                     the service and tell them to check their configuration.""");
             case REJECTED_BY_TCF -> builder.error("Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.error("Rejected by CCPA");
-            case REJECTED_BY_FILTER, ALREADY_IN_SYNC -> builder;
+            case UNCONFIGURED_USERSYNC, REJECTED_BY_FILTER, ALREADY_IN_SYNC -> builder;
         };
 
         return builder.build();
