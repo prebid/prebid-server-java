@@ -1,4 +1,4 @@
-package org.prebid.server.auction.model;
+package org.prebid.server.cookie.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.vertx.ext.web.RoutingContext;
@@ -24,6 +24,9 @@ public class CookieSyncContext {
     CookieSyncRequest cookieSyncRequest;
 
     @JsonIgnore
+    BiddersContext biddersContext;
+
+    @JsonIgnore
     UsersyncMethodChooser usersyncMethodChooser;
 
     @JsonIgnore
@@ -32,4 +35,15 @@ public class CookieSyncContext {
     Account account;
 
     PrivacyContext privacyContext;
+
+    @JsonIgnore
+    int limit;
+
+    public CookieSyncContext with(BiddersContext biddersContext) {
+        return toBuilder().biddersContext(biddersContext).build();
+    }
+
+    public CookieSyncContext with(int limit) {
+        return toBuilder().limit(limit).build();
+    }
 }

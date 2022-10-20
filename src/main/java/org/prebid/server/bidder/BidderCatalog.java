@@ -168,6 +168,18 @@ public class BidderCatalog {
                 .map(BidderInstanceDeps::getUsersyncer);
     }
 
+    public Optional<String> cookieFamilyName(String bidder) {
+        return usersyncerByName(bidder)
+                .map(Usersyncer::getCookieFamilyName);
+    }
+
+    public Set<String> usersyncReadyBidders() {
+        return names().stream()
+                .filter(this::isActive)
+                .filter(bidder -> usersyncerByName(bidder).isPresent())
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Returns an {@link Bidder} registered by the given name or null if there is none.
      * <p>

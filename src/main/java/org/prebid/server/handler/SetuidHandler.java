@@ -194,10 +194,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
      * If host vendor id is null, host allowed to setuid.
      */
     private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
-        return gdprHostVendorId == null
-                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
-                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::toHostVendorTcfResponse);
+        return Future.succeededFuture(HostVendorTcfResponse.allowedVendor());
     }
 
     private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {

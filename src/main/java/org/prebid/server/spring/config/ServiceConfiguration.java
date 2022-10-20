@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -47,6 +48,8 @@ import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cookie.CookieSyncService;
+import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsPopulator;
@@ -71,6 +74,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -78,6 +82,7 @@ import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
@@ -101,10 +106,16 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Configuration
@@ -541,6 +552,39 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    CoopSyncProvider coopSyncProvider(
+            BidderCatalog bidderCatalog,
+            @Value("${cookie-sync.coop-sync.pri:\"\"}") String prioritizedBidders,
+            @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
+
+        return new CoopSyncProvider(bidderCatalog, splitToSet(prioritizedBidders), defaultCoopSync);
+    }
+
+    @Bean
+    CookieSyncService cookieSyncService(
+            @Value("${external-url}") String externalUrl,
+            @Value("${cookie-sync.default-limit:#{null}}") Integer defaultLimit,
+            @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
+            BidderCatalog bidderCatalog,
+            HostVendorTcfDefinerService hostVendorTcfDefinerService,
+            PrivacyEnforcementService privacyEnforcementService,
+            UidsCookieService uidsCookieService,
+            CoopSyncProvider coopSyncProvider,
+            Metrics metrics) {
+
+        return new CookieSyncService(
+                externalUrl,
+                ObjectUtils.defaultIfNull(defaultLimit, Integer.MAX_VALUE),
+                ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
+                bidderCatalog,
+                hostVendorTcfDefinerService,
+                privacyEnforcementService,
+                uidsCookieService,
+                coopSyncProvider,
+                metrics);
+    }
+
+    @Bean
     EventsService eventsService(@Value("${external-url}") String externalUrl) {
         return new EventsService(externalUrl);
     }
@@ -908,10 +952,20 @@ public class ServiceConfiguration {
     }
 
     private static List<String> splitToList(String listAsString) {
+        return splitToCollection(listAsString, ArrayList::new);
+    }
+
+    private static Set<String> splitToSet(String listAsString) {
+        return splitToCollection(listAsString, HashSet::new);
+    }
+
+    private static <T extends Collection<String>> T splitToCollection(String listAsString,
+                                                                      Supplier<T> collectionFactory) {
+
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
                 .map(String::trim)
-                .toList()
-                : null;
+                .collect(Collectors.toCollection(collectionFactory))
+                : collectionFactory.get();
     }
 }

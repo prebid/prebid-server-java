@@ -150,6 +150,7 @@ vtrack:
   modify-vast-for-unknown-bidder: true
 cookie-sync:
   coop-sync:
+    pri: synacormedia, invalid_bidder_name
     default: true
     default-limit: 8
   default-timeout-ms: 2000

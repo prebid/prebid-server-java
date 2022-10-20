@@ -20,6 +20,8 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cookie.CookieSyncService;
+import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -45,6 +47,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
@@ -258,37 +261,23 @@ public class WebConfiguration {
 
     @Bean
     CookieSyncHandler cookieSyncHandler(
-            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${cookie-sync.coop-sync.default-limit:#{null}}") Integer coopSyncDefaultLimit,
-            @Value("${cookie-sync.coop-sync.max-limit:#{null}}") Integer coopSyncMaxLimit,
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            CoopSyncPriorities coopSyncPriorities,
-            TcfDefinerService tcfDefinerService,
+            CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
 
         return new CookieSyncHandler(
-                externalUrl,
                 defaultTimeoutMs,
                 logSamplingRate,
-                coopSyncDefaultLimit,
-                coopSyncMaxLimit,
                 uidsCookieService,
+                cookieSyncService,
                 applicationSettings,
-                bidderCatalog,
-                tcfDefinerService,
                 privacyEnforcementService,
-                hostVendorId,
-                defaultCoopSync,
-                coopSyncPriorities.getPri(),
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -417,14 +406,5 @@ public class WebConfiguration {
         Set<String> getCustomTargetingSet() {
             return new HashSet<>(customTargeting);
         }
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "cookie-sync.coop-sync")
-    @Data
-    @NoArgsConstructor
-    private static class CoopSyncPriorities {
-
-        private List<Collection<String>> pri;
     }
 }

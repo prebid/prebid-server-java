@@ -80,6 +80,7 @@ public enum MetricName {
     gen,
     matches,
     blocked,
+    filtered,
 
     // tcf
     userid_removed,

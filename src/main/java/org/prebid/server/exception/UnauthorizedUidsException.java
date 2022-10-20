@@ -1,9 +1,10 @@
 package org.prebid.server.exception;
 
-@SuppressWarnings("serial")
-public class UnauthorizedUidsException extends RuntimeException {
+import org.prebid.server.cookie.exception.CookieSyncException;
+
+public class UnauthorizedUidsException extends CookieSyncException {
 
     public UnauthorizedUidsException(String message) {
-        super(message);
+        super(message, null);
     }
 }
