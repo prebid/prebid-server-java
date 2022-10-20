@@ -117,7 +117,7 @@ public class OrtbTypesResolver {
                         nodePrefix));
     }
 
-    private void updateWithNormalizedNode(ObjectNode containerNode,
+    private static void updateWithNormalizedNode(ObjectNode containerNode,
                                           String fieldName,
                                           JsonNode normalizedNode) {
 
@@ -157,7 +157,7 @@ public class OrtbTypesResolver {
         return containerNode;
     }
 
-    private void normalizeFields(Map<String, Set<String>> nodeNameToFields,
+    private static void normalizeFields(Map<String, Set<String>> nodeNameToFields,
                                  String nodeName,
                                  ObjectNode containerObjectNode,
                                  BiFunction<String, JsonNode, JsonNode> fieldNormalizer) {
@@ -169,7 +169,7 @@ public class OrtbTypesResolver {
                         fieldNormalizer.apply(fieldName, containerObjectNode.get(fieldName))));
     }
 
-    private TextNode toFirstElementTextNode(String fieldName,
+    private static TextNode toFirstElementTextNode(String fieldName,
                                             JsonNode fieldNode,
                                             List<String> warnings,
                                             String nodePrefix,
@@ -185,7 +185,7 @@ public class OrtbTypesResolver {
                 "Converted to string by taking first element of array.");
     }
 
-    private TextNode toTextNode(String fieldName,
+    private static TextNode toTextNode(String fieldName,
                                 JsonNode fieldNode,
                                 Function<ArrayNode, String> mapper,
                                 List<String> warnings,
@@ -217,7 +217,7 @@ public class OrtbTypesResolver {
         return StreamUtil.asStream(arrayNode.iterator()).allMatch(JsonNode::isTextual);
     }
 
-    private void warnForExpectedStringArrayType(List<String> warnings,
+    private static void warnForExpectedStringArrayType(List<String> warnings,
                                                 String nodePrefix,
                                                 String containerName,
                                                 String fieldName,
@@ -232,7 +232,7 @@ public class OrtbTypesResolver {
                 nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
     }
 
-    private TextNode toCommaSeparatedTextNode(String fieldName,
+    private static TextNode toCommaSeparatedTextNode(String fieldName,
                                               JsonNode fieldNode,
                                               List<String> warnings,
                                               String nodePrefix,
@@ -331,7 +331,7 @@ public class OrtbTypesResolver {
                 : fpdNode != null ? jsonMerger.merge(ortbNode, fpdNode) : null;
     }
 
-    private void setIfNotNull(ObjectNode destination, String fieldName, JsonNode data) {
+    private static void setIfNotNull(ObjectNode destination, String fieldName, JsonNode data) {
         if (data != null) {
             destination.set(fieldName, data);
         }
@@ -356,7 +356,7 @@ public class OrtbTypesResolver {
         }
     }
 
-    private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
+    private static List<String> updateWithWarningPrefix(List<String> resolverWarning) {
         return resolverWarning.stream().map(warning -> "WARNING: " + warning).toList();
     }
 
