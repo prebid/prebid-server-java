@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -69,6 +70,22 @@ public class ResetDigitalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = resetDigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnEmptyResponseIfxNativeImpTypePresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)
+                        .xNative(Native.builder().build()))))
                 .build();
 
         // when
