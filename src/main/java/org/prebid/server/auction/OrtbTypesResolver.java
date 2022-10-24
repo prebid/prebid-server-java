@@ -343,7 +343,8 @@ public class OrtbTypesResolver {
     }
 
     private void logDeprecatedFpdConfig(String source) {
-        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path on " + source, logSamplingRate);
+        final String messagePart = source != null ? " on " + source : StringUtils.EMPTY;
+        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path" + messagePart, logSamplingRate);
     }
 
     private JsonNode updatedOrtb2Node(JsonNode configFpd, String fpdField, JsonNode configOrtb, String ortbField) {
