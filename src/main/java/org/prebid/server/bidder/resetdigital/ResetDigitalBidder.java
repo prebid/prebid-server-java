@@ -123,21 +123,21 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
 
     private static void populateBannerImps(List<Imp> bannerImps, Price bidFloorPrice, Imp imp) {
         if (imp.getBanner() != null) {
-            final Imp bannerImp = imp.toBuilder().video(null).audio(null).build();
+            final Imp bannerImp = imp.toBuilder().video(null).xNative(null).audio(null).build();
             bannerImps.add(modifyImp(bannerImp, bidFloorPrice));
         }
     }
 
     private static void populateVideoImps(List<Imp> videoImps, Price bidFloorPrice, Imp imp) {
         if (imp.getVideo() != null) {
-            final Imp videoImp = imp.toBuilder().banner(null).audio(null).build();
+            final Imp videoImp = imp.toBuilder().banner(null).xNative(null).audio(null).build();
             videoImps.add(modifyImp(videoImp, bidFloorPrice));
         }
     }
 
     private static void populateAudiImps(List<Imp> audioImps, Price bidFloorPrice, Imp imp) {
         if (imp.getAudio() != null) {
-            final Imp audioImp = imp.toBuilder().banner(null).video(null).build();
+            final Imp audioImp = imp.toBuilder().banner(null).xNative(null).video(null).build();
             audioImps.add(modifyImp(audioImp, bidFloorPrice));
         }
     }
@@ -156,7 +156,7 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        if (bidResponse.getCur() != null && !DEFAULT_CURRENCY.equals(bidResponse.getCur())) {
+        if (bidResponse.getCur() != null && !StringUtils.equalsIgnoreCase(DEFAULT_CURRENCY, bidResponse.getCur())) {
             throw new PreBidException("Bidder support only USD currency");
         }
         return bidsFromResponse(bidResponse, bidRequest);
