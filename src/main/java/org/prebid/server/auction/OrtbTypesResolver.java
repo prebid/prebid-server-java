@@ -15,6 +15,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ public class OrtbTypesResolver {
 
     private static final JsonPointer EXT_PREBID_BIDDER_CONFIG = JsonPointer.valueOf("/ext/prebid/bidderconfig");
     private static final JsonPointer CONFIG_ORTB2 = JsonPointer.valueOf("/config/ortb2");
+    private static final JsonPointer APP_BUNDLE = JsonPointer.valueOf("/app/bundle");
+    private static final JsonPointer SITE_PAGE = JsonPointer.valueOf("/site/page");
 
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_FIELDS;
     private static final Map<String, Set<String>> COMMA_SEPARATED_ELEMENT_FIELDS;
@@ -78,10 +81,11 @@ public class OrtbTypesResolver {
 
         normalizeFpdFields(bidRequest, "bidrequest.", resolverWarnings);
 
+        final String source = source(bidRequest);
         final JsonNode bidderConfigs = bidRequest.at(EXT_PREBID_BIDDER_CONFIG);
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
-                mergeFpdFieldsToOrtb2(bidderConfig);
+                mergeFpdFieldsToOrtb2(bidderConfig, source);
 
                 final JsonNode ortb2Config = bidderConfig.at(CONFIG_ORTB2);
                 if (!ortb2Config.isMissingNode()) {
@@ -102,6 +106,19 @@ public class OrtbTypesResolver {
         }
     }
 
+    private static String source(JsonNode bidRequest) {
+        return ObjectUtil.firstNonNull(
+                () -> stringAt(bidRequest, APP_BUNDLE),
+                () -> stringAt(bidRequest, SITE_PAGE));
+    }
+
+    private static String stringAt(JsonNode node, JsonPointer path) {
+        final JsonNode at = node.at(path);
+        return at.isMissingNode() || at.isNull() || !at.isTextual()
+                ? null
+                : at.textValue();
+    }
+
     private void updateFpdWithNormalizedNode(ObjectNode containerNode,
                                              String nodeNameToNormalize,
                                              List<String> warnings,
@@ -118,8 +135,8 @@ public class OrtbTypesResolver {
     }
 
     private static void updateWithNormalizedNode(ObjectNode containerNode,
-                                          String fieldName,
-                                          JsonNode normalizedNode) {
+                                                 String fieldName,
+                                                 JsonNode normalizedNode) {
 
         if (normalizedNode == null) {
             containerNode.remove(fieldName);
@@ -158,9 +175,9 @@ public class OrtbTypesResolver {
     }
 
     private static void normalizeFields(Map<String, Set<String>> nodeNameToFields,
-                                 String nodeName,
-                                 ObjectNode containerObjectNode,
-                                 BiFunction<String, JsonNode, JsonNode> fieldNormalizer) {
+                                        String nodeName,
+                                        ObjectNode containerObjectNode,
+                                        BiFunction<String, JsonNode, JsonNode> fieldNormalizer) {
 
         nodeNameToFields.get(nodeName)
                 .forEach(fieldName -> updateWithNormalizedNode(
@@ -170,10 +187,10 @@ public class OrtbTypesResolver {
     }
 
     private static TextNode toFirstElementTextNode(String fieldName,
-                                            JsonNode fieldNode,
-                                            List<String> warnings,
-                                            String nodePrefix,
-                                            String containerName) {
+                                                   JsonNode fieldNode,
+                                                   List<String> warnings,
+                                                   String nodePrefix,
+                                                   String containerName) {
 
         return toTextNode(
                 fieldName,
@@ -186,12 +203,12 @@ public class OrtbTypesResolver {
     }
 
     private static TextNode toTextNode(String fieldName,
-                                JsonNode fieldNode,
-                                Function<ArrayNode, String> mapper,
-                                List<String> warnings,
-                                String nodePrefix,
-                                String containerName,
-                                String action) {
+                                       JsonNode fieldNode,
+                                       Function<ArrayNode, String> mapper,
+                                       List<String> warnings,
+                                       String nodePrefix,
+                                       String containerName,
+                                       String action) {
 
         if (fieldNode == null || fieldNode.isNull() || fieldNode.isTextual()) {
             return (TextNode) fieldNode;
@@ -218,10 +235,10 @@ public class OrtbTypesResolver {
     }
 
     private static void warnForExpectedStringArrayType(List<String> warnings,
-                                                String nodePrefix,
-                                                String containerName,
-                                                String fieldName,
-                                                JsonNodeType nodeType) {
+                                                       String nodePrefix,
+                                                       String containerName,
+                                                       String fieldName,
+                                                       JsonNodeType nodeType) {
 
         warnings.add("""
                 Incorrect type for first party data field %s%s.%s, expected strings, \
@@ -233,10 +250,10 @@ public class OrtbTypesResolver {
     }
 
     private static TextNode toCommaSeparatedTextNode(String fieldName,
-                                              JsonNode fieldNode,
-                                              List<String> warnings,
-                                              String nodePrefix,
-                                              String containerName) {
+                                                     JsonNode fieldNode,
+                                                     List<String> warnings,
+                                                     String nodePrefix,
+                                                     String containerName) {
 
         return toTextNode(
                 fieldName,
@@ -297,13 +314,15 @@ public class OrtbTypesResolver {
         containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
     }
 
-    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig) {
+    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig, String source) {
         final JsonNode config = bidderConfig.path(CONFIG);
         final JsonNode configFpd = config.path(FPD);
 
         if (configFpd.isMissingNode()) {
             return;
         }
+
+        logDeprecatedFpdConfig(source);
 
         final JsonNode configOrtb = config.path(ORTB2);
         final JsonNode updatedOrtbSite = updatedOrtb2Node(configFpd, CONTEXT, configOrtb, SITE);
@@ -321,6 +340,10 @@ public class OrtbTypesResolver {
         setIfNotNull(ortbObjectNode, USER, updatedOrtbUser);
 
         ((ObjectNode) config).set(ORTB2, ortbObjectNode);
+    }
+
+    private void logDeprecatedFpdConfig(String source) {
+        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path on " + source, logSamplingRate);
     }
 
     private JsonNode updatedOrtb2Node(JsonNode configFpd, String fpdField, JsonNode configOrtb, String ortbField) {
