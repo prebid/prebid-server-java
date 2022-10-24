@@ -102,7 +102,6 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
         return BidderUtil.isValidPrice(initialBidFloorPrice)
-                && !StringUtils.equalsIgnoreCase(initialBidFloorPrice.getCurrency(), DEFAULT_CURRENCY)
                 ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
                 : initialBidFloorPrice;
     }
