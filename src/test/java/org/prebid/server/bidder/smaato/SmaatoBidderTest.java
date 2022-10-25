@@ -36,7 +36,7 @@ import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
@@ -935,7 +935,7 @@ public class SmaatoBidderTest extends VertxTest {
                                 .map(SmaatoBidderTest::givenVideoImp)
                                 .toList()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
     }

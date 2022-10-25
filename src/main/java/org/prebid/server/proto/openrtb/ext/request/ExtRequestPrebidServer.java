@@ -13,4 +13,14 @@ public class ExtRequestPrebidServer {
     Integer gvlId;
 
     String datacenter;
+
+    String endpoint;
+
+    public ExtRequestPrebidServer with(String endpoint) {
+        return ExtRequestPrebidServer.of(
+                this.externalUrl,
+                this.gvlId,
+                this.datacenter,
+                endpoint);
+    }
 }

@@ -41,7 +41,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -308,8 +308,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static String extractEndpointName(BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
-        return pbs != null ? pbs.getEndpoint() : null;
+        final ExtRequestPrebidServer server = prebid != null ? prebid.getServer() : null;
+        return server != null ? server.getEndpoint() : null;
     }
 
     private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest,

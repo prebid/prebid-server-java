@@ -135,11 +135,6 @@ public class ExtRequestPrebid {
     JsonNode analytics;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.pbs
-     */
-    ExtRequestPrebidPbs pbs;
-
-    /**
      * Defines the contract for bidrequest.ext.prebid.server
      */
     ExtRequestPrebidServer server;

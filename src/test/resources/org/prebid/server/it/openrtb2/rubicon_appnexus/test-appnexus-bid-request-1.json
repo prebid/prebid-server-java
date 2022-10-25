@@ -165,7 +165,8 @@
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       },
       "currency": {
         "rates": {
@@ -203,9 +204,6 @@
       "integration": "dmbjs",
       "channel": {
         "name": "web"
-      },
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
       }
     }
   }
