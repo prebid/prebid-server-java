@@ -1910,7 +1910,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .build()));
     }
 
-
     @Test
     public void shouldCleanRequestExtPrebidAliases() {
         // given
