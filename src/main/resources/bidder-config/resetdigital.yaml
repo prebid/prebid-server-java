@@ -2,7 +2,7 @@ adapters:
   resetdigital:
     endpoint: http://b-us-east14.resetdigital.co:9001
     meta-info:
-      maintainer-email: none
+      maintainer-email: biddersupport@resetdigital.co
       app-media-types:
         - banner
         - video
