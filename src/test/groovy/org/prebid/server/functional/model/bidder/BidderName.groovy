@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum BidderName {
 
-    GENERIC, RUBICON, APPNEXUS, BOGUS
+    GENERIC_ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS
 
     @JsonValue
     String getValue() {
-        name().toLowerCase()
+        name() == "GENERIC_ALIAS" ? "genericAlias" : name().toLowerCase()
     }
 }
