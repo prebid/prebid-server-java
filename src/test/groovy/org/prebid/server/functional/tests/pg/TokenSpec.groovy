@@ -20,51 +20,6 @@ class TokenSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
-    def "PBS should prioritize line item when pg ignore pacing and #reason"() {
-        given: "Bid request"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Planner Mock with additional lineItem"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems.add(updateLineItem(bidRequest.site.publisher.id))
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        and: "Pg ignore pacing header"
-        def pgIgnorePacingHeader = ["${HttpUtil.PG_IGNORE_PACING_HEADER}": "1"]
-
-        when: "Auction is requested"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, pgIgnorePacingHeader)
-
-        then: "PBS should process PG deals"
-        def pgMetrics = auctionResponse.ext?.debug?.pgmetrics
-        for(i in 0..< pgMetrics.readyToServe.size()) {
-          assert pgMetrics.readyToServe[i] == plansResponse.lineItems[i].lineItemId
-        }
-
-        where:
-        reason                      | updateLineItem
-        "cpm is null"               | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
-                                            price.cpm = null
-                                        }}
-        "relative priority is null" | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
-                                            relativePriority = null
-                                        }}
-        "no tokens unspent"         | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
-                                            deliverySchedules[0].tokens[0].total = 0
-                                        }}
-        "delivery plan is null"     | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
-                                            deliverySchedules = null
-                                        }}
-    }
-
     def "PBS should start using line item in auction when its expired tokens number is increased"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -313,5 +268,50 @@ class TokenSpec extends BasePgSpec {
         assert sentToBidder?.size() == plansResponse.lineItems.size()
         assert sentToBidder[0] == plansResponse.lineItems[0].lineItemId
         assert pgMetrics.readyToServe == [plansResponse.lineItems[0].lineItemId] as Set
+    }
+
+    def "PBS should prioritize line item when pg ignore pacing and #reason"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Planner Mock with additional lineItem"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems.add(updateLineItem(bidRequest.site.publisher.id))
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Bid response"
+        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        and: "Pg ignore pacing header"
+        def pgIgnorePacingHeader = ["${HttpUtil.PG_IGNORE_PACING_HEADER}": "1"]
+
+        when: "Auction is requested"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, pgIgnorePacingHeader)
+
+        then: "PBS should process PG deals"
+        def pgMetrics = auctionResponse.ext?.debug?.pgmetrics
+        assert pgMetrics?.readyToServe?.size() == plansResponse.lineItems.size()
+        assert pgMetrics.readyToServe.eachWithIndex { id, index ->
+                id == plansResponse.lineItems[index].lineItemId }
+
+        where:
+        reason                      | updateLineItem
+        "cpm is null"               | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
+                                            price.cpm = null
+                                        }}
+        "relative priority is null" | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
+                                            relativePriority = null
+                                        }}
+        "no tokens unspent"         | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
+                                            deliverySchedules[0].tokens[0].total = 0
+                                        }}
+        "delivery plan is null"     | {siteId -> LineItem.getDefaultLineItem(siteId).tap {
+                                            deliverySchedules = null
+                                        }}
     }
 }
