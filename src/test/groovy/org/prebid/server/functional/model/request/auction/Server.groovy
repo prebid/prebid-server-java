@@ -11,4 +11,5 @@ class Server {
     String externalUrl
     Integer gvlId
     String datacenter
+    String endpoint
 }
