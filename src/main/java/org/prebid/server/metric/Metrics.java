@@ -367,14 +367,6 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.cookie_sync_requests);
     }
 
-    public void updateCookieSyncGenMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.gen);
-    }
-
-    public void updateCookieSyncMatchesMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.matches);
-    }
-
     public void updateCookieSyncTcfBlockedMetric(String bidder) {
         cookieSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }

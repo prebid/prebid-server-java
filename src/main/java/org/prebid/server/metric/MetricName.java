@@ -77,8 +77,6 @@ public enum MetricName {
     opt_outs,
     bad_requests,
     sets,
-    gen,
-    matches,
     blocked,
     filtered,
 

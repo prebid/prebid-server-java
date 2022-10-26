@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -225,6 +224,7 @@ public class CookieSyncService {
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         return tcfDefinerService.isAllowedForHostVendorId(tcfContext)
                 .compose(hostTcfResponse -> filterWithTcfResponse(hostTcfResponse, cookieSyncContext))
+                .onSuccess(updatedContext -> updateCookieSyncTcfMetrics(updatedContext.getBiddersContext()))
                 .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext));
     }
 
@@ -290,19 +290,15 @@ public class CookieSyncService {
     }
 
     public CookieSyncResponse prepareResponse(CookieSyncContext cookieSyncContext) {
-        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        updateCookieSyncTcfMetrics(biddersContext);
+        final String cookieSyncStatus = cookieSyncContext.getUidsCookie().hasLiveUids() ? "ok" : "no_cookie";
+        final List<BidderUsersyncStatus> statuses = ListUtils.union(
+                validStatuses(cookieSyncContext),
+                errorStatuses(cookieSyncContext));
 
-        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final List<BidderUsersyncStatus> allowedStatuses = statusesForAllowedBidders(cookieSyncContext);
-        final List<BidderUsersyncStatus> rejectedStatuses = statusesForRejectedBidders(cookieSyncContext);
-        updateCookieSyncMatchMetrics(allowedStatuses);
-
-        final String cookieSyncStatus = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
-        return CookieSyncResponse.of(cookieSyncStatus, ListUtils.union(allowedStatuses, rejectedStatuses));
+        return CookieSyncResponse.of(cookieSyncStatus, statuses);
     }
 
-    private List<BidderUsersyncStatus> statusesForAllowedBidders(CookieSyncContext cookieSyncContext) {
+    private List<BidderUsersyncStatus> validStatuses(CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         final int limit = cookieSyncContext.getLimit();
 
@@ -311,36 +307,31 @@ public class CookieSyncService {
         allowedBiddersWithPriority.addAll(biddersContext.allowedCoopSyncBidders());
 
         return allowedBiddersWithPriority.stream()
-                .filter(distinctByKey(bidderCatalog::cookieFamilyName))
-                .map(bidder -> statusForAllowedBidder(bidder, cookieSyncContext))
+                .map(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow())
+                .distinct()
+                .map(cookieFamilyName -> validStatus(cookieFamilyName, cookieSyncContext))
                 .limit(limit)
                 .toList();
     }
 
-    private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
-        Set<Object> seen = new HashSet<>();
-        return t -> seen.add(keyExtractor.apply(t));
-    }
-
-    private BidderUsersyncStatus statusForAllowedBidder(String bidder, CookieSyncContext cookieSyncContext) {
+    private BidderUsersyncStatus validStatus(String cookieFamilyName, CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
 
-        final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(bidder);
+        final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(cookieFamilyName);
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
-        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
         final String hostCookieUid = uidsCookieService.hostCookieUidToSync(routingContext, cookieFamilyName);
 
         final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, cookieFamilyName, hostCookieUid, privacy);
 
         return BidderUsersyncStatus.builder()
-                .bidder(bidder)
+                .bidder(cookieFamilyName)
                 .noCookie(true)
                 .usersync(usersyncInfo)
                 .build();
     }
 
-    private List<BidderUsersyncStatus> statusesForRejectedBidders(CookieSyncContext cookieSyncContext) {
+    private List<BidderUsersyncStatus> errorStatuses(CookieSyncContext cookieSyncContext) {
         if (!cookieSyncContext.isDebug()) {
             return Collections.emptyList();
         }
@@ -348,25 +339,28 @@ public class CookieSyncService {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         return biddersContext.rejectedBidders().entrySet().stream()
                 .map(bidderWithReason ->
-                        statusForRejectedBidder(bidderWithReason.getKey(), bidderWithReason.getValue()))
-                .filter(status -> status.getError() != null)
+                        errorStatus(bidderWithReason.getKey(), bidderWithReason.getValue(), biddersContext))
+                .filter(BidderUsersyncStatus::isError)
                 .toList();
     }
 
-    private BidderUsersyncStatus statusForRejectedBidder(String bidder, RejectionReason reason) {
+    private BidderUsersyncStatus errorStatus(String bidder, RejectionReason reason, BiddersContext biddersContext) {
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
         BidderUsersyncStatus.BidderUsersyncStatusBuilder builder = BidderUsersyncStatus.builder()
-                .bidder(bidder);
+                .bidder(cookieFamilyName);
+
+        final boolean requested = biddersContext.isRequested(bidder);
+        final boolean coopSync = biddersContext.isCoopSync(bidder);
 
         builder = switch (reason) {
-            case INVALID_BIDDER -> builder.error("Unsupported bidder");
-            case DISABLED_BIDDER -> builder.error(bidder + """
-                     is not configured properly on this Prebid Server deploy. \
-                    If you believe this should work, contact the company hosting \
-                    the service and tell them to check their configuration.""");
-            case REJECTED_BY_TCF -> builder.error("Rejected by TCF");
-            case REJECTED_BY_CCPA -> builder.error("Rejected by CCPA");
-            case UNCONFIGURED_USERSYNC -> builder.error("No sync config");
-            case REJECTED_BY_FILTER, ALREADY_IN_SYNC -> builder;
+            case INVALID_BIDDER -> builder.conditionalError(requested, "Unsupported bidder");
+            case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
+            case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
+            case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
+            case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
+            case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
+            case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
+            // TODO: Add ALIAS case
         };
 
         return builder.build();
@@ -393,18 +387,12 @@ public class CookieSyncService {
                 .build();
     }
 
-    private void updateCookieSyncMatchMetrics(List<BidderUsersyncStatus> statuses) {
-        statuses.forEach(status -> metrics.updateCookieSyncMatchesMetric(status.getBidder()));
-    }
-
     private void updateCookieSyncTcfMetrics(BiddersContext biddersContext) {
         biddersContext.rejectedBidders().entrySet().stream()
                 .filter(entry -> entry.getValue() == RejectionReason.REJECTED_BY_TCF)
                 .map(Map.Entry::getKey)
                 .forEach(bidder -> metrics.updateCookieSyncTcfBlockedMetric(
                         bidderCatalog.isValidName(bidder) ? bidder : "unknown"));
-
-        biddersContext.allowedBidders().forEach(metrics::updateCookieSyncGenMetric);
     }
 
     private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {

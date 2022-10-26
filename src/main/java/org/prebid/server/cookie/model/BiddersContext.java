@@ -29,6 +29,14 @@ public class BiddersContext {
     @Builder.Default
     Map<String, UsersyncMethod> bidderUsersyncMethod = new HashMap<>();
 
+    public boolean isRequested(String bidder) {
+        return requestedBidders.contains(bidder);
+    }
+
+    public boolean isCoopSync(String bidder) {
+        return coopSyncBidders.contains(bidder);
+    }
+
     private Set<String> involvedBidders() {
         return SetUtils.union(
                 multiSyncBidders,
