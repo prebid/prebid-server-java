@@ -26,7 +26,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
@@ -89,8 +88,6 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpServerRequest;
     @Mock
-    private TimeoutResolver timeoutResolver;
-    @Mock
     private DebugResolver debugResolver;
 
     @Before
@@ -102,6 +99,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -132,7 +130,6 @@ public class VideoRequestFactoryTest extends VertxTest {
                 ortbVersionConversionManager,
                 paramsResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
     }
@@ -168,7 +165,6 @@ public class VideoRequestFactoryTest extends VertxTest {
                 ortbVersionConversionManager,
                 paramsResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
 
@@ -194,7 +190,6 @@ public class VideoRequestFactoryTest extends VertxTest {
                 ortbVersionConversionManager,
                 paramsResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
 
@@ -337,7 +332,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
         verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
-        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver), eq(Endpoint.openrtb2_video.value()));
+        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
@@ -397,7 +392,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
-        given(paramsResolver.resolve(any(), any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))

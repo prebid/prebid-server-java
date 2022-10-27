@@ -77,6 +77,7 @@ public class Ortb2ImplicitParametersResolver {
     private final List<String> blacklistedApps;
     private final ExtRequestPrebidServer serverInfo;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final TimeoutResolver timeoutResolver;
     private final IpAddressHelper ipAddressHelper;
     private final IdGenerator sourceIdGenerator;
     private final JsonMerger jsonMerger;
@@ -89,6 +90,7 @@ public class Ortb2ImplicitParametersResolver {
                                            Integer hostVendorId,
                                            String datacenterRegion,
                                            ImplicitParametersExtractor paramsExtractor,
+                                           TimeoutResolver timeoutResolver,
                                            IpAddressHelper ipAddressHelper,
                                            IdGenerator sourceIdGenerator,
                                            JsonMerger jsonMerger,
@@ -99,6 +101,7 @@ public class Ortb2ImplicitParametersResolver {
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
@@ -125,7 +128,6 @@ public class Ortb2ImplicitParametersResolver {
      */
     public BidRequest resolve(BidRequest bidRequest,
                               HttpRequestContext httpRequest,
-                              TimeoutResolver timeoutResolver,
                               String endpoint) {
 
         checkBlacklistedApp(bidRequest);
@@ -145,7 +147,7 @@ public class Ortb2ImplicitParametersResolver {
         final List<String> resolvedCurrencies = resolveCurrencies(cur);
 
         final Long tmax = bidRequest.getTmax();
-        final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
+        final Long resolvedTmax = resolveTmax(tmax);
 
         final ExtRequest ext = bidRequest.getExt();
         final List<Imp> imps = bidRequest.getImp();
@@ -731,7 +733,7 @@ public class Ortb2ImplicitParametersResolver {
      * Determines request timeout with the help of {@link TimeoutResolver}.
      * Returns resolved new value or null if existing request timeout doesn't need to update.
      */
-    private static Long resolveTmax(Long requestTimeout, TimeoutResolver timeoutResolver) {
+    private Long resolveTmax(Long requestTimeout) {
         final long timeout = timeoutResolver.resolve(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }

@@ -34,4 +34,8 @@ public class Timeout {
     public long remaining() {
         return Math.max(deadline - clock.millis(), 0);
     }
+
+    public long getDeadline() {
+        return deadline;
+    }
 }
