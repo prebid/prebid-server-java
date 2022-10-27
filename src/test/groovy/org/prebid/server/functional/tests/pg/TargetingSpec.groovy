@@ -529,4 +529,30 @@ class TargetingSpec extends BasePgSpec {
         then: "PBS had PG auction"
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
     }
+
+    def "PBS should be able to match video size targeting taken from imp[].video sources by INTERSECTS matching function"() {
+        given: "Default video bid request"
+        def lineItemSize = LineItemSize.defaultLineItemSize
+        def bidRequest = BidRequest.defaultVideoRequest.tap {
+            imp[0].video.w = lineItemSize.w
+            imp[0].video.h = lineItemSize.h
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [lineItemSize])
+                                                            .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
+                                                            .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+    }
 }
