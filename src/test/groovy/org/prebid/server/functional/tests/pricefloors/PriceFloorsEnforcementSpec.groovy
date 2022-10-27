@@ -29,12 +29,12 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Default stored request #descriprion rules "
-        def alias = "genericAlias"
+        def alias = "alias"
         def bidderParam = PBSUtils.randomNumber
         def bidderAliasParam = PBSUtils.randomNumber
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             ext.prebid.aliases = [(alias): GENERIC]
-            imp[0].ext.prebid.bidder.genericAlias = new Generic(firstParam: bidderAliasParam)
+            imp[0].ext.prebid.bidder.alias = new Generic(firstParam: bidderAliasParam)
             imp[0].ext.prebid.bidder.generic.firstParam = bidderParam
             ext.prebid.floors = floors
         }
@@ -76,12 +76,12 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         verifyAll(response) {
             targeting["hb_pb_generic"] == bidPrice
             targeting["hb_pb"] == bidPrice
-            !targeting["hb_pb_genericAlias"]
+            !targeting["hb_pb_alias"]
         }
 
         and: "PBS should log warning about bid suppression"
-        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [6]
-        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.message ==
+        assert response.ext?.warnings[ErrorType.ALIAS]*.code == [6]
+        assert response.ext?.warnings[ErrorType.ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
                          "price $lowerPrice is below the floor ${floorValue.stripTrailingZeros()}" as String]
 
