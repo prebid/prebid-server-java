@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.analytics.reporter.feedback.FeedbackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
@@ -119,5 +120,14 @@ public class AnalyticsConfiguration {
             @NotNull
             Long reportTtlMs;
         }
+
+
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "analytics.feedback", name = "enabled", havingValue = "true")
+    FeedbackAnalyticsReporter AdpushupFeedbackAdapter()
+    {
+        return new FeedbackAnalyticsReporter();
     }
 }
