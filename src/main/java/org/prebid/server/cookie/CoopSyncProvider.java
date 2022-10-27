@@ -69,7 +69,7 @@ public class CoopSyncProvider {
                 : Collections.emptySet();
     }
 
-    public boolean coopSyncAllowed(CookieSyncRequest cookieSyncRequest, Account account) {
+    private boolean coopSyncAllowed(CookieSyncRequest cookieSyncRequest, Account account) {
         return Optional.ofNullable(cookieSyncRequest.getCoopSync())
                 .or(() -> Optional.ofNullable(account.getCookieSync())
                         .map(AccountCookieSyncConfig::getDefaultCoopSync))

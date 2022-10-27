@@ -2,7 +2,6 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -11,6 +10,7 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.UsersyncInfoBuilder;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncUtil;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.exception.CookieSyncException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
@@ -32,12 +32,15 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -276,12 +279,13 @@ public class CookieSyncService {
     }
 
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
-        if (privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
-            return biddersToSync.stream()
-                    .filter(this::isBidderCcpaEnforced)
-                    .collect(Collectors.toSet());
+        if (!privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
+            return Collections.emptySet();
         }
-        return Collections.emptySet();
+
+        return biddersToSync.stream()
+                .filter(this::isBidderCcpaEnforced)
+                .collect(Collectors.toSet());
     }
 
     private boolean isBidderCcpaEnforced(String bidder) {
@@ -291,26 +295,44 @@ public class CookieSyncService {
 
     public CookieSyncResponse prepareResponse(CookieSyncContext cookieSyncContext) {
         final String cookieSyncStatus = cookieSyncContext.getUidsCookie().hasLiveUids() ? "ok" : "no_cookie";
-        final List<BidderUsersyncStatus> statuses = ListUtils.union(
-                validStatuses(cookieSyncContext),
-                errorStatuses(cookieSyncContext));
+
+        final Set<String> biddersToSync = biddersToSync(cookieSyncContext);
+
+        final List<BidderUsersyncStatus> statuses = new ArrayList<>();
+        statuses.addAll(validStatuses(biddersToSync, cookieSyncContext));
+        statuses.addAll(errorStatuses(cookieSyncContext));
+        statuses.addAll(warningStatuses(biddersToSync, cookieSyncContext));
 
         return CookieSyncResponse.of(cookieSyncStatus, statuses);
     }
 
-    private List<BidderUsersyncStatus> validStatuses(CookieSyncContext cookieSyncContext) {
+    private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final int limit = cookieSyncContext.getLimit();
+        final Set<String> cookieFamilesToSync = new HashSet<>(); // multiple bidders may have same cookie families
+        final Set<String> biddersToSync = new LinkedHashSet<>();
 
-        final Set<String> allowedBiddersWithPriority = new LinkedHashSet<>();
-        allowedBiddersWithPriority.addAll(biddersContext.allowedRequestedBidders());
-        allowedBiddersWithPriority.addAll(biddersContext.allowedCoopSyncBidders());
+        final Set<String> allowedPrioritizedBidders = new LinkedHashSet<>();
+        allowedPrioritizedBidders.addAll(biddersContext.allowedRequestedBidders());
+        allowedPrioritizedBidders.addAll(biddersContext.allowedCoopSyncBidders());
 
-        return allowedBiddersWithPriority.stream()
+        final Iterator<String> biddersIterator = allowedPrioritizedBidders.iterator();
+
+        while (cookieFamilesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
+            final String bidder = biddersIterator.next();
+            final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+
+            cookieFamilesToSync.add(cookieFamilyName);
+            biddersToSync.add(bidder);
+        }
+
+        return biddersToSync;
+    }
+
+    private List<BidderUsersyncStatus> validStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
+        return biddersToSync.stream()
                 .map(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow())
                 .distinct()
                 .map(cookieFamilyName -> validStatus(cookieFamilyName, cookieSyncContext))
-                .limit(limit)
                 .toList();
     }
 
@@ -325,7 +347,7 @@ public class CookieSyncService {
         final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, cookieFamilyName, hostCookieUid, privacy);
 
         return BidderUsersyncStatus.builder()
-                .bidder(cookieFamilyName)
+                .bidder(cookieFamilyName) // we are syncing cookie-family-names instead of bidder codes
                 .noCookie(true)
                 .usersync(usersyncInfo)
                 .build();
@@ -360,10 +382,37 @@ public class CookieSyncService {
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
             case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
-            // TODO: Add ALIAS case
         };
 
         return builder.build();
+    }
+
+    private List<BidderUsersyncStatus> warningStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
+        if (!cookieSyncContext.isDebug()) {
+            return Collections.emptyList();
+        }
+
+        return biddersToSync.stream()
+                .filter(bidder -> cookieSyncContext.getBiddersContext().allowedRequestedBidders().contains(bidder))
+                .filter(this::isAliasSyncedAsRootFamily)
+                .map(this::warningForAliasSyncedAsRootFamily)
+                .toList();
+    }
+
+    private boolean isAliasSyncedAsRootFamily(String bidder) {
+        return bidderCatalog.isAlias(bidder)
+                && bidderCatalog.usersyncerByName(bidder)
+                .map(Usersyncer::getCookieFamilySource)
+                .filter(source -> source == CookieFamilySource.ROOT)
+                .isPresent();
+    }
+
+    private BidderUsersyncStatus warningForAliasSyncedAsRootFamily(String bidder) {
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+        return BidderUsersyncStatus.builder()
+                .bidder(bidder)
+                .error("synced as " + cookieFamilyName)
+                .build();
     }
 
     private UsersyncInfo toUsersyncInfo(UsersyncMethod usersyncMethod,
