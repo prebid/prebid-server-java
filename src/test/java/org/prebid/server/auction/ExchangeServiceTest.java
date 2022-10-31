@@ -567,14 +567,16 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), any(), anyBoolean());
         final BidderRequest capturedBidRequest1 = bidRequest1Captor.getValue();
         assertThat(capturedBidRequest1.getBidRequest().getImp()).hasSize(2)
                 .extracting(imp -> imp.getExt().get("bidder").asInt())
                 .containsOnly(1, 3);
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), any(), anyBoolean());
         final BidderRequest capturedBidRequest2 = bidRequest2Captor.getValue();
         assertThat(capturedBidRequest2.getBidRequest().getImp()).hasSize(1)
                 .element(0).returns(2, imp -> imp.getExt().get("bidder").asInt());
@@ -719,7 +721,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
         assertThat(capturedBidRequest.getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().get("bidder").asInt())
@@ -755,7 +757,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), any(), anyBoolean());
 
         final BidderRequest capturedBidRequest1 = bidRequest1Captor.getValue();
         final ExtRequestPrebid prebid1 = capturedBidRequest1.getBidRequest().getExt().getPrebid();
@@ -766,7 +769,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue().getBidRequest();
         final ExtRequestPrebid prebid2 = capturedBidRequest2.getExt().getPrebid();
         assertThat(prebid2).isNotNull();
@@ -819,7 +823,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder1), bidRequest1Captor.capture(), any(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue().getBidRequest();
         final SupplyChain requestSchain1 = capturedBidRequest1.getSource().getSchain();
         assertThat(requestSchain1).isNotNull();
@@ -827,7 +832,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequest1.getExt().getPrebid().getSchains()).isNull();
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue().getBidRequest();
         final SupplyChain requestSchain2 = capturedBidRequest2.getSource().getSchain();
         assertThat(requestSchain2).isNotNull();
@@ -835,7 +841,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequest2.getExt().getPrebid().getSchains()).isNull();
 
         final ArgumentCaptor<BidderRequest> bidRequest3Captor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder3), bidRequest3Captor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder3), bidRequest3Captor.capture(), any(), any(), any(), anyBoolean());
         final BidRequest capturedBidRequest3 = bidRequest3Captor.getValue().getBidRequest();
         final SupplyChain requestSchain3 = capturedBidRequest3.getSource().getSchain();
         assertThat(requestSchain3).isNotNull();
@@ -921,7 +928,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidRequestCaptor.getValue().getStoredResponse())
                 .contains("test-second-value");
     }
@@ -944,7 +952,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().get("bidder").asInt())
                 .contains(1);
@@ -971,7 +980,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
                 .extracting(Imp::getPmp)
                 .flatExtracting(Pmp::getDeals).hasSize(1)
@@ -1001,7 +1011,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2)).requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(),
-                anyBoolean());
+                any(), anyBoolean());
         final List<BidderRequest> capturedBidderRequests = bidRequestCaptor.getAllValues();
 
         assertThat(capturedBidderRequests).hasSize(2)
@@ -1038,7 +1048,7 @@ public class ExchangeServiceTest extends VertxTest {
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
                                 .aliases(singletonMap("bidderAlias", "bidder"))
-                                .build()))))), any(), any(), anyBoolean()))
+                                .build()))))), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
 
@@ -1051,7 +1061,7 @@ public class ExchangeServiceTest extends VertxTest {
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
                                 .aliases(singletonMap("bidderAlias", "bidder"))
-                                .build()))))), any(), any(), anyBoolean()))
+                                .build()))))), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().impid("impId2").price(BigDecimal.ONE).build())))));
 
@@ -1072,7 +1082,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(httpBidderRequester, times(2)).requestBids(any(), any(), any(), any(), anyBoolean());
+        verify(httpBidderRequester, times(2)).requestBids(any(), any(), any(), any(), any(), anyBoolean());
         assertThat(result.getBidResponse().getSeatbid()).hasSize(2)
                 .extracting(seatBid -> seatBid.getBid().size())
                 .containsOnly(1, 1);
@@ -1091,7 +1101,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
                 .willReturn(true);
 
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(
                         emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
 
@@ -1107,7 +1117,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), eq(true));
 
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
@@ -1121,7 +1131,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
                 emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
@@ -1143,7 +1153,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), eq(true));
 
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
@@ -1157,7 +1167,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldNotAddDebugInfoIfPublisherIsNotAllowedToDebug() {
         // given
         final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -1174,7 +1184,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), eq(false));
 
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
@@ -1188,7 +1198,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldNotAddDebugInfoIfBidderDisabledDebug() {
         // given
         final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -1205,7 +1215,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), eq(false));
 
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
@@ -1762,7 +1772,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(singletonList("someBidder"), null))
                         .build())));
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
@@ -1780,7 +1790,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidderRequestCaptor.getAllValues())
                 .extracting(BidderRequest::getBidRequest)
                 .flatExtracting(BidRequest::getImp)
@@ -1811,7 +1821,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(singletonList("someBidder"), null))
                         .build())));
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
@@ -1820,7 +1830,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidderRequestCaptor.getAllValues())
                 .extracting(BidderRequest::getBidRequest)
                 .flatExtracting(BidRequest::getImp)
@@ -1846,7 +1857,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(impExt)
                         .build()),
                 identity());
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
@@ -1855,7 +1866,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         assertThat(bidRequestCaptor.getAllValues())
                 .extracting(BidderRequest::getBidRequest)
                 .flatExtracting(BidRequest::getImp)
@@ -2013,7 +2024,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2106,7 +2117,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
@@ -2141,7 +2153,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
@@ -2176,7 +2189,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
@@ -2211,7 +2225,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
@@ -2251,7 +2266,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2292,7 +2307,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2337,7 +2352,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2384,7 +2399,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2426,7 +2441,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(2))
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2475,7 +2490,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2553,7 +2569,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2595,7 +2612,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
@@ -2649,7 +2667,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(httpBidderRequester).requestBids(any(), any(), same(timeout), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), any(), same(timeout), any(), any(), anyBoolean());
     }
 
     @Test
@@ -2699,7 +2717,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
-        verify(httpBidderRequester).requestBids(any(), any(), timeoutCaptor.capture(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), any(), timeoutCaptor.capture(), any(), any(), anyBoolean());
         assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(400L);
         verify(bidResponseCreator).create(anyList(), any(), any(), any());
     }
@@ -3066,7 +3084,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementCommonMetrics() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().impid("impId").price(TEN).build())))));
 
@@ -3108,7 +3126,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldUseEmptyStringIfPublisherIdIsEmpty() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
@@ -3124,7 +3142,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementNoBidRequestsMetric() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
@@ -3139,7 +3157,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementGotBidsAndErrorMetricsIfBidderReturnsBidAndDifferentErrors() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(
                         singletonList(givenBid(Bid.builder().impid("impId").price(TEN).build())),
                         emptyList(),
@@ -3499,7 +3517,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseModifiedByAuctionResponseHooks() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -3542,7 +3560,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseWithHooksDebugInfoWhenAuctionHappened() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3610,7 +3628,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseWithHooksBasicTraceInfoWhenAuctionHappened() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3704,7 +3722,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseWithHooksVerboseTraceInfoWhenAuctionHappened() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3756,7 +3774,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugContext(DebugContext.of(false, TraceLevel.verbose))
                 .build();
 
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         // when
@@ -3789,7 +3807,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseAppliedToRequestNullIfResultImplAppliedToIsNull() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3827,7 +3845,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseWithHooksDebugAndTraceInfoWhenAuctionHappened() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3876,7 +3894,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidResponseWithoutHooksTraceInfoWhenNoHooksExecuted() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -3962,7 +3980,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementHooksGlobalAndAccountMetrics() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -4408,7 +4426,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> argumentCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), argumentCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), argumentCaptor.capture(), any(), any(), any(), anyBoolean());
 
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderRequest::getBidRequest)
@@ -4445,7 +4463,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private BidRequest captureBidRequest() {
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         return bidRequestCaptor.getValue().getBidRequest();
     }
 
@@ -4476,13 +4494,13 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenBidder(BidderSeatBid response) {
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(response));
     }
 
     private void givenBidder(String bidderName, Bidder<?> bidder, BidderSeatBid response) {
         doReturn(bidder).when(bidderCatalog).bidderByName(eq(bidderName));
-        given(httpBidderRequester.requestBids(same(bidder), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(same(bidder), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(response));
     }
 
@@ -4596,7 +4614,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
+        verify(httpBidderRequester)
+                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)

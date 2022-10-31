@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum BidderName {
 
-    GENERIC, RUBICON, APPNEXUS, BOGUS
+    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS
 
     @JsonValue
     String getValue() {

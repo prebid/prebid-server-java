@@ -10,4 +10,7 @@ public class ExtImpAdnuntius {
     String auId;
 
     String network;
+
+    @JsonProperty("noCookies")
+    Boolean noCookies;
 }

@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -57,6 +58,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
 
     @Mock
     private HttpClient httpClient;
+    @Mock
+    private BidderAliases bidderAliases;
     @Mock
     private BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory;
     @Mock
@@ -104,8 +107,14 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -137,7 +146,12 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(
+                null,
+                bidderRequest,
+                null,
+                requestHeaders,
+                bidderAliases,
                 false);
 
         // then
@@ -170,7 +184,12 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(
+                null,
+                bidderRequest,
+                null,
+                requestHeaders,
+                bidderAliases,
                 false);
 
         // then
@@ -203,7 +222,14 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when and then
-        assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))
+        assertThatThrownBy(() -> bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Error decoding bidRequest.imp.pmp.deal.ext:");
     }
@@ -220,8 +246,14 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -247,7 +279,14 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         // when
-        assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))
+        assertThatThrownBy(() -> bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Bid rate for line item with id lineItemId2 was not found");
     }
