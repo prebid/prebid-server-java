@@ -1,5 +1,7 @@
 package org.prebid.server.execution;
 
+import lombok.Getter;
+
 import java.time.Clock;
 
 /**
@@ -9,6 +11,7 @@ public class Timeout {
 
     private final Clock clock;
 
+    @Getter
     private final long deadline;
 
     Timeout(Clock clock, long deadline) {
@@ -33,9 +36,5 @@ public class Timeout {
      */
     public long remaining() {
         return Math.max(deadline - clock.millis(), 0);
-    }
-
-    public long getDeadline() {
-        return deadline;
     }
 }
