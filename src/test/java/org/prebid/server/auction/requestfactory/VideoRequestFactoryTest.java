@@ -64,6 +64,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class VideoRequestFactoryTest extends VertxTest {
 
@@ -472,6 +473,29 @@ public class VideoRequestFactoryTest extends VertxTest {
                         <Response></Response>
                         <Headers>header1: value1
                         </Headers>""");
+    }
+
+    @Test
+    public void shouldUpdateTimeout() throws JsonProcessingException {
+        // given
+        prepareMinimumSuccessfulConditions();
+
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+                .willAnswer(invocation -> {
+                    final AuctionContext auctionContext = invocation.getArgument(0);
+                    return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
+                });
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(WithPodErrors::getData)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isEqualTo(10000L);
     }
 
     private void prepareMinimumSuccessfulConditions() throws JsonProcessingException {

@@ -1154,6 +1154,91 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         assertThat(result).isFailed().isSameAs(exception);
     }
 
+    @Test
+    public void updateTimeoutShouldReturnSameContextIfNoNeedUpdates() {
+        // given
+        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
+        given(timeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(500L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result).isSameAs(auctionContext);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedTimeout() {
+        // given
+        final Timeout updatedTimeout = mock(Timeout.class);
+
+        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
+        given(timeout.getDeadline()).willReturn(400L);
+        given(updatedTimeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(500L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isSameAs(auctionContext.getBidRequest());
+        assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedBidRequestTmax() {
+        // given
+        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
+        given(timeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(600L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest((request -> request.tmax(500L))));
+        assertThat(result.getTimeout()).isSameAs(timeout);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedTimeoutAndBidRequestTmax() {
+        // given
+        final Timeout updatedTimeout = mock(Timeout.class);
+
+        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
+        given(timeout.getDeadline()).willReturn(400L);
+        given(updatedTimeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(600L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest((request -> request.tmax(500L))));
+        assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
+    }
+
     private static String bidRequestToString(BidRequest bidRequest) {
         try {
             return mapper.writeValueAsString(bidRequest);

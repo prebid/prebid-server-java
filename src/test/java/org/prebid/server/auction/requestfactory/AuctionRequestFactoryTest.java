@@ -639,6 +639,28 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 any());
     }
 
+    @Test
+    public void shouldUpdateTimeout() {
+        // given
+        givenValidBidRequest();
+
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+                .willAnswer(invocation -> {
+                    final AuctionContext auctionContext = invocation.getArgument(0);
+                    return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
+                });
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isEqualTo(10000L);
+    }
+
     private void givenBidRequest(BidRequest bidRequest) {
         try {
             given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(bidRequest));
