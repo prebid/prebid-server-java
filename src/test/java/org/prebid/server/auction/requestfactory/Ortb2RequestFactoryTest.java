@@ -1212,7 +1212,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final AuctionContext result = target.updateTimeout(auctionContext, 0L);
 
         // then
-        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest((request -> request.tmax(500L))));
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
         assertThat(result.getTimeout()).isSameAs(timeout);
     }
 
@@ -1235,7 +1235,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final AuctionContext result = target.updateTimeout(auctionContext, 0L);
 
         // then
-        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest((request -> request.tmax(500L))));
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
         assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
     }
 
