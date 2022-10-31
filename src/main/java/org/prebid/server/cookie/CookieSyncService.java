@@ -367,7 +367,7 @@ public class CookieSyncService {
     }
 
     private BidderUsersyncStatus errorStatus(String bidder, RejectionReason reason, BiddersContext biddersContext) {
-        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(bidder);
         BidderUsersyncStatus.BidderUsersyncStatusBuilder builder = BidderUsersyncStatus.builder()
                 .bidder(cookieFamilyName);
 
