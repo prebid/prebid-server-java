@@ -13,4 +13,8 @@ public class Usersyncer {
     UsersyncMethod iframe;
 
     UsersyncMethod redirect;
+
+    public static Usersyncer of(String cookieFamilyName, UsersyncMethod iframe, UsersyncMethod redirect) {
+        return of(cookieFamilyName, CookieFamilySource.ROOT, iframe, redirect);
+    }
 }
