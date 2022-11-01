@@ -54,12 +54,12 @@ public class DeliveryPlan {
     /**
      * Returns lowest (which means highest priority) token's class value with unspent tokens.
      */
-    public int getHighestUnspentTokensClass() {
+    public Integer getHighestUnspentTokensClass() {
         return deliveryTokens.stream()
                 .filter(token -> token.getUnspent() > 0)
-                .findFirst()
                 .map(DeliveryToken::getPriorityClass)
-                .orElse(Integer.MAX_VALUE);
+                .findFirst()
+                .orElse(null);
     }
 
     /**

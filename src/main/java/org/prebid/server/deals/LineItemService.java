@@ -66,9 +66,9 @@ public class LineItemService {
     private static final String PG_IGNORE_PACING_VALUE = "1";
 
     private final Comparator<LineItem> lineItemComparator = Comparator
-            .comparing(LineItem::getHighestUnspentTokensClass)
-            .thenComparing(LineItem::getRelativePriority)
-            .thenComparing(LineItem::getCpm, Comparator.reverseOrder());
+            .comparing(LineItem::getHighestUnspentTokensClass, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getRelativePriority, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getCpm, Comparator.nullsLast(Comparator.reverseOrder()));
 
     private final int maxDealsPerBidder;
     private final TargetingService targetingService;
@@ -441,8 +441,11 @@ public class LineItemService {
                 .equals(auctionContext.getHttpRequest().getHeaders().get(HttpUtil.PG_IGNORE_PACING));
     }
 
-    private boolean isReadyAtInPast(ZonedDateTime now, LineItem lineItem, AuctionContext auctionContext,
+    private boolean isReadyAtInPast(ZonedDateTime now,
+                                    LineItem lineItem,
+                                    AuctionContext auctionContext,
                                     TxnLog txnLog) {
+
         final ZonedDateTime readyAt = lineItem.getReadyAt();
         final boolean ready = (readyAt != null && isBeforeOrEqual(readyAt, now)) || ignorePacing(auctionContext);
         final String accountId = auctionContext.getAccount().getId();
