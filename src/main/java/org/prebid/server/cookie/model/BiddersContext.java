@@ -1,6 +1,7 @@
 package org.prebid.server.cookie.model;
 
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.SetUtils;
@@ -9,6 +10,7 @@ import org.prebid.server.bidder.UsersyncMethod;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,11 +19,14 @@ import java.util.Set;
 @Value(staticConstructor = "of")
 public class BiddersContext {
 
+    @NonNull
     Set<String> requestedBidders;
 
-    Set<String> coopSyncBidders;
+    @Builder.Default
+    Set<String> coopSyncBidders = new HashSet<>();
 
-    Set<String> multiSyncBidders;
+    @Builder.Default
+    Set<String> multiSyncBidders = new HashSet<>();
 
     @Builder.Default
     Map<String, RejectionReason> rejectedBidders = new HashMap<>();
