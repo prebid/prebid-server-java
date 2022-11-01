@@ -12,11 +12,11 @@ import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.exception.CookieSyncException;
+import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.cookie.model.RejectionReason;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -98,20 +98,21 @@ public class CookieSyncService {
     }
 
     private CookieSyncContext validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext);
         }
 
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsInconsistent(cookieSyncRequest)) {
-            throw new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+            throw new InvalidCookieSyncRequestException("gdpr_consent is required if gdpr is 1", tcfContext);
         }
 
-        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric();
-            throw new InvalidRequestException("Consent string is invalid");
+            throw new InvalidCookieSyncRequestException("Consent string is invalid", tcfContext);
         }
 
         return cookieSyncContext;

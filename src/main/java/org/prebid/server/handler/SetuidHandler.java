@@ -185,7 +185,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext);
         }
     }
 

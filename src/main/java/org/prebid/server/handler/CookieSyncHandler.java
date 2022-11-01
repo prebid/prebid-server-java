@@ -19,10 +19,10 @@ import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.CookieSyncException;
+import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
@@ -125,7 +125,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private CookieSyncRequest parseRequest(RoutingContext routingContext) {
         final Buffer body = routingContext.getBody();
         if (body == null) {
-            throw new InvalidRequestException("Request has no body");
+            throw new InvalidCookieSyncRequestException("Request has no body");
         }
 
         try {
@@ -133,7 +133,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         } catch (DecodeException e) {
             final String message = "Request body cannot be parsed";
             logger.info(message, e);
-            throw new InvalidRequestException(message);
+            throw new InvalidCookieSyncRequestException(message);
         }
     }
 
@@ -170,7 +170,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final HttpResponseStatus status;
         final String body;
 
-        if (error instanceof InvalidRequestException) {
+        if (error instanceof InvalidCookieSyncRequestException) {
             status = HttpResponseStatus.BAD_REQUEST;
             body = "Invalid request format: " + message;
 

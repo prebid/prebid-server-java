@@ -1,8 +1,10 @@
 package org.prebid.server.cookie.exception;
 
-public class UnauthorizedUidsException extends RuntimeException {
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 
-    public UnauthorizedUidsException(String message) {
-        super(message);
+public class UnauthorizedUidsException extends CookieSyncException {
+
+    public UnauthorizedUidsException(String message, TcfContext tcfContext) {
+        super(message, tcfContext);
     }
 }
