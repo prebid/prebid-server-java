@@ -1084,6 +1084,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<Eid> resolvedExtUserEids = hasStypeToRemove
                 ? prepareExtUserEids(extUserEids)
                 : extUserEids;
+        final boolean hasDataToRemove = ObjectUtil.getIfNotNull(user, User::getData) != null;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
         final String liverampId = extractLiverampId(sourceToUserEidExt);
@@ -1094,8 +1095,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && liverampId == null
                 && resolvedId == null
                 && Objects.equals(userBuyeruid, resolvedBuyeruid)
-                && !hasStypeToRemove) {
-            return user;
+                && !hasStypeToRemove
+        ) {
+
+            return hasDataToRemove
+                    ? user.toBuilder().data(null).build()
+                    : user;
         }
 
         final ExtUser userExt = extUser != null
@@ -1119,6 +1124,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .gender(null)
                 .yob(null)
                 .geo(null)
+                .data(null)
                 .ext(mapper.fillExtension(userExt, rubiconUserExt))
                 .build();
     }
@@ -1345,16 +1351,23 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
-        if (StringUtils.isBlank(impLanguage)) {
+        final boolean hasDataToRemove = ObjectUtil.getIfNotNull(siteContent, Content::getData) != null;
+        final String contentLanguage = ObjectUtil.getIfNotNull(siteContent, Content::getLanguage);
+        if ((StringUtils.isBlank(impLanguage) || StringUtils.isNotBlank(contentLanguage))
+                && !hasDataToRemove) {
             return siteContent;
         }
-        if (siteContent == null) {
-            return Content.builder().language(impLanguage).build();
-        } else {
-            return StringUtils.isBlank(siteContent.getLanguage())
-                    ? siteContent.toBuilder().language(impLanguage).build()
-                    : siteContent;
-        }
+
+        return (siteContent == null ? Content.builder() : siteContent.toBuilder())
+                .data(null)
+                .language(resolveLanguage(contentLanguage, impLanguage))
+                .build();
+    }
+
+    private static String resolveLanguage(String contentLanguage, String impLanguage) {
+        return StringUtils.isNotBlank(impLanguage) && StringUtils.isBlank(contentLanguage)
+                ? impLanguage
+                : contentLanguage;
     }
 
     private Publisher makePublisher(ExtImpRubicon rubiconImpExt) {

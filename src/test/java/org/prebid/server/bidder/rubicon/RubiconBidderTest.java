@@ -788,6 +788,28 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldRemoveUserDataObject() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .data(singletonList(
+                                givenDataWithSegmentEntry(4, "segmentId")
+                        )).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .containsNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualFour() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -855,6 +877,35 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> ext.getProperty("rp"))
                 .extracting(rp -> rp.get("target"))
                 .containsExactly(expectedTarget);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRemoveSiteContentDataObject() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(asList(
+                                        givenDataWithSegmentEntry(1, "firstSegmentId"),
+                                        givenDataWithSegmentEntry(2, "secondSegmentId"),
+                                        givenDataWithSegmentEntry(3, "thirdSegmentId"),
+                                        givenDataWithSegmentEntry(5, "fifthSegmentId"),
+                                        givenDataWithSegmentEntry(6, "sixthSegmentId")))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite).doesNotContainNull()
+                .extracting(Site::getContent)
+                .extracting(Content::getData)
+                .containsNull();
     }
 
     @Test
