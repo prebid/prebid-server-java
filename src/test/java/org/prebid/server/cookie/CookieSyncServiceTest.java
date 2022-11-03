@@ -1,6 +1,7 @@
 package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
+import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,6 +73,8 @@ public class CookieSyncServiceTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private UsersyncMethodChooser usersyncMethodChooser;
+    @Mock
+    private RoutingContext routingContext;
 
     private CookieSyncService target;
 
@@ -278,7 +281,7 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldResolveBiddersToSync() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         final CookieSyncContext cookieSyncContext = CookieSyncContext.builder()
                 .cookieSyncRequest(CookieSyncRequest.builder().bidders(singleton("requested-bidder")).build())
@@ -306,13 +309,12 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldRejectInvalidBidders() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
         givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
 
-        given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any())).willReturn(
-                Future.succeededFuture(givenAllAllowedTcfResponse("requested-bidder", "coop-sync-bidder")));
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
                 builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder", "invalid-bidder")));
@@ -331,14 +333,13 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldRejectDisabledBidders() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         given(bidderCatalog.isValidName("disabled-bidder")).willReturn(true);
         givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
         givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
 
-        given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any())).willReturn(
-                Future.succeededFuture(givenAllAllowedTcfResponse("requested-bidder", "coop-sync-bidder")));
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
                 builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder", "disabled-bidder")));
@@ -357,13 +358,12 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldRejectBiddersWithoutUsersync() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         givenValidActiveBidders("requested-bidder", "coop-sync-bidder", "bidder-without-usersync");
         givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
 
-        given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any())).willReturn(
-                Future.succeededFuture(givenAllAllowedTcfResponse("requested-bidder", "coop-sync-bidder")));
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
                 builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder", "bidder-without-usersync")));
@@ -382,15 +382,14 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldApplyRequestFilteringRules() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
         givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
 
         given(usersyncMethodChooser.choose(any(), eq("coop-sync-bidder"))).willReturn(null);
 
-        given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any())).willReturn(
-                Future.succeededFuture(givenAllAllowedTcfResponse("requested-bidder", "coop-sync-bidder")));
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
                 builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder")));
@@ -409,7 +408,7 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldApplyPrivacyFilteringRules() {
         // given
-        given(coopSyncProvider.coopSyncBidders(any())).willReturn(singleton("coop-sync-bidder"));
+        givenCoopSyncBidders("coop-sync-bidder");
 
         givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
         givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
@@ -436,15 +435,34 @@ public class CookieSyncServiceTest extends VertxTest {
                 .isEqualTo(Map.of("requested-bidder", RejectionReason.REJECTED_BY_TCF));
     }
 
-    private PrivacyContext givenAllAllowedPrivacyContext() {
-        return givenPrivacyContext(TcfContext.builder().inGdprScope(false).build());
+    @Test
+    public void processContextShouldFilterInSyncBidders() {
+        // given
+        givenCoopSyncBidders("coop-sync-bidder");
+
+        givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
+
+        given(uidsCookie.hasLiveUidFrom("requested-bidder")).willReturn(true);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
+                builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder")));
+
+        // when
+        final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
+
+        // then
+        assertThat(result).isSucceeded()
+                .unwrap()
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::rejectedBidders)
+                .isEqualTo(Map.of("requested-bidder", RejectionReason.ALREADY_IN_SYNC));
     }
 
-    private TcfResponse<String> givenAllAllowedTcfResponse(String... bidders) {
-        final Map<String, PrivacyEnforcementAction> actions = Arrays.stream(bidders)
-                .collect(Collectors.toMap(identity(), ignored -> PrivacyEnforcementAction.allowAll()));
-
-        return TcfResponse.of(false, actions, "country");
+    private PrivacyContext givenAllAllowedPrivacyContext() {
+        return givenPrivacyContext(TcfContext.builder().inGdprScope(false).build());
     }
 
     private PrivacyContext givenPrivacyContext(TcfContext tcfContext) {
@@ -458,6 +476,20 @@ public class CookieSyncServiceTest extends VertxTest {
     private void givenValidActiveBidder(String bidder) {
         given(bidderCatalog.isValidName(bidder)).willReturn(true);
         given(bidderCatalog.isActive(bidder)).willReturn(true);
+    }
+
+    private void givenCoopSyncBidders(String... bidders) {
+        given(coopSyncProvider.coopSyncBidders(any())).willReturn(Arrays.stream(bidders).collect(Collectors.toSet()));
+    }
+
+    private void givenAllAllowedTcfResultForBidders(String... bidders) {
+        final Map<String, PrivacyEnforcementAction> actions = Arrays.stream(bidders)
+                .collect(Collectors.toMap(identity(), ignored -> PrivacyEnforcementAction.allowAll()));
+
+        final TcfResponse<String> tcfResponse = TcfResponse.of(true, actions, "country");
+
+        given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfResponse));
     }
 
     private void givenUsersyncersForBidders(String... bidders) {
@@ -510,6 +542,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final CookieSyncContext.CookieSyncContextBuilder builder = CookieSyncContext.builder()
                 .cookieSyncRequest(CookieSyncRequest.builder().bidders(singleton("requested-bidder")).build())
                 .privacyContext(givenAllAllowedPrivacyContext())
+                .routingContext(routingContext)
                 .uidsCookie(uidsCookie)
                 .biddersContext(BiddersContext.builder().requestedBidders(emptySet()).build())
                 .usersyncMethodChooser(usersyncMethodChooser)
