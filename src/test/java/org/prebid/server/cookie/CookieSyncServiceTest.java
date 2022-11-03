@@ -19,6 +19,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.model.RejectionReason;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -30,6 +31,7 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
@@ -461,6 +463,55 @@ public class CookieSyncServiceTest extends VertxTest {
                 .isEqualTo(Map.of("requested-bidder", RejectionReason.ALREADY_IN_SYNC));
     }
 
+    @Test
+    public void prepareResponseShouldReturnOkStatusWhenUidsCookieHasLiveUids() {
+        // given
+        given(uidsCookie.hasLiveUids()).willReturn(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(UnaryOperator.identity());
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(CookieSyncStatus.OK);
+    }
+
+    @Test
+    public void prepareResponseShouldReturnNoCookieStatusWhenUidsCookieHasNoLiveUids() {
+        // given
+        given(uidsCookie.hasLiveUids()).willReturn(false);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(UnaryOperator.identity());
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(CookieSyncStatus.NO_COOKIE);
+    }
+
+    @Test
+    public void prepareResponseShouldLimitResponseStatuses() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.limit(1),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
     private PrivacyContext givenAllAllowedPrivacyContext() {
         return givenPrivacyContext(TcfContext.builder().inGdprScope(false).build());
     }
@@ -497,20 +548,23 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private void givenUsersyncerForBidder(String bidder) {
-        givenUsersyncerForBidder(bidder, bidder);
+        givenUsersyncerForBidder(bidder, bidder + "-cookie-family");
     }
 
     private void givenUsersyncerForBidder(String bidder, String cookieFamilyName) {
-        final UsersyncMethod usersyncMethod = UsersyncMethod.builder()
-                .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("https://" + bidder + "-usersync-url.com")
-                .build();
-
+        final UsersyncMethod usersyncMethod = givenUsersyncMethod(bidder);
         final Usersyncer usersyncer = Usersyncer.of(cookieFamilyName, CookieFamilySource.ROOT, usersyncMethod, null);
 
         given(bidderCatalog.usersyncerByName(eq(bidder))).willReturn(Optional.of(usersyncer));
         given(bidderCatalog.cookieFamilyName(eq(bidder))).willReturn(Optional.of(cookieFamilyName));
         given(usersyncMethodChooser.choose(eq(usersyncer), eq(bidder))).willReturn(usersyncMethod);
+    }
+
+    private UsersyncMethod givenUsersyncMethod(String bidder) {
+        return UsersyncMethod.builder()
+                .type(UsersyncMethodType.IFRAME)
+                .usersyncUrl("https://" + bidder + "-usersync-url.com")
+                .build();
     }
 
     private Account givenEmptyAccount() {
@@ -537,18 +591,29 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private CookieSyncContext givenCookieSyncContext(
-            UnaryOperator<CookieSyncContext.CookieSyncContextBuilder> builderModifier) {
+            UnaryOperator<CookieSyncContext.CookieSyncContextBuilder> cookieSyncContextModifier) {
+
+        return givenCookieSyncContext(cookieSyncContextModifier, UnaryOperator.identity());
+    }
+
+    private CookieSyncContext givenCookieSyncContext(
+            UnaryOperator<CookieSyncContext.CookieSyncContextBuilder> cookieSyncContextModifier,
+            UnaryOperator<BiddersContext.BiddersContextBuilder> buildersContextModifier) {
+
+        final BiddersContext biddersContext = buildersContextModifier
+                .apply(BiddersContext.builder().requestedBidders(emptySet()))
+                .build();
 
         final CookieSyncContext.CookieSyncContextBuilder builder = CookieSyncContext.builder()
                 .cookieSyncRequest(CookieSyncRequest.builder().bidders(singleton("requested-bidder")).build())
                 .privacyContext(givenAllAllowedPrivacyContext())
                 .routingContext(routingContext)
                 .uidsCookie(uidsCookie)
-                .biddersContext(BiddersContext.builder().requestedBidders(emptySet()).build())
+                .biddersContext(biddersContext)
                 .usersyncMethodChooser(usersyncMethodChooser)
                 .account(givenEmptyAccount());
 
-        return builderModifier.apply(builder).build();
+        return cookieSyncContextModifier.apply(builder).build();
     }
 
     private CookieSyncRequest givenCookieSyncRequest(String... bidders) {

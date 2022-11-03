@@ -17,6 +17,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.model.RejectionReason;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -300,7 +301,9 @@ public class CookieSyncService {
     }
 
     public CookieSyncResponse prepareResponse(CookieSyncContext cookieSyncContext) {
-        final String cookieSyncStatus = cookieSyncContext.getUidsCookie().hasLiveUids() ? "ok" : "no_cookie";
+        final CookieSyncStatus cookieSyncStatus = cookieSyncContext.getUidsCookie().hasLiveUids()
+                ? CookieSyncStatus.OK
+                : CookieSyncStatus.NO_COOKIE;
 
         final Set<String> biddersToSync = biddersToSync(cookieSyncContext);
 

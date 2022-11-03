@@ -25,6 +25,7 @@ import org.prebid.server.cookie.exception.CookieSyncException;
 import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -240,7 +241,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
-        given(cookieSyncService.prepareResponse(any())).willReturn(CookieSyncResponse.of("status", emptyList()));
+        given(cookieSyncService.prepareResponse(any()))
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
 
         // when
         target.handle(routingContext);
@@ -338,7 +340,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of("status", bidderStatuses));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, bidderStatuses));
 
         // when
         target.handle(routingContext);
@@ -374,7 +376,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     private void givenDefaultCookieSyncServicePipelineResult() {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
-        given(cookieSyncService.prepareResponse(any())).willReturn(CookieSyncResponse.of("status", emptyList()));
+        given(cookieSyncService.prepareResponse(any()))
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
     }
 
     private CookieSyncEvent captureCookieSyncTcfEvent() {
