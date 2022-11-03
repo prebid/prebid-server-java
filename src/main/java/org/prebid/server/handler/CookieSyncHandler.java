@@ -102,7 +102,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final BiddersContext biddersContext = BiddersContext.builder()
-                .requestedBidders(cookieSyncRequest.getBidders())
+                .requestedBidders(SetUtils.emptyIfNull(cookieSyncRequest.getBidders()))
                 .build();
 
         return accountById(requestAccount, timeout)

@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -142,8 +143,11 @@ public class CookieSyncService {
     private CookieSyncContext resolveBiddersToSync(CookieSyncContext cookieSyncContext) {
         // TODO: Add multisync bidders from 1.a)
         // TODO: filter that are done with multisync
+        final Set<String> requestedBidders = SetUtils.emptyIfNull(
+                cookieSyncContext.getCookieSyncRequest().getBidders());
+
         final BiddersContext updatedContext = cookieSyncContext.getBiddersContext().toBuilder()
-                .requestedBidders(cookieSyncContext.getCookieSyncRequest().getBidders())
+                .requestedBidders(requestedBidders)
                 .coopSyncBidders(coopSyncProvider.coopSyncBidders(cookieSyncContext))
                 .multiSyncBidders(Set.of())
                 .build();
