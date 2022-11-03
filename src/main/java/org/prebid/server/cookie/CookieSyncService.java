@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -335,17 +336,22 @@ public class CookieSyncService {
 
     private List<BidderUsersyncStatus> validStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
         return biddersToSync.stream()
-                .map(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow())
-                .distinct()
-                .map(cookieFamilyName -> validStatus(cookieFamilyName, cookieSyncContext))
+                .filter(distinctBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
+                .map(bidder -> validStatus(bidder, cookieSyncContext))
                 .toList();
     }
 
-    private BidderUsersyncStatus validStatus(String cookieFamilyName, CookieSyncContext cookieSyncContext) {
+    public static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = new HashSet<>();
+        return value -> seen.add(keyExtractor.apply(value));
+    }
+
+    private BidderUsersyncStatus validStatus(String bidder, CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
 
-        final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(cookieFamilyName);
+        final UsersyncMethod usersyncMethod = biddersContext.bidderUsersyncMethod().get(bidder);
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final String hostCookieUid = uidsCookieService.hostCookieUidToSync(routingContext, cookieFamilyName);
 
