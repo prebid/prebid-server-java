@@ -22,6 +22,7 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.bidder.UsersyncMethodType;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -355,7 +356,7 @@ public class ApplicationTest extends IntegrationTest {
                 .as(CookieSyncResponse.class);
 
         // then
-        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
         assertThat(cookieSyncResponse.getBidderStatus())
                 .hasSize(2)
                 .containsOnly(BidderUsersyncStatus.builder()
