@@ -1,7 +1,6 @@
 package org.prebid.server.exception;
 
 import lombok.Getter;
-import org.prebid.server.cookie.exception.CookieSyncException;
 
 import java.util.Collections;
 import java.util.List;
