@@ -291,8 +291,7 @@ public class WebConfiguration {
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PrivacyEnforcementService privacyEnforcementService,
-            TcfDefinerService tcfDefinerService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            HostVendorTcfDefinerService tcfDefinerService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
@@ -304,7 +303,6 @@ public class WebConfiguration {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                hostVendorId,
                 analyticsReporter,
                 metrics,
                 timeoutFactory);

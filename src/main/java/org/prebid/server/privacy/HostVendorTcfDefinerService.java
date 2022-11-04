@@ -34,6 +34,10 @@ public class HostVendorTcfDefinerService {
         return gdprHostVendorId;
     }
 
+    public Integer getGdprHostVendorId() {
+        return gdprHostVendorId;
+    }
+
     /**
      * If host vendor id is null, host allowed to sync cookies.
      */
