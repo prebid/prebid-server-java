@@ -76,6 +76,7 @@ public class CookieSyncService {
                              Metrics metrics) {
 
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
+        validateLimits(defaultLimit, maxLimit);
         this.defaultLimit = defaultLimit;
         this.maxLimit = maxLimit;
 
@@ -85,6 +86,14 @@ public class CookieSyncService {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.coopSyncProvider = Objects.requireNonNull(coopSyncProvider);
         this.metrics = Objects.requireNonNull(metrics);
+    }
+
+    private static void validateLimits(int limit, int maxLimit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit should be greater than 0");
+        } else if (maxLimit < limit) {
+            throw new IllegalArgumentException("Max limit should be greater or equal than limit");
+        }
     }
 
     public Future<CookieSyncContext> processContext(CookieSyncContext cookieSyncContext) {
@@ -438,7 +447,7 @@ public class CookieSyncService {
 
         if (hostCookieUid != null) {
             final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
-                    externalUrl, cookieFamilyName, HttpUtil.encodeUrl(hostCookieUid));
+                    externalUrl, HttpUtil.encodeUrl(cookieFamilyName), HttpUtil.encodeUrl(hostCookieUid));
 
             usersyncInfoBuilder
                     .usersyncUrl(UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod)))
