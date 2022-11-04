@@ -5,13 +5,11 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
-import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
@@ -73,54 +71,6 @@ class SmokeSpec extends BaseSpec {
         def storedRequestBidders = ampStoredRequest.requestBidders
         def responseBidders = response.ext?.debug?.bidders
         assert responseBidders.keySet() == storedRequestBidders.toSet()
-    }
-
-    def "Call PBS /cookie_sync without uids cookie should return element.usersync.url"() {
-        given: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain all bidders"
-        assert response.status == CookieSyncResponse.Status.NO_COOKIE
-        assert response.bidderStatus?.size() == cookieSyncRequest.bidders.size()
-        def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert bidderStatus?.userSync?.url
-        assert bidderStatus?.userSync?.type
-    }
-
-    def "Call PBS /cookie_sync with valid uids cookie should return status OK"() {
-        given: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
-
-        then: "Response should have status 'OK'"
-        assert response.status == CookieSyncResponse.Status.OK
-
-        and: "Response should contain all bidders"
-        assert !response.getBidderUserSync(GENERIC)
-    }
-
-    def "Call PBS /cookie_sync to bidder which doesn't support syncing should return status OK and error for bidder"() {
-        given: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        when: "PBS processes cookie sync request"
-        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
-
-        then: "Response should have status 'OK'"
-        assert response.status == CookieSyncResponse.Status.OK
-
-        and: "Status for generic bidder should contain error"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert bidderStatus.error == "generic is requested for syncing, but doesn't have appropriate sync method"
-        assert !bidderStatus.userSync
-        assert !bidderStatus.noCookie
     }
 
     def "PBS should set uids cookie"() {

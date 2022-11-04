@@ -17,7 +17,7 @@ class PrivacyCookieSyncSpec extends PrivacyBaseSpec {
         def ccpaConsent = new CcpaConsent(optOutSale: ENFORCED)
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             account = accountId
-
+            debug = true
             bidders = [bidder]
             usPrivacy = ccpaConsent
         }
