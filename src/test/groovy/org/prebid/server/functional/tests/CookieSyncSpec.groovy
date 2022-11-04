@@ -236,7 +236,7 @@ class CookieSyncSpec extends BaseSpec {
         assert bidderStatus?.error == "No sync config"
     }
 
-    def "PBS cookie_sync with bidder which disabled in config should be mention in response error"() {
+    def "PBS cookie sync with bidder which disabled in config should be mention in response error"() {
         given: "PBS config with disabled bidder"
         def prebidServerService = pbsServiceFactory.getService(["adapters.generic.enabled": "false"])
 
@@ -361,5 +361,4 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus.error == "Rejected by CCPA"
     }
-
 }
