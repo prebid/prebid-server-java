@@ -367,6 +367,32 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnResultWithAuctionEnvironment() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder()
+                                .id("impId2")
+                                .banner(Banner.builder().build())
+                                .tagid("unitId")
+                                .ext(mapper.valueToTree(Map.of("ae", 1, "bidder", Map.of())))
+                                .build())
+                        ).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .contains(
+                        mapper.valueToTree(Map.of("ae", 1))
+                );
+    }
+
+    @Test
     public void makeHttpRequestShouldReturnResultWithCustomBidFloorIfImpBidFloorIsNegative() {
         // given
         final BidRequest bidRequest = BidRequest.builder()

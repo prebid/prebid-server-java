@@ -25,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -87,13 +88,17 @@ public class OpenxBidder implements Bidder<BidRequest> {
                                           List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
-        bidRequests.add(createSingleRequest(bannerImps, bidRequest, errors));
+        final BidRequest bannerRequest = createSingleRequest(bannerImps, bidRequest, errors);
+        if (bannerRequest != null) {
+            bidRequests.add(bannerRequest);
+        }
 
         if (CollectionUtils.isNotEmpty(videoImps)) {
             // single request for each video imp
             bidRequests.addAll(videoImps.stream()
                     .map(Collections::singletonList)
                     .map(imps -> createSingleRequest(imps, bidRequest, errors))
+                    .filter(Objects::nonNull)
                     .toList());
         }
         return bidRequests;
@@ -162,7 +167,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
-                .ext(makeImpExt(openxImpExt.getCustomParams()));
+                .ext(makeImpExt(openxImpExt.getCustomParams(), impExt.getAuctionEnvironment()));
 
         if (resolveImpType(imp) == OpenxImpType.video
                 && prebidImpExt != null
@@ -207,14 +212,14 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impExt;
     }
 
-    private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
-        return customParams != null
-                ? mapper.mapper().valueToTree(OpenxImpExt.of(customParams))
+    private ObjectNode makeImpExt(Map<String, JsonNode> customParams, ExtImpAuctionEnvironment auctionEnvironment) {
+        return customParams != null || auctionEnvironment != ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION
+                ? mapper.mapper().valueToTree(OpenxImpExt.of(customParams, auctionEnvironment))
                 : null;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) // TODO fledge with no bids
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
