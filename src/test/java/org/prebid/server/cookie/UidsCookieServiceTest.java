@@ -438,6 +438,141 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(hostCookie).isNull();
     }
 
+    @Test
+    public void hostCookieUidToSyncShouldReturnNullWhenCookieFamilyNameDiffersFromHostCookieFamily() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                jacksonMapper);
+
+        // when
+        final String result = uidsCookieService.hostCookieUidToSync(routingContext, "cookie-family");
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void hostCookieUidToSyncShouldReturnNullWhenHostCookieUidIsAbsent() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                jacksonMapper);
+
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(Map.of("cookie-family", UidWithExpiry.live("hostCookieUid"))).build(),
+                jacksonMapper);
+        final String uidsCookieBase64 = Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes());
+
+        final Map<String, Cookie> cookieMap = Map.of(
+                "khaos", Cookie.cookie("khaos", "hostCookieUid"),
+                "uids", Cookie.cookie("uids", uidsCookieBase64));
+
+        given(routingContext.cookieMap()).willReturn(cookieMap);
+
+        // when
+        final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void hostCookieUidToSyncShouldReturnNullWhenUidsCookieHasNoUidForHostCookieFamily() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                jacksonMapper);
+
+        given(routingContext.cookieMap()).willReturn(emptyMap());
+
+        // when
+        final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void hostCookieUidToSyncShouldReturnNewUidWhenNewUidIsPresentForHostInUidsCookie() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                jacksonMapper);
+
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(Map.of(RUBICON, UidWithExpiry.live("newHostCookieUid"))).build(),
+                jacksonMapper);
+        final String uidsCookieBase64 = Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes());
+
+        final Map<String, Cookie> cookieMap = Map.of(
+                "khaos", Cookie.cookie("khaos", "hostCookieUid"),
+                "uids", Cookie.cookie("uids", uidsCookieBase64));
+
+        given(routingContext.cookieMap()).willReturn(cookieMap);
+
+        // when
+        final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
+
+        // then
+        assertThat(result).isEqualTo("newHostCookieUid");
+    }
+
+    @Test
+    public void hostCookieUidToSyncShouldReturnNullWhenUidInUidsCookieSameAsUidInHostCookie() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                jacksonMapper);
+
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(Map.of(RUBICON, UidWithExpiry.live("hostCookieUid"))).build(),
+                jacksonMapper);
+        final String uidsCookieBase64 = Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes());
+
+        final Map<String, Cookie> cookieMap = Map.of(
+                "khaos", Cookie.cookie("khaos", "hostCookieUid"),
+                "uids", Cookie.cookie("uids", uidsCookieBase64));
+
+        given(routingContext.cookieMap()).willReturn(cookieMap);
+
+        // when
+        final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
+
+        // then
+        assertThat(result).isNull();
+    }
+
     private static String encodeUids(Uids uids) throws JsonProcessingException {
         return Base64.getUrlEncoder().encodeToString(mapper.writeValueAsBytes(uids));
     }
