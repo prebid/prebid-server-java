@@ -648,6 +648,18 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
+        // when
+        metrics.updateCookieSyncFilteredMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+
+        // then
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.filtered").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.conversant.filtered").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateGpRequestMetricShouldIncrementPlannerRequestAndPlannerSuccessfulRequest() {
         // when
         metrics.updatePlannerRequestMetric(true);
