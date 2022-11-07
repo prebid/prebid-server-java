@@ -66,6 +66,7 @@ import static org.assertj.core.api.Assertions.within;
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
+    private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String RUBICON = "rubicon";
 
@@ -359,7 +360,7 @@ public class ApplicationTest extends IntegrationTest {
         assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
         assertThat(cookieSyncResponse.getBidderStatus()).containsExactly(
                 BidderUsersyncStatus.builder()
-                        .bidder(APPNEXUS)
+                        .bidder(APPNEXUS_COOKIE_FAMILY)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
                                 "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
