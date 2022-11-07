@@ -118,6 +118,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -1352,16 +1353,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
         final boolean hasDataToRemove = ObjectUtil.getIfNotNull(siteContent, Content::getData) != null;
-        final String contentLanguage = ObjectUtil.getIfNotNull(siteContent, Content::getLanguage);
-        if ((StringUtils.isBlank(impLanguage) || StringUtils.isNotBlank(contentLanguage))
-                && !hasDataToRemove) {
-            return siteContent;
-        }
 
-        return (siteContent == null ? Content.builder() : siteContent.toBuilder())
+        final String contentLanguage = ObjectUtil.getIfNotNull(siteContent, Content::getLanguage);
+        final String resolvedLanguage = StringUtils.isBlank(contentLanguage) && StringUtils.isNotBlank(impLanguage)
+                ? impLanguage
+                : null;
+
+        return resolvedLanguage != null || hasDataToRemove
+                ? Optional.ofNullable(siteContent)
+                .map(Content::toBuilder)
+                .orElseGet(Content::builder)
                 .data(null)
-                .language(resolveLanguage(contentLanguage, impLanguage))
-                .build();
+                .language(resolvedLanguage != null ? resolvedLanguage : contentLanguage)
+                .build()
+                : siteContent;
     }
 
     private static String resolveLanguage(String contentLanguage, String impLanguage) {
