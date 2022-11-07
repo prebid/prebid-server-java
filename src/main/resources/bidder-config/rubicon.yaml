@@ -1,6 +1,5 @@
 adapters:
   rubicon:
-    enabled: true
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     meta-info:
       maintainer-email: header-bidding@rubiconproject.com
