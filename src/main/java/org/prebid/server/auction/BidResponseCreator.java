@@ -91,7 +91,6 @@ import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.LineItemUtil;
-import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -1432,17 +1431,14 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalytics();
-        final AccountAuctionEventConfig accountAuctionEventConfig =
-                ObjectUtil.getIfNotNull(analyticsConfig, AccountAnalyticsConfig::getAuctionEvents);
-        final Map<String, Boolean> accountAuctionEvents =
-                ObjectUtil.getIfNotNull(accountAuctionEventConfig, AccountAuctionEventConfig::getEvents);
-        final Map<String, Boolean> channelConfig =
-                ObjectUtils.defaultIfNull(accountAuctionEvents, AccountAnalyticsConfig.fallbackAuctionEvents());
+        final Map<String, Boolean> channelConfig = Optional.ofNullable(auctionContext.getAccount().getAnalytics())
+                .map(AccountAnalyticsConfig::getAuctionEvents)
+                .map(AccountAuctionEventConfig::getEvents)
+                .orElseGet(AccountAnalyticsConfig::fallbackAuctionEvents);
 
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
-        return MapUtils.emptyIfNull(channelConfig).entrySet().stream()
+        return channelConfig.entrySet().stream()
                 .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
                 .findFirst()
                 .map(entry -> BooleanUtils.isTrue(entry.getValue()))
