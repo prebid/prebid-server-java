@@ -1330,10 +1330,11 @@ public class RubiconBidderTest extends VertxTest {
                 .put("property3", 123)
                 .put("property4", false)
                 .<ObjectNode>set("property5", mapper.createArrayNode().add(true).add(false))
+                .<ObjectNode>set("property6", mapper.createArrayNode().add(1).add(2))
                 // remnants will be discarded
-                .<ObjectNode>set("property6", mapper.createArrayNode().add("value1").add(123))
-                .<ObjectNode>set("property7", mapper.createObjectNode().put("sub-property1", "value1"))
-                .put("property8", 123.456d);
+                .<ObjectNode>set("property7", mapper.createArrayNode().add("value1").add(123))
+                .<ObjectNode>set("property8", mapper.createObjectNode().put("sub-property1", "value1"))
+                .put("property9", 123.456d);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
@@ -1364,7 +1365,10 @@ public class RubiconBidderTest extends VertxTest {
                                         .<ObjectNode>set("property4", mapper.createArrayNode().add("false"))
                                         .<ObjectNode>set("property5", mapper.createArrayNode()
                                                 .add("true")
-                                                .add("false"))))
+                                                .add("false"))
+                                        .<ObjectNode>set("property6", mapper.createArrayNode()
+                                                .add("1")
+                                                .add("2"))))
                                 .build()));
     }
 

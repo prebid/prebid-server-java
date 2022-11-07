@@ -827,6 +827,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 mergeIntoArray(targetNode, currentFieldName, Boolean.toString(currentField.booleanValue()));
             } else if (isBooleanArray(currentField)) {
                 mergeIntoArray(targetNode, currentFieldName, booleanArrayToStringList(currentField));
+            } else if (isIntegerArray(currentField)) {
+                mergeIntoArray(targetNode, currentFieldName, integerArrayToStringList(currentField));
             }
         }
     }
@@ -837,6 +839,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static boolean isBooleanArray(JsonNode node) {
         return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isBoolean);
+    }
+
+    private static boolean isIntegerArray(JsonNode node) {
+        return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isIntegralNumber);
     }
 
     private ArrayNode stringsToStringArray(String... values) {
@@ -859,6 +865,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StreamSupport.stream(booleanArray.spliterator(), false)
                 .map(JsonNode::booleanValue)
                 .map(value -> Boolean.toString(value))
+                .toList();
+    }
+
+    private static List<String> integerArrayToStringList(JsonNode booleanArray) {
+        return StreamSupport.stream(booleanArray.spliterator(), false)
+                .map(JsonNode::intValue)
+                .map(value -> Integer.toString(value))
                 .toList();
     }
 
