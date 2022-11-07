@@ -358,7 +358,18 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
-        assertThat(cookieSyncResponse.getBidderStatus()).containsExactly(
+        assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
+                BidderUsersyncStatus.builder()
+                        .bidder(RUBICON)
+                        .noCookie(true)
+                        .usersync(UsersyncInfo.of(
+                                "http://localhost:8080/setuid?bidder=rubicon"
+                                        + "&gdpr=1&gdpr_consent=" + gdprConsent
+                                        + "&us_privacy=1YNN"
+                                        + "&f=i"
+                                        + "&uid=host-cookie-uid",
+                                UsersyncMethodType.REDIRECT, false))
+                        .build(),
                 BidderUsersyncStatus.builder()
                         .bidder(APPNEXUS_COOKIE_FAMILY)
                         .noCookie(true)

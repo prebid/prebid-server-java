@@ -241,11 +241,13 @@ public class UidsCookieService {
             return null;
         }
 
-        return Optional.ofNullable(parseUids(cookies))
+        final boolean inSync = Optional.ofNullable(parseUids(cookies))
                 .map(Uids::getUids)
                 .map(uids -> uids.get(cookieFamilyName))
                 .map(UidWithExpiry::getUid)
-                .filter(uid -> !StringUtils.equals(hostCookieUid, uid))
-                .orElse(null);
+                .filter(uid -> StringUtils.equals(hostCookieUid, uid))
+                .isPresent();
+
+        return inSync ? null : hostCookieUid;
     }
 }

@@ -459,7 +459,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void hostCookieUidToSyncShouldReturnNullWhenHostCookieUidIsAbsent() {
+    public void hostCookieUidToSyncShouldReturnHostCookieUidWhenHostCookieUidIsAbsent() {
         // given
         uidsCookieService = new UidsCookieService(
                 "trp_optout",
@@ -486,7 +486,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
 
         // then
-        assertThat(result).isNull();
+        assertThat(result).isEqualTo("hostCookieUid");
     }
 
     @Test
@@ -509,37 +509,6 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         assertThat(result).isNull();
-    }
-
-    @Test
-    public void hostCookieUidToSyncShouldReturnNewUidWhenNewUidIsPresentForHostInUidsCookie() {
-        // given
-        uidsCookieService = new UidsCookieService(
-                "trp_optout",
-                "true",
-                RUBICON,
-                "khaos",
-                "cookie-domain",
-                90,
-                MAX_COOKIE_SIZE_BYTES,
-                jacksonMapper);
-
-        final UidsCookie uidsCookie = new UidsCookie(
-                Uids.builder().uids(Map.of(RUBICON, UidWithExpiry.live("newHostCookieUid"))).build(),
-                jacksonMapper);
-        final String uidsCookieBase64 = Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes());
-
-        final Map<String, Cookie> cookieMap = Map.of(
-                "khaos", Cookie.cookie("khaos", "hostCookieUid"),
-                "uids", Cookie.cookie("uids", uidsCookieBase64));
-
-        given(routingContext.cookieMap()).willReturn(cookieMap);
-
-        // when
-        final String result = uidsCookieService.hostCookieUidToSync(routingContext, RUBICON);
-
-        // then
-        assertThat(result).isEqualTo("newHostCookieUid");
     }
 
     @Test
