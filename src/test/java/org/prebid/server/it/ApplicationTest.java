@@ -21,6 +21,7 @@ import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -365,7 +366,7 @@ public class ApplicationTest extends IntegrationTest {
                                                 + "&us_privacy=1YNN"
                                                 + "&f=i"
                                                 + "&uid=host-cookie-uid",
-                                        "redirect", false))
+                                        UsersyncMethodType.REDIRECT, false))
                                 .build(),
                         BidderUsersyncStatus.builder()
                                 .bidder(APPNEXUS)
@@ -374,9 +375,9 @@ public class ApplicationTest extends IntegrationTest {
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
-                                                + "%26f%3Di"
+                                                + "%26f%3Db"
                                                 + "%26uid%3D%24UID",
-                                        "redirect", false))
+                                        UsersyncMethodType.IFRAME, false))
                                 .build());
     }
 
@@ -674,7 +675,7 @@ public class ApplicationTest extends IntegrationTest {
         if (listOfFiles != null) {
             return Arrays.stream(listOfFiles)
                     .map(s -> s.substring(0, s.indexOf('.')))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return Collections.emptyList();
     }
@@ -711,8 +712,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format("Exception occurred during %s bidder schema processing: %s",
-                            bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
         }
     }
 }

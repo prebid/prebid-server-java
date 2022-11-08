@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
@@ -42,17 +43,16 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -138,7 +138,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void contextFromBidRequestShouldReturnTcfContextForCoppa() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(1, null))
+                .regs(Regs.builder().coppa(1).build())
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
@@ -170,11 +170,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         final String referer = "Referer";
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
+                        .consent("consent")
                         .build())
                 .site(Site.builder().ref(referer).build())
                 .build();
@@ -216,11 +214,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void contextFromBidRequestShouldReturnTcfContextWithIpMasked() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .regs(Regs.builder().gdpr(1).usPrivacy("1YYY").build())
                 .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
+                        .consent("consent")
                         .build())
                 .device(Device.builder()
                         .lmt(1)
@@ -757,7 +753,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final Regs regs = Regs.of(0, null);
+        final Regs regs = Regs.builder().coppa(0).build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -854,6 +850,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .user(givenNotMaskedUser(userBuilder -> userBuilder
                         .id(null)
                         .buyeruid(null)
+                        .consent(null)
                         .ext(extUserIdsMasked())))
                 .device(notMaskedDevice())
                 .requestBidder(BIDDER_NAME)
@@ -876,12 +873,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
-        final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
-                .build();
         final User user = User.builder()
                 .buyeruid(BUYER_UID)
-                .ext(extUser)
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
 
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -1105,8 +1099,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
-        final ExtUser extUser = ExtUser.builder().consent("consent").build();
-        final User user = User.builder().gender("gender").ext(extUser).build();
+        final User user = User.builder().gender("gender").consent("consent").build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -1273,12 +1266,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldNotReturnUserIfMaskingAppliedAndUserBecameEmptyObject() {
         // given
-        final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
-                .build();
         final User user = User.builder()
                 .buyeruid("buyeruid")
-                .ext(extUser)
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .build();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
@@ -1651,7 +1641,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
-                .ext(ExtUser.builder().consent("consent").build())
+                .consent("consent")
                 .build();
     }
 
@@ -1660,6 +1650,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
+                .eids(singletonList(Eid.of("Test", emptyList(), null)))
                 .ext(extUser)
                 .build();
     }
@@ -1667,7 +1658,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static ExtUser notMaskedExtUser() {
         return ExtUser.builder()
                 .digitrust(mapper.createObjectNode())
-                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
                 .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
     }
@@ -1705,7 +1695,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return User.builder()
                 .buyeruid(null)
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).country("US").build())
-                .ext(ExtUser.builder().consent("consent").build())
+                .consent("consent")
                 .build();
     }
 
@@ -1762,16 +1752,19 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
-        return BidderInfo.of(
-                true,
-                true,
+        return BidderInfo.create(
                 true,
                 null,
+                true,
                 null,
                 null,
                 null,
-                new BidderInfo.GdprInfo(gdprVendorId),
+                null,
+                null,
+                null,
+                gdprVendorId,
                 enforceCcpa,
-                false);
+                false,
+                CompressionType.NONE);
     }
 }

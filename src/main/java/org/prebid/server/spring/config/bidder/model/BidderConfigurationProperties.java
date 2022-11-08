@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 
@@ -25,6 +27,8 @@ public class BidderConfigurationProperties {
 
     private Boolean enabled;
 
+    private OrtbVersion ortbVersion;
+
     @NotBlank
     private String endpoint;
 
@@ -41,8 +45,9 @@ public class BidderConfigurationProperties {
     @NotNull
     private MetaInfo metaInfo;
 
-    @NotNull
     private UsersyncConfigurationProperties usersync;
+
+    private CompressionType endpointCompression;
 
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
@@ -53,11 +58,14 @@ public class BidderConfigurationProperties {
     @PostConstruct
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
+        ortbVersion = ObjectUtils.defaultIfNull(ortbVersion, defaultProperties.getOrtbVersion());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
-        modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
-                defaultProperties.getModifyingVastXmlAllowed());
+        modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(
+                modifyingVastXmlAllowed, defaultProperties.getModifyingVastXmlAllowed());
         debug = ObjectUtils.defaultIfNull(debug, defaultProperties.getDebug());
         aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
+        endpointCompression = ObjectUtils.defaultIfNull(
+                endpointCompression, defaultProperties.getEndpointCompression());
     }
 }

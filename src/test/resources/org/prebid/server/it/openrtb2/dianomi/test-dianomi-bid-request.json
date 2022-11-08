@@ -1,0 +1,63 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id_banner",
+      "tagid" : "12345",
+      "banner": {
+        "format": [
+          {
+            "w": 100,
+            "h": 100
+          }
+        ]
+      },
+      "ext": {
+        "bidder": {
+          "smartadId": 12345,
+          "priceType": "gross"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 2000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
+    },
+    "pt": "gross",
+    "someObj": {
+      "someField": "someValue"
+    }
+  }
+}

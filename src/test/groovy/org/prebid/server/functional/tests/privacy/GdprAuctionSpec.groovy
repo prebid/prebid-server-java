@@ -1,13 +1,8 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
-import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
-import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
@@ -15,10 +10,10 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
@@ -198,7 +193,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
-            ext.prebid.channel = new Channel(name: requestChannel)
+            ext.prebid.channel = new Channel().tap {
+                name = requestChannel
+            }
         }
 
         and: "Save account config #accountChannel = true with into DB"
@@ -219,11 +216,5 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         WEB            | PBJS
         PBJS           | WEB
         PBJS           | PBJS
-    }
-
-    private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        new Account(uuid: accountId, config: accountConfig)
     }
 }

@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -16,8 +17,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class SovrnBidder implements Bidder<BidRequest> {
 
@@ -55,14 +55,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return Result.empty();
-        }
-
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
+
         for (final Imp imp : bidRequest.getImp()) {
             try {
+                validateImpVideo(imp.getVideo());
                 processedImps.add(makeImp(imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -71,46 +69,30 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .headers(headers(bidRequest))
-                                .payload(outgoingRequest)
-                                .build()),
-                errors);
+        return makeHttpRequest(outgoingRequest, errors);
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+    private static void validateImpVideo(Video video) {
+        if (video != null) {
+            if (video.getMimes() == null
+                    || BidderUtil.isNullOrZero(video.getMinduration())
+                    || BidderUtil.isNullOrZero(video.getMaxduration())
+                    || video.getProtocols() == null) {
+                throw new PreBidException("Missing required video parameter");
+            }
         }
     }
 
     private Imp makeImp(Imp imp) {
-        if (imp.getXNative() != null || imp.getAudio() != null || imp.getVideo() != null) {
-            throw new PreBidException(
-                    String.format("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=%s",
-                            imp.getId()));
-        }
-
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
+
         return imp.toBuilder()
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
-                .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
+                .tagid(resolveTagId(sovrnExt))
                 .build();
     }
 
     private ExtImpSovrn parseExtImpSovrn(Imp imp) {
-        if (imp.getExt() == null) {
-            throw new PreBidException("Sovrn parameters section is missing");
-        }
-
         try {
             return mapper.mapper().convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -122,6 +104,28 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(extBidFloor)
                 ? extBidFloor
                 : impBidFloor;
+    }
+
+    private String resolveTagId(ExtImpSovrn sovrnExt) {
+        final String tagId = ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId());
+        if (StringUtils.isEmpty(tagId)) {
+            throw new PreBidException("Missing required parameter 'tagid'");
+        }
+        return tagId;
+    }
+
+    private Result<List<HttpRequest<BidRequest>>> makeHttpRequest(BidRequest bidRequest,
+                                                                  List<BidderError> errors) {
+
+        return Result.of(Collections.singletonList(
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encodeToBytes(bidRequest))
+                                .headers(headers(bidRequest))
+                                .payload(bidRequest)
+                                .build()),
+                errors);
     }
 
     private static MultiMap headers(BidRequest bidRequest) {
@@ -144,25 +148,65 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse);
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final List<BidderError> bidderErrors = new ArrayList<>();
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidRequest request = httpCall.getRequest().getPayload();
+
+            return Result.of(extractBids(bidResponse, request, bidderErrors), bidderErrors);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse,
+                                               BidRequest bidRequest,
+                                               List<BidderError> bidderErrors) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
+                                                    BidRequest bidRequest,
+                                                    List<BidderError> bidderErrors) {
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .map(bid -> makeBidderBid(
+                        bid,
+                        resolveBidType(bid.getImpid(), bidRequest.getImp(), bidderErrors),
+                        bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
-    private static Bid updateBid(Bid bid) {
-        return bid.toBuilder()
-                .adm(HttpUtil.decodeUrl(bid.getAdm()))
-                .build();
+    private static BidderBid makeBidderBid(Bid bid, BidType bidType, String cur) {
+        if (bidType == null) {
+            return null;
+        }
+
+        final Bid updatedBid = bid.toBuilder().adm(HttpUtil.decodeUrl(bid.getAdm())).build();
+        return BidderBid.of(updatedBid, bidType, cur);
+    }
+
+    private static BidType resolveBidType(String impId, List<Imp> imps, List<BidderError> bidderErrors) {
+        for (Imp imp : imps) {
+            final boolean matchedImpId = impId.equals(imp.getId());
+            if (matchedImpId && imp.getVideo() != null) {
+                return BidType.video;
+            } else if (matchedImpId) {
+                return BidType.banner;
+            }
+        }
+
+        bidderErrors.add(
+                BidderError.badInput("Imp ID " + impId + " in bid didn't match with any imp in the original request"));
+        return null;
     }
 }

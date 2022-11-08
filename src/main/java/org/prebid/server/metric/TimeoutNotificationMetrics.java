@@ -11,6 +11,6 @@ class TimeoutNotificationMetrics extends UpdatableMetrics {
 
     TimeoutNotificationMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("timeout_notification.%s", metricName.toString()));
+                metricName -> "timeout_notification." + metricName);
     }
 }

@@ -73,6 +73,7 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
+    private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
@@ -89,6 +90,7 @@ public class Ortb2RequestFactory {
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
+                               double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
@@ -105,6 +107,7 @@ public class Ortb2RequestFactory {
                                Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
+        this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -292,8 +295,8 @@ public class Ortb2RequestFactory {
                 && blacklistedAccounts.contains(accountId)) {
 
             throw new BlacklistedAccountException(
-                    String.format("Prebid-server has blacklisted Account ID: %s, please "
-                            + "reach out to the prebid server host.", accountId));
+                    "Prebid-server has blacklisted Account ID: %s, please reach out to the prebid server host."
+                            .formatted(accountId));
         }
         return accountId;
     }
@@ -345,13 +348,12 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 100);
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 
     private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
-        return String.format(
-                "%s, Url: %s and Referer: %s",
+        return "%s, Url: %s and Referer: %s".formatted(
                 message,
                 httpRequest.getAbsoluteUri(),
                 httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
@@ -375,7 +377,7 @@ public class Ortb2RequestFactory {
     private Future<Account> responseForUnknownAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorized account id: %s", accountId), accountId))
+                "Unauthorized account id: " + accountId, accountId))
                 : Future.succeededFuture(Account.empty(accountId));
     }
 
@@ -384,7 +386,7 @@ public class Ortb2RequestFactory {
 
         return account.getStatus() == AccountStatus.inactive
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Account %s is inactive", accountId), accountId))
+                "Account %s is inactive".formatted(accountId), accountId))
                 : Future.succeededFuture(account);
     }
 

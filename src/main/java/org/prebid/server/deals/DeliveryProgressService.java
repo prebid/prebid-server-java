@@ -119,7 +119,7 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
         if (lineItem != null) {
             currentDeliveryProgress.recordWinEvent(lineItemId);
             criteriaLogManager.log(logger, lineItem.getAccountId(), lineItem.getSource(), lineItemId,
-                    String.format("Win event for LineItem with id %s was recorded", lineItemId), logger::debug);
+                    "Win event for LineItem with id %s was recorded".formatted(lineItemId), logger::debug);
         }
     }
 
@@ -184,7 +184,7 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
     public LineItemStatusReport getLineItemStatusReport(String lineItemId) {
         final LineItem lineItem = lineItemService.getLineItemById(lineItemId);
         if (lineItem == null) {
-            throw new PreBidException(String.format("LineItem not found: %s", lineItemId));
+            throw new PreBidException("LineItem not found: " + lineItemId);
         }
 
         final DeliveryPlan activeDeliveryPlan = lineItem.getActiveDeliveryPlan();
@@ -201,6 +201,8 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
                 .readyToServeTimestamp(lineItem.getReadyAt())
                 .spentTokens(activeDeliveryPlan.getSpentTokens())
                 .pacingFrequency(activeDeliveryPlan.getDeliveryRateInMilliseconds())
+                .accountId(lineItem.getAccountId())
+                .target(lineItem.getTargeting())
                 .build();
     }
 }

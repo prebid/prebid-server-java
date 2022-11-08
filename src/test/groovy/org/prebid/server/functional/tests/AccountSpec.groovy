@@ -45,7 +45,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Non-existing account id"
         def accountId = PBSUtils.randomNumber
@@ -71,7 +71,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default basic BidRequest without account"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -94,7 +94,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default basic BidRequest with non-existing account id"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -119,7 +119,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -133,7 +133,7 @@ class AccountSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -157,7 +157,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -171,7 +171,7 @@ class AccountSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -190,7 +190,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -204,7 +204,7 @@ class AccountSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -226,7 +226,7 @@ class AccountSpec extends BaseSpec {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
                 ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+                 "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -240,7 +240,7 @@ class AccountSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

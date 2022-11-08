@@ -11,8 +11,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class OpenWebBidder implements Bidder<BidRequest> {
 
@@ -79,11 +78,8 @@ public class OpenWebBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OPENWEB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format(
-                            "ignoring imp id=%s, error while encoding impExt, err: %s",
-                            imp.getId(),
-                            e.getMessage()));
+            throw new PreBidException("ignoring imp id=%s, error while encoding impExt, err: %s"
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -106,7 +102,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
 
         return sourceIdToImps.entrySet().stream()
                 .map(impGroupEntry -> makeGroupRequest(request, impGroupEntry.getValue(), impGroupEntry.getKey()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private HttpRequest<BidRequest> makeGroupRequest(BidRequest request, List<Imp> imps, Integer sourceId) {
@@ -121,11 +117,11 @@ public class OpenWebBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(Integer sourceId) {
-        return String.format("%s?aid=%d", endpointUrl, sourceId);
+        return "%s?aid=%d".formatted(endpointUrl, sourceId);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
         try {
@@ -151,7 +147,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, bidResponse, bidRequest.getImp(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid toBidderBid(Bid bid, BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
@@ -175,9 +171,6 @@ public class OpenWebBidder implements Bidder<BidRequest> {
         }
 
         throw new PreBidException(
-                String.format(
-                        "ignoring bid id=%s, request doesn't contain any impression with id=%s",
-                        bidId,
-                        impId));
+                "ignoring bid id=%s, request doesn't contain any impression with id=%s".formatted(bidId, impId));
     }
 }

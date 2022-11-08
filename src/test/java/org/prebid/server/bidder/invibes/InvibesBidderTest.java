@@ -20,12 +20,15 @@ import org.prebid.server.bidder.invibes.model.InvibesBidderResponse;
 import org.prebid.server.bidder.invibes.model.InvibesPlacementProperty;
 import org.prebid.server.bidder.invibes.model.InvibesTypedBid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
 import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
 
@@ -189,7 +192,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        BidderError.badInput(String.format("Banner not specified in impression with id: %s", IMP_ID)));
+                        BidderError.badInput("Banner not specified in impression with id: " + IMP_ID));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -212,9 +215,9 @@ public class InvibesBidderTest extends VertxTest {
     public void shouldCreateRequestWithDataFromEveryImpression() {
         // given
         final List<Imp> imps = Arrays.asList(givenImp(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
-                ExtImpInvibes.of(FIRST_PLACEMENT_ID, 15, InvibesDebug.of("test1", true))),
+                        impBuilder -> impBuilder
+                                .banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                        ExtImpInvibes.of(FIRST_PLACEMENT_ID, 15, InvibesDebug.of("test1", true))),
                 givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().h(SECOND_BANNER_H).w(SECOND_BANNER_W).build()),
                         ExtImpInvibes.of(SECOND_PLACEMENT_ID, 1001, InvibesDebug.of("test2", false))));
@@ -278,6 +281,7 @@ public class InvibesBidderTest extends VertxTest {
                 .bidParamsJson(mapper.writeValueAsString(invibesBidParams))
                 .isTestBid(true)
                 .location(PAGE_URL)
+                .isAmp(false)
                 .gdpr(true)
                 .gdprConsent(StringUtils.EMPTY)
                 .invibBVLog(true)
@@ -291,13 +295,61 @@ public class InvibesBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .containsOnly(expectedRequest);
+                .containsExactly(expectedRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateInvibesAmpBidRequestWithCorrectParams() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .device(Device.builder().w(DEVICE_W).h(DEVICE_H).build())
+                        .user(User.builder().buyeruid(BUYER_UID).build())
+                        .site(Site.builder().page(PAGE_URL).build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder().amp(ExtRequestPrebidAmp.of(Collections.emptyMap())).build()
+                        )),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, InvibesPlacementProperty> properties = new HashMap<>();
+        properties.put(FIRST_PLACEMENT_ID, InvibesPlacementProperty.builder()
+                .formats(Collections.singletonList(Format.builder().w(BANNER_W).h(BANNER_H).build())).build());
+
+        final InvibesBidParams invibesBidParams = InvibesBidParams.builder()
+                .placementIds(Collections.singletonList(FIRST_PLACEMENT_ID))
+                .bidVersion(BID_VERSION)
+                .properties(properties)
+                .build();
+
+        final InvibesBidRequest expectedRequest = InvibesBidRequest.builder()
+                .bidParamsJson(mapper.writeValueAsString(invibesBidParams))
+                .isTestBid(true)
+                .location(PAGE_URL)
+                .isAmp(true)
+                .gdpr(true)
+                .gdprConsent(StringUtils.EMPTY)
+                .invibBVLog(true)
+                .videoAdDebug(true)
+                .lid(BUYER_UID)
+                .bvid("test")
+                .width(String.valueOf(DEVICE_W))
+                .height(String.valueOf(DEVICE_H))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(expectedRequest);
     }
 
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
@@ -312,7 +364,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
@@ -325,7 +377,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(
+        final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(
                 InvibesBidRequest.builder().build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
@@ -341,7 +393,7 @@ public class InvibesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIdBidResponseContainsError() throws JsonProcessingException {
         // given
-        final HttpCall<InvibesBidRequest> httpCall = givenHttpCall(
+        final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(
                 InvibesBidRequest.builder().build(),
                 mapper.writeValueAsString(InvibesBidderResponse.builder().error("someError").build()));
 
@@ -365,8 +417,8 @@ public class InvibesBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<InvibesBidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
@@ -378,8 +430,8 @@ public class InvibesBidderTest extends VertxTest {
             ExtImpInvibes extImpInvibes) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .site(Site.builder().page(PAGE_URL).build())
-                .imp(singletonList(givenImp(impCustomizer, extImpInvibes))))
+                        .site(Site.builder().page(PAGE_URL).build())
+                        .imp(singletonList(givenImp(impCustomizer, extImpInvibes))))
                 .build();
     }
 
@@ -388,16 +440,16 @@ public class InvibesBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impCustomizer, ExtImpInvibes.of("12", 15,
-                                InvibesDebug.of("test", true))))))
+                        .imp(singletonList(
+                                givenImp(impCustomizer, ExtImpInvibes.of("12", 15,
+                                        InvibesDebug.of("test", true))))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 ExtImpInvibes extImpInvibes) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpInvibes))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpInvibes))))
                 .build();
     }
 }

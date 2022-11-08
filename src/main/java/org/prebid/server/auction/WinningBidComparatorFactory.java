@@ -119,8 +119,7 @@ public class WinningBidComparatorFactory {
             // this should never happen
             if (!Objects.equals(imp, bidInfo2.getCorrespondingImp())) {
                 throw new IllegalStateException(
-                        String.format("Error while determining winning bid: "
-                                + "Multiple bids was found for impId: %s", imp.getId()));
+                        "Error while determining winning bid: Multiple bids was found for impId: " + imp.getId());
             }
 
             return PRICE_COMPARATOR.compare(bidInfo1, bidInfo2);

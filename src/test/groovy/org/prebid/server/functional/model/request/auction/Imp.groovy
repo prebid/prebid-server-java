@@ -6,6 +6,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.response.auction.MediaType
+
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 @EqualsAndHashCode
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
@@ -13,8 +18,8 @@ import org.prebid.server.functional.model.Currency
 class Imp {
 
     String id
-    Banner banner
     List<Metric> metric
+    Banner banner
     Video video
     Audio audio
     @JsonProperty("native")
@@ -24,23 +29,34 @@ class Imp {
     String displayManagerVer
     Integer instl
     String tagId
+    BigDecimal bidFloor
+    Currency bidFloorCur
     Integer clickBrowser
     Integer secure
     List<String> iframeBuster
+    Integer rwdd
+    Integer ssai
     Integer exp
-    BigDecimal bidFloor
-    Currency bidFloorCur
     ImpExt ext
 
-    static Imp getDefaultImpression() {
-        defaultImp.tap {
-            banner = Banner.defaultBanner
-        }
-    }
-
-    static Imp getVideoImpression() {
-        defaultImp.tap {
-            video = Video.defaultVideo
+    static Imp getDefaultImpression(MediaType mediaType = BANNER) {
+        switch (mediaType) {
+            case BANNER:
+                return defaultImp.tap {
+                    banner = Banner.defaultBanner
+                }
+            case VIDEO:
+                return defaultImp.tap {
+                    video = Video.defaultVideo
+                }
+            case NATIVE:
+                return defaultImp.tap {
+                    nativeObj = Native.defaultNative
+                }
+            default:
+                return defaultImp.tap {
+                    banner = Banner.defaultBanner
+                }
         }
     }
 

@@ -10,9 +10,3 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 1022
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adview
-      type: redirect
-      support-cors: false

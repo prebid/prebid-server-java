@@ -18,8 +18,8 @@ import org.prebid.server.bidder.gamma.model.GammaBid;
 import org.prebid.server.bidder.gamma.model.GammaBidResponse;
 import org.prebid.server.bidder.gamma.model.GammaSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -90,8 +90,8 @@ public class GammaBidder implements Bidder<Void> {
 
     private static Imp modifyImp(Imp imp) {
         if (imp.getVideo() == null && imp.getBanner() == null) {
-            throw new PreBidException(String.format("Gamma only supports banner and video media types. "
-                    + "Ignoring imp id= %s", imp.getId()));
+            throw new PreBidException(
+                    "Gamma only supports banner and video media types. Ignoring imp id= " + imp.getId());
         }
 
         final Banner banner = imp.getBanner();
@@ -194,7 +194,7 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final String body = httpCall.getResponse().getBody();
         if (body == null) {
             return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));
@@ -205,8 +205,7 @@ public class GammaBidder implements Bidder<Void> {
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBidsAndFillErrors(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(
-                    String.format("bad server response: %s", e.getMessage())));
+            return Result.withError(BidderError.badServerResponse("bad server response: " + e.getMessage()));
         }
     }
 

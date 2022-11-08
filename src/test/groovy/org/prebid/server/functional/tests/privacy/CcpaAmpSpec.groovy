@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -19,7 +18,6 @@ import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class CcpaAmpSpec extends PrivacyBaseSpec {
 
     @PendingFeature
@@ -30,7 +28,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -71,7 +69,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -102,7 +100,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -130,7 +128,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -160,7 +158,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -188,7 +186,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -212,7 +210,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

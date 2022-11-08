@@ -19,6 +19,7 @@ import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -384,6 +385,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
                 true,
+                null,
                 true,
                 "https://endpoint.com",
                 aliasOf,
@@ -393,7 +395,8 @@ public class BidderParamValidatorTest extends VertxTest {
                 null,
                 0,
                 true,
-                false);
+                false,
+                CompressionType.NONE);
     }
 
     private static BidderInfo givenBidderInfo() {

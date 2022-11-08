@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,16 +42,15 @@ public class BidderCatalog {
 
     private void validateBidderName(String bidderName) {
         if (bidderDepsMap.containsKey(bidderName)) {
-            throw new IllegalArgumentException(String.format(
-                    "Duplicate bidder or alias '%s'. Please check the configuration", bidderName));
+            throw new IllegalArgumentException(
+                    "Duplicate bidder or alias '%s'. Please check the configuration".formatted(bidderName));
         }
     }
 
     private Map<String, String> createErrorsForDeprecatedNames(BidderInstanceDeps deps) {
         return deps.getDeprecatedNames().stream().collect(Collectors.toMap(
                 Function.identity(),
-                deprecatedName -> String.format(
-                        ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, deprecatedName, deps.getName())));
+                deprecatedName -> ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED.formatted(deprecatedName, deps.getName())));
     }
 
     private void processVendorId(BidderInstanceDeps coreDeps, String bidderName) {
@@ -162,9 +162,10 @@ public class BidderCatalog {
      * Therefore this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
-    public Usersyncer usersyncerByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getUsersyncer() : null;
+    public Optional<Usersyncer> usersyncerByName(String name) {
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getUsersyncer);
     }
 
     /**

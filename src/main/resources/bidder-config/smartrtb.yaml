@@ -2,7 +2,7 @@ adapters:
   smartrtb:
     endpoint: http://market-east.smrtb.com/json/publisher/rtb?pubid=
     meta-info:
-      maintainer-email: "engineering@smrtb.com"
+      maintainer-email: engineering@smrtb.com
       app-media-types:
         - banner
         - video
@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://market-global.smrtb.com/sync/all?nid=smartrtb&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rr=
-      redirect-url: /setuid?bidder=smartrtb&gdpr={{gdpr}}&gdpr_consent{{gdpr_consent}}&us_privacy={{us_privacy}}&uid={XID}
       cookie-family-name: smartrtb
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://market-global.smrtb.com/sync/all?nid=smartrtb&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rr={{redirect_url}}
+        support-cors: false
+        uid-macro: '{XID}'

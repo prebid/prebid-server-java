@@ -48,6 +48,8 @@ public class AnalyticsReporterDelegator {
     private static final ConditionalLogger UNKNOWN_ADAPTERS_LOGGER = new ConditionalLogger(logger);
     private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = Collections.singleton("logAnalytics");
 
+    private final double logSamplingRate;
+
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -56,11 +58,13 @@ public class AnalyticsReporterDelegator {
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
 
-    public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
+    public AnalyticsReporterDelegator(double logSamplingRate,
+                                      List<AnalyticsReporter> delegates,
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
                                       Metrics metrics) {
 
+        this.logSamplingRate = logSamplingRate;
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -125,13 +129,12 @@ public class AnalyticsReporterDelegator {
         if (analyticsFieldNames != null) {
             final List<String> unknownAdapterNames = StreamUtil.asStream(analyticsFieldNames)
                     .filter(adapter -> !reporterNames.contains(adapter))
-                    .collect(Collectors.toList());
+                    .toList();
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;
-                UNKNOWN_ADAPTERS_LOGGER.warn(
-                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'",
-                                unknownAdapterNames, refererUrl), 0.01);
+                UNKNOWN_ADAPTERS_LOGGER.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
+                        .formatted(unknownAdapterNames, refererUrl), logSamplingRate);
             }
         }
     }
@@ -141,8 +144,7 @@ public class AnalyticsReporterDelegator {
     }
 
     private static <T> T updateEvent(T event, String adapter) {
-        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent) {
-            final AuctionEvent auctionEvent = (AuctionEvent) event;
+        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent auctionEvent) {
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
             return updatedAuctionContext != null

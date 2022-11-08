@@ -22,8 +22,8 @@ import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.grid.model.response.GridBidResponse;
 import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -44,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
 
@@ -105,8 +105,8 @@ public class GridBidder implements Bidder<BidRequest> {
     private static void validateImpExt(ExtImp extImp, String impId) {
         final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
         final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
-        if (uid == null || uid == 0) {
-            throw new PreBidException(String.format("Empty uid in imp with id: %s", impId));
+        if (BidderUtil.isNullOrZero(uid)) {
+            throw new PreBidException("Empty uid in imp with id: " + impId);
         }
     }
 
@@ -196,7 +196,7 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final GridBidResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), GridBidResponse.class);
@@ -220,7 +220,7 @@ public class GridBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
@@ -261,9 +261,9 @@ public class GridBidder implements Bidder<BidRequest> {
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
+                throw new PreBidException("Unknown impression type for ID: " + impId);
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
+        throw new PreBidException("Failed to find impression for ID: " + impId);
     }
 }

@@ -14,8 +14,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adot.model.AdotBidExt;
 import org.prebid.server.bidder.adot.model.AdotExtAdot;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -136,7 +136,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
@@ -151,7 +151,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
@@ -164,7 +164,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -178,7 +178,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidExtAdotMediaTypeIsInvalid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse("invalid")));
 
         // when
@@ -192,7 +192,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse("video")));
 
         // when
@@ -207,7 +207,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsBanner() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse("banner")));
 
         // when
@@ -222,7 +222,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsNative() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse("native")));
 
         // when
@@ -237,7 +237,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder
                                 .nurl("nurl:${AUCTION_PRICE}")
@@ -305,8 +305,8 @@ public class AdotBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

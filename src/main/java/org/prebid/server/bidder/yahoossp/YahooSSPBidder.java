@@ -18,8 +18,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class YahooSSPBidder implements Bidder<BidRequest> {
 
@@ -76,17 +75,17 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         try {
             extImpYahooSSP = mapper.mapper().convertValue(impExtNode, YAHOOSSP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
+            throw new PreBidException("imp #%s: %s".formatted(index, e.getMessage()));
         }
 
         final String dcn = extImpYahooSSP.getDcn();
         if (StringUtils.isBlank(dcn)) {
-            throw new PreBidException(String.format("imp #%s: missing param dcn", index));
+            throw new PreBidException("imp #%s: missing param dcn".formatted(index));
         }
 
         final String pos = extImpYahooSSP.getPos();
         if (StringUtils.isBlank(pos)) {
-            throw new PreBidException(String.format("imp #%s: missing param pos", index));
+            throw new PreBidException("imp #%s: missing param pos".formatted(index));
         }
 
         return extImpYahooSSP;
@@ -122,8 +121,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         final boolean hasBannerWidthAndHeight = bannerWidth != null && bannerHeight != null;
 
         if (hasBannerWidthAndHeight && (bannerWidth == 0 || bannerHeight == 0)) {
-            throw new PreBidException(String.format(
-                    "Invalid sizes provided for Banner %sx%s", bannerWidth, bannerHeight));
+            throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(bannerWidth, bannerHeight));
         }
     }
 
@@ -167,7 +165,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
@@ -197,7 +195,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
@@ -218,6 +216,6 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 return null;
             }
         }
-        throw new PreBidException(String.format("Unknown ad unit code '%s'", bid.getImpid()));
+        throw new PreBidException("Unknown ad unit code '%s'".formatted(bid.getImpid()));
     }
 }

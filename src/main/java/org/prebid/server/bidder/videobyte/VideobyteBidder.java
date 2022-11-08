@@ -13,8 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class VideobyteBidder implements Bidder<BidRequest> {
 
@@ -69,8 +68,8 @@ public class VideobyteBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), VIDEOBYTE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "Ignoring imp id=%s, error while decoding, err: %s", imp.getId(), e.getMessage()));
+            throw new PreBidException(
+                    "Ignoring imp id=%s, error while decoding, err: %s".formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -122,7 +121,7 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -143,7 +142,7 @@ public class VideobyteBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_CURRENCY))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType resolveBidType(String impId, List<Imp> imps) {

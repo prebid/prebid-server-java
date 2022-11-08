@@ -29,6 +29,6 @@ public enum MatchingFunction {
                 return op;
             }
         }
-        throw new IllegalArgumentException(String.format("Unrecognized matching function: %s", candidate));
+        throw new IllegalArgumentException("Unrecognized matching function: " + candidate);
     }
 }

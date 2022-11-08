@@ -10,8 +10,7 @@ adapters:
       supported-vendors:
       vendor-id: 138
     usersync:
-      url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-      redirect-url: /setuid?bidder=connectad&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&&us_privacy={{us_privacy}}&uid=
       cookie-family-name: connectad
-      type: redirect
-      support-cors: false
+      iframe:
+        url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false

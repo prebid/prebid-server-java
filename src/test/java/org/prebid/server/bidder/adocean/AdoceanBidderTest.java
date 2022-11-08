@@ -16,8 +16,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -312,7 +312,7 @@ public class AdoceanBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "");
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, null);
@@ -338,18 +338,19 @@ public class AdoceanBidderTest extends VertxTest {
         final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(adoceanResponseCreator(identity()),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = " <script> +function() { "
-                + "var wu = \"https://win-url.com\"; "
-                + "var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
-                + "if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } "
-                + "if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); "
-                + "</script>  <!-- code 1 --> ";
+        final String adm = """
+                 <script> +function() {
+                var wu = "%s";
+                var su = "%s".replace(/\\[TIMESTAMP\\]/, Date.now());
+                if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu }
+                if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }();
+                </script> <!-- code 1 -->\s""".formatted("https://win-url.com", "https://stats-url.com");
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
@@ -379,7 +380,7 @@ public class AdoceanBidderTest extends VertxTest {
                 adoceanResponseCreator(response -> response.error("true")),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
@@ -484,16 +485,16 @@ public class AdoceanBidderTest extends VertxTest {
             Function<AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder,
                     AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder> adoceanCustomizer) {
         return adoceanCustomizer.apply(AdoceanResponseAdUnit.builder()
-                .id("ad")
-                .price("1")
-                .winUrl("https://win-url.com")
-                .statsUrl("https://stats-url.com")
-                .code(" <!-- code 1 --> ")
-                .currency("EUR")
-                .width("300")
-                .height("250")
-                .crid("0af345b42983cc4bc0")
-                .error("false"))
+                        .id("ad")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("false"))
                 .build();
     }
 
@@ -502,7 +503,7 @@ public class AdoceanBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -512,16 +513,16 @@ public class AdoceanBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                "adoceanmyaozpniqismex")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex")))))
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody)
+    private static BidderCall<Void> givenHttpCall(String requestBody, String responseBody)
             throws JsonProcessingException {
-        return HttpCall.success(
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(requestBody))
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"

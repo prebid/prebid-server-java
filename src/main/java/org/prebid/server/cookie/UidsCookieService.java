@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -52,8 +53,8 @@ public class UidsCookieService {
                              JacksonMapper mapper) {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
-            throw new IllegalArgumentException(String.format(
-                    "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
+            throw new IllegalArgumentException(
+                    "Configured cookie size is less than allowed minimum size of " + maxCookieSizeBytes);
         }
 
         this.optOutCookieName = optOutCookieName;
@@ -151,6 +152,8 @@ public class UidsCookieService {
         return Cookie
                 .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
                 .setPath("/")
+                .setSameSite(CookieSameSite.NONE)
+                .setSecure(true)
                 .setMaxAge(ttlSeconds)
                 .setDomain(hostCookieDomain);
     }

@@ -15,8 +15,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossExtTtx;
@@ -30,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -40,7 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
 
@@ -125,7 +125,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(
-                    String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
+                    "Imp ID %s must have at least one of [Banner, Video] defined".formatted(imp.getId()));
         }
     }
 
@@ -155,8 +155,8 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (video == null) {
             return null;
         }
-        if (isZeroOrNullInteger(video.getW())
-                || isZeroOrNullInteger(video.getH())
+        if (BidderUtil.isNullOrZero(video.getW())
+                || BidderUtil.isNullOrZero(video.getH())
                 || CollectionUtils.isEmpty(video.getProtocols())
                 || CollectionUtils.isEmpty(video.getMimes())
                 || CollectionUtils.isEmpty(video.getPlaybackmethod())) {
@@ -170,10 +170,6 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static boolean isZeroOrNullInteger(Integer integer) {
-        return integer == null || integer == 0;
-    }
-
     private static Integer resolveStartDelay(Integer startDelay, String productId) {
         return Objects.equals(productId, "instream") ? Integer.valueOf(0) : startDelay;
     }
@@ -182,7 +178,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         if (Objects.equals(productId, "instream")) {
             return 1;
         }
-        if (isZeroOrNullInteger(videoPlacement)) {
+        if (BidderUtil.isNullOrZero(videoPlacement)) {
             return 2;
         }
         return videoPlacement;
@@ -208,7 +204,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -229,7 +225,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(Bid bid) {

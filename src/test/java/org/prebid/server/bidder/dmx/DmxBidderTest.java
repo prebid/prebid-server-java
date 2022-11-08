@@ -20,8 +20,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.dmx.model.DmxPublisherExtId;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -422,7 +422,7 @@ public class DmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = dmxBidder.makeBids(httpCall, null);
@@ -439,7 +439,7 @@ public class DmxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.banner(null).video(Video.builder().build()));
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123")
@@ -469,7 +469,7 @@ public class DmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -487,7 +487,7 @@ public class DmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("adm"))));
 
@@ -506,7 +506,7 @@ public class DmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResponseWithErrorWhenIdIsNotFound() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -532,8 +532,8 @@ public class DmxBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .app(App.builder().id("appId").build())
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .app(App.builder().id("appId").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -551,17 +551,17 @@ public class DmxBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpDmx.builder()
-                                .tagId("tagId")
-                                .dmxId("dmxId")
-                                .memberId("memberId")
-                                .publisherId("publisherId")
-                                .sellerId("sellerId")
-                                .bidFloor(BigDecimal.ONE)
-                                .build()))))
+                        .id("123")
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpDmx.builder()
+                                        .tagId("tagId")
+                                        .dmxId("dmxId")
+                                        .memberId("memberId")
+                                        .publisherId("publisherId")
+                                        .sellerId("sellerId")
+                                        .bidFloor(BigDecimal.ONE)
+                                        .build()))))
                 .build();
     }
 
@@ -574,8 +574,8 @@ public class DmxBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

@@ -1,45 +1,31 @@
 package org.prebid.server.bidder;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class UsersyncUtil {
 
+    public static final String CALLBACK_URL_TEMPLATE =
+            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
+
     public static final String FORMAT_PARAMETER = "f";
-    public static final String BLANK_FORMAT = "b";
-    public static final String IMG_FORMAT = "i";
 
     private UsersyncUtil() {
     }
 
-    /**
-     * Places format query string param into the given url.
-     * <p>
-     * Caution: it doesn't care if it already exists in url, just adds new one.
-     * <p>
-     * Note: format is inserted before the last param for safety reason because of
-     * usersync url can be appended with UID on the exchange side without parsing query string.
-     */
-    public static String enrichUsersyncUrlWithFormat(String url, String type) {
-        if (StringUtils.isAnyEmpty(url, type)) {
+    public static UsersyncFormat resolveFormat(UsersyncMethod method) {
+        return ObjectUtils.firstNonNull(method.getFormatOverride(), method.getType().format);
+    }
+
+    public static String enrichUrlWithFormat(String url, UsersyncFormat format) {
+        final String filteredUrl = StringUtils.stripToEmpty(url);
+        if (StringUtils.isEmpty(filteredUrl)) {
             return url;
         }
 
-        final String formatValue = resolveFormatValueByType(type);
-
         return hasTwoOrMoreParameters(url)
-                ? insertFormatParameter(url, formatValue)
-                : appendFormatParameter(url, formatValue);
-    }
-
-    private static String resolveFormatValueByType(String type) {
-        switch (type) {
-            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
-                return IMG_FORMAT;
-            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
-                return BLANK_FORMAT;
-            default:
-                return StringUtils.EMPTY; // never should happen
-        }
+                ? insertFormatParameter(url, format.name)
+                : appendFormatParameter(url, format.name);
     }
 
     private static boolean hasTwoOrMoreParameters(String url) {

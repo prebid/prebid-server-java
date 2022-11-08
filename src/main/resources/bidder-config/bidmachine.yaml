@@ -9,9 +9,3 @@ adapters:
       site-media-types:
       supported-vendors:
       vendor-id: 736
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: bidmachine
-      type: redirect
-      support-cors: false

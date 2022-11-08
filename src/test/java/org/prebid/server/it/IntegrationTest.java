@@ -17,9 +17,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -28,8 +28,8 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.util.IntegrationTestsUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONCompare;
@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -57,7 +58,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static java.lang.String.format;
 import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -79,9 +79,6 @@ public abstract class IntegrationTest extends VertxTest {
             .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
-    @Rule
-    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
-
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
@@ -95,6 +92,11 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @After
+    public void resetWireMock() {
+        WIRE_MOCK_RULE.resetAll();
     }
 
     static RequestSpecification spec(int port) {
@@ -167,9 +169,12 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
+    private static String setResponseTime(Response response,
+                                          String expectedResponseJson,
+                                          String bidder,
                                           String responseTimePath) {
-        final Object val = response.path(format(responseTimePath, bidder));
+
+        final Object val = response.path(responseTimePath.formatted(bidder));
         final Integer responseTime = val instanceof Integer ? (Integer) val : null;
         if (responseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + bidder + "\\.response_time_ms }}\"",
@@ -348,15 +353,14 @@ public abstract class IntegrationTest extends VertxTest {
         private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
             lock.lock();
             try {
-                while (!dealsResponseOrder.peek().equals(id)) {
+                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
                     lockCondition.await();
                 }
                 TimeUnit.MILLISECONDS.sleep(delay);
                 dealsResponseOrder.poll();
                 lockCondition.signalAll();
             } catch (InterruptedException e) {
-                throw new RuntimeException(format("Failed on waiting to return bid request for lineItem id = %s",
-                        id));
+                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
             } finally {
                 lock.unlock();
             }

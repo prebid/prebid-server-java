@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.auction.AdjustmentFactorResolver;
+import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
@@ -65,9 +65,10 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorResolver basicPriceFloorResolver(CurrencyConversionService currencyConversionService,
                                                CountryCodeMapper countryCodeMapper,
-                                               Metrics metrics) {
+                                               Metrics metrics,
+                                               JacksonMapper mapper) {
 
-        return new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics);
+        return new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics, mapper);
     }
 
     @Bean
@@ -92,9 +93,14 @@ public class PriceFloorsConfiguration {
     }
 
     @Bean
+    FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
+        return new FloorAdjustmentFactorResolver();
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorAdjuster basicPriceFloorAdjuster(AdjustmentFactorResolver adjustmentFactorResolver) {
-        return new BasicPriceFloorAdjuster(adjustmentFactorResolver);
+    PriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
     }
 
     @Bean

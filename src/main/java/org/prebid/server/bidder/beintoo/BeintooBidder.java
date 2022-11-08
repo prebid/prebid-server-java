@@ -16,8 +16,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BeintooBidder implements Bidder<BidRequest> {
 
@@ -76,7 +75,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(imp -> modifyImp(imp, isSecure, parseAndValidateImpExt(imp)))
-                .collect(Collectors.toList());
+                .toList();
 
         return request.toBuilder()
                 .imp(modifiedImps)
@@ -100,13 +99,11 @@ public class BeintooBidder implements Bidder<BidRequest> {
         if (StringUtils.isNumeric(tagId)) {
             tagidNumber = Integer.parseInt(tagId);
         } else {
-            throw new PreBidException(String
-                    .format("tagid must be a String of numbers, ignoring imp id=%s", imp.getId()));
+            throw new PreBidException("tagid must be a String of numbers, ignoring imp id=" + imp.getId());
         }
 
         if (tagidNumber == 0) {
-            throw new PreBidException(String.format("tagid cant be 0, ignoring imp id=%s",
-                    imp.getId()));
+            throw new PreBidException("tagid cant be 0, ignoring imp id=" + imp.getId());
         }
 
         return extImpBeintoo;
@@ -174,7 +171,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -197,6 +194,6 @@ public class BeintooBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> bid.toBuilder().impid(bid.getId()).build())
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

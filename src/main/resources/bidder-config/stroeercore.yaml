@@ -1,0 +1,19 @@
+adapters:
+  stroeercore:
+    endpoint: http://mhb.adscale.de/s2sdsh
+    meta-info:
+      maintainer-email: help@cz.stroeer-labs.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 136
+    usersync:
+      cookie-family-name: stroeerCore
+      iframe:
+        url: https://js.adscale.de/pbsync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect={{redirect_url}}
+        support-cors: false
+      redirect:
+        url: https://ih.adscale.de/uu?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&cburl={{redirect_url}}
+        support-cors: false

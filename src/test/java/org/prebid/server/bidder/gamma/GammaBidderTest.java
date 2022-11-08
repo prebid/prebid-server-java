@@ -19,8 +19,8 @@ import org.prebid.server.bidder.gamma.model.GammaBid;
 import org.prebid.server.bidder.gamma.model.GammaBidResponse;
 import org.prebid.server.bidder.gamma.model.GammaSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -219,7 +219,7 @@ public class GammaBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null);
+        final BidderCall<Void> httpCall = givenHttpCall(null);
 
         // when
         final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, null);
@@ -240,7 +240,7 @@ public class GammaBidderTest extends VertxTest {
         final String adm = "ADM";
         final Bid bid = Bid.builder().id("impId").build();
         final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
@@ -269,7 +269,7 @@ public class GammaBidderTest extends VertxTest {
         final String nurl = "NURL";
         final Bid bid = Bid.builder().id("impId").build();
         final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).vastUrl(nurl).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
@@ -294,7 +294,7 @@ public class GammaBidderTest extends VertxTest {
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("impId")
                         .seatbid(singletonList(SeatBid.builder()
@@ -314,7 +314,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenNoAdmAndNotVideoType() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
                         .cur("USD")
@@ -337,7 +337,7 @@ public class GammaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
         final Bid bid = Bid.builder().adm("ADM").build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
                         .cur("USD")
@@ -367,7 +367,7 @@ public class GammaBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -375,8 +375,8 @@ public class GammaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().banner(Banner.builder().build())).build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

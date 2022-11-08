@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -23,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ApplogyBidder implements Bidder<BidRequest> {
 
@@ -84,7 +84,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            if (banner.getH() == null || banner.getW() == null || banner.getH() == 0 || banner.getW() == 0) {
+            if (BidderUtil.isNullOrZero(banner.getH()) || BidderUtil.isNullOrZero(banner.getW())) {
                 if (CollectionUtils.isEmpty(banner.getFormat())) {
                     throw new PreBidException("banner size information missing");
                 }
@@ -124,7 +124,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
@@ -145,7 +145,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> bidFromResponse(bidRequest.getImp(), bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         return Result.of(bidderBids, errors);
     }
 
@@ -171,6 +171,6 @@ public class ApplogyBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException("Failed to find impression " + impId);
     }
 }

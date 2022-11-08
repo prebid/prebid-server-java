@@ -10,8 +10,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
 import java.util.List;
@@ -35,7 +33,7 @@ public class PrivacyExtractor {
      * Retrieves:
      * <p><ul>
      * <li>gdpr from regs.ext.gdpr
-     * <li>consent from user.ext.consent
+     * <li>consent from user.consent
      * <li>us_privacy from regs.ext.us_privacy
      * <li>coppa from regs.coppa
      * </ul><p>
@@ -62,13 +60,10 @@ public class PrivacyExtractor {
     }
 
     private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final Integer extRegsGdpr = regs != null ? regs.getGdpr() : null;
         final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
-        final String consent = extUser != null ? extUser.getConsent() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        final String consent = user != null ? user.getConsent() : null;
+        final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
         final Integer coppa = regs != null ? regs.getCoppa() : null;
 
         return toValidPrivacy(gdpr, consent, usPrivacy, coppa, errors);
@@ -90,7 +85,7 @@ public class PrivacyExtractor {
             Ccpa.validateUsPrivacy(usPrivacy);
             return Ccpa.of(usPrivacy);
         } catch (PreBidException e) {
-            final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
+            final String message = "CCPA consent %s has invalid format: %s".formatted(usPrivacy, e.getMessage());
             logger.debug(message);
             if (errors != null) {
                 errors.add(message);

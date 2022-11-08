@@ -19,8 +19,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
@@ -117,7 +117,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return acatNode != null && acatNode.isArray()
                 ? Arrays.stream(mapper.mapper().convertValue(acatNode, String[].class))
                 .map(StringUtils::stripToEmpty)
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -139,8 +139,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static void validateMediaType(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
-                    + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
+            throw new PreBidException(
+                    "Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=" + imp.getId());
         }
     }
 
@@ -219,14 +219,14 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         if (adSlotParams.length != 2
                 || StringUtils.isEmpty(adSlotParams[0].trim())
                 || StringUtils.isEmpty(adSlotParams[1].trim())) {
-            throw new PreBidException(String.format("Invalid adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         impBuilder.tagid(adSlotParams[0]);
 
         final String[] adSize = adSlotParams[1].toLowerCase().split("x");
         if (adSize.length != 2) {
-            throw new PreBidException(String.format("Invalid size provided in adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid size provided in adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         final Integer width = parseAdSizeParam(adSize[0], "width", adSlot);
@@ -240,7 +240,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         try {
             return Integer.parseInt(number.trim());
         } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid %s provided in adSlot '%s'", paramName, adSlot));
+            throw new PreBidException("Invalid %s provided in adSlot '%s'".formatted(paramName, adSlot));
         }
     }
 
@@ -367,7 +367,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
@@ -389,7 +389,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid resolveBidderBid(Bid bid, String currency) {
@@ -423,14 +423,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 ? ObjectUtils.defaultIfNull(bidExt.getBidType(), 0)
                 : 0;
 
-        switch (bidType) {
-            case 1:
-                return BidType.video;
-            case 2:
-                return BidType.xNative;
-            default:
-                return BidType.banner;
-        }
+        return switch (bidType) {
+            case 1 -> BidType.video;
+            case 2 -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 
     private static Integer getDuration(PubmaticBidExt bidExt) {

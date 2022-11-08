@@ -14,6 +14,6 @@ class BidTypeMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix, String bidType) {
-        return metricName -> String.format("%s.%s.%s", prefix, bidType, metricName.toString());
+        return metricName -> "%s.%s.%s".formatted(prefix, bidType, metricName);
     }
 }

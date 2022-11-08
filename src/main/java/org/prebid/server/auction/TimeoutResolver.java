@@ -20,12 +20,12 @@ public class TimeoutResolver {
     private static void validateTimeouts(long defaultTimeout, long maxTimeout) {
         if (defaultTimeout <= 0 || maxTimeout <= 0) {
             throw new IllegalArgumentException(
-                    String.format("Both default and max timeouts should be grater than 0: max=%d, default=%d",
-                            maxTimeout, defaultTimeout));
+                    "Both default and max timeouts should be grater than 0: max=%d, default=%d"
+                            .formatted(maxTimeout, defaultTimeout));
         } else if (maxTimeout < defaultTimeout) {
             throw new IllegalArgumentException(
-                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
-                            defaultTimeout));
+                    "Max timeout cannot be less than default timeout: max=%d, default=%d"
+                            .formatted(maxTimeout, defaultTimeout));
         }
     }
 

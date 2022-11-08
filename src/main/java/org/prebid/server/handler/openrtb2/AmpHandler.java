@@ -175,7 +175,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
-                    String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
+                    "Critical error while unpacking AMP targets: " + e.getMessage(), e);
         }
 
         // Need to extract the targeting parameters from the response, as those are all that
@@ -216,16 +216,29 @@ public class AmpHandler implements Handler<RoutingContext> {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        Map<String, JsonNode> targeting = new HashMap<>(seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+
+        final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
+        targeting.putAll(additionalTargeting);
 
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
+    }
+
+    private Map<String, JsonNode> extractAdditionalTargeting(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = bidResponse.getExt();
+
+        final ExtBidResponsePrebid prebid = extBidResponse != null ? extBidResponse.getPrebid() : null;
+
+        final Map<String, JsonNode> targeting = prebid != null ? prebid.getTargeting() : null;
+
+        return targeting != null ? targeting : Collections.emptyMap();
     }
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
@@ -272,17 +285,18 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
 
-                conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
+                conditionalLogger.info(
+                        "%s, Referer: %s"
+                                .formatted(message, routingContext.request().headers().get(HttpUtil.REFERER_HEADER)),
+                        100);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
@@ -299,7 +313,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -313,7 +327,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 logger.error("Critical error while running the auction", exception);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

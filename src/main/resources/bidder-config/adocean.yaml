@@ -9,9 +9,3 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 328
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adocean
-      type: redirect
-      support-cors: false

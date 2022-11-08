@@ -33,9 +33,9 @@ LIMIT 1
             "status-response"                            : "ok",
             "gdpr.default-value"                         : "0",
             "settings.database.account-query"            : DB_ACCOUNT_QUERY,
-            "settings.database.stored-requests-query"    : "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, reqid, requestData, 'imp' as dataType FROM stored_requests WHERE reqid IN (%IMP_ID_LIST%)",
-            "settings.database.amp-stored-requests-query": "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)",
-            "settings.database.stored-responses-query"   : "SELECT resid, COALESCE(storedAuctionResponse, storedBidResponse) as responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)"
+            "settings.database.stored-requests-query"    : "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impId, impData, 'imp' as dataType FROM stored_imps WHERE impId IN (%IMP_ID_LIST%)",
+            "settings.database.amp-stored-requests-query": "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%)",
+            "settings.database.stored-responses-query"   : "SELECT resId, COALESCE(storedAuctionResponse, storedBidResponse) as responseData FROM stored_responses WHERE resId IN (%RESPONSE_ID_LIST%)"
     ].asImmutable()
 
     static Map<String, String> getPubstackAnalyticsConfig(String scopeId) {
@@ -64,17 +64,17 @@ LIMIT 1
 
     static Map<String, String> getDefaultBiddersConfig() {
         ["adapter-defaults.enabled"                   : "false",
+         "adapter-defaults.ortb-version"              : "2.6",
          "adapter-defaults.modifying-vast-xml-allowed": "true",
          "adapter-defaults.pbs-enforces-ccpa"         : "true"
         ].asImmutable()
     }
 
     static Map<String, String> getBidderConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["adapters.generic.enabled"      : "true",
-         "adapters.generic.endpoint"     : "$rootUri/auction".toString(),
-         "adapters.generic.usersync.url" : "$rootUri/generic-usersync".toString(),
-         "adapters.generic.usersync.type": "redirect"
-        ]
+        ["adapters.generic.enabled"                    : "true",
+         "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
+         "adapters.generic.usersync.cookie-family-name": "generic",
+         "adapters.generic.ortb-version"               : "2.6"]
     }
 
     static Map<String, String> getPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
@@ -92,7 +92,8 @@ LIMIT 1
          "settings.database.dbname"   : mysql.databaseName,
          "settings.database.user"     : mysql.username,
          "settings.database.password" : mysql.password,
-         "settings.database.pool-size": "2" // setting 2 here to leave some slack for the PBS
+         "settings.database.pool-size": "2", // setting 2 here to leave some slack for the PBS
+         "settings.database.provider-class": "hikari"
         ].asImmutable()
     }
 

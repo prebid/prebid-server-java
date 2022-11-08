@@ -1,0 +1,25 @@
+adapters:
+  dianomi:
+    endpoint: https://hb.emxdgt.com
+    meta-info:
+      maintainer-email: prebid-maintainer@dianomi.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 885
+    usersync:
+      cookie-family-name: dianomi
+      iframe:
+        url: https://www-prebid.dianomi.com/prebid/usersync/index.html?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      redirect:
+        url: https://data.dianomi.com/frontend/usync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -196,7 +196,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
@@ -211,7 +211,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
@@ -224,7 +224,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -238,7 +238,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnXnativeBidTypeType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -260,7 +260,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             ExtImpTriplelift extImpTriplelift) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extImpTriplelift))))
+                        .imp(singletonList(givenImp(impCustomizer, extImpTriplelift))))
                 .build();
     }
 
@@ -273,7 +273,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
 
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
                 .build();
     }
 
@@ -286,8 +286,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

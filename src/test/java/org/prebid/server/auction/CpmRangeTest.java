@@ -35,7 +35,7 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnCpmGivenLowGranularity() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("low")))
+                        CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("low")))
                 .isEqualTo("3.50");
     }
 
@@ -92,18 +92,18 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnResultWithDefaultPrecisionTwoIfRangePrecisionInNull() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
-                        ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                BigDecimal.valueOf(0.01)))))))
+                        CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
+                                ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                                        BigDecimal.valueOf(0.01)))))))
                 .isEqualTo("2.33");
     }
 
     @Test
     public void fromCpmShouldReturnResultWithPrecisionZero() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
-                        ExtPriceGranularity.of(0, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                BigDecimal.valueOf(0.01)))))))
+                        CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
+                                ExtPriceGranularity.of(0, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                                        BigDecimal.valueOf(0.01)))))))
                 .isEqualTo("2");
     }
 

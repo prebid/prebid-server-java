@@ -32,7 +32,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
@@ -71,6 +70,25 @@ public class BasicPriceFloorEnforcerTest {
                 null);
 
         final Account account = givenAccount(accountFloors -> accountFloors.enabled(false));
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
+    public void shouldNotEnforceIfRequestFloorsDisabled() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder().enabled(false).build())
+                        .build())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
 
         // when
         final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
@@ -175,6 +193,25 @@ public class BasicPriceFloorEnforcerTest {
                 identity(),
                 identity(),
                 givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
+    public void shouldTolerateMissingBidderRequestCase() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(givenImps(identity())));
+
+        final AuctionParticipation auctionParticipation = AuctionParticipation.builder()
+                .bidderRequest(null)
+                .bidderResponse(BidderResponse.of("bidder", givenBidderSeatBid(identity()), 0))
+                .build();
 
         final Account account = givenAccount(identity());
 
@@ -585,6 +622,7 @@ public class BasicPriceFloorEnforcerTest {
                 .bidderRequest(BidderRequest.of(
                         "bidder",
                         null,
+                        null,
                         bidRequestCustomizer.apply(BidRequest.builder()
                                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                                 .floors(PriceFloorRules.builder()
@@ -625,7 +663,7 @@ public class BasicPriceFloorEnforcerTest {
         }
         return Arrays.stream(impCustomizers)
                 .map(impCustomizer -> impCustomizer.apply(Imp.builder().id("impId")).build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @SafeVarargs
@@ -643,7 +681,7 @@ public class BasicPriceFloorEnforcerTest {
         final List<BidderBid> bidderBids = Arrays.stream(bidCustomizers)
                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
                 .map(bid -> BidderBid.builder().bid(bid).priceFloorInfo(priceFloorInfo).build())
-                .collect(Collectors.toList());
-        return BidderSeatBid.of(bidderBids, emptyList(), emptyList());
+                .toList();
+        return BidderSeatBid.of(bidderBids);
     }
 }

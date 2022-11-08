@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Eid;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -35,7 +36,7 @@ public class ExtUser extends FlexibleExtension {
     /**
      * Standardized User IDs.
      */
-    List<ExtUserEid> eids;
+    List<Eid> eids;
 
     /**
      * List of frequency capped for user.

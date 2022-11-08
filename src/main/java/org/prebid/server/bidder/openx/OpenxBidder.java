@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
@@ -74,7 +74,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidRequest, bidResponse));
@@ -94,7 +94,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
             bidRequests.addAll(videoImps.stream()
                     .map(Collections::singletonList)
                     .map(imps -> createSingleRequest(imps, bidRequest, errors))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         return bidRequests;
     }
@@ -111,10 +111,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isNotEmpty(notSupportedImps)) {
             errors.addAll(
                     notSupportedImps.stream()
-                            .map(imp -> String.format(
-                                    "OpenX only supports banner and video imps. Ignoring imp id=%s", imp.getId()))
+                            .map(imp -> "OpenX only supports banner and video imps. Ignoring imp id=" + imp.getId())
                             .map(BidderError::badInput)
-                            .collect(Collectors.toList()));
+                            .toList());
         }
 
         // add errors detected during requests creation
@@ -133,7 +132,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(singleBidRequest)
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidRequest createSingleRequest(List<Imp> imps, BidRequest bidRequest, List<BidderError> errors) {
@@ -143,7 +142,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
         List<Imp> processedImps = null;
         try {
-            processedImps = imps.stream().map(this::makeImp).collect(Collectors.toList());
+            processedImps = imps.stream().map(this::makeImp).toList();
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
         }
@@ -233,7 +232,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToBidType), bidCurrency))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Map<String, BidType> impIdToBidType(BidRequest bidRequest) {

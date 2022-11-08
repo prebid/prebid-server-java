@@ -17,8 +17,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
@@ -149,7 +148,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -163,8 +162,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() > 1) {
-            throw new PreBidException(String.format("Unexpected SeatBid! Must be only one but have: %d",
-                    bidResponse.getSeatbid().size()));
+            throw new PreBidException(
+                    "Unexpected SeatBid! Must be only one but have: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -178,7 +177,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bidWithDealId(bid), getBidType(bid.getImpid(), bidRequest.getImp()),
                         bidResponse.getCur()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Bid bidWithDealId(Bid bid) {
@@ -218,9 +217,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
+        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
     }
 }

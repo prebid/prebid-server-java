@@ -16,8 +16,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -149,11 +149,10 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError
-                        .badInput("Cannot deserialize value of type `int` from String \"a\": not a valid `int` value\n"
-                                + " at [Source: UNKNOWN; byte offset: #UNKNOWN] (through reference chain: "
-                                + "java.lang.Object[][0])"));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+        });
     }
 
     @Test
@@ -203,7 +202,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
@@ -220,7 +219,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -234,7 +233,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -248,7 +247,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenSeatBidsCountIsMoreThanOne() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(asList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build(),
@@ -269,7 +268,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBannerOrVideoNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.video(null)),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -286,7 +285,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidIfBannerIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()).id("123")),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -305,7 +304,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(null);
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -328,7 +327,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -344,7 +343,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
                         .video(null)
                         .xNative(Native.builder().build())),
                 mapper.writeValueAsString(
@@ -362,7 +361,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpNotFoundForId() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
 
@@ -384,7 +383,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("classic")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -414,7 +413,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("classic")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -445,7 +444,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("deal")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -476,7 +475,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("rtb")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -526,8 +525,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

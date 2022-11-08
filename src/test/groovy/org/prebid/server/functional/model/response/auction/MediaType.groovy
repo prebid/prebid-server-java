@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum MediaType {
 
-    BANNER, VIDEO, NATIVE
+    BANNER,
+    VIDEO,
+    AUDIO,
+    NATIVE
 
     @JsonValue
     String getValue() {

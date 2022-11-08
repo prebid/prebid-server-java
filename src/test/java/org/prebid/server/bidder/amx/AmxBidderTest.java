@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -113,7 +113,7 @@ public class AmxBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .tagid("someTagId")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAmx.of("testTagId", null))))
+                                ExtImpAmx.of("testTagId", null))))
                         .banner(Banner.builder().build()));
 
         // when
@@ -151,7 +151,7 @@ public class AmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
@@ -166,7 +166,7 @@ public class AmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -180,7 +180,7 @@ public class AmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -194,7 +194,7 @@ public class AmxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsBidExtNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(), mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
@@ -211,7 +211,7 @@ public class AmxBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.put("startdelay", 2);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
@@ -231,7 +231,7 @@ public class AmxBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.put("ct", 10);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
@@ -250,7 +250,7 @@ public class AmxBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfCreativeTypeAndStartDelayNotPresentInBidExt()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
@@ -268,7 +268,7 @@ public class AmxBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.put("startdelay", "2");
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .id("bidId")
@@ -293,7 +293,7 @@ public class AmxBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -303,9 +303,9 @@ public class AmxBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAmx.of("testTagId", "testAdUnitId")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAmx.of("testTagId", "testAdUnitId")))))
                 .build();
     }
 
@@ -317,8 +317,8 @@ public class AmxBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

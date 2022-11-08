@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
@@ -49,8 +50,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -982,6 +981,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .put("skadn-data", "skadn-value"))
                                 .<ObjectNode>set("data", mapper.createObjectNode()
                                         .put("data-data", "data-value"))
+                                .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                        .put("gpid-data", "gpid-value"))
+                                .<ObjectNode>set("tid", mapper.createObjectNode()
+                                        .put("tid-data", "tid-value"))
                                 .set("prebid", mapper.createObjectNode()
                                         .<ObjectNode>set("bidder", mapper.createObjectNode()
                                                 .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
@@ -1004,6 +1007,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                 .put("skadn-data", "skadn-value"))
                         .<ObjectNode>set("data", mapper.createObjectNode()
                                 .put("data-data", "data-value"))
+                        .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                .put("gpid-data", "gpid-value"))
+                        .<ObjectNode>set("tid", mapper.createObjectNode()
+                                .put("tid-data", "tid-value"))
                         .set("prebid", mapper.createObjectNode()
                                 .<ObjectNode>set("bidder", mapper.createObjectNode()
                                         .<ObjectNode>set(
@@ -1294,7 +1301,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1307,11 +1314,11 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSourceExtSchainIfNotDefinedAndExtSchainPresent() {
+    public void shouldSetSourceSchainIfNotDefinedAndExtSchainPresent() {
         // given
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
@@ -1319,33 +1326,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)));
-    }
-
-    @Test
-    public void shouldModifySourceExtIfSourceExtSchainNotDefinedAndExtSchainPresent() {
-        // given
-        final ExtSource extSource = jacksonMapper.fillExtension(
-                ExtSource.of(null),
-                mapper.createObjectNode().put("someField", "someValue"));
-        final ExtRequest extRequest = jacksonMapper.fillExtension(
-                ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
-        final BidRequest bidRequest = BidRequest.builder()
-                .source(Source.builder().ext(extSource).build())
-                .ext(extRequest)
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-
-        // then
-        assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(jacksonMapper.fillExtension(
-                        ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)),
-                        mapper.createObjectNode().put("someField", "someValue")));
+                .extracting(Source::getSchain)
+                .isEqualTo(SupplyChain.of(1, null, "ver", null));
     }
 
     @Test

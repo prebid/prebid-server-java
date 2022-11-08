@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -174,7 +173,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -191,7 +190,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("null", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -204,7 +203,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("{}", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{}", null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -217,7 +216,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithCorrectMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse("id1", "id2"),
                 givenBidRequest(givenImp(imp -> imp.id("id2")),
                         givenImp(imp -> imp.id("id1").banner(Banner.builder().build()))));
@@ -234,7 +233,7 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
                 givenBidRequest(givenImp(identity()), givenImp(identity())));
 
         // when
@@ -271,10 +270,10 @@ public class VideobyteBidderTest extends VertxTest {
         return givenImp(identity(), impCustomizer);
     }
 
-    private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
+    private BidderCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderCall.succeededHttp(request, response, null);
     }
 
     private String givenBidResponse(String... impIds) throws JsonProcessingException {
@@ -282,7 +281,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .map(impId -> Bid.builder().impid(impId).build())
                 .map(Collections::singletonList)
                 .map(bids -> SeatBid.builder().bid(bids).build())
-                .collect(Collectors.toList());
+                .toList();
         return mapper.writeValueAsString(BidResponse.builder().seatbid(seatBids).build());
     }
 }

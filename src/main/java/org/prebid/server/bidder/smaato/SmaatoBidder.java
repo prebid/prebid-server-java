@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smaato.proto.SmaatoBidExt;
@@ -50,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -131,7 +132,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final Integer yob = smaatoUserExtData.getYob();
-        if (yob != null && yob != 0) {
+        if (!BidderUtil.isNullOrZero(yob)) {
             userBuilder.yob(yob);
         }
 
@@ -159,7 +160,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(ext, className);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Cannot decode extension: %s", e.getMessage()), e);
+            throw new PreBidException("Cannot decode extension: " + e.getMessage(), e);
         }
     }
 
@@ -187,7 +188,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .map(impsPod -> preparePodRequest(bidRequest, impsPod, errors))
                 .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String extractPod(Imp imp) {
@@ -229,7 +230,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
         return IntStream.range(0, imps.size())
                 .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId) {
@@ -249,7 +250,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
                 .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<Imp> splitImps(List<Imp> imps, List<BidderError> errors) {
@@ -321,7 +322,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, httpCall.getResponse().getHeaders());
@@ -343,7 +344,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> bidderBid(bid, bidResponse.getCur(), headers, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(bidderBids, errors);
     }
@@ -352,7 +353,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         try {
             final String bidAdm = bid.getAdm();
             if (StringUtils.isBlank(bidAdm)) {
-                throw new PreBidException(String.format("Empty ad markup in bid with id: %s", bid.getId()));
+                throw new PreBidException("Empty ad markup in bid with id: " + bid.getId());
             }
             final String markupType = getAdMarkupType(headers, bidAdm);
             final BidType bidType = getBidType(markupType);
@@ -411,20 +412,16 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         } else if (adm.startsWith("<?xml")) {
             return SMT_ADTYPE_VIDEO;
         }
-        throw new PreBidException(String.format("Invalid ad markup %s.", adm));
+        throw new PreBidException("Invalid ad markup %s.".formatted(adm));
     }
 
     private String renderAdMarkup(String markupType, String adm) {
-        switch (markupType) {
-            case SMT_AD_TYPE_IMG:
-                return extractAdmImage(adm);
-            case SMT_ADTYPE_RICHMEDIA:
-                return extractAdmRichMedia(adm);
-            case SMT_ADTYPE_VIDEO:
-                return markupType;
-            default:
-                throw new PreBidException(String.format("Unknown markup type %s", markupType));
-        }
+        return switch (markupType) {
+            case SMT_AD_TYPE_IMG -> extractAdmImage(adm);
+            case SMT_ADTYPE_RICHMEDIA -> extractAdmRichMedia(adm);
+            case SMT_ADTYPE_VIDEO -> markupType;
+            default -> throw new PreBidException("Unknown markup type " + markupType);
+        };
     }
 
     private String extractAdmImage(String adm) {
@@ -436,18 +433,19 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
         final StringBuilder clickEvent = new StringBuilder();
         CollectionUtils.emptyIfNull(image.getClickTrackers())
-                .forEach(tracker -> clickEvent.append(String.format(
-                        "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});",
-                        HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
+                .forEach(tracker -> clickEvent.append(
+                        "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});"
+                                .formatted(HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
 
         final StringBuilder impressionTracker = new StringBuilder();
         CollectionUtils.emptyIfNull(image.getImpressionTrackers())
                 .forEach(tracker -> impressionTracker.append(
-                        String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>", tracker)));
+                        "<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>".formatted(tracker)));
 
         final SmaatoImg img = image.getImg();
-        return String.format("<div style=\"cursor:pointer\" onclick=\"%s;window.open(decodeURIComponent"
-                        + "('%s'.replace(/\\+/g, ' ')));\"><img src=\"%s\" width=\"%d\" height=\"%d\"/>%s</div>",
+        return """
+                <div style="cursor:pointer" onclick="%s;window.open(decodeURIComponent\
+                ('%s'.replace(/\\+/g, ' ')));"><img src="%s" width="%d" height="%d"/>%s</div>""".formatted(
                 clickEvent,
                 HttpUtil.encodeUrl(StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getCtaurl))),
                 StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getUrl)),
@@ -465,16 +463,15 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
         final StringBuilder clickEvent = new StringBuilder();
         CollectionUtils.emptyIfNull(richmedia.getClickTrackers())
-                .forEach(tracker -> clickEvent.append(
-                        String.format("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});",
-                                HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
+                .forEach(tracker -> clickEvent.append("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});"
+                        .formatted(HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
 
         final StringBuilder impressionTracker = new StringBuilder();
         CollectionUtils.emptyIfNull(richmedia.getImpressionTrackers())
                 .forEach(tracker -> impressionTracker.append(
-                        String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>", tracker)));
+                        "<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>".formatted(tracker)));
 
-        return String.format("<div onclick=\"%s\">%s%s</div>",
+        return "<div onclick=\"%s\">%s%s</div>".formatted(
                 clickEvent,
                 StringUtils.stripToEmpty(getIfNotNull(richmedia.getMediadata(), SmaatoMediaData::getContent)),
                 impressionTracker);
@@ -484,26 +481,22 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         try {
             return mapper.decodeValue(value, className);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot decode bid.adm: %s", e.getMessage()), e);
+            throw new PreBidException("Cannot decode bid.adm: " + e.getMessage(), e);
         }
     }
 
     private static BidType getBidType(String markupType) {
-        switch (markupType) {
-            case SMT_AD_TYPE_IMG:
-            case SMT_ADTYPE_RICHMEDIA:
-                return BidType.banner;
-            case SMT_ADTYPE_VIDEO:
-                return BidType.video;
-            default:
-                throw new PreBidException(String.format("Invalid markupType %s", markupType));
-        }
+        return switch (markupType) {
+            case SMT_AD_TYPE_IMG, SMT_ADTYPE_RICHMEDIA -> BidType.banner;
+            case SMT_ADTYPE_VIDEO -> BidType.video;
+            default -> throw new PreBidException("Invalid markupType " + markupType);
+        };
     }
 
     private static <T, R> R getIfNotNullOrThrow(T target, Function<T, R> getter, String propertyName) {
         final R result = getIfNotNull(target, getter);
         if (result == null) {
-            throw new PreBidException(String.format("Missing %s property.", propertyName));
+            throw new PreBidException("Missing %s property.".formatted(propertyName));
         }
         return result;
     }

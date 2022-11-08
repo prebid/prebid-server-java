@@ -34,7 +34,7 @@ public class UpdatableMetricsTest {
     public void incCounterShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.toString());
+                metricName -> "someprefix." + metricName);
 
         // when
         updatableMetrics.incCounter(MetricName.requests, 5);
@@ -76,7 +76,7 @@ public class UpdatableMetricsTest {
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.toString());
+                metricName -> "someprefix." + metricName);
 
         // when
         updatableMetrics.updateTimer(MetricName.request_time, 1000L);
@@ -118,7 +118,7 @@ public class UpdatableMetricsTest {
     public void updateHistogramShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.toString());
+                metricName -> "someprefix." + metricName);
 
         // when
         updatableMetrics.updateHistogram(MetricName.prices, 1000L);
@@ -148,7 +148,7 @@ public class UpdatableMetricsTest {
     public void createGaugeShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.toString());
+                metricName -> "someprefix." + metricName);
 
         // when
         updatableMetrics.createGauge(MetricName.opened, () -> 1);

@@ -70,6 +70,7 @@ public final class HttpUtil {
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
     private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
+    public static final CharSequence PG_IGNORE_PACING = HttpHeaders.createOptimized("X-Prebid-PG-ignore-pacing");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
 
@@ -83,7 +84,7 @@ public final class HttpUtil {
         try {
             return new URL(url).toString();
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("URL supplied is not valid: %s", url), e);
+            throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
     }
 
@@ -141,8 +142,8 @@ public final class HttpUtil {
         try {
             return ZonedDateTime.parse(isoTimeStamp);
         } catch (Exception e) {
-            throw new PreBidException(String.format("%s header is not compatible to ISO-8601 format: %s",
-                    header, isoTimeStamp));
+            throw new PreBidException(
+                    "%s header is not compatible to ISO-8601 format: %s".formatted(header, isoTimeStamp));
         }
     }
 
@@ -182,10 +183,6 @@ public final class HttpUtil {
                 .collect(Collectors.joining("; "));
     }
 
-    public static String toSetCookieHeaderValue(Cookie cookie) {
-        return String.join("; ", cookie.encode(), "SameSite=None; Secure");
-    }
-
     public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,
                                         Consumer<HttpServerResponse> responseConsumer) {
         return executeSafely(routingContext, endpoint.value(), responseConsumer);
@@ -198,7 +195,7 @@ public final class HttpUtil {
 
         if (response.closed()) {
             conditionalLogger.warn(
-                    String.format("Client already closed connection, response to %s will be skipped", endpoint),
+                    "Client already closed connection, response to %s will be skipped".formatted(endpoint),
                     0.01);
             return false;
         }
@@ -216,8 +213,8 @@ public final class HttpUtil {
      * Creates standart basic auth header value
      */
     public static String makeBasicAuthHeaderValue(String username, String password) {
-        return String.format(BASIC_AUTH_PATTERN, Base64.getEncoder().encodeToString((username + ':' + password)
-                .getBytes()));
+        return BASIC_AUTH_PATTERN
+                .formatted(Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
     }
 
     /**
@@ -232,7 +229,7 @@ public final class HttpUtil {
                         entry -> StringUtils.isNotBlank(entry.getValue())
                                 ? Arrays.stream(entry.getValue().split(","))
                                 .map(String::trim)
-                                .collect(Collectors.toList())
+                                .toList()
                                 : Collections.singletonList(entry.getValue())))
                 : null;
     }

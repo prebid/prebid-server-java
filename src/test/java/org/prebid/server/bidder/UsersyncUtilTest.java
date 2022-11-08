@@ -7,64 +7,63 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class UsersyncUtilTest {
 
     @Test
-    public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfMissing() {
+    public void resolveFormatShouldPreferFormatOverride() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat(null, "iframe");
+        final UsersyncFormat format = UsersyncUtil.resolveFormat(
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.IFRAME)
+                        .formatOverride(UsersyncFormat.PIXEL)
+                        .build());
+
+        // then
+        assertThat(format).isEqualTo(UsersyncFormat.PIXEL);
+    }
+
+    @Test
+    public void resolveFormatShouldReturnDefaultFormatForUsersyncTypeWhenOverrideAbsent() {
+        // given and when
+        final UsersyncFormat format = UsersyncUtil.resolveFormat(
+                UsersyncMethod.builder()
+                        .type(UsersyncMethodType.IFRAME)
+                        .build());
+
+        // then
+        assertThat(format).isEqualTo(UsersyncFormat.BLANK);
+    }
+
+    @Test
+    public void enrichUrlWithFormatShouldNotChangeUrlIfMissing() {
+        // given and when
+        final String url = UsersyncUtil.enrichUrlWithFormat(null, UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isNull();
     }
 
     @Test
-    public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfEmpty() {
+    public void enrichUrlWithFormatShouldNotChangeUrlIfEmpty() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", "iframe");
+        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isEmpty();
     }
 
     @Test
-    public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfTypeMissing() {
+    public void enrichUrlWithFormatShouldNotChangeUrlIfTypeMissing() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", null);
+        final String url = UsersyncUtil.enrichUrlWithFormat("", UsersyncFormat.BLANK);
 
         // then
         assertThat(url).isEmpty();
     }
 
     @Test
-    public void enrichUsersyncUrlWithFormatShouldNotChangeUrlIfTypeEmpty() {
+    public void enrichUrlWithFormatShouldInsertFormat() {
         // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("", "");
-
-        // then
-        assertThat(url).isEmpty();
-    }
-
-    @Test
-    public void enrichUsersyncUrlWithFormatShouldAddFormat() {
-        // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("//url", "iframe");
-
-        // then
-        assertThat(url).isEqualTo("//url?f=b");
-    }
-
-    @Test
-    public void enrichUsersyncUrlWithFormatShouldAppendFormat() {
-        // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1", "redirect");
-
-        // then
-        assertThat(url).isEqualTo("http://url?param1=value1&f=i");
-    }
-
-    @Test
-    public void enrichUsersyncUrlWithFormatShouldInsertFormat() {
-        // given and when
-        final String url = UsersyncUtil.enrichUsersyncUrlWithFormat("http://url?param1=value1&param2=value2",
-                "redirect");
+        final String url = UsersyncUtil.enrichUrlWithFormat(
+                "http://url?param1=value1&param2=value2",
+                UsersyncFormat.PIXEL);
 
         // then
         assertThat(url).isEqualTo("http://url?param1=value1&f=i&param2=value2");
