@@ -4,7 +4,7 @@ adapters:
     meta-info:
       maintainer-email: kalidas@alkimiexchange.com
       app-media-types:
-      - banner
+        - banner
         - video
       site-media-types:
         - banner
