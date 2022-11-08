@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
@@ -26,6 +27,66 @@ class AuctionSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
                                                                             "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
+
+    def "PBS should apply timeout from stored request when it's not specified in the auction request and pbs in config is lowest"() {
+        given: "PBs config with default-timeout-ms"
+        def prebidServerService = pbsServiceFactory.getService(["auction.default-timeout-ms": "10"])
+
+        and: "Default BidRequest without timeout"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            tmax = null
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+        }
+
+        and: "Default stored request with minTimeout"
+        def timeout = 1000L
+        def storedRequest = BidRequest.defaultStoredRequest.tap {
+            tmax = timeout
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
+        storedRequestDao.save(storedRequestModel)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain timeout from the stored request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.tmax == timeout as Long
+    }
+
+    def "PBS should return error when timeout from stored request is lowest"() {
+        given: "PBs config with default-timeout-ms"
+        def prebidServerService = pbsServiceFactory.getService(["auction.default-timeout-ms": "1000"])
+
+        and: "Default BidRequest without timeout"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            tmax = null
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+        }
+
+        and: "Default stored request with minTimeout"
+        def minTmax = 1L
+        def storedRequest = BidRequest.defaultStoredRequest.tap {
+            tmax = minTmax
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
+        storedRequestDao.save(storedRequestModel)
+
+        when: "PBS processes auction request"
+        def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request timeout should correspond to the min from the stored request"
+        assert bidResponse.ext.debug.resolvedRequest.tmax == minTmax
+
+        and: "Bid response should shutdown by timeout from stored request"
+        def errors = bidResponse?.ext?.errors
+        assert errors[ErrorType.GENERIC]*.code == [1]
+        assert errors[ErrorType.GENERIC]*.message == ["Timeout has been exceeded"]
+    }
 
     def "PBS should return version in response header for auction request for #description"() {
 
