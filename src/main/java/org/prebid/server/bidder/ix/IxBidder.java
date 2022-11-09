@@ -2,6 +2,7 @@ package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
@@ -217,7 +219,7 @@ public class IxBidder implements Bidder<BidRequest> {
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
-            bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            bidType = getBidType(bid, bidRequest.getImp());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -290,9 +292,28 @@ public class IxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        Integer mType = bid.getMtype();
+        BidType bidType = mType != null ? switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> null;
+        } : null;
+        if (bidType != null) {
+            return bidType;
+        }
+
+        Optional<String> prebidType = Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type")).map(JsonNode::asText);
+        if (prebidType.isPresent()) {
+            return BidType.fromString(prebidType.get());
+        }
+
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
@@ -304,7 +325,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException("Unmatched impression id " + impId);
+        throw new PreBidException("Unmatched impression id " + bid.getImpid());
     }
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {

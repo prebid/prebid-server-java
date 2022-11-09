@@ -636,6 +636,68 @@ public class IxBidderTest extends VertxTest {
                 .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
     }
 
+    @Test
+    public void makeBidsShouldReturnCorrectTypeMTypeInResponse() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final Video video = Video.builder().build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(banner)
+                                .video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .mtype(2))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectTypeExtPrebidTypeInResponse() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final Video video = Video.builder().build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(banner)
+                                .video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .ext(mapper.createObjectNode()
+                                                .set("prebid", mapper.createObjectNode().put("type", "video"))))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("prebid"))
+                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
+                .extracting(ExtBidPrebid::getType)
+                .containsExactly(BidType.video);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
