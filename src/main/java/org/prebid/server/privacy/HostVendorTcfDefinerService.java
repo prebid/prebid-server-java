@@ -6,13 +6,12 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.experimental.Delegate;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
-import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class HostVendorTcfDefinerService {
 
@@ -49,16 +48,16 @@ public class HostVendorTcfDefinerService {
     }
 
     private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
-        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
+        return HostVendorTcfResponse.of(
+                tcfResponse.getUserInGdprScope(),
+                tcfResponse.getCountry(),
                 isCookieSyncAllowed(tcfResponse));
     }
 
     private boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponse.getActions();
-        final PrivacyEnforcementAction hostActions = vendorIdToAction != null
-                ? vendorIdToAction.get(gdprHostVendorId)
-                : null;
-
-        return hostActions != null && !hostActions.isBlockPixelSync();
+        return Optional.ofNullable(hostTcfResponse.getActions())
+                .map(vendorIdToAction -> vendorIdToAction.get(gdprHostVendorId))
+                .map(hostActions -> !hostActions.isBlockPixelSync())
+                .orElse(false);
     }
 }
