@@ -32,7 +32,7 @@ class CookieSyncSpec extends BaseSpec {
              "adapters.generic.usersync.redirect.support-cors"   : "false",
              "adapters.generic.usersync.redirect.format-override": "blank"])
 
-    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name and rubicon cookies should re-sync"() {
+    def "PBS cookie sync with host-cookie.family which hasn't the same value in both uids and from the direct host-cookie then should re-sync"() {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["host-cookie.family"                                : "generic",
@@ -60,7 +60,7 @@ class CookieSyncSpec extends BaseSpec {
                        .contains("uid=${Base64.urlEncoder.encodeToString(encode(rubiconUidsCookie).bytes)}")
     }
 
-    def "PBS cookie sync with cookie-name have uids which already sync then shouldn't re-sync"() {
+    def "PBS cookie sync with host-cookie.family which hasn't the same value in both uids and from the direct host-cookie then should re-sync"() {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["host-cookie.family"                                : "generic",
@@ -118,7 +118,6 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["host-cookie.family"                                : "generic",
-                 "host-cookie.cookie-name"                           : "",
                  "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
                  "adapters.generic.usersync.redirect.support-cors"   : "false",
                  "adapters.generic.usersync.redirect.format-override": "blank"])
@@ -137,7 +136,7 @@ class CookieSyncSpec extends BaseSpec {
         assert rubiconBidder?.error == "Already in sync"
     }
 
-    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name present and cookies absent and shouldn't re-sync"() {
+    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name present and cookies absent then shouldn't re-sync"() {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["host-cookie.family"                                : "generic",
