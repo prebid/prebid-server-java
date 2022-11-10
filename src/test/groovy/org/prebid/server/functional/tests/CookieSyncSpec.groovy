@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.cookiesync.FilterSettings
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -31,13 +32,165 @@ class CookieSyncSpec extends BaseSpec {
              "adapters.generic.usersync.redirect.support-cors"   : "false",
              "adapters.generic.usersync.redirect.format-override": "blank"])
 
+    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name and rubicon cookies should re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "generic",
+                 "host-cookie.cookie-name"                           : "rubicon",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Default uids cookie with rubicon"
+        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON)
+        def cookies = ["uids": UidsCookie.defaultUidsCookie, "rubicon": rubiconUidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response shouldn't contain error"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert !bidderStatus.error
+
+        and: "Response should contain rubicon uids"
+        assert HttpUtil.decodeUrl(bidderStatus.userSync?.url)
+                       .contains("uid=${Base64.urlEncoder.encodeToString(encode(rubiconUidsCookie).bytes)}")
+    }
+
+    def "PBS cookie sync with cookie-name have uids which already sync then shouldn't re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "generic",
+                 "host-cookie.cookie-name"                           : "rubicon",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Default uids cookie with rubicon"
+        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON)
+
+        and: "Default uids cookie with rubicon uid"
+        def genericUidsCookie = UidsCookie.defaultUidsCookie.tap {
+            tempUIDs["generic"].uid = Base64.urlEncoder.encodeToString(encode(rubiconUidsCookie).bytes)
+        }
+
+        and: "Generic and uids cookies"
+        def cookies = ["uids": genericUidsCookie, "rubicon": rubiconUidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response should contain already in sync bidder"
+        def rubiconBidder = response.getBidderUserSync(GENERIC)
+        assert rubiconBidder?.error == "Already in sync"
+    }
+
+    def "PBS cookie sync with host-cookie.family which doesn't not match with bidder cookie-family-name shouldn't re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "rubicon",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Generic and uids cookies"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookies = ["uids": uidsCookie, "generic": uidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response should contain already in sync bidder"
+        def rubiconBidder = response.getBidderUserSync(GENERIC)
+        assert rubiconBidder?.error == "Already in sync"
+    }
+
+    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookies absent shouldn't re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "generic",
+                 "host-cookie.cookie-name"                           : "",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request with one more bidder"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Uids cookies"
+        def cookies = ["uids": UidsCookie.defaultUidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response should contain already in sync bidder"
+        def rubiconBidder = response.getBidderUserSync(GENERIC)
+        assert rubiconBidder?.error == "Already in sync"
+    }
+
+    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name present and cookies absent and shouldn't re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "generic",
+                 "host-cookie.cookie-name"                           : "rubicon",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Uids cookies"
+        def cookies = ["uids": UidsCookie.defaultUidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response should contain already in sync bidder"
+        def rubiconBidder = response.getBidderUserSync(GENERIC)
+        assert rubiconBidder?.error == "Already in sync"
+    }
+
+    def "PBS cookie sync with host-cookie.family which match with bidder cookie-family-name and cookie-name absent and cookies present and shouldn't re-sync"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["host-cookie.family"                                : "generic",
+                 "host-cookie.cookie-name"                           : "null",
+                 "adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        and: "Rubicon and uids cookies"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookies = ["uids": uidsCookie, "rubicon": uidsCookie]
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
+
+        then: "Response should contain already in sync bidder"
+        def rubiconBidder = response.getBidderUserSync(GENERIC)
+        assert rubiconBidder?.error == "Already in sync"
+    }
+
     def "PBS cookie sync with valid uids cookie should return status OK"() {
         given: "Default cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookies = ["uids": UidsCookie.defaultUidsCookie]
 
         when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
 
         then: "Response should have status 'OK'"
         assert response.status == CookieSyncResponse.Status.OK
@@ -254,10 +407,10 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync with family which already in uids cookie should be already in sync"() {
         given: "Default cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookies = ["uids": UidsCookie.defaultUidsCookie]
 
         when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookies)
 
         then: "Response should have status 'OK'"
         assert response.status == CookieSyncResponse.Status.OK
