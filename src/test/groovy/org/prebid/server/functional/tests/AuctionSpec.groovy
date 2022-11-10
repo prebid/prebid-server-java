@@ -344,4 +344,21 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.ext.prebid.passThrough == passThrough
     }
+
+    def "PBS should move and not populate certain fields when debug enabled"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "Requesting PBS auction"
+        prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain endpoint field in server obj"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.server.endpoint == "/openrtb2/auction"
+
+        and: "BidderRequest shouldn't populate fields"
+        assert !bidderRequest.ext.prebid.aliases
+        assert !bidderRequest.ext.prebid.targeting
+        assert !bidderRequest.ext.prebid.floors
+    }
 }
