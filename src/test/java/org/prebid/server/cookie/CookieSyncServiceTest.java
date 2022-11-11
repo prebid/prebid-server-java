@@ -31,7 +31,9 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
+import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
@@ -259,7 +261,7 @@ public class CookieSyncServiceTest extends VertxTest {
     @Test
     public void processContextShouldCapLimitWithDefaultMaxLimitWhenMaxLimitFromAccountIsAbsent() {
         // given
-        givenCookieSyncService(Integer.MAX_VALUE, 42);
+        givenCookieSyncService(42, 42);
 
         final CookieSyncContext cookieSyncContext = CookieSyncContext.builder()
                 .cookieSyncRequest(CookieSyncRequest.builder().limit(100).build())
@@ -447,7 +449,7 @@ public class CookieSyncServiceTest extends VertxTest {
 
         givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
 
-        given(uidsCookie.hasLiveUidFrom("requested-bidder")).willReturn(true);
+        given(uidsCookie.hasLiveUidFrom("requested-bidder-cookie-family")).willReturn(true);
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
                 builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder")));
@@ -512,6 +514,394 @@ public class CookieSyncServiceTest extends VertxTest {
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
     }
 
+    @Test
+    public void prepareResponseShouldFavourRequest() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.limit(1),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getBidder)
+                .containsExactly("requested-bidder-cookie-family");
+    }
+
+    @Test
+    public void prepareResponseShouldFavourCoopSyncAfterRequest() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.limit(1),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(Map.of("requested-bidder", RejectionReason.REJECTED_BY_TCF))
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getBidder)
+                .containsExactly("coop-sync-bidder-cookie-family");
+    }
+
+    @Test
+    public void prepareResponseShouldNotReturnErrorsWhenDebugFalse() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.limit(1),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(Map.of("requested-bidder", RejectionReason.REJECTED_BY_TCF))
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getBidder)
+                .containsExactly("coop-sync-bidder-cookie-family");
+    }
+
+    @Test
+    public void prepareResponseShouldNotLimitErrorsWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder
+                        .limit(1)
+                        .debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(Map.of("requested-bidder", RejectionReason.REJECTED_BY_TCF))
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2);
+    }
+
+    @Test
+    public void prepareResponseShouldReturnInvalidBidderErrorOnlyForRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.INVALID_BIDDER,
+                "coop-sync-bidder", RejectionReason.INVALID_BIDDER);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .containsExactly(errorStatus("requested-bidder-cookie-family", "Unsupported bidder"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnDisabledBidderErrorOnlyForRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.DISABLED_BIDDER,
+                "coop-sync-bidder", RejectionReason.DISABLED_BIDDER);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .containsExactly(errorStatus("requested-bidder-cookie-family", "Disabled bidder"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnTcfRejectedErrorForCoopSyncAndRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.REJECTED_BY_TCF,
+                "coop-sync-bidder", RejectionReason.REJECTED_BY_TCF);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
+                errorStatus("requested-bidder-cookie-family", "Rejected by TCF"),
+                errorStatus("coop-sync-bidder-cookie-family", "Rejected by TCF"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnCcpaRejectedErrorForCoopSyncAndRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.REJECTED_BY_CCPA,
+                "coop-sync-bidder", RejectionReason.REJECTED_BY_CCPA);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
+                errorStatus("requested-bidder-cookie-family", "Rejected by CCPA"),
+                errorStatus("coop-sync-bidder-cookie-family", "Rejected by CCPA"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnUnconfiguredUsersyncErrorOnlyForRequestedBiddersWhenDebugTrue() {
+        // given
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.UNCONFIGURED_USERSYNC,
+                "coop-sync-bidder", RejectionReason.UNCONFIGURED_USERSYNC);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                // only here we will end up with bidder code in bidder field instead of cookie family name
+                .containsExactly(errorStatus("requested-bidder", "No sync config"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnFilterRejectedErrorForCoopSyncAndRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.REJECTED_BY_FILTER,
+                "coop-sync-bidder", RejectionReason.REJECTED_BY_FILTER);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
+                errorStatus("requested-bidder-cookie-family", "Rejected by request filter"),
+                errorStatus("coop-sync-bidder-cookie-family", "Rejected by request filter"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnAlreadyInSyncErrorOnlyForRequestedBiddersWhenDebugTrue() {
+        // given
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        final Map<String, UsersyncMethod> bidderUsersyncMethods = Map.of(
+                "requested-bidder", givenUsersyncMethod("requested-bidder"),
+                "coop-sync-bidder", givenUsersyncMethod("coop-sync-bidder"));
+
+        final Map<String, RejectionReason> biddersRejectionReasons = Map.of(
+                "requested-bidder", RejectionReason.ALREADY_IN_SYNC,
+                "coop-sync-bidder", RejectionReason.ALREADY_IN_SYNC);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("requested-bidder"))
+                        .coopSyncBidders(singleton("coop-sync-bidder"))
+                        .rejectedBidders(biddersRejectionReasons)
+                        .bidderUsersyncMethod(bidderUsersyncMethods));
+
+        // when
+        final CookieSyncResponse cookieSyncResponse = target.prepareResponse(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .containsExactly(errorStatus("requested-bidder-cookie-family", "Already in sync"));
+    }
+
+    @Test
+    public void prepareResponseShouldReturnWarningForAliasesSyncedAsRootCookieFamilyWhenDebugTrue() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        given(bidderCatalog.isActive("alias")).willReturn(true);
+        given(bidderCatalog.isAlias("alias")).willReturn(true);
+        givenUsersyncerForBidder("alias", "root-cookie-family", CookieFamilySource.ROOT);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("alias"))
+                        .bidderUsersyncMethod(Map.of("alias", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final BidderUsersyncStatus warningStatus = errorStatus("alias", "synced as root-cookie-family");
+        final BidderUsersyncStatus validStatus = BidderUsersyncStatus.builder()
+                .bidder("root-cookie-family")
+                .noCookie(true)
+                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactlyInAnyOrder(validStatus, warningStatus);
+    }
+
+    @Test
+    public void prepareResponseShouldNotReturnWarningForAliasesSyncedAsAliasCookieFamilyWhenDebugTrue() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        given(bidderCatalog.isActive("alias")).willReturn(true);
+        given(bidderCatalog.isAlias("alias")).willReturn(true);
+        givenUsersyncerForBidder("alias", "alias-cookie-family", CookieFamilySource.ALIAS);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("alias"))
+                        .bidderUsersyncMethod(Map.of("alias", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .bidder("alias-cookie-family")
+                .noCookie(true)
+                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+    }
+
+    @Test
+    public void prepareResponseShouldReturnCustomUsersyncUrlForHostCookieSync() {
+        // given
+        givenValidActiveBidder("host-bidder");
+        givenUsersyncersForBidders("host-bidder");
+
+        given(uidsCookieService.hostCookieUidToSync(routingContext, "host-bidder-cookie-family"))
+                .willReturn("bogus");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                UnaryOperator.identity(),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("host-bidder"))
+                        .bidderUsersyncMethod(Map.of("host-bidder", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final String expectedUrl = "https://external-url.com/setuid?bidder=host-bidder-cookie-family"
+                + "&gdpr=gdpr&gdpr_consent=consent-string&us_privacy=&f=b&uid=bogus";
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .noCookie(true)
+                .bidder("host-bidder-cookie-family")
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+    }
+
     private PrivacyContext givenAllAllowedPrivacyContext() {
         return givenPrivacyContext(TcfContext.builder().inGdprScope(false).build());
     }
@@ -548,30 +938,33 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private void givenUsersyncerForBidder(String bidder) {
-        givenUsersyncerForBidder(bidder, bidder + "-cookie-family");
+        givenUsersyncerForBidder(bidder, bidder + "-cookie-family", CookieFamilySource.ROOT);
     }
 
-    private void givenUsersyncerForBidder(String bidder, String cookieFamilyName) {
+    private void givenUsersyncerForBidder(String bidder,
+                                          String cookieFamilyName,
+                                          CookieFamilySource cookieFamilySource) {
+
         final UsersyncMethod usersyncMethod = givenUsersyncMethod(bidder);
-        final Usersyncer usersyncer = Usersyncer.of(cookieFamilyName, CookieFamilySource.ROOT, usersyncMethod, null);
+        final Usersyncer usersyncer = Usersyncer.of(cookieFamilyName, cookieFamilySource, usersyncMethod, null);
 
         given(bidderCatalog.usersyncerByName(eq(bidder))).willReturn(Optional.of(usersyncer));
         given(bidderCatalog.cookieFamilyName(eq(bidder))).willReturn(Optional.of(cookieFamilyName));
         given(usersyncMethodChooser.choose(eq(usersyncer), eq(bidder))).willReturn(usersyncMethod);
     }
 
-    private UsersyncMethod givenUsersyncMethod(String bidder) {
+    private static UsersyncMethod givenUsersyncMethod(String bidder) {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
                 .usersyncUrl("https://" + bidder + "-usersync-url.com")
                 .build();
     }
 
-    private Account givenEmptyAccount() {
+    private static Account givenEmptyAccount() {
         return Account.builder().build();
     }
 
-    private Account givenAccount(int limit, int maxLimit) {
+    private static Account givenAccount(int limit, int maxLimit) {
         return Account.builder()
                 .cookieSync(AccountCookieSyncConfig.of(limit, maxLimit, false))
                 .build();
@@ -611,12 +1004,20 @@ public class CookieSyncServiceTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .biddersContext(biddersContext)
                 .usersyncMethodChooser(usersyncMethodChooser)
+                .limit(Integer.MAX_VALUE)
                 .account(givenEmptyAccount());
 
         return cookieSyncContextModifier.apply(builder).build();
     }
 
-    private CookieSyncRequest givenCookieSyncRequest(String... bidders) {
+    private static CookieSyncRequest givenCookieSyncRequest(String... bidders) {
         return CookieSyncRequest.builder().bidders(Arrays.stream(bidders).collect(Collectors.toSet())).build();
+    }
+
+    private static BidderUsersyncStatus errorStatus(String bidder, String error) {
+        return BidderUsersyncStatus.builder()
+                .bidder(bidder)
+                .error(error)
+                .build();
     }
 }

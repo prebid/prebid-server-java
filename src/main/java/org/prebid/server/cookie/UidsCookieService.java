@@ -182,13 +182,6 @@ public class UidsCookieService {
     }
 
     /**
-     * Returns configured host cookie family.
-     */
-    public String getHostCookieFamily() {
-        return hostCookieFamily;
-    }
-
-    /**
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
      * UIDs cookie sync.
      */
@@ -244,16 +237,17 @@ public class UidsCookieService {
 
         final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
         final String hostCookieUid = parseHostCookie(cookies);
-
         if (hostCookieUid == null) {
             return null;
         }
 
-        return Optional.ofNullable(parseUids(cookies))
+        final boolean inSync = Optional.ofNullable(parseUids(cookies))
                 .map(Uids::getUids)
                 .map(uids -> uids.get(cookieFamilyName))
                 .map(UidWithExpiry::getUid)
-                .filter(uid -> !StringUtils.equals(hostCookieUid, uid))
-                .orElse(null);
+                .filter(uid -> StringUtils.equals(hostCookieUid, uid))
+                .isPresent();
+
+        return inSync ? null : hostCookieUid;
     }
 }

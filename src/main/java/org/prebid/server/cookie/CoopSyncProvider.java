@@ -65,7 +65,7 @@ public class CoopSyncProvider {
         final Account account = cookieSyncContext.getAccount();
 
         return coopSyncAllowed(cookieSyncRequest, account)
-                ? coopSyncBidders()
+                ? prepareCoopSyncBidders()
                 : Collections.emptySet();
     }
 
@@ -77,7 +77,7 @@ public class CoopSyncProvider {
                 .orElse(defaultCoopSync);
     }
 
-    private Set<String> coopSyncBidders() {
+    private Set<String> prepareCoopSyncBidders() {
         final List<String> shuffledPrioritizedBidders = new ArrayList<>(prioritizedBidders);
         Collections.shuffle(shuffledPrioritizedBidders);
 

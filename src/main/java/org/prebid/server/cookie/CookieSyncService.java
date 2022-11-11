@@ -76,6 +76,7 @@ public class CookieSyncService {
                              Metrics metrics) {
 
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
+        validateLimits(defaultLimit, maxLimit);
         this.defaultLimit = defaultLimit;
         this.maxLimit = maxLimit;
 
@@ -85,6 +86,14 @@ public class CookieSyncService {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.coopSyncProvider = Objects.requireNonNull(coopSyncProvider);
         this.metrics = Objects.requireNonNull(metrics);
+    }
+
+    private static void validateLimits(int limit, int maxLimit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Default cookie-sync limit should be greater than 0");
+        } else if (maxLimit < limit) {
+            throw new IllegalArgumentException("Max cookie-sync limit should be greater or equal than limit");
+        }
     }
 
     public Future<CookieSyncContext> processContext(CookieSyncContext cookieSyncContext) {
@@ -178,8 +187,10 @@ public class CookieSyncService {
                 RejectionReason.UNCONFIGURED_USERSYNC);
     }
 
+    /**
+     * should be called after applying request filter, as it will populate usersync data
+     */
     private CookieSyncContext filterInSyncBidders(CookieSyncContext cookieSyncContext) {
-        // should be called after applying request filter, as it will populate usersync data
         return filterBidders(
                 cookieSyncContext,
                 bidder -> isBidderInSync(cookieSyncContext, bidder),
@@ -200,9 +211,7 @@ public class CookieSyncService {
                                             RejectionReason reason) {
 
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final Set<String> allowedBidders = biddersContext.allowedBidders();
-
-        final Set<String> rejectedBidders = allowedBidders.stream()
+        final Set<String> rejectedBidders = biddersContext.allowedBidders().stream()
                 .filter(bidderPredicate)
                 .collect(Collectors.toSet());
 
@@ -242,12 +251,13 @@ public class CookieSyncService {
                                                             CookieSyncContext cookieSyncContext) {
 
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
+        final Set<String> allowedBidders = biddersContext.allowedBidders();
         // Host vendor tcf response can be not populated if host vendor id is not defined,
         // we can't be sure if we can use it. So we get tcf values from response for all bidders.
         if (!hostVendorTcfResponse.isVendorAllowed()) {
             // Reject all bidders when Host TCF response has blocked pixel
             final BiddersContext rejectedContext = biddersContext.withRejectedBidders(
-                    biddersContext.allowedBidders(), RejectionReason.REJECTED_BY_TCF);
+                    allowedBidders, RejectionReason.REJECTED_BY_TCF);
 
             return Future.succeededFuture(cookieSyncContext.with(rejectedContext));
         }
@@ -258,9 +268,8 @@ public class CookieSyncService {
         final AccountPrivacyConfig accountPrivacyConfig = updatedContext.getAccount().getPrivacy();
         final AccountGdprConfig accountGdprConfig =
                 accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
-        final Set<String> bidders = new HashSet<>(biddersContext.allowedBidders());
 
-        return tcfDefinerService.resultForBidderNames(bidders, tcfContext, accountGdprConfig)
+        return tcfDefinerService.resultForBidderNames(allowedBidders, tcfContext, accountGdprConfig)
                 .map(tcfResponse -> updateWithPrivacy(tcfResponse, updatedContext));
     }
 
@@ -312,7 +321,7 @@ public class CookieSyncService {
         statuses.addAll(errorStatuses(cookieSyncContext));
         statuses.addAll(warningStatuses(biddersToSync, cookieSyncContext));
 
-        return CookieSyncResponse.of(cookieSyncStatus, statuses);
+        return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses));
     }
 
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
@@ -438,7 +447,7 @@ public class CookieSyncService {
 
         if (hostCookieUid != null) {
             final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
-                    externalUrl, cookieFamilyName, HttpUtil.encodeUrl(hostCookieUid));
+                    externalUrl, HttpUtil.encodeUrl(cookieFamilyName), HttpUtil.encodeUrl(hostCookieUid));
 
             usersyncInfoBuilder
                     .usersyncUrl(UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod)))
