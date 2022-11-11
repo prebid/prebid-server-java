@@ -13,6 +13,7 @@ import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
@@ -346,19 +347,20 @@ class AuctionSpec extends BaseSpec {
     }
 
     def "PBS should move and not populate certain fields when debug enabled"() {
-        given: "Default bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(PBSUtils.randomString):GENERIC]
+        }
 
         when: "Requesting PBS auction"
         prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "BidderRequest should contain endpoint field in server obj"
+        then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.server.endpoint == "/openrtb2/auction"
+        assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
-        assert !bidderRequest.ext.prebid.targeting
-        assert !bidderRequest.ext.prebid.floors
     }
 }
