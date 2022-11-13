@@ -118,22 +118,25 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync without cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request) {
-        def payload = encode(request)
-        def response = given(requestSpecification).body(payload)
-                                                  .post(COOKIE_SYNC_ENDPOINT)
+        def response = postCookies(request)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
     }
 
-    @Step("[POST] /cookie_sync with cookie")
-    CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, Map<String, UidsCookie> cookie) {
-        def encodedUidsCookieEncoded = cookie
-                .collectEntries { key, value -> [key, Base64.urlEncoder.encodeToString(encode(value).bytes)] }
+    @Step("[POST] /cookie_sync with uids cookie")
+    CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
+        def response = postCookies(request, uidsCookie)
 
-        def response = given(requestSpecification).cookies(encodedUidsCookieEncoded)
-                                                  .body(encode(request))
-                                                  .post(COOKIE_SYNC_ENDPOINT)
+        checkResponseStatusCode(response)
+        response.as(CookieSyncResponse)
+    }
+
+    @Step("[POST] /cookie_sync with uids and additional cookies")
+    CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request,
+                                             UidsCookie uidsCookie,
+                                             Map<String, String> cookies) {
+        def response = postCookies(request, uidsCookie, cookies)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -289,6 +292,20 @@ class PrebidServerService implements ObjectMapperWrapper {
         given(requestSpecification).headers(headers)
                                    .body(payload)
                                    .post(AUCTION_ENDPOINT)
+    }
+
+    private Response postCookies(CookieSyncRequest cookieSyncRequest,
+                                 UidsCookie uidsCookie = null,
+                                 Map<String, Object> cookies = [:]) {
+        def requestSpecification = given(requestSpecification)
+                .body(encode(cookieSyncRequest))
+                .cookies(cookies)
+
+        if (uidsCookie) {
+            requestSpecification.cookie("uids", Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
+        }
+
+        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {

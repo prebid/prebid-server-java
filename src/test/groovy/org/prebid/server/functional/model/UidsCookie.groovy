@@ -1,7 +1,6 @@
 package org.prebid.server.functional.model
 
 import groovy.transform.ToString
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.setuid.UidWithExpiry
 
 import java.time.Clock
@@ -15,11 +14,11 @@ class UidsCookie {
     Boolean optout
     ZonedDateTime bday
 
-    static UidsCookie getDefaultUidsCookie(BidderName bidderName = BidderName.GENERIC) {
+    static UidsCookie getDefaultUidsCookie() {
         new UidsCookie().tap {
-            uids = Map.of(bidderName.value, UUID.randomUUID().toString())
+            uids = ["generic": UUID.randomUUID().toString()]
             bday = ZonedDateTime.now(Clock.systemUTC())
-            tempUIDs = Map.of(bidderName.value, UidWithExpiry.defaultUidWithExpiry)
+            tempUIDs = ["generic": new UidWithExpiry(uid: UUID.randomUUID().toString(), expires: ZonedDateTime.now(Clock.systemUTC()).plusDays(2))]
         }
     }
 }
