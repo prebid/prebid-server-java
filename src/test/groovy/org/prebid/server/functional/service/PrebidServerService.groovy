@@ -61,6 +61,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
     static final String LINE_ITEM_STATUS_ENDPOINT = "/pbs-admin/lineitem-status"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
+    static final String UIDS_COOKIE_NAME = "uids"
 
     private final PrebidServerContainer pbsContainer
     private final RequestSpecification requestSpecification
@@ -118,7 +119,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync without cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request) {
-        def response = postCookies(request)
+        def response = postCookieSync(request)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -126,7 +127,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync with uids cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
-        def response = postCookies(request, uidsCookie)
+        def response = postCookieSync(request, uidsCookie)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -135,8 +136,8 @@ class PrebidServerService implements ObjectMapperWrapper {
     @Step("[POST] /cookie_sync with uids and additional cookies")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request,
                                              UidsCookie uidsCookie,
-                                             Map<String, String> cookies) {
-        def response = postCookies(request, uidsCookie, cookies)
+                                             Map<String, String> additionalCookies) {
+        def response = postCookieSync(request, uidsCookie, additionalCookies)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -146,7 +147,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie) {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
-        def response = given(requestSpecification).cookie("uids", uidsCookieAsEncodedJson)
+        def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
                                                   .queryParams(toMap(request))
                                                   .get(SET_UID_ENDPOINT)
 
@@ -163,7 +164,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
-        def response = given(requestSpecification).cookie("uids", uidsCookieAsEncodedJson)
+        def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
                                                   .get(GET_UIDS_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -294,18 +295,28 @@ class PrebidServerService implements ObjectMapperWrapper {
                                    .post(AUCTION_ENDPOINT)
     }
 
-    private Response postCookies(CookieSyncRequest cookieSyncRequest,
-                                 UidsCookie uidsCookie = null,
-                                 Map<String, Object> cookies = [:]) {
-        def requestSpecification = given(requestSpecification)
-                .body(encode(cookieSyncRequest))
-                .cookies(cookies)
+    private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
+                                    UidsCookie uidsCookie = null,
+                                    Map<String, ?> additionalCookies = null) {
 
-        if (uidsCookie) {
-            requestSpecification.cookie("uids", Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
+        def cookies = [:]
+
+        if (additionalCookies) {
+            cookies.putAll(additionalCookies)
         }
 
-        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
+        if (uidsCookie) {
+            cookies.put(UIDS_COOKIE_NAME, Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
+        }
+
+        postCookieSync(cookieSyncRequest, cookies)
+    }
+
+    private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
+                                    Map<String, ?> cookies) {
+        given(requestSpecification).body(encode(cookieSyncRequest))
+                                   .cookies(cookies)
+                                   .post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
@@ -327,8 +338,8 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.headers().collectEntries { [it.name, it.value] }
     }
 
-    private UidsCookie getDecodedUidsCookie(Response response) {
-        def uids = response.detailedCookie("uids")?.value
+    private static UidsCookie getDecodedUidsCookie(Response response) {
+        def uids = response.detailedCookie(UIDS_COOKIE_NAME)?.value
         if (uids) {
             return decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
         } else {
