@@ -28,6 +28,7 @@ class CookieSyncRequest {
         new CookieSyncRequest().tap {
             bidders = [GENERIC]
             gdpr = 0
+            coopSync = false
             debug = true
         }
     }

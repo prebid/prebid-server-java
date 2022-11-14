@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
-import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.util.PBSUtils
@@ -62,22 +61,6 @@ class SmokeSpec extends BaseSpec {
         def storedRequestBidders = ampStoredRequest.requestBidders
         def responseBidders = response.ext?.debug?.bidders
         assert responseBidders.keySet() == storedRequestBidders.toSet()
-    }
-
-    def "PBS should set uids cookie"() {
-        given: "Default SetuidRequest"
-        def request = SetuidRequest.defaultSetuidRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
-
-        then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
-        assert !response.uidsCookie.tempUIDs
-        assert !response.uidsCookie.uids
-        assert response.responseBody ==
-                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
     }
 
     def "PBS should get uids cookie"() {
