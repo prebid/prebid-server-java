@@ -1,10 +1,10 @@
-package org.prebid.server.functional.model.bidder
+package org.prebid.server.functional.model.request.cookiesync
 
 import com.fasterxml.jackson.annotation.JsonValue
 
-enum BidderName {
+enum FilterType {
 
-    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS
+    INCLUDE, EXCLUDE
 
     @JsonValue
     String getValue() {
