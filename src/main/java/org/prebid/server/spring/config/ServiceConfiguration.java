@@ -7,6 +7,7 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -553,7 +554,7 @@ public class ServiceConfiguration {
     @Bean
     CoopSyncProvider coopSyncProvider(
             BidderCatalog bidderCatalog,
-            @Value("${cookie-sync.coop-sync.pri:\"\"}") String prioritizedBidders,
+            @Value("${cookie-sync.coop-sync.pri:#{null}}") String prioritizedBidders,
             @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
 
         return new CoopSyncProvider(bidderCatalog, splitToSet(prioritizedBidders), defaultCoopSync);
@@ -964,6 +965,7 @@ public class ServiceConfiguration {
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
                 .map(String::trim)
+                .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toCollection(collectionFactory))
                 : collectionFactory.get();
     }

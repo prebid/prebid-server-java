@@ -17,9 +17,7 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.Ignore
 
-import java.time.Clock
 import java.time.Instant
-import java.time.ZonedDateTime
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -340,34 +338,6 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should contain uid from cookies"
         def bidderStatus = response.getBidderUserSync(BIDDER)
         assert HttpUtil.decodeUrl(bidderStatus.userSync?.url).contains("uid=${hostCookieUid}")
-    }
-
-    def "PBS cookie sync request with host cookie should return bidder sync with host cookie uid when uids cookie is expired"() {
-        given: "PBS bidders config"
-        def cookieName = PBSUtils.randomString
-        def prebidServerService = pbsServiceFactory.getService(
-                ["host-cookie.family"     : BIDDER.value,
-                 "host-cookie.cookie-name": cookieName] + PBS_CONFIG)
-
-        and: "Default cookie sync request"
-        def uid = UUID.randomUUID().toString()
-        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs[BIDDER].uid = uid
-            tempUIDs[BIDDER].expires = ZonedDateTime.now(Clock.systemUTC()).minusDays(1)
-        }
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [BIDDER]
-        }
-
-        and: "Host cookie"
-        def cookies = [(cookieName): uid]
-
-        when: "PBS processes cookie sync request with cookies"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie, cookies)
-
-        then: "Response should contain uid from cookies"
-        def bidderStatus = response.getBidderUserSync(BIDDER)
-        assert HttpUtil.decodeUrl(bidderStatus.userSync?.url).contains("uid=${uid}")
     }
 
     def "PBS cookie sync request with host cookie should return an error when host cookie uid matches uids cookie uid for bidder"() {
