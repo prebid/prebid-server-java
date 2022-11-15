@@ -243,7 +243,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
                 + ["adapters.${BIDDER.value}.aliases.${bidderAlias.value}.enabled"           : "true",
-                   "adapters.${BIDDER.value}.aliases.${bidderAlias.value}.cookie-family-name": null,])
+                   "adapters.${BIDDER.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null,])
 
         and: "Cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
