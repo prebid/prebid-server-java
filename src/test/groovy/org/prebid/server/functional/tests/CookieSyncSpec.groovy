@@ -421,7 +421,7 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync with limit and coop-sync.pri should sync bidder which present in coop-sync.pri"() {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.coop-sync.pri": RUBICON.value] + PBS_CONFIG)
+                ["cookie-sync.pri": RUBICON.value] + PBS_CONFIG)
 
         and: "Default cookie sync request with coop-sync and limit and without requested bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
