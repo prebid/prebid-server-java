@@ -12,6 +12,6 @@ public class AccountCookieSyncConfig {
     @JsonProperty("max-limit")
     Integer maxLimit;
 
-    @JsonProperty("default-coop-sync")
-    Boolean defaultCoopSync;
+    @JsonProperty("coop-sync")
+    AccountCoopSyncConfig coopSync;
 }

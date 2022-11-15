@@ -554,7 +554,7 @@ public class ServiceConfiguration {
     @Bean
     CoopSyncProvider coopSyncProvider(
             BidderCatalog bidderCatalog,
-            @Value("${cookie-sync.coop-sync.pri:#{null}}") String prioritizedBidders,
+            @Value("${cookie-sync.pri:#{null}}") String prioritizedBidders,
             @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
 
         return new CoopSyncProvider(bidderCatalog, splitToSet(prioritizedBidders), defaultCoopSync);

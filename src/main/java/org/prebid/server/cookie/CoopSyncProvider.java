@@ -8,6 +8,7 @@ import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountCoopSyncConfig;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,7 +74,8 @@ public class CoopSyncProvider {
         return Optional.ofNullable(cookieSyncRequest.getCoopSync())
                 .or(() -> Optional.ofNullable(account)
                         .map(Account::getCookieSync)
-                        .map(AccountCookieSyncConfig::getDefaultCoopSync))
+                        .map(AccountCookieSyncConfig::getCoopSync)
+                        .map(AccountCoopSyncConfig::getEnabled))
                 .orElse(defaultCoopSync);
     }
 
