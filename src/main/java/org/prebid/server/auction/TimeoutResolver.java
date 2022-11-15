@@ -1,63 +1,40 @@
 package org.prebid.server.auction;
 
-/**
- * Component for processing timeout related functionality.
- */
 public class TimeoutResolver {
 
-    private final long defaultTimeout;
+    private final long minTimeout;
     private final long maxTimeout;
     private final long timeoutAdjustment;
 
-    public TimeoutResolver(long defaultTimeout, long maxTimeout, long timeoutAdjustment) {
-        validateTimeouts(defaultTimeout, maxTimeout);
+    public TimeoutResolver(long minTimeout, long maxTimeout, long timeoutAdjustment) {
+        validateTimeouts(minTimeout, maxTimeout);
 
-        this.defaultTimeout = defaultTimeout;
+        this.minTimeout = minTimeout;
         this.maxTimeout = maxTimeout;
         this.timeoutAdjustment = timeoutAdjustment;
     }
 
-    private static void validateTimeouts(long defaultTimeout, long maxTimeout) {
-        if (defaultTimeout <= 0 || maxTimeout <= 0) {
+    private static void validateTimeouts(long minTimeout, long maxTimeout) {
+        if (minTimeout <= 0 || maxTimeout <= 0) {
             throw new IllegalArgumentException(
-                    "Both default and max timeouts should be grater than 0: max=%d, default=%d"
-                            .formatted(maxTimeout, defaultTimeout));
-        } else if (maxTimeout < defaultTimeout) {
+                    "Both min and max timeouts should be grater than 0: min=%d, max=%d"
+                            .formatted(minTimeout, maxTimeout));
+        } else if (maxTimeout < minTimeout) {
             throw new IllegalArgumentException(
-                    "Max timeout cannot be less than default timeout: max=%d, default=%d"
-                            .formatted(maxTimeout, defaultTimeout));
+                    "Max timeout cannot be less than min timeout: min=%d, max=%d"
+                            .formatted(minTimeout, maxTimeout));
         }
     }
 
-    /**
-     * Resolves timeout according to given in request and pre-configured default and max values.
-     */
     public long resolve(Long requestTimeout) {
-        final long result;
-
-        if (requestTimeout == null) {
-            result = defaultTimeout;
-        } else if (requestTimeout > maxTimeout) {
-            result = maxTimeout;
-        } else {
-            result = requestTimeout;
-        }
-
-        return result;
+        return requestTimeout == null
+                ? maxTimeout
+                : Math.max(Math.min(requestTimeout, maxTimeout), minTimeout);
     }
 
-    /**
-     * Determines timeout according to given in request and pre-configured adjustment value.
-     */
     public long adjustTimeout(long requestTimeout) {
-        final long result;
-
-        if (requestTimeout == defaultTimeout || requestTimeout == maxTimeout) {
-            result = requestTimeout;
-        } else {
-            result = requestTimeout > timeoutAdjustment ? requestTimeout - timeoutAdjustment : requestTimeout;
-        }
-
-        return result;
+        return requestTimeout == minTimeout || requestTimeout == maxTimeout || requestTimeout <= timeoutAdjustment
+                ? requestTimeout
+                : requestTimeout - timeoutAdjustment;
     }
 }

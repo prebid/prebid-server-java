@@ -77,8 +77,9 @@ Removes and downloads file again if depending service cant process probably corr
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
+- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.

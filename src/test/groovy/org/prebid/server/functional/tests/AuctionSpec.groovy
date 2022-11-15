@@ -20,12 +20,10 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
 
-    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String])
 
     def "PBS should return version in response header for auction request for #description"() {
 
@@ -124,7 +122,7 @@ class AuctionSpec extends BaseSpec {
         MAX_TIMEOUT + 1       || MAX_TIMEOUT + 1
     }
 
-    def "PBS should honor default timeout for auction request"() {
+    def "PBS should honor max timeout for auction request"() {
         given: "Default basic BidRequest without timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = null
@@ -145,7 +143,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+        assert bidderRequest.tmax == MAX_TIMEOUT as Long
     }
 
     def "PBS should take data by priority when request, stored request, default request are defined"() {
@@ -156,8 +154,7 @@ class AuctionSpec extends BaseSpec {
         and: "Pbs config with default request"
         def pbsContainer = new PrebidServerContainer(
                 ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
-                 "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                 "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]).tap {
+                 "auction.max-timeout-ms"    : MAX_TIMEOUT as String]).tap {
             withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer)
@@ -186,16 +183,16 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain correct tmax"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+        assert bidderRequest.tmax == MAX_TIMEOUT as Long
 
         cleanup: "Stop container with default request"
         pbsContainer.stop()
 
         where:
         requestTmax     | storedRequestTmax  | defaultRequestTmax
-        DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
-        null            | DEFAULT_TIMEOUT    | getRandomTimeout()
-        null            | null               | DEFAULT_TIMEOUT
+        MAX_TIMEOUT     | getRandomTimeout() | getRandomTimeout()
+        null            | MAX_TIMEOUT        | getRandomTimeout()
+        null            | null               | MAX_TIMEOUT
     }
 
     def "PBS should update account.<account-id>.requests.rejected.invalid-account metric when account is inactive"() {

@@ -16,12 +16,10 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
 
-    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms": MAX_TIMEOUT as String])
 
     def "PBS should apply timeout from stored request when it's not specified in the request"() {
         given: "Default AMP request without timeout"
@@ -103,7 +101,7 @@ class AmpSpec extends BaseSpec {
         MAX_TIMEOUT + 1   || MAX_TIMEOUT + 1
     }
 
-    def "PBS should honor default timeout"() {
+    def "PBS should honor max timeout"() {
         given: "Default AMP request without timeout"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.timeout = null
@@ -123,7 +121,7 @@ class AmpSpec extends BaseSpec {
 
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+        assert bidderRequest.tmax == MAX_TIMEOUT as Long
     }
 
     def "PBS should return version in response header for #description"() {

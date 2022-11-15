@@ -5,6 +5,8 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
@@ -110,6 +112,8 @@ import java.util.stream.Stream;
 @Configuration
 public class ServiceConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
+
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
@@ -201,11 +205,22 @@ public class ServiceConfiguration {
 
     @Bean
     TimeoutResolver auctionTimeoutResolver(
-            @Value("${auction.default-timeout-ms}") long defaultTimeout,
-            @Value("${auction.max-timeout-ms}") long maxTimeout,
+            @Value("${auction.biddertmax.min}") long minTimeout,
+            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
+            @Value("${auction.biddertmax.max:#{null}}") Long maxTimeout,
             @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment) {
 
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+        return new TimeoutResolver(minTimeout, resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout), timeoutAdjustment);
+    }
+
+    // TODO: Remove
+    private static long resolveMaxTimeout(long maxTimeoutDeprecated, Long maxTimeout) {
+        if (maxTimeout != null) {
+            return maxTimeout;
+        }
+
+        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
+        return maxTimeoutDeprecated;
     }
 
     @Bean

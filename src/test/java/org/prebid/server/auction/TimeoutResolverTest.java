@@ -8,42 +8,42 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class TimeoutResolverTest {
 
-    private static final long DEFAULT_TIMEOUT = 100L;
+    private static final long MIN_TIMEOUT = 100L;
     private static final long MAX_TIMEOUT = 200L;
 
     private TimeoutResolver timeoutResolver;
 
     @Before
     public void setUp() {
-        timeoutResolver = new TimeoutResolver(DEFAULT_TIMEOUT, MAX_TIMEOUT, 10L);
+        timeoutResolver = new TimeoutResolver(MIN_TIMEOUT, MAX_TIMEOUT, 10L);
     }
 
     @Test
-    public void creationShouldFailIfDefaultTimeoutEqualOrLassThanZero() {
+    public void creationShouldFailIfMinTimeoutEqualOrLassThanZero() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(0L, 1L, 0L))
-                .withMessage("Both default and max timeouts should be grater than 0: max=1, default=0");
+                .withMessage("Both min and max timeouts should be grater than 0: min=0, max=1");
     }
 
     @Test
     public void creationShouldFailIfMaxTimeoutEqualsOrLassThanZero() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(1L, 0L, 0L))
-                .withMessage("Both default and max timeouts should be grater than 0: max=0, default=1");
+                .withMessage("Both min and max timeouts should be grater than 0: min=1, max=0");
     }
 
     @Test
-    public void creationShouldFailIfMaxTimeoutLessThanDefault() {
+    public void creationShouldFailIfMaxTimeoutLessThanMin() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(2L, 1L, 0L))
-                .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
+                .withMessage("Max timeout cannot be less than min timeout: min=2, max=1");
     }
 
     @Test
     public void resolveShouldReturnExpectedTimeout() {
-        assertThat(timeoutResolver.resolve(42L)).isEqualTo(42L);
+        assertThat(timeoutResolver.resolve(142L)).isEqualTo(142L);
     }
 
     @Test
-    public void resolveShouldReturnDefaultTimeout() {
-        assertThat(timeoutResolver.resolve(null)).isEqualTo(DEFAULT_TIMEOUT);
+    public void resolveShouldReturnMaxTimeoutAsDefault() {
+        assertThat(timeoutResolver.resolve(null)).isEqualTo(MAX_TIMEOUT);
     }
 
     @Test
@@ -52,13 +52,18 @@ public class TimeoutResolverTest {
     }
 
     @Test
-    public void adjustTimeoutShouldReturnExpectedTimeout() {
-        assertThat(timeoutResolver.adjustTimeout(42L)).isEqualTo(32L);
+    public void resolveShouldReturnMinTimeout() {
+        assertThat(timeoutResolver.resolve(50L)).isEqualTo(MIN_TIMEOUT);
     }
 
     @Test
-    public void adjustTimeoutShouldReturnDefaultTimeout() {
-        assertThat(timeoutResolver.adjustTimeout(DEFAULT_TIMEOUT)).isEqualTo(DEFAULT_TIMEOUT);
+    public void adjustTimeoutShouldReturnExpectedTimeout() {
+        assertThat(timeoutResolver.adjustTimeout(142L)).isEqualTo(132L);
+    }
+
+    @Test
+    public void adjustTimeoutShouldReturnMinTimeout() {
+        assertThat(timeoutResolver.adjustTimeout(MIN_TIMEOUT)).isEqualTo(MIN_TIMEOUT);
     }
 
     @Test
