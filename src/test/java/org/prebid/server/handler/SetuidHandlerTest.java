@@ -29,7 +29,8 @@ import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
@@ -82,7 +83,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
-    private TcfDefinerService tcfDefinerService;
+    private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -108,6 +109,9 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
+        given(tcfDefinerService.isAllowedForHostVendorId(any()))
+                .willReturn(Future.succeededFuture(HostVendorTcfResponse.allowedVendor()));
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(1);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -136,7 +140,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                1,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory);
@@ -385,6 +388,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldIgnoreFacebookSentinel() throws IOException {
         // given
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(FACEBOOK, UidWithExpiry.live("facebookUid"))).build(), jacksonMapper));
 
@@ -407,7 +411,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory);
@@ -474,6 +477,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldSendEmptyResponseWhenFParamIsEqualToBWhenTypeIsRedirect() {
         // given
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
@@ -495,7 +499,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
                 analyticsReporterDelegator,
                 metrics,
                 new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())));
@@ -513,6 +516,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldSendEmptyResponseWhenFParamNotDefinedAndTypeIsIframe() {
         // given
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
@@ -533,7 +537,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
                 analyticsReporterDelegator,
                 metrics,
                 new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())));
@@ -551,6 +554,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldSendPixelWhenFParamNotDefinedAndTypeIsRedirect() {
         // given
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
@@ -570,7 +574,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
                 analyticsReporterDelegator,
                 metrics,
                 new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())));
@@ -649,9 +652,10 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
-                bidderCatalog, privacyEnforcementService, tcfDefinerService, null, analyticsReporterDelegator, metrics,
+                bidderCatalog, privacyEnforcementService, tcfDefinerService, analyticsReporterDelegator, metrics,
                 new TimeoutFactory(clock));
 
+        given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
@@ -732,7 +736,6 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory);

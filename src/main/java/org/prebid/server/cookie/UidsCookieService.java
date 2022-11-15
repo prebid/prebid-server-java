@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Contains logic for obtaining UIDs from the request and actualizing them.
@@ -181,13 +182,6 @@ public class UidsCookieService {
     }
 
     /**
-     * Returns configured host cookie family.
-     */
-    public String getHostCookieFamily() {
-        return hostCookieFamily;
-    }
-
-    /**
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
      * UIDs cookie sync.
      */
@@ -234,5 +228,26 @@ public class UidsCookieService {
     private static boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
         return UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
                 || StringUtils.isEmpty(entry.getValue().getUid());
+    }
+
+    public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
+        if (!StringUtils.equals(cookieFamilyName, hostCookieFamily)) {
+            return null;
+        }
+
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
+        final String hostCookieUid = parseHostCookie(cookies);
+        if (hostCookieUid == null) {
+            return null;
+        }
+
+        final boolean inSync = Optional.ofNullable(parseUids(cookies))
+                .map(Uids::getUids)
+                .map(uids -> uids.get(cookieFamilyName))
+                .map(UidWithExpiry::getUid)
+                .filter(uid -> StringUtils.equals(hostCookieUid, uid))
+                .isPresent();
+
+        return inSync ? null : hostCookieUid;
     }
 }
