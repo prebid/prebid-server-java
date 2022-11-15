@@ -36,6 +36,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
@@ -966,7 +967,7 @@ public class CookieSyncServiceTest extends VertxTest {
 
     private static Account givenAccount(int limit, int maxLimit) {
         return Account.builder()
-                .cookieSync(AccountCookieSyncConfig.of(limit, maxLimit, false))
+                .cookieSync(AccountCookieSyncConfig.of(limit, maxLimit, AccountCoopSyncConfig.of(false, null)))
                 .build();
     }
 

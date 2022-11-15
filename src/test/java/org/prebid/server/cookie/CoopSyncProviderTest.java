@@ -13,6 +13,7 @@ import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
@@ -81,7 +82,7 @@ public class CoopSyncProviderTest {
         givenCoopSyncProviderWithCoopSyncBidders("valid");
 
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder().cookieSyncRequest(CookieSyncRequest.builder().coopSync(true).build())
                         .build());
 
@@ -94,10 +95,13 @@ public class CoopSyncProviderTest {
         // given
         givenCoopSyncProviderWithCoopSyncBidders("valid");
 
+        final AccountCookieSyncConfig cookieSyncConfig =
+                AccountCookieSyncConfig.of(1, 1, AccountCoopSyncConfig.of(false, null));
+
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder().cookieSyncRequest(CookieSyncRequest.builder().build())
-                        .account(Account.builder().cookieSync(AccountCookieSyncConfig.of(1, 1, false)).build())
+                        .account(Account.builder().cookieSync(cookieSyncConfig).build())
                         .build());
 
         // then
@@ -109,14 +113,17 @@ public class CoopSyncProviderTest {
         // given
         givenCoopSyncProviderWithCoopSyncBidders("valid");
 
+        final AccountCookieSyncConfig cookieSyncConfig =
+                AccountCookieSyncConfig.of(1, 1, AccountCoopSyncConfig.of(true, null));
+
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder().cookieSyncRequest(CookieSyncRequest.builder().build())
-                        .account(Account.builder().cookieSync(AccountCookieSyncConfig.of(1, 1, false)).build())
+                        .account(Account.builder().cookieSync(cookieSyncConfig).build())
                         .build());
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactly("valid");
     }
 
     @Test
@@ -125,7 +132,7 @@ public class CoopSyncProviderTest {
         givenCoopSyncProviderWithCoopSyncBidders(false, "valid");
 
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder().cookieSyncRequest(CookieSyncRequest.builder().build())
                         .account(Account.builder().build())
                         .build());
@@ -140,7 +147,7 @@ public class CoopSyncProviderTest {
         givenCoopSyncProviderWithCoopSyncBidders(true, "valid");
 
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder().cookieSyncRequest(CookieSyncRequest.builder().build())
                         .account(Account.builder().build())
                         .build());
@@ -163,7 +170,7 @@ public class CoopSyncProviderTest {
         target = new CoopSyncProvider(bidderCatalog, Collections.singleton("bidder3"), false);
 
         // when
-        Set<String> result = target.coopSyncBidders(
+        final Set<String> result = target.coopSyncBidders(
                 CookieSyncContext.builder()
                         .cookieSyncRequest(CookieSyncRequest.builder().coopSync(true).build())
                         .build());
