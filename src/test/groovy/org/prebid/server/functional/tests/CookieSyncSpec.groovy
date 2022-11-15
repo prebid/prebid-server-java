@@ -219,7 +219,12 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync with enabled coop-sync should sync all enabled bidders"() {
-        given: "Default cookie sync request with coop-sync and without bidders"
+        given: "PBS config with expanded limit"
+        def countOfEnabledBidders = 3
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.default-limit": countOfEnabledBidders.toString()] + PBS_CONFIG)
+
+        and: "Default cookie sync request with coop-sync and without bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = null
             coopSync = true
@@ -229,7 +234,7 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain all 3 enabled bidders"
-        assert response.bidderStatus.size() == 3
+        assert response.bidderStatus.size() == countOfEnabledBidders
         assert response.bidderStatus*.bidder.sort() == [RUBICON, APPNEXUS, GENERIC].sort()
     }
 
@@ -260,15 +265,13 @@ class CookieSyncSpec extends BaseSpec {
         assert mainBidderStatus?.noCookie == true
     }
 
-    @Ignore("Waiting for confirmation")
     def "PBS cookie sync request with alias bidder should sync independently when alias provide cookie-family-name"() {
         given: "PBS config with alias bidder with cookie family name"
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${BIDDER.value}.aliases.${bidderAlias.value}.enabled"           : "true",
-                   "adapters.${BIDDER.value}.aliases.${bidderAlias.value}.cookie-family-name": bidderAlias.value])
+                + ["adapters.${BIDDER.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${BIDDER.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": bidderAlias.value])
 
-        and: "Cookie sync request with 2 bidders"
         and: "Cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = [BIDDER, bidderAlias]
@@ -279,7 +282,7 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "PBS should return sync for both bidders"
         assert response.bidderStatus.size() == cookieSyncRequest.bidders.size()
-        response.bidderStatus.every {
+        response.bidderStatus.each {
             assert it.userSync?.url?.startsWith(USER_SYNC_URL)
             assert it.userSync?.type == USER_SYNC_TYPE
             assert it.userSync?.supportCORS == CORS_SUPPORT

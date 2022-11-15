@@ -13,6 +13,7 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
 class SmokeSpec extends BaseSpec {
@@ -72,7 +73,7 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidder uids"
         assert response.buyeruids?.size() == uidsCookie.tempUIDs.size()
-        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidder].uid == uid }
+        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidderNameByString(bidder)].uid == uid }
     }
 
     def "PBS should return tracking pixel on event request"() {
