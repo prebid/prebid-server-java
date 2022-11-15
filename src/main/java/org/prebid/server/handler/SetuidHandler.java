@@ -41,6 +41,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -151,7 +152,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 return;
             }
 
-            tcfDefinerService.isAllowedForHostVendorId(tcfContext)
+            isAllowedForHostVendorId(tcfContext)
                     .onComplete(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
@@ -177,6 +178,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (!uidsCookie.allowsSync()) {
             throw new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext);
         }
+    }
+
+    /**
+     * If host vendor id is null, host allowed to setuid.
+     */
+    private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
+        final Integer gdprHostVendorId = tcfDefinerService.getGdprHostVendorId();
+        return gdprHostVendorId == null
+                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
+                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
+                .map(this::toHostVendorTcfResponse);
+    }
+
+    private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
+        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
+                isSetuidAllowed(tcfResponse));
     }
 
     private boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {

@@ -244,8 +244,9 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        given(tcfDefinerService.isAllowedForHostVendorId(any())).willReturn(Future.succeededFuture(
-                HostVendorTcfResponse.of(true, "country", false)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -269,7 +270,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(tcfDefinerService.isAllowedForHostVendorId(any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -292,7 +293,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(tcfDefinerService.isAllowedForHostVendorId(any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.failedFuture("unexpected error TCF"));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
