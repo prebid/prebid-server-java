@@ -256,7 +256,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     "some-analytics",
                                     mapper.createObjectNode()
                                             .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
-                    .cookieSync(AccountCookieSyncConfig.of(5, 8, AccountCoopSyncConfig.of(true, null)))
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, null, AccountCoopSyncConfig.of(true)))
                     .build());
             async.complete();
         }));

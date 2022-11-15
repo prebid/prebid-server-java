@@ -502,11 +502,11 @@ class CookieSyncSpec extends BaseSpec {
 
         where:
         reason                                       | config
-        "is invalid bidder name, ignoring"           | ["cookie-sync.coop-sync.pri": PBSUtils.randomString]
+        "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
         "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled" : "false",
-                                                        "cookie-sync.coop-sync.pri": "generic"]
+                                                        "cookie-sync.pri": "generic"]
         "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
-                                                        "cookie-sync.coop-sync.pri"                   : "generic",]
+                                                        "cookie-sync.pri"                   : "generic",]
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {

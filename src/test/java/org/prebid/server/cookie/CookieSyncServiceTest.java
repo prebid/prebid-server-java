@@ -967,7 +967,7 @@ public class CookieSyncServiceTest extends VertxTest {
 
     private static Account givenAccount(int limit, int maxLimit) {
         return Account.builder()
-                .cookieSync(AccountCookieSyncConfig.of(limit, maxLimit, AccountCoopSyncConfig.of(false, null)))
+                .cookieSync(AccountCookieSyncConfig.of(limit, maxLimit, null, AccountCoopSyncConfig.of(false)))
                 .build();
     }
 

@@ -96,7 +96,7 @@ public class CoopSyncProviderTest {
         givenCoopSyncProviderWithCoopSyncBidders("valid");
 
         final AccountCookieSyncConfig cookieSyncConfig =
-                AccountCookieSyncConfig.of(1, 1, AccountCoopSyncConfig.of(false, null));
+                AccountCookieSyncConfig.of(1, 1, null, AccountCoopSyncConfig.of(false));
 
         // when
         final Set<String> result = target.coopSyncBidders(
@@ -114,7 +114,7 @@ public class CoopSyncProviderTest {
         givenCoopSyncProviderWithCoopSyncBidders("valid");
 
         final AccountCookieSyncConfig cookieSyncConfig =
-                AccountCookieSyncConfig.of(1, 1, AccountCoopSyncConfig.of(true, null));
+                AccountCookieSyncConfig.of(1, 1, null, AccountCoopSyncConfig.of(true));
 
         // when
         final Set<String> result = target.coopSyncBidders(
