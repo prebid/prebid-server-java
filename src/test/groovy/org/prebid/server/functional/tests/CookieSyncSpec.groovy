@@ -494,6 +494,34 @@ class CookieSyncSpec extends BaseSpec {
         assert genericBidder?.userSync?.type
     }
 
+    def "PBS cookie sync with pri and enabled coop sync in account should sync bidder which present in pir account config"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
+
+        and: "Default cookie sync request without coop-sync and bidders"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = null
+            account = accountId
+        }
+
+        and: "Save account with cookie config"
+        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], defaultCoopSync: true)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain generic bidder from cookie-sync.pri config"
+        def genericBidder = response.getBidderUserSync(bidderName)
+        assert genericBidder?.userSync?.url
+        assert genericBidder?.userSync?.type
+    }
+
     def "PBS cookie sync with cookie-sync.pri and enabled coop-sync in config should sync bidder which present in cookie-sync.pri config"() {
         given: "PBS bidders config"
         def bidderName = GENERIC

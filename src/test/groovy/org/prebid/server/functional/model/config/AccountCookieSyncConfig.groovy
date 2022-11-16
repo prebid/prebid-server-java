@@ -11,4 +11,5 @@ class AccountCookieSyncConfig {
     Integer defaultLimit
     Integer maxLimit
     Boolean defaultCoopSync
+    List<String> pri
 }
