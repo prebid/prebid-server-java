@@ -612,54 +612,6 @@ class CookieSyncSpec extends BaseSpec {
                                                         "cookie-sync.pri"                             : "generic"]
     }
 
-    def "PBS cookie sync with cookie-sync.max-limit should take precedence max limit in config when limit in request lowes that config"() {
-        given: "PBS bidders config"
-        def maxLimit = 2
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.max-limit"    : maxLimit.toString(),
-                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
-
-        and: "Default cookie sync request with 3 bidders"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, APPNEXUS, RUBICON]
-            limit = 5
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain only one synced bidder"
-        assert response.bidderStatus.size() == maxLimit
-    }
-
-    def "PBS cookie sync with cookie-sync.max-limit should take precedence max limit in account cookie"() {
-        given: "PBS bidders config"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.default-limit": "1",
-                 "cookie-sync.max-limit"    : "1"] + PBS_CONFIG)
-
-        and: "Default cookie sync request with 3 bidders"
-        def accountId = PBSUtils.randomNumber
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, APPNEXUS, RUBICON]
-            limit = 5
-            account = accountId
-        }
-
-        and: "Save account with cookie sync config"
-        def maxLimit = 2
-        def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
-        def account = new Account(uuid: accountId, config: accountConfig)
-        accountDao.save(account)
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain only two synced bidder"
-        assert response.bidderStatus.size() == maxLimit
-    }
-
     def "PBS cookie sync without cookie-sync.default-limit config and with cookie sync account config limit should use limit from request"() {
         given: "Default cookie sync request with 3 bidders"
         def requestLimit = 1
@@ -744,6 +696,54 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain only one synced bidder"
         assert response.bidderStatus.size() == defaultLimit
+    }
+
+    def "PBS cookie sync with cookie-sync.max-limit should use max-limit from PBS config"() {
+        given: "PBS bidders config"
+        def maxLimit = 2
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.max-limit"    : maxLimit.toString(),
+                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
+
+        and: "Default cookie sync request with 3 bidders"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [GENERIC, APPNEXUS, RUBICON]
+            limit = 5
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain only one synced bidder"
+        assert response.bidderStatus.size() == maxLimit
+    }
+
+    def "PBS cookie sync with cookie-sync.max-limit should use max-limit from cookie sync account config"() {
+        given: "PBS bidders config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.default-limit": "1",
+                 "cookie-sync.max-limit"    : "1"] + PBS_CONFIG)
+
+        and: "Default cookie sync request with 3 bidders"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [GENERIC, APPNEXUS, RUBICON]
+            limit = 5
+            account = accountId
+        }
+
+        and: "Save account with cookie sync config"
+        def maxLimit = 2
+        def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain only two synced bidder"
+        assert response.bidderStatus.size() == maxLimit
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {
