@@ -417,131 +417,6 @@ class CookieSyncSpec extends BaseSpec {
         assert bidderStatus?.userSync == null
     }
 
-    def "PBS cookie sync with cookie-sync.pri and disabled coop-sync in request shouldn't sync bidder which present in cookie-sync.pri"() {
-        given: "PBS bidders config"
-        def bidderName = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
-
-        and: "Default cookie sync request with coop-sync enabled and limit and without requested bidders"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
-            coopSync = false
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response shouldn't contain generic bidder from cookie-sync.pri config"
-        assert !response.getBidderUserSync(bidderName)
-    }
-
-    def "PBS cookie sync with cookie-sync.pri and enabled coop sync in account should sync bidder which present in cookie-sync.pir config"() {
-        given: "PBS bidders config"
-        def bidderName = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
-
-        and: "Default cookie sync request without coop-sync and bidders"
-        def accountId = PBSUtils.randomNumber
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
-            coopSync = null
-            account = accountId
-        }
-
-        and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
-        def account = new Account(uuid: accountId, config: accountConfig)
-        accountDao.save(account)
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain generic bidder from cookie-sync.pri config"
-        def genericBidder = response.getBidderUserSync(bidderName)
-        assert genericBidder?.userSync?.url
-        assert genericBidder?.userSync?.type
-    }
-
-    def "PBS cookie sync with pri and enabled coop sync in account should sync bidder which present in pir account config"() {
-        given: "PBS bidders config"
-        def bidderName = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
-
-        and: "Default cookie sync request without coop-sync and bidders"
-        def accountId = PBSUtils.randomNumber
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
-            coopSync = null
-            account = accountId
-        }
-
-        and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], defaultCoopSync: true)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
-        def account = new Account(uuid: accountId, config: accountConfig)
-        accountDao.save(account)
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain generic bidder from cookie-sync.pri config"
-        def genericBidder = response.getBidderUserSync(bidderName)
-        assert genericBidder?.userSync?.url
-        assert genericBidder?.userSync?.type
-    }
-
-    def "PBS cookie sync with cookie-sync.pri and enabled coopSync should sync bidder which present in cookie-sync.pri"() {
-        given: "PBS bidders config"
-        def bidderName = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
-
-        and: "Default cookie sync request with coop-sync and limit"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC]
-            coopSync = true
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain generic bidder"
-        def genericBidder = response.getBidderUserSync(bidderName)
-        assert genericBidder?.userSync?.url
-        assert genericBidder?.userSync?.type
-    }
-
-    def "PBS cookie sync with coop-sync and config should log: bidder is provided for prioritized coop-syncing but #reason"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(config)
-
-        and: "Cookie sync request with coop-sync"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            coopSync = true
-        }
-
-        when: "PBS processes cookie sync request"
-        prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "PBS log should contain message"
-        def logs = prebidServerService.getLogsByTime(startTime)
-        assert getLogsByText(logs, reason).size() == 1
-
-        where:
-        reason                                       | config
-        "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
-        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
-                                                        "cookie-sync.pri"         : "generic"]
-        "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
-                                                        "cookie-sync.pri"                             : "generic"]
-    }
-
     def "PBS cookie sync without cookie-sync.default-limit config and with cookie sync account config limit should use limit from request"() {
         given: "Default cookie sync request with 3 bidders"
         def requestLimit = 1
@@ -722,7 +597,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS bidders config"
         def bidderName = GENERIC
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri"              : bidderName.value] + GENERIC_CONFIG)
+                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
 
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
@@ -749,7 +624,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS bidders config"
         def bidderName = GENERIC
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri"              : bidderName.value] + GENERIC_CONFIG)
+                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
 
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
@@ -772,6 +647,232 @@ class CookieSyncSpec extends BaseSpec {
         def genericBidder = response.getBidderUserSync(bidderName)
         assert genericBidder?.userSync?.url
         assert genericBidder?.userSync?.type
+    }
+
+    def "PBS cookie sync with enabled coop-sync in request and when bidder invalid should log error: bidder is provided for prioritized coop-syncing but #reason"() {
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(config)
+
+        and: "Cookie sync request with coop-sync"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            coopSync = true
+        }
+
+        when: "PBS processes cookie sync request"
+        prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "PBS log should contain message"
+        def logs = prebidServerService.getLogsByTime(startTime)
+        assert getLogsByText(logs, reason).size() == 1
+
+        where:
+        reason                                       | config
+        "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
+        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
+                                                        "cookie-sync.pri"         : GENERIC.value]
+        "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
+                                                        "cookie-sync.pri"                             : GENERIC.value]
+    }
+
+    def "PBS cookie sync with enabled coop-sync in PBS config and when bidder invalid should log error: bidder is provided for prioritized coop-syncing but #reason"() {
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(config +
+                ["cookie-sync.coop-sync.default": "true"])
+
+        and: "Cookie sync request with coop-sync"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            coopSync = null
+        }
+
+        when: "PBS processes cookie sync request"
+        prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "PBS log should contain message"
+        def logs = prebidServerService.getLogsByTime(startTime)
+        assert getLogsByText(logs, reason).size() == 1
+
+        where:
+        reason                                       | config
+        "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
+        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
+                                                        "cookie-sync.pri"         : GENERIC.value]
+        "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
+                                                        "cookie-sync.pri"                             : GENERIC.value]
+    }
+
+    def "PBS cookie sync with enabled coop-sync in account cookie sync and when bidder invalid should log error: bidder is provided for prioritized coop-syncing but #reason"() {
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(config +
+                ["cookie-sync.coop-sync.default": "false"])
+
+        and: "Cookie sync request with disabled coop-sync"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            coopSync = null
+            account = accountId
+        }
+
+        and: "Save account with cookie config"
+        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "PBS log should contain message"
+        def logs = prebidServerService.getLogsByTime(startTime)
+        assert getLogsByText(logs, reason).size() == 1
+
+        where:
+        reason                                       | config
+        "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
+        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
+                                                        "cookie-sync.pri"         : GENERIC.value]
+        "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
+                                                        "cookie-sync.pri"                             : GENERIC.value]
+    }
+
+    def "PBS cookie sync with cookie-sync.pri and enabled coop sync should sync bidder which present in cookie-sync.pri"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.pri"              : bidderName.value,
+                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
+
+        and: "Default cookie sync request with coop-sync"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [bidderName]
+            coopSync = true
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain generic bidder"
+        def genericBidder = response.getBidderUserSync(bidderName)
+        assert genericBidder?.userSync?.url
+        assert genericBidder?.userSync?.type
+    }
+
+    def "PBS cookie sync with pri and enabled coop sync in cookie sync account should sync bidder which present in pir account config"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.pri"              : "null",
+                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
+
+        and: "Default cookie sync request without coop-sync and bidders"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = null
+            account = accountId
+        }
+
+        and: "Save account with cookie config"
+        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], defaultCoopSync: true)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain generic bidder from pri account config"
+        def genericBidder = response.getBidderUserSync(bidderName)
+        assert genericBidder?.userSync?.url
+        assert genericBidder?.userSync?.type
+    }
+
+    def "PBS cookie sync with coop-sync.default config and pri in cookie sync account should sync bidder which present in pir account config"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.pri"              : "null",
+                 "cookie-sync.coop-sync.default": "true"] + GENERIC_CONFIG)
+
+        and: "Default cookie sync request without coop-sync and bidders"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = null
+            account = accountId
+        }
+
+        and: "Save account with cookie config"
+        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value])
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain generic bidder from pri account config"
+        def genericBidder = response.getBidderUserSync(bidderName)
+        assert genericBidder?.userSync?.url
+        assert genericBidder?.userSync?.type
+    }
+
+    def "PBS cookie sync with cookie-sync.pri and enabled coop sync in account should sync bidder which present in cookie-sync.pir config"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.pri"              : bidderName.value,
+                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
+
+        and: "Default cookie sync request without coop-sync and bidders"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = null
+            account = accountId
+        }
+
+        and: "Save account with cookie config"
+        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain generic bidder from cookie-sync.pri config"
+        def genericBidder = response.getBidderUserSync(bidderName)
+        assert genericBidder?.userSync?.url
+        assert genericBidder?.userSync?.type
+    }
+
+    def "PBS cookie sync with cookie-sync.pri and disabled coop-sync in request shouldn't sync bidder which present in cookie-sync.pri config"() {
+        given: "PBS bidders config"
+        def bidderName = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.pri"              : bidderName.value,
+                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
+
+        and: "Default cookie sync request with coop-sync enabled and limit and without requested bidders"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = false
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response shouldn't contain generic bidder from cookie-sync.pri config"
+        assert !response.getBidderUserSync(bidderName)
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {
