@@ -660,7 +660,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == maxLimit
     }
 
-    def "PBS cookie sync with cookie account limit should take precedence limit in request"() {
+    def "PBS cookie sync without cookie-sync.default-limit and with cookie account limit should use limit from request"() {
         given: "Default cookie sync request with 3 bidders"
         def requestLimit = 1
         def accountId = PBSUtils.randomNumber
