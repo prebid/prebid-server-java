@@ -41,8 +41,7 @@ class CookieSyncSpec extends BaseSpec {
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-
-    private static Map<String, String> PBS_CONFIG = [
+    private static final Map<String, String> PBS_CONFIG = [
             "adapters.${RUBICON.value}.enabled"                     : "true",
             "adapters.${RUBICON.value}.usersync.cookie-family-name" : RUBICON.value,
             "adapters.${APPNEXUS.value}.enabled"                    : "true",
@@ -585,23 +584,6 @@ class CookieSyncSpec extends BaseSpec {
         assert genericBidder?.userSync?.type
     }
 
-    def "PBS cookie sync with cookie-sync.default-limit config should sync bidder by limit value in config"() {
-        given: "PBS config with bidders usersync config"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.default-limit": "1"] + PBS_CONFIG)
-
-        and: "Default cookie sync request with 2 bidders"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, RUBICON]
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain only one synced bidder"
-        assert response.bidderStatus.size() == 1
-    }
-
     def "PBS cookie sync with coop-sync and config should log: bidder is provided for prioritized coop-syncing but #reason"() {
         given: "Start time"
         def startTime = Instant.now()
@@ -701,7 +683,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == requestLimit
     }
 
-    def "PBS cookie sync with cookie-sync.default-limit config should take precedence limit in account config"() {
+    def "PBS cookie sync with cookie-sync.default-limit config should use limit from account config"() {
         given: "PBS bidders config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.default-limit": "2"] + PBS_CONFIG)
@@ -727,8 +709,8 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == accountDefaultLimit
     }
 
-    def "PBS cookie sync with cookie-sync.default-limit config should take precedence limit in request"() {
-        given: "PBS bidders config"
+    def "PBS cookie sync with cookie-sync.default-limit config should use limit from request"() {
+        given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.default-limit": "2"] + PBS_CONFIG)
 
@@ -744,6 +726,24 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain only two synced bidder"
         assert response.bidderStatus.size() == requestLimit
+    }
+
+    def "PBS cookie sync with cookie-sync.default-limit config should use limit from PBS config"() {
+        given: "PBS config"
+        def defaultLimit = 1
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.default-limit": defaultLimit.toString()] + PBS_CONFIG)
+
+        and: "Default cookie sync request with 2 bidders"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [GENERIC, RUBICON]
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain only one synced bidder"
+        assert response.bidderStatus.size() == defaultLimit
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {
