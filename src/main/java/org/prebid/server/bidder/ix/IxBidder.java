@@ -293,27 +293,32 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        Integer mType = bid.getMtype();
-        BidType bidType = mType != null ? switch (bid.getMtype()) {
+        final BidType bidType = getBidTypeFromMtype(bid.getMtype());
+        if (bidType != null) {
+            return bidType;
+        }
+
+        return Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText)
+                .map(BidType::fromString)
+                .orElse(getBidTypeFromImp(imps, bid.getImpid()));
+    }
+
+    private static BidType getBidTypeFromMtype(Integer mType) {
+        return mType != null ? switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             default -> null;
         } : null;
-        if (bidType != null) {
-            return bidType;
-        }
+    }
 
-        Optional<String> prebidType = Optional.ofNullable(bid.getExt())
-                .map(ext -> ext.get("prebid"))
-                .map(prebid -> prebid.get("type")).map(JsonNode::asText);
-        if (prebidType.isPresent()) {
-            return BidType.fromString(prebidType.get());
-        }
-
-        for (Imp imp : imps) {
-            if (imp.getId().equals(bid.getImpid())) {
+    private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
+        for (Imp imp: imps) {
+            if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
@@ -325,7 +330,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException("Unmatched impression id " + bid.getImpid());
+        throw new PreBidException("Unmatched impression id " + impId);
     }
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {

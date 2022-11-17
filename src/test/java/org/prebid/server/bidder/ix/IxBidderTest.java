@@ -637,7 +637,34 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectTypeMTypeInResponse() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMTypeIsOne() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final Video video = Video.builder().build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(banner)
+                                .video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .mtype(1))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMTypeIsTwo() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
         final Video video = Video.builder().build();
@@ -661,6 +688,60 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfMTypeIsThree() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final Video video = Video.builder().build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(banner)
+                                .video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .mtype(3))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.audio);
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMTypeIsFour() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final Video video = Video.builder().build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(banner)
+                                .video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .mtype(4))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.xNative);
     }
 
     @Test
