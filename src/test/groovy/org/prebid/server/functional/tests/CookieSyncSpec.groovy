@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
+import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
@@ -597,7 +598,8 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS bidders config"
         def bidderName = GENERIC
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri": bidderName.value] + GENERIC_CONFIG)
+                ["cookie-sync.pri"              : bidderName.value,
+                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
 
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
@@ -608,7 +610,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: false)
+        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
@@ -635,7 +637,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
+        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true))
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
@@ -722,7 +724,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
+        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
