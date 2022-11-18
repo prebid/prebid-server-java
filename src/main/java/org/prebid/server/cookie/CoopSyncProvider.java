@@ -11,6 +11,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountCoopSyncConfig;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -66,7 +67,7 @@ public class CoopSyncProvider {
         final Account account = cookieSyncContext.getAccount();
 
         return coopSyncAllowed(cookieSyncRequest, account)
-                ? prepareCoopSyncBidders()
+                ? prepareCoopSyncBidders(account)
                 : Collections.emptySet();
     }
 
@@ -79,11 +80,23 @@ public class CoopSyncProvider {
                 .orElse(defaultCoopSync);
     }
 
-    private Set<String> prepareCoopSyncBidders() {
-        final List<String> shuffledPrioritizedBidders = new ArrayList<>(prioritizedBidders);
+    private Set<String> prepareCoopSyncBidders(Account account) {
+        final List<String> shuffledPrioritizedBidders = new ArrayList<>(prioritizedBidders(account));
         Collections.shuffle(shuffledPrioritizedBidders);
 
-        return Stream.concat(shuffledPrioritizedBidders.stream(), coopSyncBidders.stream())
+        final List<String> shuffledCoopSyncBidders = new ArrayList<>(coopSyncBidders);
+        Collections.shuffle(shuffledCoopSyncBidders);
+
+        return Stream.of(shuffledPrioritizedBidders, shuffledCoopSyncBidders)
+                .flatMap(Collection::stream)
                 .collect(Collectors.toCollection(LinkedHashSet::new)); // to keep prioritized bidders first
+    }
+
+    private Set<String> prioritizedBidders(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getCookieSync)
+                .map(AccountCookieSyncConfig::getPrioritizedBidders)
+                .filter(bidders -> !bidders.isEmpty())
+                .orElse(prioritizedBidders);
     }
 }

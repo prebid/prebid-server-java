@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -157,17 +158,16 @@ public class CoopSyncProviderTest {
     }
 
     @Test
-    public void coopSyncBiddersShouldReturnSetWithPrioritizedBiddersFirstIfCoopSyncEnabled() {
+    public void coopSyncBiddersShouldReturnSetWithConfigPrioritizedBiddersFirstIfCoopSyncEnabled() {
         // given
         givenValidBidderWithCookieSync("bidder1");
         givenValidBidderWithCookieSync("bidder2");
         givenValidBidderWithCookieSync("bidder3");
 
-        // linked hash set used to preserve bidder1 to bidder2 order in final result
         given(bidderCatalog.usersyncReadyBidders())
-                .willReturn(new LinkedHashSet<>(List.of("bidder1", "bidder2", "bidder3")));
+                .willReturn(Set.of("bidder1", "bidder2", "bidder3"));
 
-        target = new CoopSyncProvider(bidderCatalog, Collections.singleton("bidder3"), false);
+        target = new CoopSyncProvider(bidderCatalog, singleton("bidder3"), false);
 
         // when
         final Set<String> result = target.coopSyncBidders(
@@ -176,7 +176,41 @@ public class CoopSyncProviderTest {
                         .build());
 
         // then
-        assertThat(result).containsExactly("bidder3", "bidder1", "bidder2");
+        assertThat(result).first().isEqualTo("bidder3");
+        assertThat(result).containsExactlyInAnyOrder("bidder1", "bidder2", "bidder3");
+    }
+
+    @Test
+    public void coopSyncBiddersShouldReturnSetWithPrioritizedBiddersFromAccountFirstIfCoopSyncEnabled() {
+        // given
+        givenValidBidderWithCookieSync("bidder1");
+        givenValidBidderWithCookieSync("bidder2");
+        givenValidBidderWithCookieSync("bidder3");
+
+        given(bidderCatalog.usersyncReadyBidders())
+                .willReturn(Set.of("bidder1", "bidder2", "bidder3"));
+
+        target = new CoopSyncProvider(bidderCatalog, singleton("bidder3"), false);
+
+        final Account account = Account.builder()
+                .cookieSync(
+                        AccountCookieSyncConfig.of(
+                                1,
+                                1,
+                                singleton("bidder2"),
+                                AccountCoopSyncConfig.of(true)))
+                .build();
+
+        // when
+        final Set<String> result = target.coopSyncBidders(
+                CookieSyncContext.builder()
+                        .cookieSyncRequest(CookieSyncRequest.builder().coopSync(true).build())
+                        .account(account)
+                        .build());
+
+        // then
+        assertThat(result).first().isEqualTo("bidder2");
+        assertThat(result).containsExactlyInAnyOrder("bidder1", "bidder2", "bidder3");
     }
 
     private void givenCoopSyncProviderWithCoopSyncBidders(String... bidders) {
