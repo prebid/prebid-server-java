@@ -783,7 +783,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], defaultCoopSync: true)
+        def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], coopSync: new AccountCoopSyncConfig(enabled: true))
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
@@ -843,7 +843,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultCoopSync: true)
+        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true))
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
