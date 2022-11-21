@@ -1773,8 +1773,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
                         .startTimeStamp(now.minusMinutes(1))
@@ -1804,10 +1802,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
@@ -1826,8 +1825,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1859,10 +1856,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
@@ -1881,8 +1879,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1914,10 +1910,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
@@ -1936,8 +1933,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1969,10 +1964,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");

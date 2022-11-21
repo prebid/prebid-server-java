@@ -703,7 +703,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester, times(1))
-                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), anyBoolean());
+                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
 
         assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().get("bidder").asText())
@@ -1054,6 +1054,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build()),
                 any(),
                 any(),
+                any(),
                 anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
@@ -1071,6 +1072,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .aliases(singletonMap("bidderAlias", "bidder"))
                                         .build()))))
                         .build()),
+                any(),
                 any(),
                 any(),
                 anyBoolean()))
