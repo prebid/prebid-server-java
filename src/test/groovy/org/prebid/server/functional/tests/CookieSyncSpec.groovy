@@ -864,7 +864,7 @@ class CookieSyncSpec extends BaseSpec {
                 ["cookie-sync.pri"              : bidderName.value,
                  "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
 
-        and: "Default cookie sync request with coop-sync enabled and limit and without requested bidders"
+        and: "Default cookie sync request without coop-sync and bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = null
             coopSync = false
@@ -873,7 +873,7 @@ class CookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response shouldn't contain generic bidder from cookie-sync.pri config"
+        then: "Response shouldn't contain generic bidder"
         assert !response.getBidderUserSync(bidderName)
     }
 
