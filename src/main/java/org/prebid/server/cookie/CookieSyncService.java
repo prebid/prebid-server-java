@@ -325,25 +325,31 @@ public class CookieSyncService {
     }
 
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
-        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final Set<String> cookieFamilesToSync = new HashSet<>(); // multiple bidders may have same cookie families
+        final Set<String> allowedBiddersByPriority = allowedBiddersByPriority(cookieSyncContext);
+
+        final Set<String> cookieFamiliesToSync = new HashSet<>(); // multiple bidders may have same cookie families
         final Set<String> biddersToSync = new LinkedHashSet<>();
+        final Iterator<String> biddersIterator = allowedBiddersByPriority.iterator();
 
-        final Set<String> allowedPrioritizedBidders = new LinkedHashSet<>();
-        allowedPrioritizedBidders.addAll(biddersContext.allowedRequestedBidders());
-        allowedPrioritizedBidders.addAll(biddersContext.allowedCoopSyncBidders());
-
-        final Iterator<String> biddersIterator = allowedPrioritizedBidders.iterator();
-
-        while (cookieFamilesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
+        while (cookieFamiliesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
             final String bidder = biddersIterator.next();
             final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
 
-            cookieFamilesToSync.add(cookieFamilyName);
+            cookieFamiliesToSync.add(cookieFamilyName);
             biddersToSync.add(bidder);
         }
 
         return biddersToSync;
+    }
+
+    private static Set<String> allowedBiddersByPriority(CookieSyncContext cookieSyncContext) {
+        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
+
+        final Set<String> allowedBiddersByPriority = new LinkedHashSet<>();
+        allowedBiddersByPriority.addAll(biddersContext.allowedRequestedBidders());
+        allowedBiddersByPriority.addAll(biddersContext.allowedCoopSyncBidders());
+
+        return allowedBiddersByPriority;
     }
 
     private List<BidderUsersyncStatus> validStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
@@ -353,7 +359,7 @@ public class CookieSyncService {
                 .toList();
     }
 
-    public static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
+    private static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
         Set<Object> seen = new HashSet<>();
         return value -> seen.add(keyExtractor.apply(value));
     }

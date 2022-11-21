@@ -197,7 +197,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         if (tcfContext == null) {
             analyticsDelegator.processEvent(cookieSyncEvent);
         } else {
-            analyticsDelegator.processEvent(cookieSyncEvent, null);
+            analyticsDelegator.processEvent(cookieSyncEvent, tcfContext);
         }
     }
 }
