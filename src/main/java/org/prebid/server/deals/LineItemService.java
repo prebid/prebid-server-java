@@ -57,9 +57,9 @@ public class LineItemService {
     private static final String PG_IGNORE_PACING_VALUE = "1";
 
     private final Comparator<LineItem> lineItemComparator = Comparator
-            .comparing(LineItem::getHighestUnspentTokensClass)
-            .thenComparing(LineItem::getRelativePriority)
-            .thenComparing(LineItem::getCpm, Comparator.reverseOrder());
+            .comparing(LineItem::getHighestUnspentTokensClass, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getRelativePriority, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getCpm, Comparator.nullsLast(Comparator.reverseOrder()));
 
     private final int maxDealsPerBidder;
     private final TargetingService targetingService;

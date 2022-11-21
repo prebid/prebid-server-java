@@ -1306,7 +1306,7 @@ public class ExchangeService {
                 .build();
 
         return httpBidderRequester
-                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabledForBidder)
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),

@@ -1063,13 +1063,15 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
         final RequestContext context = new RequestContext(
                 request(identity()),
-                imp(i -> i.banner(banner(b -> b.format(asList(format(300, 250), format(400, 300)))))),
+                imp(i -> i
+                        .banner(banner(b -> b.format(asList(format(300, 250), format(400, 300)))))
+                        .video(Video.builder().w(350).h(350).build())),
                 txnLog,
                 jacksonMapper);
 
         // when and then
         assertThat(context.lookupSizes(category).getValues())
-                .containsExactly(asList(Size.of(300, 250), Size.of(400, 300)));
+                .containsExactly(asList(Size.of(300, 250), Size.of(400, 300), Size.of(350, 350)));
     }
 
     @Test

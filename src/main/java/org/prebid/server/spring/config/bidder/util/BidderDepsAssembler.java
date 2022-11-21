@@ -18,6 +18,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -29,7 +30,9 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
@@ -45,7 +48,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private String bidderName;
     private CFG configProperties;
-    private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
+    private BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
 
     private BidderDepsAssembler() {
@@ -58,7 +61,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     public BidderDepsAssembler<CFG> usersyncerCreator(
-            Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator) {
+            BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> usersyncerCreator) {
 
         this.usersyncerCreator = usersyncerCreator;
         return this;
@@ -88,7 +91,11 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
-        return deps(bidderName, BidderInfoCreator.create(configProperties), configProperties);
+        return deps(
+                bidderName,
+                usersyncer(configProperties, CookieFamilySource.ROOT),
+                BidderInfoCreator.create(configProperties),
+                configProperties);
     }
 
     private List<BidderInstanceDeps> aliasesDeps() {
@@ -99,40 +106,51 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
         final String alias = entry.getKey();
-        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
-        validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
+        final CFG aliasConfigProperties = configurationAsPropertiesObject(
+                entry.getValue(), configProperties.getSelfClass());
 
-        return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
+        final CFG aliasMergedProperties = mergeConfigurations(aliasConfigProperties, configProperties);
+
+        validateCapabilities(alias, aliasMergedProperties, bidderName, configProperties);
+
+        final Usersyncer usersyncer = Optional.ofNullable(aliasConfigProperties.getUsersync())
+                .map(UsersyncConfigurationProperties::getCookieFamilyName)
+                .map(familyName -> usersyncer(aliasMergedProperties, CookieFamilySource.ALIAS))
+                .orElseGet(() -> usersyncer(aliasMergedProperties, CookieFamilySource.ROOT));
+
+        return deps(
+                alias,
+                usersyncer,
+                BidderInfoCreator.create(aliasMergedProperties, bidderName),
+                aliasMergedProperties);
     }
 
-    private BidderInstanceDeps deps(String bidderName, BidderInfo bidderInfo, CFG configProperties) {
+    private BidderInstanceDeps deps(String bidderName,
+                                    Usersyncer usersyncer,
+                                    BidderInfo bidderInfo,
+                                    CFG configProperties) {
+
         return BidderInstanceDeps.builder()
                 .name(bidderName)
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer(configProperties))
+                .usersyncer(usersyncer)
                 .bidder(bidder(configProperties))
                 .build();
     }
 
-    private Usersyncer usersyncer(CFG configProperties) {
+    private Usersyncer usersyncer(CFG configProperties, CookieFamilySource cookieFamilySource) {
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
         final boolean usersyncPresent = usersync != null
                 && ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
-        return configProperties.getEnabled() && usersyncPresent ? usersyncerCreator.apply(usersync) : null;
+        return usersyncPresent ? usersyncerCreator.apply(usersync, cookieFamilySource) : null;
     }
 
     private Bidder<?> bidder(CFG configProperties) {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
                 : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
-    }
-
-    private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
-        return mergeConfigurations(
-                configurationAsPropertiesObject(aliasConfiguration, coreConfiguration.getSelfClass()),
-                coreConfiguration);
     }
 
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {

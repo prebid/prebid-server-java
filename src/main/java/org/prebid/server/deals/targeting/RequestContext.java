@@ -14,6 +14,8 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -186,12 +188,26 @@ public class RequestContext {
             throw new TargetingSyntaxException("Unexpected category for fetching sizes for: " + type);
         }
 
-        final List<Format> formats = getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getFormat);
-        final List<Size> sizes = ListUtils.emptyIfNull(formats).stream()
-                .map(format -> Size.of(format.getW(), format.getH()))
-                .toList();
+        final List<Size> sizes = ListUtils.union(sizesFromBanner(imp), sizesFromVideo(imp));
 
         return !sizes.isEmpty() ? LookupResult.ofValue(sizes) : LookupResult.empty();
+    }
+
+    private static List<Size> sizesFromBanner(Imp imp) {
+        final List<Format> formats = getIfNotNull(imp.getBanner(), Banner::getFormat);
+        return ListUtils.emptyIfNull(formats).stream()
+                .map(format -> Size.of(format.getW(), format.getH()))
+                .toList();
+    }
+
+    private static List<Size> sizesFromVideo(Imp imp) {
+        final Video video = imp.getVideo();
+        final Integer width = video != null ? video.getW() : null;
+        final Integer height = video != null ? video.getH() : null;
+
+        return width != null && height != null
+                ? Collections.singletonList(Size.of(width, height))
+                : Collections.emptyList();
     }
 
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
