@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
