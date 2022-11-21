@@ -656,6 +656,7 @@ public class IxBidderTest extends VertxTest {
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -683,6 +684,7 @@ public class IxBidderTest extends VertxTest {
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -710,6 +712,7 @@ public class IxBidderTest extends VertxTest {
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -737,6 +740,7 @@ public class IxBidderTest extends VertxTest {
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -765,6 +769,7 @@ public class IxBidderTest extends VertxTest {
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())

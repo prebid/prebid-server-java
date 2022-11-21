@@ -303,7 +303,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .map(prebid -> prebid.get("type"))
                 .map(JsonNode::asText)
                 .map(BidType::fromString)
-                .orElse(getBidTypeFromImp(imps, bid.getImpid()));
+                .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
     }
 
     private static BidType getBidTypeFromMtype(Integer mType) {
