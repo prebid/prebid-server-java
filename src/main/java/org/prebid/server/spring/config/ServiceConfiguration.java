@@ -51,6 +51,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.CoopSyncProvider;
+import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsPopulator;
@@ -530,6 +531,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    PrioritizedCoopSyncProvider prioritizedCoopSyncProvider(
+            @Value("${cookie-sync.pri:#{null}}") String prioritizedBidders,
+            BidderCatalog bidderCatalog) {
+
+        return new PrioritizedCoopSyncProvider(splitToSet(prioritizedBidders), bidderCatalog);
+    }
+
+    @Bean
     UidsCookieService uidsCookieService(
             @Value("${host-cookie.optout-cookie.name:#{null}}") String optOutCookieName,
             @Value("${host-cookie.optout-cookie.value:#{null}}") String optOutCookieValue,
@@ -538,6 +547,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -548,16 +558,17 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                prioritizedCoopSyncProvider,
                 mapper);
     }
 
     @Bean
     CoopSyncProvider coopSyncProvider(
             BidderCatalog bidderCatalog,
-            @Value("${cookie-sync.pri:#{null}}") String prioritizedBidders,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
 
-        return new CoopSyncProvider(bidderCatalog, splitToSet(prioritizedBidders), defaultCoopSync);
+        return new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, defaultCoopSync);
     }
 
     @Bean

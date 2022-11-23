@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
+import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -21,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,6 +44,8 @@ public class UidsCookieService {
     private final String hostCookieDomain;
     private final long ttlSeconds;
     private final int maxCookieSizeBytes;
+
+    private final PrioritizedCoopSyncProvider prioritizedCoopSyncProvider;
     private final JacksonMapper mapper;
 
     public UidsCookieService(String optOutCookieName,
@@ -51,6 +55,7 @@ public class UidsCookieService {
                              String hostCookieDomain,
                              int ttlDays,
                              int maxCookieSizeBytes,
+                             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
                              JacksonMapper mapper) {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
@@ -65,6 +70,7 @@ public class UidsCookieService {
         this.hostCookieDomain = StringUtils.isNotBlank(hostCookieDomain) ? hostCookieDomain : null;
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
         this.maxCookieSizeBytes = maxCookieSizeBytes;
+        this.prioritizedCoopSyncProvider = Objects.requireNonNull(prioritizedCoopSyncProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -136,13 +142,7 @@ public class UidsCookieService {
      * as a value.
      */
     public Cookie toCookie(UidsCookie uidsCookie) {
-        UidsCookie modifiedUids = uidsCookie;
-
-        while (maxCookieSizeBytes > 0 && cookieBytesLength(modifiedUids) > maxCookieSizeBytes) {
-            modifiedUids = modifiedUids.deleteUid(getClosestExpirationFamilyName(modifiedUids));
-        }
-
-        return makeCookie(modifiedUids);
+        return makeCookie(uidsCookie);
     }
 
     private int cookieBytesLength(UidsCookie uidsCookie) {
@@ -157,21 +157,6 @@ public class UidsCookieService {
                 .setSecure(true)
                 .setMaxAge(ttlSeconds)
                 .setDomain(hostCookieDomain);
-    }
-
-    private static String getClosestExpirationFamilyName(UidsCookie uidsCookie) {
-        return uidsCookie.getCookieUids().getUids().entrySet().stream()
-                .reduce(UidsCookieService::getClosestExpiration)
-                .map(Map.Entry::getKey)
-                .orElse(null);
-    }
-
-    /**
-     * Returns the Uid with the closest expiration date, e.i. the one that will expire sooner.
-     */
-    private static Map.Entry<String, UidWithExpiry> getClosestExpiration(Map.Entry<String, UidWithExpiry> first,
-                                                                         Map.Entry<String, UidWithExpiry> second) {
-        return first.getValue().getExpires().isBefore(second.getValue().getExpires()) ? first : second;
     }
 
     /**
@@ -228,6 +213,75 @@ public class UidsCookieService {
     private static boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
         return UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
                 || StringUtils.isEmpty(entry.getValue().getUid());
+    }
+
+    /***
+     * Updates uids cookie with new uid for family name according to priority
+     * and trims it to the limit
+     */
+    public UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String familyName, String uid) {
+        final UidsCookie initialCookie = trimToLimit(uidsCookie);
+
+        if (StringUtils.isBlank(uid)) {
+            return UidsCookieUpdateResult.unaltered(initialCookie.deleteUid(familyName));
+        } else if (UidsCookie.isFacebookSentinel(familyName, uid)) {
+            // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
+            // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
+            return UidsCookieUpdateResult.unaltered(initialCookie);
+        }
+
+        return updateUidsCookieByPriority(initialCookie, familyName, uid);
+    }
+
+    private UidsCookieUpdateResult updateUidsCookieByPriority(UidsCookie uidsCookie, String familyName, String uid) {
+        final UidsCookie updatedCookie = uidsCookie.updateUid(familyName, uid);
+        //        metrics.updateUserSyncSetsMetric(bidderName);
+        if (cookieBytesLength(updatedCookie) <= maxCookieSizeBytes) {
+            return UidsCookieUpdateResult.updated(updatedCookie);
+        }
+
+        return !prioritizedCoopSyncProvider.hasPrioritizedBidders()
+                || prioritizedCoopSyncProvider.isPrioritizedFamily(familyName)
+                ? UidsCookieUpdateResult.updated(trimToLimit(updatedCookie))
+                : UidsCookieUpdateResult.unaltered(uidsCookie);
+    }
+
+    private UidsCookie trimToLimit(UidsCookie uidsCookie) {
+        if (maxCookieSizeBytes <= 0 || cookieBytesLength(uidsCookie) <= maxCookieSizeBytes) {
+            return uidsCookie;
+        }
+
+        UidsCookie trimmedUids = uidsCookie;
+        final Iterator<String> familyToRemoveIterator = cookieFamilyNamesByAscendingPriority(uidsCookie);
+
+        while (familyToRemoveIterator.hasNext() && cookieBytesLength(trimmedUids) > maxCookieSizeBytes) {
+            trimmedUids = trimmedUids.deleteUid(familyToRemoveIterator.next());
+        }
+
+        return trimmedUids;
+    }
+
+    private Iterator<String> cookieFamilyNamesByAscendingPriority(UidsCookie uidsCookie) {
+        return uidsCookie.getCookieUids().getUids().entrySet().stream()
+                .sorted(this::compareCookieFamilyNames)
+                .map(Map.Entry::getKey)
+                .toList()
+                .iterator();
+    }
+
+    private int compareCookieFamilyNames(Map.Entry<String, UidWithExpiry> left,
+                                         Map.Entry<String, UidWithExpiry> right) {
+
+        final boolean leftPrioritized = prioritizedCoopSyncProvider.isPrioritizedFamily(left.getKey());
+        final boolean rightPrioritized = prioritizedCoopSyncProvider.isPrioritizedFamily(right.getKey());
+
+        if ((leftPrioritized && rightPrioritized) || (!leftPrioritized && !rightPrioritized)) {
+            return left.getValue().getExpires().compareTo(right.getValue().getExpires());
+        } else if (leftPrioritized) {
+            return 1;
+        } else { // right is prioritized
+            return -1;
+        }
     }
 
     public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
