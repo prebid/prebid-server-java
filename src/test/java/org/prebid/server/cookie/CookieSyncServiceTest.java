@@ -40,6 +40,8 @@ import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -847,7 +849,7 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     @Test
-    public void prepareResponseShouldNotReturnWarningForAliasesSyncedAsAliasCookieFamilyWhenDebugTrue() {
+    public void prepareResponseShouldNotReturnWarningForAliasesSyncedAsAliasCookieFamilyWhenDebugFalse() {
         // given
         given(bidderCatalog.isValidName("alias")).willReturn(true);
         given(bidderCatalog.isActive("alias")).willReturn(true);
@@ -871,6 +873,34 @@ public class CookieSyncServiceTest extends VertxTest {
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);
+    }
+
+    @Test
+    public void prepareResponseShouldReturnErrorForBiddersThatWereNotIncludedInResponseDueToLimitWhenDebugTrue() {
+        // given
+        givenValidActiveBidders("bidder1", "bidder2");
+        givenUsersyncersForBidders("bidder1", "bidder2");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true).limit(1),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(new LinkedHashSet<>(List.of("bidder1", "bidder2"))) // to preserve order
+                        .bidderUsersyncMethod(
+                                Map.of("bidder1", givenUsersyncMethod("bidder1"),
+                                        "bidder2", givenUsersyncMethod("bidder2"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final BidderUsersyncStatus warningStatus = errorStatus("bidder2-cookie-family", "Dropped due to limit");
+        final BidderUsersyncStatus validStatus = BidderUsersyncStatus.builder()
+                .bidder("bidder1-cookie-family")
+                .noCookie(true)
+                .usersync(UsersyncInfo.of("https://bidder1-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactlyInAnyOrder(validStatus, warningStatus);
     }
 
     @Test
