@@ -60,7 +60,7 @@ public class UidsCookieService {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
             throw new IllegalArgumentException(
-                    "Configured cookie size is less than allowed minimum size of " + maxCookieSizeBytes);
+                    "Configured cookie size is less than allowed minimum size of " + MIN_COOKIE_SIZE_BYTES);
         }
 
         this.optOutCookieName = optOutCookieName;
@@ -236,7 +236,7 @@ public class UidsCookieService {
     private UidsCookieUpdateResult updateUidsCookieByPriority(UidsCookie uidsCookie, String familyName, String uid) {
         final UidsCookie updatedCookie = uidsCookie.updateUid(familyName, uid);
         //        metrics.updateUserSyncSetsMetric(bidderName);
-        if (cookieBytesLength(updatedCookie) <= maxCookieSizeBytes) {
+        if (!cookieExceededMaxLength(updatedCookie)) {
             return UidsCookieUpdateResult.updated(updatedCookie);
         }
 
@@ -246,15 +246,19 @@ public class UidsCookieService {
                 : UidsCookieUpdateResult.unaltered(uidsCookie);
     }
 
+    private boolean cookieExceededMaxLength(UidsCookie uidsCookie) {
+        return maxCookieSizeBytes > 0 && cookieBytesLength(uidsCookie) > maxCookieSizeBytes;
+    }
+
     private UidsCookie trimToLimit(UidsCookie uidsCookie) {
-        if (maxCookieSizeBytes <= 0 || cookieBytesLength(uidsCookie) <= maxCookieSizeBytes) {
+        if (!cookieExceededMaxLength(uidsCookie)) {
             return uidsCookie;
         }
 
         UidsCookie trimmedUids = uidsCookie;
         final Iterator<String> familyToRemoveIterator = cookieFamilyNamesByAscendingPriority(uidsCookie);
 
-        while (familyToRemoveIterator.hasNext() && cookieBytesLength(trimmedUids) > maxCookieSizeBytes) {
+        while (familyToRemoveIterator.hasNext() && cookieExceededMaxLength(trimmedUids)) {
             trimmedUids = trimmedUids.deleteUid(familyToRemoveIterator.next());
         }
 

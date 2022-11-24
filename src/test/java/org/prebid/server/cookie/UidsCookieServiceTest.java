@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
+import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 
 import java.io.IOException;
@@ -19,12 +20,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
@@ -571,6 +574,168 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         assertThat(result).isNull();
+    }
+
+    @Test
+    public void updateUidsCookieShouldRemoveUidWhenBlank() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(uidsCookie, "family", null);
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isFalse();
+        assertThat(result.getUidsCookie())
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .isEmpty();
+    }
+
+    @Test
+    public void updateUidsCookieShouldIgnoreFacebookSentinel() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "audienceNetwork", "0");
+
+        // then
+        assertThat(result).isEqualTo(UidsCookieUpdateResult.unaltered(uidsCookie));
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdateCookieAndNotTrimIfSizeNotExceededLimit() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "another-family", "uid");
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactly("family", "another-family");
+    }
+
+    @Test
+    public void updateUidsCookieShouldNotUpdateNonPrioritizedFamilyWhenSizeExceedsLimit() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
+        given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(false);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        assertThat(result).isEqualTo(UidsCookieUpdateResult.unaltered(uidsCookie));
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdatePrioritizedFamilyWhenSizeExceedsLimitByTrimming() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
+        given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(true);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactlyInAnyOrder("family", "another-very-very-very-long-family");
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdateNonPrioritizedFamilyWhenSizeExceedsLimitAndPrioritiesAbsentByTrimming() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(false);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactlyInAnyOrder("family", "another-very-very-very-long-family");
+    }
+
+    private UidsCookie givenUidsCookie(Map<String, UidWithExpiry> uids) {
+        return new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
     }
 
     private static String encodeUids(Uids uids) throws JsonProcessingException {
