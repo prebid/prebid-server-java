@@ -453,7 +453,7 @@ public class CookieSyncService {
         return droppedDueToLimitBidders.stream()
                 .map(bidder -> BidderUsersyncStatus.builder()
                         .bidder(bidderCatalog.cookieFamilyName(bidder).orElseThrow())
-                        .error("Dropped due to limit")
+                        .error("limit reached")
                         .build())
                 .toList();
     }
@@ -461,8 +461,10 @@ public class CookieSyncService {
     private List<BidderUsersyncStatus> aliasSyncedAsRootStatuses(Set<String> biddersToSync,
                                                                  CookieSyncContext cookieSyncContext) {
 
+        final Set<String> allowedRequestedBidders = cookieSyncContext.getBiddersContext().allowedRequestedBidders();
+
         return biddersToSync.stream()
-                .filter(bidder -> cookieSyncContext.getBiddersContext().allowedRequestedBidders().contains(bidder))
+                .filter(bidder -> allowedRequestedBidders.contains(bidder))
                 .filter(this::isAliasSyncedAsRootFamily)
                 .map(this::warningForAliasSyncedAsRootFamily)
                 .toList();

@@ -577,6 +577,30 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
+    public void updateUidsCookieShouldRemoveAllExpiredUids() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(
+                Map.of("family1", UidWithExpiry.expired("uid1"),
+                        "family2", UidWithExpiry.live("uid2"),
+                        "family3", UidWithExpiry.expired("uid3")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(uidsCookie, "family4", "uid4");
+
+        // the
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result.getUidsCookie())
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::values)
+                .extracting(ArrayList::new)
+                .asList()
+                .extracting(object -> (UidWithExpiry) object)
+                .extracting(UidWithExpiry::getExpires)
+                .allMatch(ZonedDateTime.now()::isBefore);
+    }
+
+    @Test
     public void updateUidsCookieShouldRemoveUidWhenBlank() {
         // given
         final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));

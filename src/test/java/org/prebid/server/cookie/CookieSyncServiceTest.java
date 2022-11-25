@@ -893,7 +893,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
 
         // then
-        final BidderUsersyncStatus warningStatus = errorStatus("bidder2-cookie-family", "Dropped due to limit");
+        final BidderUsersyncStatus warningStatus = errorStatus("bidder2-cookie-family", "limit reached");
         final BidderUsersyncStatus validStatus = BidderUsersyncStatus.builder()
                 .bidder("bidder1-cookie-family")
                 .noCookie(true)

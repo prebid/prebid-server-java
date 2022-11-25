@@ -248,10 +248,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final UidsCookieUpdateResult uidsCookieUpdateResult =
                 uidsCookieService.updateUidsCookie(setuidContext.getUidsCookie(), bidder, uid);
-
         final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
         addCookie(routingContext, updatedUidsCookie);
 
+        if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
+            metrics.updateUserSyncSetsMetric(bidder);
+        }
         final int statusCode = HttpResponseStatus.OK.code();
         HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
 

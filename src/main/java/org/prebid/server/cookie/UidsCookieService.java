@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Contains logic for obtaining UIDs from the request and actualizing them.
@@ -216,11 +217,11 @@ public class UidsCookieService {
     }
 
     /***
-     * Updates uids cookie with new uid for family name according to priority
+     * Removes expired {@link Uids}, updates {@link UidsCookie} with new uid for family name according to priority
      * and trims it to the limit
      */
     public UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String familyName, String uid) {
-        final UidsCookie initialCookie = trimToLimit(uidsCookie);
+        final UidsCookie initialCookie = trimToLimit(removeExpiredUids(uidsCookie)); // if already exceeded limit
 
         if (StringUtils.isBlank(uid)) {
             return UidsCookieUpdateResult.unaltered(initialCookie.deleteUid(familyName));
@@ -233,9 +234,21 @@ public class UidsCookieService {
         return updateUidsCookieByPriority(initialCookie, familyName, uid);
     }
 
+    private static UidsCookie removeExpiredUids(UidsCookie uidsCookie) {
+        final Set<String> families = uidsCookie.getCookieUids().getUids().keySet();
+
+        UidsCookie updatedCookie = uidsCookie;
+        for (String family : families) {
+            updatedCookie = updatedCookie.hasLiveUidFrom(family)
+                    ? updatedCookie
+                    : updatedCookie.deleteUid(family);
+        }
+
+        return updatedCookie;
+    }
+
     private UidsCookieUpdateResult updateUidsCookieByPriority(UidsCookie uidsCookie, String familyName, String uid) {
         final UidsCookie updatedCookie = uidsCookie.updateUid(familyName, uid);
-        //        metrics.updateUserSyncSetsMetric(bidderName);
         if (!cookieExceededMaxLength(updatedCookie)) {
             return UidsCookieUpdateResult.updated(updatedCookie);
         }
