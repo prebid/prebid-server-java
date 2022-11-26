@@ -2,6 +2,7 @@ package org.prebid.server.assertion;
 
 import io.vertx.core.Future;
 import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.ObjectAssert;
 import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.internal.ComparisonStrategy;
 import org.assertj.core.internal.StandardComparisonStrategy;
@@ -26,6 +27,10 @@ public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE
             failWithMessage("Expected future to be succeeded");
         }
         return myself;
+    }
+
+    public ObjectAssert<VALUE> unwrap() {
+        return new ObjectAssert<>(actual.result());
     }
 
     public ThrowableAssert<? extends Throwable> isFailed() {
