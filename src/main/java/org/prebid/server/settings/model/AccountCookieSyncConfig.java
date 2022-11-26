@@ -3,6 +3,8 @@ package org.prebid.server.settings.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
+import java.util.Set;
+
 @Value(staticConstructor = "of")
 public class AccountCookieSyncConfig {
 
@@ -12,6 +14,9 @@ public class AccountCookieSyncConfig {
     @JsonProperty("max-limit")
     Integer maxLimit;
 
-    @JsonProperty("default-coop-sync")
-    Boolean defaultCoopSync;
+    @JsonProperty("pri")
+    Set<String> prioritizedBidders;
+
+    @JsonProperty("coop-sync")
+    AccountCoopSyncConfig coopSync;
 }

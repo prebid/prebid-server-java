@@ -1,13 +1,19 @@
 package org.prebid.server.functional.model.bidder
 
 import com.fasterxml.jackson.annotation.JsonValue
+import net.minidev.json.annotate.JsonIgnore
 
 enum BidderName {
 
-    GENERIC, RUBICON, APPNEXUS, BOGUS
+    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS
 
     @JsonValue
     String getValue() {
         name().toLowerCase()
+    }
+
+    @JsonIgnore
+    static BidderName bidderNameByString(String bidderName) {
+        values().find { bidder -> (bidder.value.equalsIgnoreCase(bidderName)) }
     }
 }

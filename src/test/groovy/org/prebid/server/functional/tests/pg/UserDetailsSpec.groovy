@@ -57,7 +57,7 @@ class UserDetailsSpec extends BasePgSpec {
         def userDetailsRequest = userData.recordedUserDetailsRequest
         assert userDetailsRequest.time?.isAfter(uidsCookie.bday)
         assert userDetailsRequest.ids?.size() == 1
-        assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
+        assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC).uid
         assert userDetailsRequest.ids[0].type == pgConfig.userIdType
     }
 
@@ -239,7 +239,7 @@ class UserDetailsSpec extends BasePgSpec {
             winNotificationRequest.lineItemId == lineItemId
             winNotificationRequest.region == pgConfig.region
             winNotificationRequest.userIds?.size() == 1
-            winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
+            winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC).uid
             winNotificationRequest.userIds[0].type == pgConfig.userIdType
             timeFormatter.format(winNotificationRequest.lineUpdatedDateTime) == timeFormatter.format(lineItemUpdateTime)
             winNotificationRequest.winEventDateTime.isAfter(winNotificationRequest.lineUpdatedDateTime)

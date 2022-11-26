@@ -29,6 +29,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountMetricsConfig;
@@ -167,7 +168,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"cookie-sync\": {"
                 + "\"default-limit\": 5,"
                 + "\"max-limit\": 8,"
-                + "\"default-coop-sync\": true"
+                + "\"coop-sync\": {"
+                + "\"default\": true"
+                + "}"
                 + "}"
                 + "}'"
                 + ");");
@@ -253,7 +256,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     "some-analytics",
                                     mapper.createObjectNode()
                                             .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
-                    .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, null, AccountCoopSyncConfig.of(true)))
                     .build());
             async.complete();
         }));
