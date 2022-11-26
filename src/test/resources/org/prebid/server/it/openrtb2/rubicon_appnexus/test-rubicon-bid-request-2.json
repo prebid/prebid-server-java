@@ -67,21 +67,6 @@
   },
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT",
-    "data": [
-      {
-        "segment": [
-          {
-            "id": "segmentId1"
-          },
-          {
-            "id": "segmentId2"
-          }
-        ],
-        "ext": {
-          "segtax": 4
-        }
-      }
-    ],
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [

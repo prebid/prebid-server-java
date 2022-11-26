@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.response.cookiesync
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.ToString
@@ -12,6 +13,7 @@ class CookieSyncResponse {
     @JsonProperty("bidder_status")
     List<BidderUserSyncStatus> bidderStatus
 
+    @JsonIgnore
     BidderUserSyncStatus getBidderUserSync(BidderName bidderName) {
         bidderStatus?.find { it.bidder == bidderName }
     }
