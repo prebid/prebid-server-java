@@ -240,7 +240,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with alias bidder without cookie family name"
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${BIDDER.value}.aliases.${bidderAlias.value}.enabled"           : "true",
+                + ["adapters.${BIDDER.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
                    "adapters.${BIDDER.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null,])
 
         and: "Cookie sync request with 2 bidders"
@@ -477,8 +477,10 @@ class CookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain only one synced bidder"
-        assert response.bidderStatus.size() == 1
+        then: "Response should contain rubicon bidder"
+        def rubiconBidder = response.getBidderUserSync(RUBICON)
+        assert rubiconBidder?.userSync?.url
+        assert rubiconBidder?.userSync?.type
     }
 
     def "PBS cookie sync with coop-sync and config should log: bidder is provided for prioritized coop-syncing but #reason"() {
@@ -578,5 +580,45 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should contain error"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus.error == "Rejected by CCPA"
+    }
+
+    def "PBS cookie sync should emit error when requested bidder rejected by limit"() {
+        given: "PBS config with bidders usersync config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.max-limit"    : "1",
+                 "cookie-sync.default-limit": "1",
+                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+
+        and: "Default cookie sync request with 2 bidders"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [BIDDER, RUBICON]
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain error generic bidder"
+        def genericBidder = response.getBidderUserSync(GENERIC)
+        assert genericBidder.error == "limit reached"
+    }
+
+    def "PBS cookie sync shouldn't emit error limit reached when bidder coop-synced"() {
+        given: "PBS config with bidders usersync config"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["cookie-sync.max-limit"    : "1",
+                 "cookie-sync.default-limit": "1",
+                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+
+        and: "Default cookie sync request with 2 bidders"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            coopSync = true
+            bidders = [RUBICON]
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response shouldn't contain generic bidder"
+        assert !response.getBidderUserSync(GENERIC)
     }
 }
