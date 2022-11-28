@@ -42,20 +42,22 @@ class CookieSyncSpec extends BaseSpec {
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-    private static final Map<String, String> PBS_CONFIG = [
-            "adapters.${RUBICON.value}.enabled"                     : "true",
-            "adapters.${RUBICON.value}.usersync.cookie-family-name" : RUBICON.value,
+    private static final Map<String, String> RUBICON_CONFIG = [
+            "adapters.${RUBICON.value}.enabled"                    : "true",
+            "adapters.${RUBICON.value}.usersync.cookie-family-name": RUBICON.value,]
+    private static final Map<String, String> APPNEXUS_CONFIG = [
             "adapters.${APPNEXUS.value}.enabled"                    : "true",
-            "adapters.${APPNEXUS.value}.usersync.cookie-family-name": APPNEXUS.value] + GENERIC_CONFIG
+            "adapters.${APPNEXUS.value}.usersync.cookie-family-name": APPNEXUS.value]
+    private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + GENERIC_CONFIG
 
     private PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
     def "PBS cookie sync request should replace synced as family bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS config with alias bidder without cookie family name"
         def bidderAlias = ALIAS
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
-                 "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null])
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG + APPNEXUS_CONFIG
+                + ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null])
 
         and: "Default cookie sync request"
         def requestLimit = 2
@@ -82,8 +84,8 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request should replace bidder without config and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["adapters.${BOGUS.value}.enabled": "true"])
+        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG
+                + ["adapters.${BOGUS.value}.enabled": "true"])
 
         and: "Default Cookie sync request"
         def requestLimit = 2
@@ -109,7 +111,10 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request should replace unknown bidder and fill up response with enabled bidders to the limit in request"() {
-        given: "Default cookie sync request"
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG)
+
+        and: "Cookie sync request"
         def requestLimit = 2
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = [BOGUS]
@@ -134,7 +139,7 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request should replace disabled bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG
                 + ["adapters.${GENERIC.value}.enabled": "false",])
 
         and: "Default Cookie sync request"
@@ -161,7 +166,10 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request should replace filtered bidder and fill up response with enabled bidders to the limit in request"() {
-        given: "Default cookie sync request"
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG)
+
+        and: "Cookie sync request"
         def requestLimit = 2
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = [GENERIC]
