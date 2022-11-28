@@ -599,10 +599,10 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain error generic bidder"
         def genericBidder = response.getBidderUserSync(GENERIC)
-        assert genericBidder.error == "Dropped due to limit"
+        assert genericBidder.error == "limit reached"
     }
 
-    def "PBS cookie sync shouldn't emit error dropped due to limi when bidder coop-synced"() {
+    def "PBS cookie sync shouldn't emit error limit reached when bidder coop-synced"() {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
