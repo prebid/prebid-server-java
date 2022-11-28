@@ -959,11 +959,11 @@ class CookieSyncSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
                  "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "adapters.${RUBICON.value}.enabled" : "true"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [BIDDER, RUBICON]
+            bidders = [GENERIC, RUBICON]
         }
 
         when: "PBS processes cookie sync request"
@@ -979,7 +979,7 @@ class CookieSyncSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
                  "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "adapters.${RUBICON.value}.enabled" : "true"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
