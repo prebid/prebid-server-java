@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -411,12 +412,14 @@ public class ApplicationTest extends IntegrationTest {
         final Uids uids = decodeUids(uidsCookie.getValue());
         assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
         assertThat(uids.getUidsLegacy()).isEmpty();
+        assertThat(uids.getUids())
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .containsExactly(RUBICON);
         assertThat(uids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
         assertThat(uids.getUids().get(RUBICON).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
-        assertThat(uids.getUids().get("adnxs").getUid()).isEqualTo("12345");
-        assertThat(uids.getUids().get("adnxs").getExpires().toInstant())
-                .isCloseTo(Instant.now().minus(5, ChronoUnit.MINUTES), within(10, ChronoUnit.SECONDS));
     }
 
     @Test
