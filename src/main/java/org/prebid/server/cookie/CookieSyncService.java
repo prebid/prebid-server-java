@@ -155,11 +155,12 @@ public class CookieSyncService {
     private CookieSyncContext resolveBiddersToSync(CookieSyncContext cookieSyncContext) {
         // TODO: Add multisync bidders from 1.a)
         // TODO: filter that are done with multisync
-        final Set<String> requestedBidders = SetUtils.emptyIfNull(
-                cookieSyncContext.getCookieSyncRequest().getBidders());
+        final List<String> requestedBiddersAsList = new ArrayList<>(
+                SetUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
+        Collections.shuffle(requestedBiddersAsList);
 
         final BiddersContext updatedContext = cookieSyncContext.getBiddersContext().toBuilder()
-                .requestedBidders(requestedBidders)
+                .requestedBidders(new LinkedHashSet<>(requestedBiddersAsList))
                 .coopSyncBidders(coopSyncProvider.coopSyncBidders(cookieSyncContext))
                 .multiSyncBidders(Set.of())
                 .build();
