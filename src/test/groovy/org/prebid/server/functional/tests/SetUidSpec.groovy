@@ -88,8 +88,7 @@ class SetUidSpec extends BaseSpec {
         given: "PBS config"
         def bidderGeneric = GENERIC
         PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["host-cookie.max-cookie-size-bytes": "500",
-                 "cookie-sync.pri"                  : bidderGeneric.value])
+                ["cookie-sync.pri"                  : bidderGeneric.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -111,8 +110,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should remove earliest expiration bidder when size is full"() {
         given: "PBS config"
         PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["host-cookie.max-cookie-size-bytes": "500",
-                 "cookie-sync.pri"                  : GENERIC.value])
+                ["cookie-sync.pri"                  : GENERIC.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
