@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.auction.model.BidInfo;
@@ -19,7 +20,9 @@ public class BidderSeatBidInfo {
 
     List<BidderError> warnings;
 
+    List<JsonNode> fledgeConfigs;
+
     public BidderSeatBidInfo with(List<BidInfo> bids) {
-        return BidderSeatBidInfo.of(bids, this.httpCalls, this.errors, this.warnings);
+        return BidderSeatBidInfo.of(bids, this.httpCalls, this.errors, this.warnings, this.fledgeConfigs);
     }
 }

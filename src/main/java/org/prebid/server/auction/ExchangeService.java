@@ -1274,12 +1274,14 @@ public class ExchangeService {
         final MediaTypeProcessingResult mediaTypeProcessingResult =
                 mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
 
+        final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
             final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
                     Collections.emptyList(),
                     Collections.emptyList(),
                     Collections.emptyList(),
-                    mediaTypeProcessingResult.getErrors());
+                    mediaTypeProcessingErrors,
+                    Collections.emptyList());
 
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
@@ -1291,11 +1293,11 @@ public class ExchangeService {
 
         return httpBidderRequester
                 .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabledForBidder)
-                .map(seatBid -> BidderSeatBid.of(
-                        seatBid.getBids(),
-                        seatBid.getHttpCalls(),
-                        seatBid.getErrors(),
-                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
+                .map(seatBid -> CollectionUtils.isEmpty(mediaTypeProcessingErrors)
+                        ? seatBid
+                        : seatBid.toBuilder()
+                            .warnings(ListUtils.union(mediaTypeProcessingErrors, seatBid.getWarnings()))
+                            .build())
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
@@ -1413,9 +1415,14 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse = errors.isEmpty()
+        final BidderResponse resultBidderResponse = errors.size() == seatBid.getErrors().size()
                 ? bidderResponse
-                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors, warnings));
+                : bidderResponse.with(
+                        seatBid.toBuilder()
+                                .bids(validBids)
+                                .errors(errors)
+                                .warnings(warnings)
+                                .build());
         return auctionParticipation.with(resultBidderResponse);
     }
 
@@ -1478,8 +1485,10 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse = bidderResponse.with(BidderSeatBid.of(
-                updatedBidderBids, seatBid.getHttpCalls(), errors, seatBid.getWarnings()));
+        final BidderResponse resultBidderResponse = bidderResponse.with(seatBid.toBuilder()
+                .bids(updatedBidderBids)
+                .errors(errors)
+                .build());
         return auctionParticipation.with(resultBidderResponse);
     }
 
@@ -1646,11 +1655,11 @@ public class ExchangeService {
         final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
         final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);
 
-        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
-                extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null),
-                extModules,
-                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null),
-                extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null));
+        final ExtBidResponsePrebid updatedExtPrebid = extPrebid
+                .map(ExtBidResponsePrebid::toBuilder)
+                .orElse(ExtBidResponsePrebid.builder())
+                .modules(extModules)
+                .build();
 
         final ExtBidResponse updatedExt = ext
                 .map(ExtBidResponse::toBuilder)

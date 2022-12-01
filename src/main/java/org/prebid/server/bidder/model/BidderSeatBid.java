@@ -1,5 +1,8 @@
 package org.prebid.server.bidder.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -13,7 +16,9 @@ import java.util.List;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@Value(staticConstructor = "of")
+@Value
+@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 public class BidderSeatBid {
 
     /**
@@ -46,15 +51,24 @@ public class BidderSeatBid {
      */
     List<BidderError> warnings;
 
+    List<JsonNode> fledgeConfigs;
+
     public BidderSeatBid with(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors(), this.getWarnings());
+        return toBuilder().bids(bids).build();
     }
 
     public static BidderSeatBid empty() {
-        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList());
+    }
+
+    public static BidderSeatBid emptyWithErrors(List<BidderError> errors) {
+        return of(Collections.emptyList(), Collections.emptyList(), errors, Collections.emptyList(),
+                Collections.emptyList());
     }
 
     public static BidderSeatBid of(List<BidderBid> bids) {
-        return of(bids, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return of(bids, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList());
     }
 }

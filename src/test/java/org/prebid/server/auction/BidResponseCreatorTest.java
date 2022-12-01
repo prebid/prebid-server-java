@@ -86,6 +86,7 @@ import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
@@ -2681,7 +2682,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
                         singletonList(BidderError.badInput("bad_input")),
-                        singletonList(BidderError.generic("some_warning"))), 100));
+                        singletonList(BidderError.generic("some_warning")),
+                        emptyList()), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         givenCacheServiceResult(CacheServiceResult.of(
@@ -2954,6 +2956,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(bid, banner, null)),
                         singletonList(ExtHttpCall.builder().status(200).build()),
+                        emptyList(),
                         emptyList(),
                         emptyList()),
                 100));
@@ -3380,6 +3383,99 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.at("/prebid/passthrough"))
                 .containsExactly(TextNode.valueOf("passthrough"));
+    }
+
+    @Test
+    public void shouldAddExtPrebidFledgeIfAvailable() {
+        // given
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "i1");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge().getAuctionConfigs())
+                .isNotEmpty()
+                .first()
+                .usingRecursiveComparison()
+                .isEqualTo(ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                        .impId("i1")
+                        .config(fledgeAuctionConfig)
+                        .adapter("bidder1")
+                        .bidder("bidder1")
+                        .build());
+    }
+
+    @Test
+    public void shouldAddExtPrebidFledgeIfAvailableEvenIfBidsEmpty() {
+        // given
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "i1");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(Collections.emptyList())
+                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge().getAuctionConfigs())
+                .isNotEmpty()
+                .first()
+                .usingRecursiveComparison()
+                .isEqualTo(ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                        .impId("i1")
+                        .config(fledgeAuctionConfig)
+                        .adapter("bidder1")
+                        .bidder("bidder1")
+                        .build());
+    }
+
+    @Test
+    public void shouldDropFledgeResponsesReferencingUnknownImps() {
+        // given
+        final Imp imp = givenImp("i1");
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "otherimp");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(Collections.emptyList())
+                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge())
+                .isNull();
     }
 
     @Test

@@ -2,9 +2,8 @@ package org.prebid.server.proto.openrtb.ext;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 
@@ -13,9 +12,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
  * <p>
  * Can be used by {@link Bidder}s to unmarshal any request.imp[i].ext.
  */
-@RequiredArgsConstructor(staticName = "of")
+@AllArgsConstructor(staticName = "of")
 @Value
 public class ExtPrebid<P, B> {
+
+    public static final String AUCTION_ENVIRONMENT_KEY = "ae";
 
     P prebid;
 
@@ -29,8 +30,11 @@ public class ExtPrebid<P, B> {
      */
     B bidder;
 
-    @JsonProperty("ae")
-    @NonFinal
+    @JsonProperty(AUCTION_ENVIRONMENT_KEY)
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     ExtImpAuctionEnvironment auctionEnvironment;
+
+    public static <P, B> ExtPrebid<P, B> of(P prebid, B bidder) {
+        return of(prebid, bidder, null);
+    }
 }

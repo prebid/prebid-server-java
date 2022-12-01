@@ -109,6 +109,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         httpBidderRequester = new HttpBidderRequester(
                 httpClient, null, bidderErrorNotifier, requestEnricher, jacksonMapper);
+        given(bidder.makeBidderResponse(any(BidderCall.class), any(BidRequest.class))).willCallRealMethod();
     }
 
     @Test

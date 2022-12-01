@@ -1104,7 +1104,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
+                        emptyList(), singletonList(ExtHttpCall.builder().build()),
+                        emptyList(), emptyList(), emptyList())));
 
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1131,7 +1132,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
+                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -3219,6 +3220,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.failedToRequestBids("rubicon failed to request bids"),
                                 BidderError.timeout("timeout error"),
                                 BidderError.generic("timeout error")),
+                        emptyList(),
                         emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
@@ -4414,7 +4416,8 @@ public class ExchangeServiceTest extends VertxTest {
                                         Collections.emptyList(),
                                         Collections.emptyList(),
                                         Collections.emptyList(),
-                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
+                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error.")),
+                                        Collections.emptyList()),
                                 0))),
                 any(),
                 any(),

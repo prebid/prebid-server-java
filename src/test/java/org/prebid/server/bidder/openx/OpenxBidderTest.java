@@ -387,9 +387,7 @@ public class OpenxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .contains(
-                        mapper.valueToTree(Map.of("ae", 1))
-                );
+                .contains(mapper.valueToTree(Map.of("ae", 1)));
     }
 
     @Test

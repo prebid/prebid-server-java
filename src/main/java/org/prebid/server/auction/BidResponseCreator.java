@@ -60,8 +60,10 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
@@ -76,6 +78,7 @@ import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
@@ -396,7 +399,8 @@ public class BidResponseCreator {
                     bidInfos,
                     seatBid.getHttpCalls(),
                     seatBid.getErrors(),
-                    seatBid.getWarnings());
+                    seatBid.getWarnings(),
+                    seatBid.getFledgeConfigs());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -425,8 +429,11 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private static Imp correspondingImp(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
+    private static Imp correspondingImp(final Bid bid, final List<Imp> imps) {
+        return correspondingImp(bid.getImpid(), imps);
+    }
+
+    private static Imp correspondingImp(String impId, List<Imp> imps) {
         return imps.stream()
                 .filter(imp -> Objects.equals(impId, imp.getId()))
                 .findFirst()
@@ -758,7 +765,10 @@ public class BidResponseCreator {
         final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(bidderResponseInfos, auctionContext);
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
-        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(auctionTimestamp, auctionContext.getBidRequest());
+
+        final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
+        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(auctionTimestamp, auctionContext.getBidRequest(),
+                extBidResponseFledge);
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -770,14 +780,63 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private static ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp, BidRequest bidRequest) {
+    private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp, BidRequest bidRequest,
+                                                        ExtBidResponseFledge extBidResponseFledge) {
         final JsonNode passThrough = Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getPassthrough)
                 .orElse(null);
 
-        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough, null);
+        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough, null,
+                extBidResponseFledge);
+    }
+
+    private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
+                                                        AuctionContext auctionContext) {
+        final var imps = auctionContext.getBidRequest().getImp();
+        final List<ExtBidResponseFledge.FledgeAuctionConfig> fledgeAuctionConfigs =
+                bidderResponseInfos.stream()
+                .filter(bidderResponseInfo ->
+                        CollectionUtils.isNotEmpty(bidderResponseInfo.getSeatBid().getFledgeConfigs()))
+                .<ExtBidResponseFledge.FledgeAuctionConfig>mapMulti(
+                        (bidderResponseInfo, consumer) -> bidderResponseInfo.getSeatBid().getFledgeConfigs().forEach(
+                                fledgeConfig -> {
+                                    String impId = validateFledgeConfigAndGetImpId(fledgeConfig, imps);
+                                    if (StringUtils.isNotBlank(impId)) {
+                                        consumer.accept(
+                                                ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                                                        .impId(impId)
+                                                        .bidder(bidderResponseInfo.getBidder())
+                                                        .adapter(bidderResponseInfo.getBidder())
+                                                        .config(fledgeConfig)
+                                                        .build()
+                                        );
+                                    }
+                                }
+                ))
+                .toList();
+        return fledgeAuctionConfigs.isEmpty() ? null : ExtBidResponseFledge.of(fledgeAuctionConfigs);
+    }
+
+    private String validateFledgeConfigAndGetImpId(JsonNode fledgeConfig, List<Imp> imps) {
+        final String impId = convertValue(fledgeConfig, "impid", String.class);
+        final ExtImpAuctionEnvironment fledgeEnabled = Optional.ofNullable(impId)
+                .map(id -> {
+                    // FLEDGE is secondary to potentially good bids; do not drop entire request if FLEDGE response bad
+                    try {
+                        return correspondingImp(id, imps);
+                    } catch (PreBidException ignored) {
+                        return null;
+                    }
+                })
+                .map(Imp::getExt)
+                .map(ext -> convertValue(ext, ExtPrebid.AUCTION_ENVIRONMENT_KEY, ExtImpAuctionEnvironment.class))
+                .orElse(ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION);
+
+        return (fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)
+                ? impId
+                : null;
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,
@@ -1667,6 +1726,14 @@ public class BidResponseCreator {
                     .map(ext -> mapper.mapper().convertValue(extNode.get(PREBID_EXT), extClass));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
+        }
+    }
+
+    private <T> T convertValue(JsonNode jsonNode, String key, Class<T> typeClass) {
+        try {
+            return mapper.mapper().convertValue(jsonNode.get(key), typeClass);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 }
