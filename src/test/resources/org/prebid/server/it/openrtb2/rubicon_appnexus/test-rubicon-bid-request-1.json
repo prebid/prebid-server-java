@@ -9,12 +9,12 @@
         ],
         "minduration": 20,
         "maxduration": 60,
+        "startdelay": 5,
         "protocols": [
           1
         ],
         "w": 300,
         "h": 250,
-        "startdelay": 5,
         "skipmin": 0,
         "skipafter": 0,
         "playbackmethod": [
@@ -70,8 +70,8 @@
     }
   },
   "device": {
-    "ua": "userAgent",
     "dnt": 2,
+    "ua": "userAgent",
     "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
@@ -84,8 +84,8 @@
   },
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT",
+    "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
     "ext": {
-      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
         {
           "source": "adserver.org",

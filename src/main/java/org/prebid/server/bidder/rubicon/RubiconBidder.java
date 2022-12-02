@@ -1448,6 +1448,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
         return builder
                 .pchain(!isPchainEmpty ? pchain : null)
+                .schain(null)
                 .ext(resolvedExtSource)
                 .build();
     }
