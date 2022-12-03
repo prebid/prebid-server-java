@@ -10,6 +10,7 @@
       "bidfloor": 4,
       "bidfloorcur": "NZD",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "prebid": {
           "floors": {
             "floorRule": "www.example.com|banner|320x250",
@@ -21,6 +22,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

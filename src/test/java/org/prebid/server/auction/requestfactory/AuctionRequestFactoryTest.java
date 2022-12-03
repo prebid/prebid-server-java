@@ -31,6 +31,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
@@ -56,6 +57,7 @@ import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -145,7 +147,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(paramsResolver.resolve(any(), any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), any(), anyBoolean()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(interstitialProcessor.process(any()))
@@ -596,7 +598,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(paramsResolver.resolve(any(), any(), any(), any())).willReturn(updatedBidRequest);
+        given(paramsResolver.resolve(any(), any(), any(), any(), anyBoolean())).willReturn(updatedBidRequest);
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -644,7 +646,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
                 any(),
                 any(),
-                any());
+                any(),
+                anyBoolean());
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
@@ -665,7 +668,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenProcessStoredRequest(BidRequest bidRequest) {
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(bidRequest));
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, bidRequest)));
     }
 
     private void givenValidBidRequest() {

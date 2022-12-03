@@ -5,6 +5,8 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -122,6 +124,8 @@ import java.util.stream.Stream;
 @Configuration
 public class ServiceConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
+
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
@@ -229,6 +233,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${external-url}") String externalUrl,
@@ -242,6 +247,7 @@ public class ServiceConfiguration {
 
         return new Ortb2ImplicitParametersResolver(
                 cacheOnlyWinningBids,
+                generateBidRequestId,
                 adServerCurrency,
                 splitToList(blacklistedAppsString),
                 externalUrl,
@@ -346,11 +352,14 @@ public class ServiceConfiguration {
                 : new NoneIdGenerator();
     }
 
+    // TODO: Remove this bean creation after deprecation period
     @Bean
-    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
-        return generateSourceTid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
+    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") Boolean generateSourceTid) {
+        if (generateSourceTid != null) {
+            logger.warn("'auction.generate-source-tid' is no longer supported, pls remove from your config");
+        }
+
+        return new UUIDIdGenerator();
     }
 
     @Bean

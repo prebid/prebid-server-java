@@ -8,12 +8,16 @@
         "h": 400
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "zone": "first_zone"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "id": "first_zone",
     "domain": "www.example.com",

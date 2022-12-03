@@ -286,7 +286,7 @@ public class Ortb2RequestFactory {
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
                 : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
-                .map(this::accountIdFrom);
+                .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.getBidRequest()));
     }
 
     private String validateIfAccountBlacklisted(String accountId) {
