@@ -11,7 +11,6 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
@@ -38,7 +37,6 @@ public class AuctionRequestFactory {
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
-    private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -54,7 +52,6 @@ public class AuctionRequestFactory {
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
                                  PrivacyEnforcementService privacyEnforcementService,
-                                 TimeoutResolver timeoutResolver,
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper) {
 
@@ -67,7 +64,6 @@ public class AuctionRequestFactory {
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -116,6 +112,8 @@ public class AuctionRequestFactory {
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
+
+                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -175,8 +173,7 @@ public class AuctionRequestFactory {
 
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
 
-                .map(resolvedBidRequest ->
-                        paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
+                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, httpRequest, ENDPOINT))
 
                 .compose(resolvedBidRequest ->
                         ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
