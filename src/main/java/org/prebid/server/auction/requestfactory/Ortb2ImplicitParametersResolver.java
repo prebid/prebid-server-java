@@ -324,26 +324,23 @@ public class Ortb2ImplicitParametersResolver {
             return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
-        return lmt == null ? 0 : null;
+        return !Objects.equals(lmt, 0) ? 0 : null;
     }
 
     private static Integer resolveLmtForIos14Minor2AndHigher(Device device) {
         final Integer lmt = device.getLmt();
-        if (lmt != null) {
-            return null;
-        }
-
         final Integer atts = ObjectUtil.getIfNotNull(device.getExt(), ExtDevice::getAtts);
+
         if (atts == null) {
             return null;
         }
 
-        if (atts == 1 || atts == 2) {
-            return 1;
+        if (atts == 0 || atts == 3) {
+            return !Objects.equals(lmt, 0) ? 0 : null;
         }
 
-        if (atts == 0 || atts == 3) {
-            return 0;
+        if (atts == 1 || atts == 2) {
+            return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
         return null;

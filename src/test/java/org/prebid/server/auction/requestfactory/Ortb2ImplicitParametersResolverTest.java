@@ -558,26 +558,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor0AndNonZerosIfaWhenLmtAlreadySet() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(1)
-                        .os("iOS")
-                        .osv("14.0")
-                        .ifa("12345")
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isOne();
-    }
-
-    @Test
     public void shouldSetDeviceLmtOneForIos14Minor1() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -673,26 +653,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor1AndNonZerosIfaWhenLmtAlreadySet() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(1)
-                        .os("iOS")
-                        .osv("14.1")
-                        .ifa("12345")
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isOne();
-    }
-
-    @Test
     public void shouldSetDeviceLmtZeroForIos14Minor2AndAtts0() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -712,26 +672,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts0() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(1)
-                        .os("iOS")
-                        .osv("14.2")
-                        .ext(ExtDevice.of(0, null))
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isOne();
-    }
-
-    @Test
     public void shouldSetDeviceLmtOneForIos14Minor2AndAtts1() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -748,26 +688,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
-    }
-
-    @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts1() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(0)
-                        .os("iOS")
-                        .osv("14.2")
-                        .ext(ExtDevice.of(1, null))
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
@@ -809,26 +729,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts2() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(0)
-                        .os("iOS")
-                        .osv("14.2")
-                        .ext(ExtDevice.of(2, null))
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isZero();
-    }
-
-    @Test
     public void shouldSetDeviceLmtZeroForIos14Minor2AndAtts3() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -845,26 +745,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
-    }
-
-    @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts3() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(1)
-                        .os("iOS")
-                        .osv("14.2")
-                        .ext(ExtDevice.of(3, null))
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
