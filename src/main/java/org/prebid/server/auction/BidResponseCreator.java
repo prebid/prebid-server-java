@@ -87,6 +87,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -795,17 +796,17 @@ public class BidResponseCreator {
     private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
                                                         AuctionContext auctionContext) {
         final var imps = auctionContext.getBidRequest().getImp();
-        final List<ExtBidResponseFledge.FledgeAuctionConfig> fledgeAuctionConfigs =
+        final List<FledgeAuctionConfig> fledgeAuctionConfigs =
                 bidderResponseInfos.stream()
                 .filter(bidderResponseInfo ->
                         CollectionUtils.isNotEmpty(bidderResponseInfo.getSeatBid().getFledgeConfigs()))
-                .<ExtBidResponseFledge.FledgeAuctionConfig>mapMulti(
+                .<FledgeAuctionConfig>mapMulti(
                         (bidderResponseInfo, consumer) -> bidderResponseInfo.getSeatBid().getFledgeConfigs().forEach(
                                 fledgeConfig -> {
                                     String impId = validateFledgeConfigAndGetImpId(fledgeConfig, imps);
                                     if (StringUtils.isNotBlank(impId)) {
                                         consumer.accept(
-                                                ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                                                FledgeAuctionConfig.builder()
                                                         .impId(impId)
                                                         .bidder(bidderResponseInfo.getBidder())
                                                         .adapter(bidderResponseInfo.getBidder())

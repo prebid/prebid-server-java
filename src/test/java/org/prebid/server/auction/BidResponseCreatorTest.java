@@ -86,7 +86,6 @@ import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
@@ -94,6 +93,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -3412,7 +3412,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .isNotEmpty()
                 .first()
                 .usingRecursiveComparison()
-                .isEqualTo(ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                .isEqualTo(FledgeAuctionConfig.builder()
                         .impId("i1")
                         .config(fledgeAuctionConfig)
                         .adapter("bidder1")
@@ -3446,7 +3446,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .isNotEmpty()
                 .first()
                 .usingRecursiveComparison()
-                .isEqualTo(ExtBidResponseFledge.FledgeAuctionConfig.builder()
+                .isEqualTo(FledgeAuctionConfig.builder()
                         .impId("i1")
                         .config(fledgeAuctionConfig)
                         .adapter("bidder1")
