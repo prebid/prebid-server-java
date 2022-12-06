@@ -23,6 +23,7 @@ class Prebid {
     Amp amp
     Channel channel
     List<MultiBid> multibid
+    Pbs pbs
     Server server
     Map<BidderName, Map<String, Integer>> bidderParams
     ExtPrebidFloors floors
