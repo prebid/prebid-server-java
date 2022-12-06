@@ -272,6 +272,38 @@ public class Ortb2RequestFactory {
         return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
+    public AuctionContext updateTimeout(AuctionContext auctionContext, long startTime) {
+        final Timeout currentTimeout = auctionContext.getTimeout();
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final BidRequest resolvedBidRequest = resolveBidRequest(bidRequest);
+        final BidRequest effectiveBidRequest = resolvedBidRequest != null
+                ? resolvedBidRequest
+                : bidRequest;
+
+        final Timeout requestTimeout = timeoutFactory.create(startTime, effectiveBidRequest.getTmax());
+        if (requestTimeout.getDeadline() == currentTimeout.getDeadline()) {
+            return resolvedBidRequest != null
+                    ? auctionContext.with(resolvedBidRequest)
+                    : auctionContext;
+        }
+
+        return auctionContext.toBuilder()
+                .bidRequest(effectiveBidRequest)
+                .timeout(requestTimeout)
+                .build();
+    }
+
+    private BidRequest resolveBidRequest(BidRequest bidRequest) {
+        final Long resolvedTmax = resolveTmax(bidRequest.getTmax());
+        return resolvedTmax != null ? bidRequest.toBuilder().tmax(resolvedTmax).build() : null;
+    }
+
+    private Long resolveTmax(Long requestTimeout) {
+        final long timeout = timeoutResolver.resolve(requestTimeout);
+        return !Objects.equals(requestTimeout, timeout) ? timeout : null;
+    }
+
     /**
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */

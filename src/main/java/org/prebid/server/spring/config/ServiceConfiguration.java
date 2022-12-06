@@ -240,6 +240,7 @@ public class ServiceConfiguration {
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
+            TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
@@ -254,6 +255,7 @@ public class ServiceConfiguration {
                 hostVendorId,
                 datacenterRegion,
                 implicitParametersExtractor,
+                timeoutResolver,
                 ipAddressHelper,
                 sourceIdGenerator,
                 jsonMerger,
@@ -321,7 +323,6 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -335,7 +336,6 @@ public class ServiceConfiguration {
                 new InterstitialProcessor(),
                 ortbTypesResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -371,7 +371,6 @@ public class ServiceConfiguration {
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
-                                        TimeoutResolver auctionTimeoutResolver,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
@@ -384,7 +383,6 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
                 ampPrivacyContextFactory,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -399,7 +397,6 @@ public class ServiceConfiguration {
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -412,7 +409,6 @@ public class ServiceConfiguration {
                 bidRequestOrtbVersionConversionManager,
                 ortb2ImplicitParametersResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }

@@ -29,7 +29,6 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.DebugContext;
@@ -91,8 +90,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
-    private TimeoutResolver timeoutResolver;
-    @Mock
     private DebugResolver debugResolver;
 
     @Mock
@@ -132,9 +129,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
-
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
 
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
@@ -146,8 +140,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(paramsResolver.resolve(any(), any(), any(), any(), anyBoolean()))
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(interstitialProcessor.process(any()))
@@ -176,7 +171,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 interstitialProcessor,
                 ortbTypesResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
     }
@@ -209,7 +203,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 interstitialProcessor,
                 ortbTypesResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
 
@@ -598,7 +591,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(paramsResolver.resolve(any(), any(), any(), any(), anyBoolean())).willReturn(updatedBidRequest);
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean())).willReturn(updatedBidRequest);
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -646,8 +639,29 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
                 any(),
                 any(),
-                any(),
                 anyBoolean());
+    }
+
+    @Test
+    public void shouldUpdateTimeout() {
+        // given
+        givenValidBidRequest();
+
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+                .willAnswer(invocation -> {
+                    final AuctionContext auctionContext = invocation.getArgument(0);
+                    return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
+                });
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isEqualTo(10000L);
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
