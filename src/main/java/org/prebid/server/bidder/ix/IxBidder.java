@@ -293,27 +293,29 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        final BidType bidType = getBidTypeFromMtype(bid.getMtype());
-        if (bidType != null) {
-            return bidType;
-        }
-
-        return Optional.ofNullable(bid.getExt())
-                .map(ext -> ext.get("prebid"))
-                .map(prebid -> prebid.get("type"))
-                .map(JsonNode::asText)
-                .map(BidType::fromString)
+        return getBidTypeFromMtype(bid.getMtype())
+                .or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
                 .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
     }
 
-    private static BidType getBidTypeFromMtype(Integer mType) {
-        return mType != null ? switch (mType) {
+    private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
+        final BidType bidType = mType != null ? switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             default -> null;
         } : null;
+
+        return Optional.ofNullable(bidType);
+    }
+
+    private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText)
+                .map(BidType::fromString);
     }
 
     private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
