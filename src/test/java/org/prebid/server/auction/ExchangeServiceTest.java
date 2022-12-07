@@ -106,6 +106,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -1087,6 +1088,50 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.getBidResponse().getSeatbid()).hasSize(2)
                 .extracting(seatBid -> seatBid.getBid().size())
                 .containsOnly(1, 1);
+    }
+
+    @Test
+    public void shouldPropagateFledgeResponseWithBidderAlias() {
+        // given
+        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impId", "i1");
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenEmptySeatBid()
+                        .toBuilder()
+                        .fledgeConfigs(List.of(fledgeAuctionConfig))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(
+                                doubleMap("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
+                                "ae", 1)))
+                        .build()),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("bidderAlias", "bidder"))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        verify(httpBidderRequester, times(1)).requestBids(any(), any(), any(), any(), any(), anyBoolean());
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.valueToTree(ExtPrebid.of(null, 1,
+                        ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)));
+
+        final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
+
+        assertThat(auctionParticipations)
+                .hasSize(1)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .extracting(BidderSeatBid::getFledgeConfigs)
+                .containsExactly(List.of(fledgeAuctionConfig));
     }
 
     @Test
