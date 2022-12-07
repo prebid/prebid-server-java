@@ -1,9 +1,13 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
+import org.prebid.server.functional.model.request.setuid.UidWithExpiry
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
 
@@ -16,6 +20,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class SetUidSpec extends BaseSpec {
 
@@ -126,6 +131,97 @@ class SetUidSpec extends BaseSpec {
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+
+        then: "Response should contain uids cookies"
+        assert response.uidsCookie.tempUIDs[APPNEXUS]
+        assert response.uidsCookie.tempUIDs[GENERIC]
+    }
+
+    def "PBS setuid should ignore requested bidder and log metric when cookie's filled and requested bidder not in prioritize list"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["cookie-sync.pri"                  : APPNEXUS.value])
+
+        and: "Setuid request"
+        def bidderName = BidderName.GENERIC
+        def request = SetuidRequest.defaultSetuidRequest.tap {
+            it.bidder = bidderName
+            uid = UUID.randomUUID().toString()
+        }
+
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
+                        (RUBICON) : defaultUidWithExpiry]
+        }
+
+        when: "PBS processes setuid request"
+        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+
+        then: "usersync.FAMILY.sizeblocked metric should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics["usersync.${bidderName.value}.sizeblocked"] == 1
+
+        and: "Response should contain uids cookies"
+        assert response.uidsCookie.tempUIDs[APPNEXUS]
+        assert response.uidsCookie.tempUIDs[RUBICON]
+    }
+
+    def "PBS setuid should reject bidder when cookie's filled and requested bidder in pri and rejected by tcf"() {
+        given: "Setuid request"
+        def bidderName = RUBICON
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
+                + ["gdpr.host-vendor-id": RUBICON_VENDOR_ID.toString(),
+                   "cookie-sync.pri"    : bidderName.value])
+
+        def request = SetuidRequest.defaultSetuidRequest.tap {
+            it.bidder = bidderName
+            gdpr = "1"
+            gdprConsent = new TcfConsent.Builder().build()
+        }
+
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
+                        (RUBICON) : defaultUidWithExpiry]
+        }
+
+        when: "PBS processes setuid request"
+        prebidServerService.sendSetUidRequest(request, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 451
+        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+
+        and: "usersync.FAMILY.tcf.blocked metric should be updated"
+        def metric = prebidServerService.sendCollectedMetricsRequest()
+        assert metric["usersync.${bidderName.value}.tcf.blocked"] == 1
+    }
+
+    def "PBS setuid should remove oldest uid and log metric when cookie's filled and oldest uid's not on the pri"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["cookie-sync.pri"                  : GENERIC.value])
+
+        and: "Setuid request"
+        def request = SetuidRequest.defaultSetuidRequest.tap {
+            uid = UUID.randomUUID().toString()
+        }
+
+        def bidderName = BidderName.RUBICON
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            def uidWithExpiry = UidWithExpiry.defaultUidWithExpiry.tap {
+                expires.plusDays(10)
+            }
+            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
+                        (bidderName) : uidWithExpiry]
+        }
+
+        when: "PBS processes setuid request"
+        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+
+        and: "usersync.FAMILY.sizedout metric should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics["usersync.${bidderName.value}.sizedout"] == 1
 
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
