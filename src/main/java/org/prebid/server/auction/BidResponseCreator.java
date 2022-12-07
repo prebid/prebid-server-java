@@ -796,28 +796,31 @@ public class BidResponseCreator {
     private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
                                                         AuctionContext auctionContext) {
         final var imps = auctionContext.getBidRequest().getImp();
-        final List<FledgeAuctionConfig> fledgeAuctionConfigs =
-                bidderResponseInfos.stream()
-                .filter(bidderResponseInfo ->
-                        CollectionUtils.isNotEmpty(bidderResponseInfo.getSeatBid().getFledgeConfigs()))
-                .<FledgeAuctionConfig>mapMulti(
-                        (bidderResponseInfo, consumer) -> bidderResponseInfo.getSeatBid().getFledgeConfigs().forEach(
-                                fledgeConfig -> {
-                                    String impId = validateFledgeConfigAndGetImpId(fledgeConfig, imps);
-                                    if (StringUtils.isNotBlank(impId)) {
-                                        consumer.accept(
-                                                FledgeAuctionConfig.builder()
-                                                        .impId(impId)
-                                                        .bidder(bidderResponseInfo.getBidder())
-                                                        .adapter(bidderResponseInfo.getBidder())
-                                                        .config(fledgeConfig)
-                                                        .build()
-                                        );
-                                    }
-                                }
-                ))
+        final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidderResponseInfos.stream()
+                .flatMap(bri -> toFledgeAuctionConfigsForBidder(bri, imps).stream())
                 .toList();
         return fledgeAuctionConfigs.isEmpty() ? null : ExtBidResponseFledge.of(fledgeAuctionConfigs);
+    }
+
+    private List<FledgeAuctionConfig> toFledgeAuctionConfigsForBidder(BidderResponseInfo bidderResponseInfo,
+                                                                      List<Imp> imps) {
+        return CollectionUtils.emptyIfNull(bidderResponseInfo.getSeatBid().getFledgeConfigs())
+                .stream()
+                .map(fledgeConfig -> toFledgeAuctionConfig(fledgeConfig, bidderResponseInfo.getBidder(), imps))
+                .filter(Objects::nonNull)
+        .toList();
+    }
+
+    private FledgeAuctionConfig toFledgeAuctionConfig(JsonNode fledgeConfig, String bidderName, List<Imp> imps) {
+        String impId = validateFledgeConfigAndGetImpId(fledgeConfig, imps);
+        return StringUtils.isNotBlank(impId)
+                ? FledgeAuctionConfig.builder()
+                    .impId(impId)
+                    .bidder(bidderName)
+                    .adapter(bidderName)
+                    .config(fledgeConfig)
+                    .build()
+                : null;
     }
 
     private String validateFledgeConfigAndGetImpId(JsonNode fledgeConfig, List<Imp> imps) {
