@@ -12,5 +12,5 @@ import java.util.List;
 public class ExtBidResponseFledge {
 
     @JsonProperty("auctionconfigs")
-    List<FledgeAuctionConfig> auctionConfigs;
+    List<FledgeConfig> auctionConfigs;
 }

@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -29,6 +28,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -322,7 +322,7 @@ public class HttpBidderRequester {
         final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
         final List<BidderBid> bidsRecorded = new ArrayList<>();
         final List<BidderError> errorsRecorded = new ArrayList<>();
-        private final List<JsonNode> fledgeRecorded = new ArrayList<>();
+        private final List<FledgeConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
@@ -349,11 +349,11 @@ public class HttpBidderRequester {
                 errorsRecorded.addAll(bidderErrors);
             }
 
-            final List<JsonNode> fledgeAuctionConfigs = bidsResult != null
+            final List<FledgeConfig> fledgeConfigs = bidsResult != null
                     ? bidsResult.getFledgeConfigs()
                     : null;
-            if (fledgeAuctionConfigs != null) {
-                fledgeRecorded.addAll(fledgeAuctionConfigs);
+            if (fledgeConfigs != null) {
+                fledgeRecorded.addAll(fledgeConfigs);
             }
         }
 

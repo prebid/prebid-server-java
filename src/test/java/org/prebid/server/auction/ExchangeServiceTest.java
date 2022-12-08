@@ -142,6 +142,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -1093,11 +1094,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPropagateFledgeResponseWithBidderAlias() {
         // given
-        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impId", "i1");
+        final FledgeConfig fledgeConfig = givenFledgeAuctionConfig("impId");
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenEmptySeatBid()
                         .toBuilder()
-                        .fledgeConfigs(List.of(fledgeAuctionConfig))
+                        .fledgeConfigs(List.of(fledgeConfig))
                         .build()));
 
         final BidRequest bidRequest = givenBidRequest(
@@ -1131,7 +1132,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .extracting(BidderSeatBid::getFledgeConfigs)
-                .containsExactly(List.of(fledgeAuctionConfig));
+                .containsExactly(List.of(fledgeConfig));
     }
 
     @Test
@@ -4635,6 +4636,13 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
+                .build();
+    }
+
+    private static FledgeConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
                 .build();
     }
 

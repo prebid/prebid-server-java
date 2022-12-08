@@ -1,11 +1,11 @@
 package org.prebid.server.bidder.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
 
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +51,7 @@ public class BidderSeatBid {
      */
     List<BidderError> warnings;
 
-    List<JsonNode> fledgeConfigs;
+    List<FledgeConfig> fledgeConfigs;
 
     public BidderSeatBid with(List<BidderBid> bids) {
         return toBuilder().bids(bids).build();

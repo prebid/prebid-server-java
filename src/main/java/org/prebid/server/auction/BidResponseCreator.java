@@ -87,7 +87,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -796,41 +796,38 @@ public class BidResponseCreator {
     private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
                                                         AuctionContext auctionContext) {
         final var imps = auctionContext.getBidRequest().getImp();
-        final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidderResponseInfos.stream()
+        final List<FledgeConfig> fledgeConfigs = bidderResponseInfos.stream()
                 .flatMap(bri -> toFledgeAuctionConfigsForBidder(bri, imps).stream())
                 .toList();
-        return fledgeAuctionConfigs.isEmpty() ? null : ExtBidResponseFledge.of(fledgeAuctionConfigs);
+        return fledgeConfigs.isEmpty() ? null : ExtBidResponseFledge.of(fledgeConfigs);
     }
 
-    private List<FledgeAuctionConfig> toFledgeAuctionConfigsForBidder(BidderResponseInfo bidderResponseInfo,
-                                                                      List<Imp> imps) {
+    private List<FledgeConfig> toFledgeAuctionConfigsForBidder(BidderResponseInfo bidderResponseInfo,
+                                                               List<Imp> imps) {
         return CollectionUtils.emptyIfNull(bidderResponseInfo.getSeatBid().getFledgeConfigs())
                 .stream()
-                .map(fledgeConfig -> toFledgeAuctionConfig(fledgeConfig, bidderResponseInfo.getBidder(), imps))
+                .map(fledgeConfig ->
+                        toFledgeAuctionConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder(), imps))
                 .filter(Objects::nonNull)
-        .toList();
+                .toList();
     }
 
-    private FledgeAuctionConfig toFledgeAuctionConfig(JsonNode fledgeConfig, String bidderName, List<Imp> imps) {
-        String impId = validateFledgeConfigAndGetImpId(fledgeConfig, imps);
-        return StringUtils.isNotBlank(impId)
-                ? FledgeAuctionConfig.builder()
-                    .impId(impId)
+    private FledgeConfig toFledgeAuctionConfigWithBidder(FledgeConfig fledgeConfig, String bidderName, List<Imp> imps) {
+        return validateImpForFledgeConfig(fledgeConfig.getImpId(), imps)
+                ? fledgeConfig.toBuilder()
                     .bidder(bidderName)
                     .adapter(bidderName)
-                    .config(fledgeConfig)
                     .build()
                 : null;
     }
 
-    private String validateFledgeConfigAndGetImpId(JsonNode fledgeConfig, List<Imp> imps) {
-        final String impId = convertValue(fledgeConfig, "impid", String.class);
+    private boolean validateImpForFledgeConfig(String impId, List<Imp> imps) {
         final ExtImpAuctionEnvironment fledgeEnabled = Optional.ofNullable(impId)
                 .map(id -> {
-                    // FLEDGE is secondary to potentially good bids; do not drop entire request if FLEDGE response bad
                     try {
                         return correspondingImp(id, imps);
                     } catch (PreBidException ignored) {
+                        // FLEDGE is secondary to potentially good bids; do not drop response if FLEDGE part was bad
                         return null;
                     }
                 })
@@ -838,9 +835,7 @@ public class BidResponseCreator {
                 .map(ext -> convertValue(ext, ExtPrebid.AUCTION_ENVIRONMENT_KEY, ExtImpAuctionEnvironment.class))
                 .orElse(ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION);
 
-        return (fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)
-                ? impId
-                : null;
+        return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,

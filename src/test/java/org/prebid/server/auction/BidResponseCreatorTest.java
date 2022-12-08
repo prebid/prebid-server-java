@@ -93,7 +93,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -3392,14 +3392,14 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
-        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "i1");
+        final FledgeConfig fledgeConfig = givenFledgeAuctionConfig("i1");
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
                                 .bids(List.of(BidderBid.of(bid, banner, "USD")))
-                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .fledgeConfigs(List.of(fledgeConfig))
                                 .build(), 100));
 
         // when
@@ -3412,11 +3412,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .isNotEmpty()
                 .first()
                 .usingRecursiveComparison()
-                .isEqualTo(FledgeAuctionConfig.builder()
-                        .impId("i1")
-                        .config(fledgeAuctionConfig)
-                        .adapter("bidder1")
+                .isEqualTo(fledgeConfig.toBuilder()
                         .bidder("bidder1")
+                        .adapter("bidder1")
                         .build());
     }
 
@@ -3427,13 +3425,13 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
-        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "i1");
+        final FledgeConfig fledgeConfig = givenFledgeAuctionConfig("i1");
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
                                 .bids(Collections.emptyList())
-                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .fledgeConfigs(List.of(fledgeConfig))
                                 .build(), 100));
 
         // when
@@ -3446,11 +3444,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .isNotEmpty()
                 .first()
                 .usingRecursiveComparison()
-                .isEqualTo(FledgeAuctionConfig.builder()
-                        .impId("i1")
-                        .config(fledgeAuctionConfig)
-                        .adapter("bidder1")
+                .isEqualTo(fledgeConfig.toBuilder()
                         .bidder("bidder1")
+                        .adapter("bidder1")
                         .build());
     }
 
@@ -3459,13 +3455,13 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp = givenImp("i1");
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
-        final JsonNode fledgeAuctionConfig = mapper.createObjectNode().put("impid", "otherimp");
+        final FledgeConfig fledgeConfig = givenFledgeAuctionConfig("i1");
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
                                 .bids(Collections.emptyList())
-                                .fledgeConfigs(List.of(fledgeAuctionConfig))
+                                .fledgeConfigs(List.of(fledgeConfig))
                                 .build(), 100));
 
         // when
@@ -3737,6 +3733,13 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private static BidderSeatBid givenSeatBid(BidderBid... bids) {
         return BidderSeatBid.of(List.of(bids));
+    }
+
+    private static FledgeConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
+                .build();
     }
 
     private static ExtRequestTargeting givenTargeting() {
