@@ -335,11 +335,11 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
-        if (atts == 0 || atts == 3) {
+        if (atts == 3) {
             return !Objects.equals(lmt, 0) ? 0 : null;
         }
 
-        if (atts == 1 || atts == 2) {
+        if (atts == 0 || atts == 1 || atts == 2) {
             return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
