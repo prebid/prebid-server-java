@@ -247,7 +247,7 @@ class LmtSpec extends BaseSpec {
         "15.0" || DeviceExt.Atts.DENIED     || PBSUtils.randomString
     }
 
-    def "PBS should not modify device.lmt when device.is != iOS"() {
+    def "PBS should not modify device.lmt when device.os != iOS"() {
         given: "Default app BidRequest with non-iOS device.os"
         def lmt = randomLmt
         def device = new Device().tap {
