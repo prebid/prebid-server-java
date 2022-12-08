@@ -232,7 +232,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest?.user?.buyeruid == uidsCookie.tempUIDs[GENERIC].uid
     }
 
-    def "PBS should take precedence buyeruids when "() {
+    def "PBS should take precedence buyeruids whenever present valid uid cookie"() {
         given: "Bid request with buyeruids"
         def buyeruid = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
