@@ -9,13 +9,13 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.cookiesync.FilterSettings
 import org.prebid.server.functional.model.request.cookiesync.MethodFilter
+import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Ignore
 
 import java.time.Instant
 
@@ -462,25 +462,34 @@ class CookieSyncSpec extends BaseSpec {
 
     }
 
-    def "PBS cookie sync with cookie-sync.max-limit config should sync bidder by limit value"() {
+    def "PBS cookie sync should sync bidder by limit value"() {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                ["adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
 
-        and: "Default cookie sync request with 2 bidders"
+        and: "Default cookie sync request with 2 bidders and limit of 1"
+        def limit = 1
+        def bidders = [BIDDER, RUBICON]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [BIDDER, RUBICON]
+            it.limit = limit
+            it.bidders = bidders
         }
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain rubicon bidder"
-        def rubiconBidder = response.getBidderUserSync(RUBICON)
-        assert rubiconBidder?.userSync?.url
-        assert rubiconBidder?.userSync?.type
+        then: "Response should contain only one valid user sync"
+        def validBidderUserSyncs = getValidBidderUserSyncs(response)
+        assert validBidderUserSyncs.size() == limit
+        validBidderUserSyncs.every {
+            it.value.url
+            it.value.type
+        }
+
+        and: "Discarded bidder user sync should contain an error"
+        def rejectedBidderUserSyncs = getRejectedBidderUserSyncs(response)
+        assert rejectedBidderUserSyncs.size() == bidders.size() - limit
+        assert rejectedBidderUserSyncs.every {it.value == "limit reached"}
     }
 
     def "PBS cookie sync with coop-sync and config should log: bidder is provided for prioritized coop-syncing but #reason"() {
@@ -505,10 +514,10 @@ class CookieSyncSpec extends BaseSpec {
         where:
         reason                                       | config
         "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
-        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled" : "false",
-                                                        "cookie-sync.pri": "generic"]
+        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
+                                                        "cookie-sync.pri"         : "generic"]
         "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
-                                                        "cookie-sync.pri"                   : "generic",]
+                                                        "cookie-sync.pri"                             : "generic",]
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {
@@ -584,22 +593,29 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync should emit error when requested bidder rejected by limit"() {
         given: "PBS config with bidders usersync config"
+        def limit = 1
         def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
+                ["cookie-sync.max-limit"    : limit as String,
+                 "cookie-sync.default-limit": limit as String,
                  "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
+        def bidders = [BIDDER, RUBICON]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [BIDDER, RUBICON]
+            it.bidders = bidders
         }
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain error generic bidder"
-        def genericBidder = response.getBidderUserSync(GENERIC)
-        assert genericBidder.error == "limit reached"
+        then: "Response should contain only one valid user sync"
+        def validBidderUserSyncs = getValidBidderUserSyncs(response)
+        assert validBidderUserSyncs.size() == limit
+
+        and: "Discarded bidder user sync should contain an error"
+        def rejectedBidderUserSyncs = getRejectedBidderUserSyncs(response)
+        assert rejectedBidderUserSyncs.size() == bidders.size() - limit
+        assert rejectedBidderUserSyncs.every {it.value == "limit reached"}
     }
 
     def "PBS cookie sync shouldn't emit error limit reached when bidder coop-synced"() {
@@ -620,5 +636,17 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response shouldn't contain generic bidder"
         assert !response.getBidderUserSync(GENERIC)
+    }
+
+    Map<BidderName, UserSyncInfo> getValidBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
+        cookieSyncResponse.bidderStatus
+                          .findAll { it.userSync }
+                          .collectEntries { [it.bidder, it.userSync] }
+    }
+
+    Map<BidderName, String> getRejectedBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
+        cookieSyncResponse.bidderStatus
+                          .findAll { it.error }
+                          .collectEntries { [it.bidder, it.error] }
     }
 }
