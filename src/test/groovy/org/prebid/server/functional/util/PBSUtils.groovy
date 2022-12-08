@@ -25,7 +25,7 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
-        getRandomNumber(min, max)
+        getRandomNumber(max, min * -1) * - 1
     }
 
     static BigDecimal getRandomDecimal(float min = 0, float max = MAX_VALUE) {
