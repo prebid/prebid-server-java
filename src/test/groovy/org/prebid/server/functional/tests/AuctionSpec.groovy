@@ -259,7 +259,7 @@ class AuctionSpec extends BaseSpec {
                 + ["host-cookie.family"     : GENERIC.value,
                    "host-cookie.cookie-name": cookieName])
 
-        and: "Bid request with buyeruids"
+        and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Host cookie"
