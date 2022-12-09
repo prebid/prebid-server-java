@@ -773,13 +773,6 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getExt)
-                .extracting(ext -> ext.get("prebid"))
-                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getType)
-                .containsExactly(BidType.video);
-        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }
