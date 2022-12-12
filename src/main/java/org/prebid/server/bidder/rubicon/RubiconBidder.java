@@ -351,10 +351,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isMultiformatEnabled(ExtPrebid<ExtImpPrebid, ExtImpRubicon> extImp) {
-
         return Optional.ofNullable(extImp)
                 .map(ExtPrebid::getBidder)
-                .map(ExtImpRubicon::getMultiformat)
+                .map(ExtImpRubicon::getBidOnMultiFormat)
                 .orElse(DEFAULT_MULTIFORMAT_VALUE);
     }
 

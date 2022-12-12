@@ -235,7 +235,7 @@ public class RubiconBidderTest extends VertxTest {
                         .video(Video.builder().w(300).h(200).build())
                         .xNative(Native.builder().build())
                         .banner(Banner.builder().w(300).h(200).build()),
-                extImpRubiconBuilder -> extImpRubiconBuilder.multiformat(true));
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -267,11 +267,11 @@ public class RubiconBidderTest extends VertxTest {
         final Imp imp1 = givenImp(impBuilder -> impBuilder
                         .video(Video.builder().w(300).h(200).build())
                         .banner(Banner.builder().w(300).h(200).build()),
-                extImpRubiconBuilder -> extImpRubiconBuilder.multiformat(true));
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
         final Imp imp2 = givenImp(impBuilder -> impBuilder
                         .video(Video.builder().w(300).h(200).build())
                         .banner(Banner.builder().w(300).h(200).build()),
-                extImpRubiconBuilder -> extImpRubiconBuilder.multiformat(false));
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(false));
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
