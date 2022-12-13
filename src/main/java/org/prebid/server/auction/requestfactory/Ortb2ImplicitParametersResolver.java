@@ -70,7 +70,7 @@ public class Ortb2ImplicitParametersResolver {
     private static final String BIDDER_EXT = "bidder";
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
-            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid");
+            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid", "ae");
 
     private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
