@@ -459,7 +459,7 @@ public class AmpHandlerTest extends VertxTest {
                 .bid(bids)
                 .build());
 
-        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting);
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting, null);
 
         givenHoldAuction(BidResponse.builder()
                 .ext(ExtBidResponse.builder().prebid(extBidResponsePrebid).build())
@@ -482,7 +482,7 @@ public class AmpHandlerTest extends VertxTest {
         final Map<String, JsonNode> targeting =
                 Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
 
-        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting);
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting, null);
 
         givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
 
@@ -505,7 +505,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
-                        .prebid(ExtBidResponsePrebid.of(1000L, null, null, Collections.emptyMap()))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, null, Collections.emptyMap(), null))
                         .build()));
 
         // when
@@ -532,7 +532,9 @@ public class AmpHandlerTest extends VertxTest {
                                         singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
                                         singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
                                         ExtModulesTrace.of(2L, emptyList())),
-                                null, Collections.emptyMap()))
+                                null,
+                                Collections.emptyMap(),
+                                null))
                         .build()));
 
         // when

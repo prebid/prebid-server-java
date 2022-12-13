@@ -12,10 +12,12 @@ public enum ExtImpAuctionEnvironment {
      * 0 Standard server-side auction
      */
     SERVER_SIDE_AUCTION,
+
     /**
      * 1 On-device interest group auction (FLEDGE)
      */
     ON_DEVICE_IG_AUCTION_FLEDGE,
+
     /**
      * 2 Server-side with interest group simulation
      */

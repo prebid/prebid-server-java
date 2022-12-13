@@ -32,7 +32,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -269,14 +269,14 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
 
-    private static List<FledgeConfig> extractFledge(OpenxBidResponse bidResponse) {
+    private static List<FledgeAuctionConfig> extractFledge(OpenxBidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
                 .map(OpenxBidResponse::getExt)
                 .map(OpenxBidResponseExt::getFledgeAuctionConfigs)
                 .orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
-                .map(e -> FledgeConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
                 .toList();
     }
 }

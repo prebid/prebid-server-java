@@ -87,7 +87,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
-import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -401,7 +401,7 @@ public class BidResponseCreator {
                     seatBid.getHttpCalls(),
                     seatBid.getErrors(),
                     seatBid.getWarnings(),
-                    seatBid.getFledgeConfigs());
+                    seatBid.getFledgeAuctionConfigs());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -430,17 +430,18 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private static Imp correspondingImp(final Bid bid, final List<Imp> imps) {
-        return correspondingImp(bid.getImpid(), imps);
-    }
-
-    private static Imp correspondingImp(String impId, List<Imp> imps) {
-        return imps.stream()
-                .filter(imp -> Objects.equals(impId, imp.getId()))
-                .findFirst()
+    private static Imp correspondingImp(Bid bid, List<Imp> imps) {
+        final String impId = bid.getImpid();
+        return correspondingImp(impId, imps)
                 // Should never occur. See ResponseBidValidator
                 .orElseThrow(
                         () -> new PreBidException("Bid with impId %s doesn't have matched imp".formatted(impId)));
+    }
+
+    private static Optional<Imp> correspondingImp(String impId, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> Objects.equals(impId, imp.getId()))
+                .findFirst();
     }
 
     private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
@@ -768,8 +769,8 @@ public class BidResponseCreator {
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
         final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
-        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(auctionTimestamp, auctionContext.getBidRequest(),
-                extBidResponseFledge);
+        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(
+                auctionTimestamp, auctionContext.getBidRequest(), extBidResponseFledge);
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -781,61 +782,52 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp, BidRequest bidRequest,
+    private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp,
+                                                        BidRequest bidRequest,
                                                         ExtBidResponseFledge extBidResponseFledge) {
+
         final JsonNode passThrough = Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getPassthrough)
                 .orElse(null);
 
-        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough, null,
-                extBidResponseFledge);
+        return ExtBidResponsePrebid.of(
+                auctionTimestamp, null, passThrough, null, extBidResponseFledge);
     }
 
     private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
                                                         AuctionContext auctionContext) {
-        final var imps = auctionContext.getBidRequest().getImp();
-        final List<FledgeConfig> fledgeConfigs = bidderResponseInfos.stream()
-                .flatMap(bri -> toFledgeAuctionConfigsForBidder(bri, imps).stream())
+
+        final List<Imp> imps = auctionContext.getBidRequest().getImp();
+        final List<FledgeAuctionConfig> fledgeConfigs = bidderResponseInfos.stream()
+                .flatMap(bidderResponseInfo -> fledgeConfigsForBidder(bidderResponseInfo, imps))
                 .toList();
-        return fledgeConfigs.isEmpty() ? null : ExtBidResponseFledge.of(fledgeConfigs);
+        return !fledgeConfigs.isEmpty() ? ExtBidResponseFledge.of(fledgeConfigs) : null;
     }
 
-    private List<FledgeConfig> toFledgeAuctionConfigsForBidder(BidderResponseInfo bidderResponseInfo,
-                                                               List<Imp> imps) {
-        return CollectionUtils.emptyIfNull(bidderResponseInfo.getSeatBid().getFledgeConfigs())
+    private Stream<FledgeAuctionConfig> fledgeConfigsForBidder(BidderResponseInfo bidderResponseInfo, List<Imp> imps) {
+        return Optional.ofNullable(bidderResponseInfo.getSeatBid().getFledgeAuctionConfigs())
                 .stream()
-                .map(fledgeConfig ->
-                        toFledgeAuctionConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder(), imps))
-                .filter(Objects::nonNull)
-                .toList();
+                .flatMap(Collection::stream)
+                .filter(fledgeConfig -> validateFledgeConfig(fledgeConfig, imps))
+                .map(fledgeConfig -> fledgeConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder()));
     }
 
-    private FledgeConfig toFledgeAuctionConfigWithBidder(FledgeConfig fledgeConfig, String bidderName, List<Imp> imps) {
-        return validateImpForFledgeConfig(fledgeConfig.getImpId(), imps)
-                ? fledgeConfig.toBuilder()
-                    .bidder(bidderName)
-                    .adapter(bidderName)
-                    .build()
-                : null;
-    }
-
-    private boolean validateImpForFledgeConfig(String impId, List<Imp> imps) {
-        final ExtImpAuctionEnvironment fledgeEnabled = Optional.ofNullable(impId)
-                .map(id -> {
-                    try {
-                        return correspondingImp(id, imps);
-                    } catch (PreBidException ignored) {
-                        // FLEDGE is secondary to potentially good bids; do not drop response if FLEDGE part was bad
-                        return null;
-                    }
-                })
+    private boolean validateFledgeConfig(FledgeAuctionConfig fledgeAuctionConfig, List<Imp> imps) {
+        final ExtImpAuctionEnvironment fledgeEnabled = correspondingImp(fledgeAuctionConfig.getImpId(), imps)
                 .map(Imp::getExt)
                 .map(ext -> convertValue(ext, ExtPrebid.AUCTION_ENVIRONMENT_KEY, ExtImpAuctionEnvironment.class))
                 .orElse(ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION);
 
         return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;
+    }
+
+    private static FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig, String bidderName) {
+        return fledgeConfig.toBuilder()
+                .bidder(bidderName)
+                .adapter(bidderName)
+                .build();
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,
@@ -1719,13 +1711,9 @@ public class BidResponseCreator {
     }
 
     private <T> Optional<T> getExtPrebid(ObjectNode extNode, Class<T> extClass) {
-        try {
-            return Optional.ofNullable(extNode)
-                    .filter(ext -> ext.hasNonNull(PREBID_EXT))
-                    .map(ext -> mapper.mapper().convertValue(extNode.get(PREBID_EXT), extClass));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
+        return Optional.ofNullable(extNode)
+                .filter(ext -> ext.hasNonNull(PREBID_EXT))
+                .map(ext -> convertValue(extNode, PREBID_EXT, extClass));
     }
 
     private <T> T convertValue(JsonNode jsonNode, String key, Class<T> typeClass) {

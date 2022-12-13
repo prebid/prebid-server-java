@@ -1293,12 +1293,16 @@ public class ExchangeService {
 
         return httpBidderRequester
                 .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabledForBidder)
-                .map(seatBid -> CollectionUtils.isEmpty(mediaTypeProcessingErrors)
-                        ? seatBid
-                        : seatBid.toBuilder()
-                            .warnings(ListUtils.union(mediaTypeProcessingErrors, seatBid.getWarnings()))
-                            .build())
+                .map(seatBid -> toBidderSeatBid(seatBid, mediaTypeProcessingErrors))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
+    }
+
+    private static BidderSeatBid toBidderSeatBid(BidderSeatBid seatBid, List<BidderError> mediaTypeProcessingErrors) {
+        return CollectionUtils.isEmpty(mediaTypeProcessingErrors)
+                ? seatBid
+                : seatBid.toBuilder()
+                .warnings(ListUtils.union(mediaTypeProcessingErrors, seatBid.getWarnings()))
+                .build();
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,

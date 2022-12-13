@@ -28,7 +28,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
-import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -314,15 +314,15 @@ public class HttpBidderRequester {
 
     private static class ResultBuilder<T> {
 
-        final List<HttpRequest<T>> httpRequests;
-        final List<BidderError> previousErrors;
-        final BidderRequestCompletionTracker completionTracker;
+        private final List<HttpRequest<T>> httpRequests;
+        private final List<BidderError> previousErrors;
+        private final BidderRequestCompletionTracker completionTracker;
         private final JacksonMapper mapper;
 
-        final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
-        final List<BidderBid> bidsRecorded = new ArrayList<>();
-        final List<BidderError> errorsRecorded = new ArrayList<>();
-        private final List<FledgeConfig> fledgeRecorded = new ArrayList<>();
+        private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
+        private final List<BidderBid> bidsRecorded = new ArrayList<>();
+        private final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final List<FledgeAuctionConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
@@ -349,11 +349,11 @@ public class HttpBidderRequester {
                 errorsRecorded.addAll(bidderErrors);
             }
 
-            final List<FledgeConfig> fledgeConfigs = bidsResult != null
-                    ? bidsResult.getFledgeConfigs()
+            final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null
+                    ? bidsResult.getFledgeAuctionConfigs()
                     : null;
-            if (fledgeConfigs != null) {
-                fledgeRecorded.addAll(fledgeConfigs);
+            if (fledgeAuctionConfigs != null) {
+                fledgeRecorded.addAll(fledgeAuctionConfigs);
             }
         }
 

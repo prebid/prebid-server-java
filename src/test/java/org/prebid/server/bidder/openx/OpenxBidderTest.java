@@ -34,7 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.FledgeConfig;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -447,7 +447,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .build()))
                         .build()))
                 .cur("UAH")
-                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createArrayNode().add("somevalue"))))
+                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createObjectNode().put("somevalue", 1))))
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -474,10 +474,10 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
                         BidType.banner, "UAH"));
-        assertThat(result.getFledgeConfigs())
-                .containsOnly(FledgeConfig.builder()
+        assertThat(result.getFledgeAuctionConfigs())
+                .containsOnly(FledgeAuctionConfig.builder()
                         .impId("impId1")
-                        .config(mapper.createArrayNode().add("somevalue"))
+                        .config(mapper.createObjectNode().put("somevalue", 1))
                         .build());
     }
 
@@ -486,7 +486,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
                 .seatbid(emptyList())
-                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createArrayNode().add("somevalue"))))
+                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createObjectNode().put("somevalue", 1))))
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -503,10 +503,10 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).isEmpty();
-        assertThat(result.getFledgeConfigs())
-                .containsOnly(FledgeConfig.builder()
+        assertThat(result.getFledgeAuctionConfigs())
+                .containsOnly(FledgeAuctionConfig.builder()
                         .impId("impId1")
-                        .config(mapper.createArrayNode().add("somevalue"))
+                        .config(mapper.createObjectNode().put("somevalue", 1))
                         .build());
     }
 

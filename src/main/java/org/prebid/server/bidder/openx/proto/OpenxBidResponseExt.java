@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.openx.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
@@ -14,5 +14,5 @@ import java.util.Map;
 public class OpenxBidResponseExt {
 
     @JsonProperty("fledge_auction_configs")
-    Map<String, JsonNode> fledgeAuctionConfigs;
+    Map<String, ObjectNode> fledgeAuctionConfigs;
 }

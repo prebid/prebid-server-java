@@ -1,7 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -10,11 +10,14 @@ import lombok.Value;
  */
 @Value
 @Builder(toBuilder = true)
-public class FledgeConfig {
+public class FledgeAuctionConfig {
 
     @JsonProperty("impid")
     String impId;
+
     String bidder;
+
     String adapter;
-    JsonNode config;
+
+    ObjectNode config;
 }

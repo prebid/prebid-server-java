@@ -38,9 +38,4 @@ public class ExtBidResponsePrebid {
      * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
      */
     ExtBidResponseFledge fledge;
-
-    public static ExtBidResponsePrebid of(Long auctiontimestamp, ExtModules modules, JsonNode passthrough,
-                                   Map<String, JsonNode> targeting) {
-        return ExtBidResponsePrebid.of(auctiontimestamp, modules, passthrough, targeting, null);
-    }
 }
