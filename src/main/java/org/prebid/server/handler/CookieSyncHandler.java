@@ -8,7 +8,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -101,9 +100,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final String requestAccount = cookieSyncRequest.getAccount();
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
-        final BiddersContext biddersContext = BiddersContext.builder()
-                .requestedBidders(SetUtils.emptyIfNull(cookieSyncRequest.getBidders()))
-                .build();
+        final BiddersContext biddersContext = BiddersContext.builder().build();
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
@@ -197,7 +194,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         if (tcfContext == null) {
             analyticsDelegator.processEvent(cookieSyncEvent);
         } else {
-            analyticsDelegator.processEvent(cookieSyncEvent, null);
+            analyticsDelegator.processEvent(cookieSyncEvent, tcfContext);
         }
     }
 }
