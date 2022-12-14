@@ -1,0 +1,14 @@
+adapters:
+  undertone:
+    endpoint: https://ads.undertone.com/rtb
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: csop@undertone.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 677
