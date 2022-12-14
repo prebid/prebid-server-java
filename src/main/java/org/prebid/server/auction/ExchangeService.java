@@ -129,6 +129,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -553,17 +554,32 @@ public class ExchangeService {
 
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final Set<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
-        final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs,
-                        eidPermissions);
+        final Map<String, User> bidderToUser = prepareUsers(
+                bidders,
+                context,
+                aliases,
+                bidRequest,
+                extUser,
+                uidsBody,
+                firstPartyDataBidders,
+                biddersToConfigs,
+                eidPermissions);
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
-                .map(bidderToPrivacyResult ->
-                        getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs, aliases, context));
+                .map(bidderToPrivacyResult -> getAuctionParticipation(
+                        bidderToPrivacyResult,
+                        bidRequest,
+                        impBidderToStoredResponse,
+                        imps,
+                        bidderToMultiBid,
+                        firstPartyDataBidders,
+                        biddersToConfigs,
+                        aliases,
+                        context));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -617,10 +633,11 @@ public class ExchangeService {
     /**
      * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
      */
-    private static List<String> firstPartyDataBidders(ExtRequest requestExt) {
+    private static Set<String> firstPartyDataBidders(ExtRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
-        return data == null ? null : data.getBidders();
+        final List<String> bidders = data == null ? null : data.getBidders();
+        return bidders == null ? null : new HashSet<>(bidders);
     }
 
     private Map<String, User> prepareUsers(List<String> bidders,
@@ -629,10 +646,9 @@ public class ExchangeService {
                                            BidRequest bidRequest,
                                            ExtUser extUser,
                                            Map<String, String> uidsBody,
+                                           Set<String> firstPartyDataBidders,
                                            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                            Map<String, List<String>> eidPermissions) {
-
-        final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
@@ -770,6 +786,7 @@ public class ExchangeService {
             Map<String, Map<String, String>> impBidderToStoredBidResponse,
             List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBid,
+            Set<String> firstPartyDataBidders,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             BidderAliases aliases,
             AuctionContext context) {
@@ -785,6 +802,7 @@ public class ExchangeService {
                         impBidderToStoredBidResponse,
                         imps,
                         bidderToMultiBid,
+                        firstPartyDataBidders,
                         biddersToConfigs,
                         bidderToPrebidBidders,
                         aliases,
@@ -826,6 +844,7 @@ public class ExchangeService {
             Map<String, Map<String, String>> impBidderToStoredBidResponse,
             List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBid,
+            Set<String> firstPartyDataBidders,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,
             BidderAliases bidderAliases,
@@ -845,9 +864,7 @@ public class ExchangeService {
 
         final OrtbVersion ortbVersion = bidderSupportedOrtbVersion(bidder, bidderAliases);
 
-        final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
@@ -864,7 +881,13 @@ public class ExchangeService {
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
         if (preparedApp != null && preparedSite != null) {
-            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
+            context.getDebugWarnings()
+                    .add("BidRequest contains App and Site for bidder %s. Request rejected.".formatted(bidder));
+
+            return AuctionParticipation.builder()
+                    .bidder(bidder)
+                    .requestBlocked(true)
+                    .build();
         }
 
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
@@ -873,7 +896,7 @@ public class ExchangeService {
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases, context.getAccount()))
                 .app(preparedApp)
-                .site(preparedApp == null ? preparedSite : null)
+                .site(preparedSite)
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();

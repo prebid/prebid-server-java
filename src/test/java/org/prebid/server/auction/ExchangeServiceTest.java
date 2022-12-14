@@ -31,7 +31,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1255,7 +1254,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallBidResponseCreatorWithExpectedParamsAndUpdateDebugErrors() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenEmptySeatBid());
@@ -2484,12 +2482,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode siteWithPage = mapper.valueToTree(Site.builder().page("testPage").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithPage, null, null));
+                ExtBidderConfigOrtb.of(siteWithPage, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithDomain, null, null));
+                ExtBidderConfigOrtb.of(siteWithDomain, null, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2524,7 +2522,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRemoveSiteObjectIfBothSiteAndAppPresentAfterFpdStage() {
+    public void shouldRejectIfBothSiteAndAppPresentAfterFpdStage() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2546,20 +2544,11 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(auctionContext);
 
         // then
-        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester)
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
-        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
-
-        assertThat(capturedBidRequests)
-                .extracting(BidderRequest::getBidRequest)
-                .extracting(BidRequest::getApp, BidRequest::getSite)
-                .containsExactly(tuple(App.builder().id("appId").build(), null));
+        verifyNoInteractions(httpBidderRequester);
         assertThat(auctionContext)
                 .extracting(AuctionContext::getDebugWarnings)
-                .asInstanceOf(InstanceOfAssertFactories.list(Site.class))
                 .asList()
-                .containsExactly("BidRequest contains app and site. Removed site object");
+                .containsExactly("BidRequest contains App and Site for bidder someBidder. Request rejected.");
     }
 
     @Test
@@ -2571,7 +2560,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
         final ObjectNode appWithPublisherId = mapper.valueToTree(App.builder().publisher(publisherWithId).build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithPublisherId, null));
+                ExtBidderConfigOrtb.of(null, appWithPublisherId, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
@@ -2579,7 +2568,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(
                 App.builder().publisher(publisherWithIdAndDomain).build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null));
+                ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2618,13 +2607,13 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final ObjectNode bidderConfigUser = mapper.valueToTree(User.builder().id("userFromConfig").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, bidderConfigUser));
+                ExtBidderConfigOrtb.of(null, null, bidderConfigUser));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
         final ObjectNode emptyUser = mapper.valueToTree(User.builder().build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, emptyUser));
+                ExtBidderConfigOrtb.of(null, null, emptyUser));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
         final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
@@ -2893,7 +2882,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).isEmpty();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid() {
         // given
@@ -2964,7 +2952,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactly(Map.entry("impId2", ImpRejectionReason.NO_BID));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldRespondWithOneBidAndErrorWhenBidResponseContainsOneUnsupportedCurrency() {
         // given
@@ -3017,7 +3004,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
         // given
@@ -3054,7 +3040,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionForMultipleBid() {
         // given
@@ -4323,7 +4308,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactly(pmp);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBidWithTopDeal() {
         // given
@@ -4361,7 +4345,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly("bidId2");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBids() {
         // given
