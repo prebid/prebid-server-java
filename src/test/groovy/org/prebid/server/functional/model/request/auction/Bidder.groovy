@@ -10,7 +10,7 @@ import org.prebid.server.functional.model.bidder.Rubicon
 @ToString(includeNames = true, ignoreNulls = true)
 class Bidder {
 
-    Generic genericAlias
+    Generic alias
     Generic generic
     Rubicon rubicon
     @JsonProperty("appnexus")

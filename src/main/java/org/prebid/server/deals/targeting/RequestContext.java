@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,6 +60,7 @@ public class RequestContext {
 
     private static final String EXT_PREBID_BIDDER = "prebid.bidder.";
     private static final String EXT_CONTEXT_DATA = "context.data.";
+    private static final String EXT_DATA = "data.";
 
     private final BidRequest bidRequest;
     private final Imp imp;
@@ -118,8 +120,8 @@ public class RequestContext {
             case referrer -> lookupResult(getIfNotNull(bidRequest.getSite(), Site::getPage));
             case appBundle -> lookupResult(getIfNotNull(bidRequest.getApp(), App::getBundle));
             case adslot -> lookupResult(
-                    impReader.readFromExt(imp, "context.data.pbadslot", RequestContext::nodeToString),
-                    impReader.readFromExt(imp, "context.data.adserver.adslot", RequestContext::nodeToString),
+                    imp.getTagid(),
+                    impReader.readFromExt(imp, "gpid", RequestContext::nodeToString),
                     impReader.readFromExt(imp, "data.pbadslot", RequestContext::nodeToString),
                     impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString));
             case deviceGeoExt -> lookupResult(geoReader.readFromExt(
@@ -210,12 +212,26 @@ public class RequestContext {
             throw new TargetingSyntaxException("Unexpected category for fetching sizes for: " + type);
         }
 
-        final List<Format> formats = getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getFormat);
-        final List<Size> sizes = ListUtils.emptyIfNull(formats).stream()
-                .map(format -> Size.of(format.getW(), format.getH()))
-                .toList();
+        final List<Size> sizes = ListUtils.union(sizesFromBanner(imp), sizesFromVideo(imp));
 
         return !sizes.isEmpty() ? LookupResult.ofValue(sizes) : LookupResult.empty();
+    }
+
+    private static List<Size> sizesFromBanner(Imp imp) {
+        final List<Format> formats = getIfNotNull(imp.getBanner(), Banner::getFormat);
+        return ListUtils.emptyIfNull(formats).stream()
+                .map(format -> Size.of(format.getW(), format.getH()))
+                .toList();
+    }
+
+    private static List<Size> sizesFromVideo(Imp imp) {
+        final Video video = imp.getVideo();
+        final Integer width = video != null ? video.getW() : null;
+        final Integer height = video != null ? video.getH() : null;
+
+        return width != null && height != null
+                ? Collections.singletonList(Size.of(width, height))
+                : Collections.emptyList();
     }
 
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
@@ -300,6 +316,7 @@ public class RequestContext {
     private <T> LookupResult<T> getSiteFirstPartyData(String path, Function<JsonNode, T> valueExtractor) {
         return lookupResult(
                 impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
+                impReader.readFromExt(imp, EXT_DATA + path, valueExtractor),
                 siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
                 appReader.readFromExt(bidRequest.getApp(), path, valueExtractor))
                 .orElse(getFirstPartyDataFromRequestExt(ExtBidderConfigOrtb::getSite, path, valueExtractor));

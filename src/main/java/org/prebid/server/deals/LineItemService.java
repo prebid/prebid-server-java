@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.math.BigDecimal;
@@ -62,11 +63,12 @@ public class LineItemService {
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
     private static final String ACTIVE = "active";
+    private static final String PG_IGNORE_PACING_VALUE = "1";
 
     private final Comparator<LineItem> lineItemComparator = Comparator
-            .comparing(LineItem::getHighestUnspentTokensClass)
-            .thenComparing(LineItem::getRelativePriority)
-            .thenComparing(LineItem::getCpm, Comparator.reverseOrder());
+            .comparing(LineItem::getHighestUnspentTokensClass, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getRelativePriority, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(LineItem::getCpm, Comparator.nullsLast(Comparator.reverseOrder()));
 
     private final int maxDealsPerBidder;
     private final TargetingService targetingService;
@@ -409,32 +411,43 @@ public class LineItemService {
     }
 
     private boolean planHasTokensIfPresent(LineItem lineItem, AuctionContext auctionContext) {
-        final DeliveryPlan deliveryPlan = lineItem.getActiveDeliveryPlan();
-        if (deliveryPlan == null) {
+        if (hasUnspentTokens(lineItem) || ignorePacing(auctionContext)) {
             return true;
         }
-        boolean hasUnspentTokens = deliveryPlan.getDeliveryTokens().stream()
-                .anyMatch(deliveryToken -> deliveryToken.getTotal() - deliveryToken.getSpent().sum() > 0);
-        if (!hasUnspentTokens) {
-            final String lineItemId = lineItem.getLineItemId();
-            final String lineItemSource = lineItem.getSource();
-            auctionContext.getTxnLog().lineItemsPacingDeferred().add(lineItemId);
-            deepDebug(
-                    auctionContext,
-                    Category.pacing,
-                    "Matched Line Item %s for bidder %s does not have unspent tokens to be served"
-                            .formatted(lineItemId, lineItemSource),
-                    auctionContext.getAccount().getId(),
-                    lineItemSource,
-                    lineItemId);
-        }
-        return hasUnspentTokens;
+
+        final String lineItemId = lineItem.getLineItemId();
+        final String lineItemSource = lineItem.getSource();
+        auctionContext.getTxnLog().lineItemsPacingDeferred().add(lineItemId);
+        deepDebug(
+                auctionContext,
+                Category.pacing,
+                "Matched Line Item %s for bidder %s does not have unspent tokens to be served"
+                        .formatted(lineItemId, lineItemSource),
+                auctionContext.getAccount().getId(),
+                lineItemSource,
+                lineItemId);
+
+        return false;
     }
 
-    private boolean isReadyAtInPast(ZonedDateTime now, LineItem lineItem, AuctionContext auctionContext,
+    private boolean hasUnspentTokens(LineItem lineItem) {
+        final DeliveryPlan deliveryPlan = lineItem.getActiveDeliveryPlan();
+        return deliveryPlan == null || deliveryPlan.getDeliveryTokens().stream()
+                .anyMatch(deliveryToken -> deliveryToken.getUnspent() > 0);
+    }
+
+    private static boolean ignorePacing(AuctionContext auctionContext) {
+        return PG_IGNORE_PACING_VALUE
+                .equals(auctionContext.getHttpRequest().getHeaders().get(HttpUtil.PG_IGNORE_PACING));
+    }
+
+    private boolean isReadyAtInPast(ZonedDateTime now,
+                                    LineItem lineItem,
+                                    AuctionContext auctionContext,
                                     TxnLog txnLog) {
+
         final ZonedDateTime readyAt = lineItem.getReadyAt();
-        final boolean ready = readyAt != null && (readyAt.isEqual(now) || readyAt.isBefore(now));
+        final boolean ready = (readyAt != null && isBeforeOrEqual(readyAt, now)) || ignorePacing(auctionContext);
         final String accountId = auctionContext.getAccount().getId();
         final String lineItemSource = lineItem.getSource();
         final String lineItemId = lineItem.getLineItemId();
@@ -465,6 +478,10 @@ public class LineItemService {
         }
 
         return ready;
+    }
+
+    private static boolean isBeforeOrEqual(ZonedDateTime before, ZonedDateTime after) {
+        return before.isBefore(after) || before.isEqual(after);
     }
 
     /**

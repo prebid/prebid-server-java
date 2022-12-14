@@ -18,7 +18,7 @@ class Rule {
     private MediaType mediaType
     private String size
     private String gptSlot
-    private String pbAdSlot
+    private String adUnitCode
     private Country country
     private DeviceType deviceType
 

@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class OrtbTypesResolverTest extends VertxTest {
 
     private final OrtbTypesResolver ortbTypesResolver =
-            new OrtbTypesResolver(jacksonMapper, new JsonMerger(jacksonMapper));
+            new OrtbTypesResolver(0.01, jacksonMapper, new JsonMerger(jacksonMapper));
 
     @Test
     public void normalizeTargetingShouldNotChangeNodeIfItsTypeIsNotObject() {

@@ -1,43 +1,45 @@
 CREATE TABLE accounts_account
 (
-    id                        SERIAL PRIMARY KEY,
-    uuid                      varchar(40) NOT NULL,
-    price_granularity         varchar(6),
-    banner_cache_ttl          INT,
-    video_cache_ttl           INT,
-    events_enabled            BIT,
-    tcf_config                json,
-    truncate_target_attr      TINYINT UNSIGNED,
-    default_integration       varchar(64),
-    analytics_config          varchar(512),
-    bid_validations           json,
-    status                    enum ('active','inactive'),
-    config                    json,
-    updated_by                int(11),
-    updated_by_user           varchar(64),
-    updated                   timestamp
+    id                   SERIAL PRIMARY KEY,
+    uuid                 varchar(40) NOT NULL,
+    price_granularity    varchar(6),
+    banner_cache_ttl     INT,
+    video_cache_ttl      INT,
+    events_enabled       BIT,
+    tcf_config           json,
+    truncate_target_attr TINYINT UNSIGNED,
+    default_integration  varchar(64),
+    analytics_config     varchar(512),
+    bid_validations      json,
+    status               enum ('active','inactive'),
+    config               json,
+    updated_by           int(11),
+    updated_by_user      varchar(64),
+    updated              timestamp
 );
 
 CREATE TABLE stored_requests
 (
     id          SERIAL PRIMARY KEY,
     accountId   varchar(40),
-    reqid       varchar(40),
+    reqId       varchar(40),
     requestData json
 );
 
 CREATE TABLE stored_imps
 (
-    id     SERIAL PRIMARY KEY,
-    uuid   varchar(40) NOT NULL,
-    config varchar(1024)
+    id        SERIAL PRIMARY KEY,
+    accountId varchar(40),
+    impId     varchar(40),
+    impData   json
 );
+
 CREATE TABLE stored_responses
 (
-    id     SERIAL PRIMARY KEY,
-    resid   varchar(40) NOT NULL,
+    id                    SERIAL PRIMARY KEY,
+    resId                 varchar(40) NOT NULL,
     storedAuctionResponse varchar(1024),
-    storedBidResponse varchar(1024)
+    storedBidResponse     varchar(1024)
 );
 
 -- set session wait timeout to 1 minute

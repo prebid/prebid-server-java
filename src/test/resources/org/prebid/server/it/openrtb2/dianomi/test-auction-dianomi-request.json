@@ -1,0 +1,32 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id_banner",
+      "banner": {
+        "format": [
+          {
+            "w": 100,
+            "h": 100
+          }
+        ]
+      },
+      "ext": {
+        "dianomi": {
+          "smartadId": 12345,
+          "priceType": "gross"
+        }
+      }
+    }
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "someObj": {
+      "someField": "someValue"
+    }
+  }
+}

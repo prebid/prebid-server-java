@@ -38,6 +38,17 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
                 .build();
     }
 
+    public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate,
+                                                                Object moduleContext) {
+
+        return InvocationResultImpl.<PAYLOAD>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.update)
+                .payloadUpdate(payloadUpdate)
+                .moduleContext(moduleContext)
+                .build();
+    }
+
     public static <PAYLOAD> InvocationResult<PAYLOAD> failed(String message) {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.failure)

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.97.0-SNAPSHOT</version>
+        <version>1.107.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -39,13 +39,11 @@
         <commons-math3.version>3.6.1</commons-math3.version>
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
-        <jackson.version>2.13.2</jackson.version>
-        <!--TODO: Replace this with jackson.version after dependencies update-->
-        <jackson.databind.version>2.13.2.2</jackson.databind.version>
+        <jackson.version>2.14.0-rc1</jackson.version>
         <json-schema-validator.version>1.0.72</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
-        <postgresql.version>42.4.1</postgresql.version>
+        <postgresql.version>42.4.3</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
         <metrics.version>4.0.3</metrics.version>
@@ -68,9 +66,9 @@
         <jetty.version>9.4.48.v20220622</jetty.version>
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.1.214</h2.version>
-        <spock.version>2.1-groovy-3.0</spock.version>
-        <groovy.version>3.0.12</groovy.version>
-        <testcontainers.version>1.17.3</testcontainers.version>
+        <spock.version>2.3-groovy-3.0</spock.version>
+        <groovy.version>3.0.13</groovy.version>
+        <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
         <allure.version>2.19.0</allure.version>
         <aspectj.version>1.9.9.1</aspectj.version>
@@ -215,7 +213,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.databind.version}</version>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

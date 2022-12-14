@@ -24,7 +24,8 @@ class StoredResponseSpec extends BaseSpec {
 
         and: "Stored response in DB"
         def storedAuctionResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
@@ -46,7 +47,8 @@ class StoredResponseSpec extends BaseSpec {
 
         and: "Stored auction response in DB"
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
@@ -72,7 +74,7 @@ class StoredResponseSpec extends BaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
@@ -99,9 +101,9 @@ class StoredResponseSpec extends BaseSpec {
 
         and: "Stored bid response in DB with marco id"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-           seatbid[0].bid[0].impid = "##PBSIMPID##"
+            seatbid[0].bid[0].impid = "##PBSIMPID##"
         }
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"

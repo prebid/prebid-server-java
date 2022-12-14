@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 202
     usersync:
-      url: https://pbs.publishers.tremorhub.com/pubsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
-      redirect-url: /setuid?bidder=telaria&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[tvid]
       cookie-family-name: telaria
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://pbs.publishers.tremorhub.com/pubsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[tvid]'

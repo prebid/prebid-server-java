@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 658
     usersync:
-      url: https://cookiesync.api.bliink.io/getuid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-      redirect-url: /setuid?bidder=bliink&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=$UID
       cookie-family-name: bliink
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cookiesync.api.bliink.io/getuid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -6,6 +6,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -47,6 +49,9 @@ import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cookie.CookieSyncService;
+import org.prebid.server.cookie.CoopSyncProvider;
+import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsPopulator;
@@ -71,6 +76,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -101,14 +107,23 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
+
+    @Value("${logging.sampling-rate:0.01}")
+    private double logSamplingRate;
 
     @Bean
     CacheService cacheService(
@@ -185,7 +200,7 @@ public class ServiceConfiguration {
 
     @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
-        return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+        return new OrtbTypesResolver(logSamplingRate, jacksonMapper, jsonMerger);
     }
 
     @Bean
@@ -220,6 +235,7 @@ public class ServiceConfiguration {
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
+            TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
@@ -233,6 +249,7 @@ public class ServiceConfiguration {
                 hostVendorId,
                 datacenterRegion,
                 implicitParametersExtractor,
+                timeoutResolver,
                 ipAddressHelper,
                 sourceIdGenerator,
                 jsonMerger,
@@ -273,6 +290,7 @@ public class ServiceConfiguration {
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
+                logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
                 requestValidator,
@@ -299,7 +317,6 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -313,7 +330,6 @@ public class ServiceConfiguration {
                 new InterstitialProcessor(),
                 ortbTypesResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -346,7 +362,6 @@ public class ServiceConfiguration {
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
-                                        TimeoutResolver auctionTimeoutResolver,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
@@ -359,7 +374,6 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
                 ampPrivacyContextFactory,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -374,7 +388,6 @@ public class ServiceConfiguration {
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -387,7 +400,6 @@ public class ServiceConfiguration {
                 bidRequestOrtbVersionConversionManager,
                 ortb2ImplicitParametersResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -515,6 +527,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    PrioritizedCoopSyncProvider prioritizedCoopSyncProvider(
+            @Value("${cookie-sync.pri:#{null}}") String prioritizedBidders,
+            BidderCatalog bidderCatalog) {
+
+        return new PrioritizedCoopSyncProvider(splitToSet(prioritizedBidders), bidderCatalog);
+    }
+
+    @Bean
     UidsCookieService uidsCookieService(
             @Value("${host-cookie.optout-cookie.name:#{null}}") String optOutCookieName,
             @Value("${host-cookie.optout-cookie.value:#{null}}") String optOutCookieValue,
@@ -523,6 +543,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -533,7 +554,41 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                prioritizedCoopSyncProvider,
                 mapper);
+    }
+
+    @Bean
+    CoopSyncProvider coopSyncProvider(
+            BidderCatalog bidderCatalog,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+            @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
+
+        return new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, defaultCoopSync);
+    }
+
+    @Bean
+    CookieSyncService cookieSyncService(
+            @Value("${external-url}") String externalUrl,
+            @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
+            @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
+            BidderCatalog bidderCatalog,
+            HostVendorTcfDefinerService hostVendorTcfDefinerService,
+            PrivacyEnforcementService privacyEnforcementService,
+            UidsCookieService uidsCookieService,
+            CoopSyncProvider coopSyncProvider,
+            Metrics metrics) {
+
+        return new CookieSyncService(
+                externalUrl,
+                defaultLimit,
+                ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
+                bidderCatalog,
+                hostVendorTcfDefinerService,
+                privacyEnforcementService,
+                uidsCookieService,
+                coopSyncProvider,
+                metrics);
     }
 
     @Bean
@@ -812,7 +867,8 @@ public class ServiceConfiguration {
                 secureMarkupEnforcement,
                 metrics,
                 mapper,
-                dealsEnabled);
+                dealsEnabled,
+                logSamplingRate);
     }
 
     @Bean
@@ -903,10 +959,21 @@ public class ServiceConfiguration {
     }
 
     private static List<String> splitToList(String listAsString) {
+        return splitToCollection(listAsString, ArrayList::new);
+    }
+
+    private static Set<String> splitToSet(String listAsString) {
+        return splitToCollection(listAsString, HashSet::new);
+    }
+
+    private static <T extends Collection<String>> T splitToCollection(String listAsString,
+                                                                      Supplier<T> collectionFactory) {
+
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
                 .map(String::trim)
-                .toList()
-                : null;
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toCollection(collectionFactory))
+                : collectionFactory.get();
     }
 }

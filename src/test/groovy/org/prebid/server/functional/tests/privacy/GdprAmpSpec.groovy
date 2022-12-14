@@ -38,7 +38,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -79,7 +79,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -114,7 +114,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -122,7 +122,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$invalidTcfConsent" - failed.*/
+        assert response.ext?.warnings[PREBID]*.message[0].startsWith("Parsing consent string:\"${invalidTcfConsent}\"")
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -141,7 +141,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -165,7 +165,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -187,7 +187,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -208,7 +208,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -239,7 +239,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"

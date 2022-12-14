@@ -19,7 +19,7 @@ class AmpRequest {
     Long timeout
     String slot
     String curl
-    Integer account
+    String account
     String gdprConsent
     String consentString
     ConsentType consentType

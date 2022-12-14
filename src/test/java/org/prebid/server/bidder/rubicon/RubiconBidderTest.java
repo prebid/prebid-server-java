@@ -788,6 +788,28 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldRemoveUserDataObject() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .data(singletonList(
+                                givenDataWithSegmentEntry(4, "segmentId")
+                        )).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .containsNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualFour() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -855,6 +877,35 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> ext.getProperty("rp"))
                 .extracting(rp -> rp.get("target"))
                 .containsExactly(expectedTarget);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRemoveSiteContentDataObject() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(asList(
+                                        givenDataWithSegmentEntry(1, "firstSegmentId"),
+                                        givenDataWithSegmentEntry(2, "secondSegmentId"),
+                                        givenDataWithSegmentEntry(3, "thirdSegmentId"),
+                                        givenDataWithSegmentEntry(5, "fifthSegmentId"),
+                                        givenDataWithSegmentEntry(6, "sixthSegmentId")))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite).doesNotContainNull()
+                .extracting(Site::getContent)
+                .extracting(Content::getData)
+                .containsNull();
     }
 
     @Test
@@ -1330,10 +1381,11 @@ public class RubiconBidderTest extends VertxTest {
                 .put("property3", 123)
                 .put("property4", false)
                 .<ObjectNode>set("property5", mapper.createArrayNode().add(true).add(false))
+                .<ObjectNode>set("property6", mapper.createArrayNode().add(1).add(2))
                 // remnants will be discarded
-                .<ObjectNode>set("property6", mapper.createArrayNode().add("value1").add(123))
-                .<ObjectNode>set("property7", mapper.createObjectNode().put("sub-property1", "value1"))
-                .put("property8", 123.456d);
+                .<ObjectNode>set("property7", mapper.createArrayNode().add("value1").add(123))
+                .<ObjectNode>set("property8", mapper.createObjectNode().put("sub-property1", "value1"))
+                .put("property9", 123.456d);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
@@ -1364,7 +1416,10 @@ public class RubiconBidderTest extends VertxTest {
                                         .<ObjectNode>set("property4", mapper.createArrayNode().add("false"))
                                         .<ObjectNode>set("property5", mapper.createArrayNode()
                                                 .add("true")
-                                                .add("false"))))
+                                                .add("false"))
+                                        .<ObjectNode>set("property6", mapper.createArrayNode()
+                                                .add("1")
+                                                .add("2"))))
                                 .build()));
     }
 
