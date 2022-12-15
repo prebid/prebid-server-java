@@ -184,7 +184,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
