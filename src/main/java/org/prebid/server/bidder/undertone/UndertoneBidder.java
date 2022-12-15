@@ -35,8 +35,9 @@ import java.util.stream.Collectors;
 
 public class UndertoneBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpUndertone>> UNDERTONE_EXT_TYPE_REFERENCE = new TypeReference<>() {
-    };
+    private static final TypeReference<ExtPrebid<?, ExtImpUndertone>> UNDERTONE_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private static final int ADAPTER_ID = 3;
     private static final int VERSION = 1;
@@ -128,7 +129,9 @@ public class UndertoneBidder implements Bidder<BidRequest> {
                 ? bidRequest.getSite().getPublisher()
                 : bidRequest.getApp().getPublisher();
 
-        final Publisher.PublisherBuilder publisherBuilder = publisher == null ? Publisher.builder() : publisher.toBuilder();
+        final Publisher.PublisherBuilder publisherBuilder = publisher == null
+                ? Publisher.builder()
+                : publisher.toBuilder();
 
         return publisherBuilder
                 .id(String.valueOf(publisherId))

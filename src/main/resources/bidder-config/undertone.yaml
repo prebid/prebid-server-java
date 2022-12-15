@@ -1,6 +1,7 @@
 adapters:
   undertone:
-    endpoint: https://ads.undertone.com/rtb
+#    endpoint: https://ads.undertone.com/rtb
+    endpoint: http://localhost:8081/rtb
     endpoint-compression: gzip
     meta-info:
       maintainer-email: csop@undertone.com

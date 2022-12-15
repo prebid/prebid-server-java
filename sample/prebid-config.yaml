@@ -4,6 +4,8 @@ adapters:
     enabled: true
     XAPI.Username: user1
     XAPI.Password: password1
+  undertone:
+    enabled: true
 metrics:
   prefix: prebid
 cache:
