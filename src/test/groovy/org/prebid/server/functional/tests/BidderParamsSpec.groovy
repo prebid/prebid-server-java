@@ -645,7 +645,6 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.ae = 1
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
-            imp[0].ext.prebid.bidder.generic = null
         }
 
         and: "Default bid response with fledge config"
