@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -19,6 +20,8 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.model.response.auction.OpenxBidResponse
+import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
@@ -31,6 +34,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -282,31 +286,6 @@ class BidderParamsSpec extends BaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
         assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
-    }
-
-    def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
-        given: "BidRequest with bad bidder datatype"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp << Imp.defaultImpression
-            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
-        }
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should not fail the entire auction"
-        assert response.seatbid[0].bid.size() == 1
-
-        and: "PBS should call bidder"
-        assert bidder.getRequestCount(bidRequest.id) == 1
-
-        and: "Bidder with invalid params should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999]
-        assert response.ext?.warnings[PREBID]*.message ==
-                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
-                         "\$.exampleProperty: integer found, string expected",
-                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
     }
 
     def "PBS should reject bidder when bidder params from stored request doesn't satisfy json-schema for auction request"() {
@@ -629,5 +608,41 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
                        ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+    }
+
+    def "PBS should return fledge config from biddder when imp[0].ext.ae = 1"() {
+        given: "Pbs bidder config"
+        def pbsService = pbsServiceFactory.getService(
+                ["adapters.openx.enabled" : "true",
+                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+
+        and: "Default basic BidRequest with ae and openx bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.ae = 1
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenX
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        and: "Default bid response with fledge config"
+        def impId = bidRequest.imp[0].id
+        def fledgeConfig = [(PBSUtils.randomString): PBSUtils.randomString]
+        def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest).tap {
+            ext = new OpenxBidResponseExt().tap {
+                fledgeAuctionConfigs = [(impId): fledgeConfig]
+            }
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should contain response fledge config from bidder"
+        def fledgeAuctionConfig = response.ext?.prebid?.fledge?.auctionConfigs[0]
+        assert fledgeAuctionConfig.impId == impId
+        assert fledgeAuctionConfig.bidder == bidResponse.seatbid[0].seat.value
+        assert fledgeAuctionConfig.adapter == bidResponse.seatbid[0].seat.value
+        assert fledgeAuctionConfig.config == fledgeConfig
     }
 }
