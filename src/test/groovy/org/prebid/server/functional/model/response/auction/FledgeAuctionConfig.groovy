@@ -6,9 +6,10 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class BidResponsePrebid {
+class FledgeAuctionConfig {
 
-    Long auctionTimeStamp
-    Map passThrough
-    ExtBidResponseFledge fledge
+    String impId
+    String bidder
+    String adapter
+    Map config
 }
