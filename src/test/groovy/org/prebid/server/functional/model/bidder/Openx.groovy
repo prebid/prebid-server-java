@@ -1,5 +1,7 @@
 package org.prebid.server.functional.model.bidder
 
+import org.prebid.server.functional.util.PBSUtils
+
 class Openx implements BidderAdapter {
 
     String unit
@@ -10,9 +12,9 @@ class Openx implements BidderAdapter {
 
     static Openx getDefaultOpenx() {
         new Openx().tap {
-            it.unit = "900"
+            it.unit = PBSUtils.randomNumber
             it.platform = UUID.randomUUID().toString()
-            it.customParams = ["Any": "Any"]
+            it.customParams = [(PBSUtils.randomString): PBSUtils.randomString]
         }
     }
 }
