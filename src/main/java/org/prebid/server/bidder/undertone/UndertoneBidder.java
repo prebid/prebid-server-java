@@ -40,7 +40,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
             };
 
     private static final int ADAPTER_ID = 3;
-    private static final int VERSION = 1;
+    private static final String VERSION = "1.0.0";
     private static final ObjectNode BIDDER_PARAMS = makeBidderParams();
     private final String endpointUrl;
     private final JacksonMapper mapper;
