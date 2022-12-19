@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
@@ -636,17 +637,11 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Default cookie sync request with 2 bidders and limit of 1"
         def limit = 1
-        def bidders = [BIDDER, RUBICON]
+        def bidders = [GENERIC, RUBICON]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.limit = limit
             it.bidders = bidders
         }
-
-        and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
-        def account = new Account(uuid: accountId, config: accountConfig)
-        accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
@@ -971,9 +966,9 @@ class CookieSyncSpec extends BaseSpec {
                  "adapters.${RUBICON.value}.enabled" : "true"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
-        def bidders = [BIDDER, RUBICON]
+        def bidders = [GENERIC, RUBICON]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [BIDDER, RUBICON]
+            it.bidders = bidders
         }
 
         when: "PBS processes cookie sync request"
