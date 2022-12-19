@@ -56,6 +56,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -924,7 +925,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().secure(0).build());
+        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(0).build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
@@ -955,7 +956,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().build());
+        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
@@ -969,10 +970,46 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
+    public void shouldGenerateImpIdIfEmpty() {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder().id(null).build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getId)
+                .doesNotContainNull();
+    }
+
+    @Test
+    public void shouldGenerateImpIdIfImpIdIsNotUnique() {
+        // given
+        final List<Imp> imps = List.of(
+                Imp.builder().id("not_unique_id").build(),
+                Imp.builder().id("not_unique_id").build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getImp().stream()
+                .map(Imp::getId)
+                .collect(Collectors.toSet()))
+                .hasSize(2);
+    }
+
+    @Test
     public void shouldMoveBidderParametersToImpExtPrebidBidderAndMergeWithExisting() {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
                         .ext(mapper.createObjectNode()
                                 .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
                                 .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
@@ -1001,6 +1038,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.createObjectNode()
                         .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
                         .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
@@ -1052,31 +1090,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(ext -> ext.get("tid"))
                 .extracting(JsonNode::asText)
                 .containsExactly("tidValue");
-    }
-
-    @Test
-    public void shouldReplaceExistingImpExtTidValueIfRequestIsFromAmp() {
-        // given
-        given(idGenerator.generateId()).willReturn("generatedID");
-        final List<Imp> imps = singletonList(
-                Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("tidValue")))
-                        .build());
-
-        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest,
-                httpRequest,
-                Endpoint.openrtb2_amp.value(),
-                false);
-
-        // then
-        assertThat(result.getImp())
-                .extracting(Imp::getExt)
-                .extracting(ext -> ext.get("tid"))
-                .extracting(JsonNode::asText)
-                .containsExactly("generatedID");
     }
 
     @Test
@@ -1200,27 +1213,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldReplaceExistingSourceTidValueIfRequestIfFromAmp() {
-        // given
-        when(idGenerator.generateId()).thenReturn("generatedID");
-        final BidRequest bidRequest = BidRequest.builder()
-                .source(Source.builder().tid("tidValue").build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(
-                bidRequest,
-                httpRequest,
-                Endpoint.openrtb2_amp.value(),
-                false);
-
-        // then
-        assertThat(result.getSource())
-                .extracting(Source::getTid)
-                .isEqualTo("generatedID");
-    }
-
-    @Test
     public void shouldReplaceExistingSourceTidValueIfRequestHasAppliedStoredRequest() {
         // given
         when(idGenerator.generateId()).thenReturn("generatedID");
@@ -1301,6 +1293,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
                         .ext(mapper.createObjectNode()
                                 .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
                                 .set("bidder2", mapper.createObjectNode().put("param2", "value2")))
@@ -1313,6 +1306,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode()
@@ -1327,6 +1321,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetDealsOnlyIfNotSpecifiedAndPgDealsOnlyIsTrue() {
         final Imp imp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO("someBidder", Map.of("pgdealsonly", true)))
@@ -1341,6 +1336,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1355,6 +1351,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotAffectDealsOnlyIfSpecifiedAndPgDealsOnlyIsTrue() {
         final Imp imp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1371,6 +1368,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1387,6 +1385,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
                         .ext(mapper.createObjectNode()
                                 .set("prebid", mapper.createObjectNode()
                                         .set("bidder", mapper.createObjectNode()

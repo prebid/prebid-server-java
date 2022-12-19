@@ -173,16 +173,14 @@ public class AuctionRequestFactory {
         return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
 
                 .map(auctionStoredResult -> AuctionStoredResult.of(
-                        auctionStoredResult.isHasStoredBidRequest(),
+                        auctionStoredResult.hasStoredBidRequest(),
                         ortbVersionConversionManager.convertToAuctionSupportedVersion(
-                                auctionStoredResult.getBidRequest())
-                ))
+                                auctionStoredResult.bidRequest())))
 
-                .map(auctionStoredResult -> paramsResolver.resolve(auctionStoredResult.getBidRequest(),
+                .map(auctionStoredResult -> paramsResolver.resolve(auctionStoredResult.bidRequest(),
                                 httpRequest,
-
                                 ENDPOINT,
-                                auctionStoredResult.isHasStoredBidRequest()))
+                                auctionStoredResult.hasStoredBidRequest()))
 
                 .compose(resolvedBidRequest ->
                         ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
