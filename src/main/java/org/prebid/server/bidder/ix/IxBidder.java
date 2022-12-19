@@ -2,6 +2,7 @@ package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
@@ -217,7 +219,7 @@ public class IxBidder implements Bidder<BidRequest> {
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
-            bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            bidType = getBidType(bid, bidRequest.getImp());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -290,8 +292,34 @@ public class IxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        return getBidTypeFromMtype(bid.getMtype())
+                .or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
+                .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
+    }
+
+    private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
+        final BidType bidType = mType != null ? switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> null;
+        } : null;
+
+        return Optional.ofNullable(bidType);
+    }
+
+    private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText)
+                .map(BidType::fromString);
+    }
+
+    private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
+        for (Imp imp: imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
