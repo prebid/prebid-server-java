@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Retry
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -82,7 +81,6 @@ class UUIDSpec extends BaseSpec {
         assert bidderRequest.id == bidRequestId
     }
 
-    @Retry
     def "PBS amp should generate UUID for BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
@@ -154,7 +152,6 @@ class UUIDSpec extends BaseSpec {
         PBSUtils.randomString | "true"
     }
 
-    @Retry
     def "PBS amp should generate UUID for source.tid id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
@@ -227,7 +224,6 @@ class UUIDSpec extends BaseSpec {
         "{{UUID}}"            | "false"
     }
 
-    @Retry
     def "PBS amp should generate UUID for imp[].ext.tid id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": (generateBidRequestId)])
@@ -265,11 +261,9 @@ class UUIDSpec extends BaseSpec {
 
         and: "Default bid request with stored request and id"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.defaultImpression
             imp[1] = Imp.defaultImpression.tap {
                 it.id = null
             }
-            imp[2] = Imp.defaultImpression
         }
 
         when: "Requesting PBS auction"
@@ -277,10 +271,10 @@ class UUIDSpec extends BaseSpec {
 
         then: "BidResponse should generate UUID for imp[].id"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
-        assert bidderRequest.imp[1].id == bidRequest.imp[2].id + "1"
+        assert bidderRequest.imp[1].id
     }
 
-    def "PBS auction should generate UUID for unique imp[].id and merge StoredRequest when generate-storedrequest-bidrequest-id = true"() {
+    def "PBS auction should generate UUID for all imp[].id and merge StoredRequest when imp[].id not different and generate-storedrequest-bidrequest-id = true"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": "true"])
 
@@ -315,10 +309,8 @@ class UUIDSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
         assert bidderRequest.cur.first() == currencies[0]
 
-        and: "Actual imp[].id should be same as from incoming imp[].id"
-        assert bidderRequest.imp[0].id == bidRequest.imp[0].id
-
         and: "Actual imp[].id should be different from incoming imp[].id"
+        assert bidderRequest.imp[0].id != bidRequest.imp[0].id
         assert bidderRequest.imp[1].id != bidRequest.imp[1].id
         assert bidderRequest.imp[2].id != bidRequest.imp[2].id
     }
