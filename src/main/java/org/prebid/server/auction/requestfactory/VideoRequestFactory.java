@@ -293,7 +293,6 @@ public class VideoRequestFactory {
         final BidRequest updatedBidRequest = paramsResolver.resolve(
                 bidRequest,
                 httpRequest,
-
                 ENDPOINT,
                 false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled

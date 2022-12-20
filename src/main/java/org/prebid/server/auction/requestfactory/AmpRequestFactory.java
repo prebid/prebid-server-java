@@ -350,9 +350,8 @@ public class AmpRequestFactory {
                 .map(bidRequest -> paramsResolver.resolve(
                         bidRequest,
                         httpRequest,
-
                         ENDPOINT,
-                        false))
+                        true))
                 .compose(resolvedBidRequest ->
                         ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()));
     }
