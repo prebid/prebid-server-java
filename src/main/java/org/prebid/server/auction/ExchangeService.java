@@ -25,6 +25,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
@@ -37,6 +38,7 @@ import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.RejectionReason;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -292,7 +294,7 @@ public class ExchangeService {
                                 .collect(Collectors.toCollection(ArrayList::new))))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
-
+                .map(ExchangeService::populateMissingBids)
                 .map(storedResponseProcessor::updateStoredBidResponse)
                 .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
@@ -1330,6 +1332,35 @@ public class ExchangeService {
                 : stageResult.getPayload().bids();
 
         return bidderResponse.with(bidderResponse.getSeatBid().with(bids));
+    }
+
+    private static List<AuctionParticipation> populateMissingBids(List<AuctionParticipation> auctionParticipations) {
+        return auctionParticipations.stream()
+                .map(ExchangeService::populateMissingBids)
+                .toList();
+    }
+
+    private static AuctionParticipation populateMissingBids(AuctionParticipation auctionParticipation) {
+        if (auctionParticipation.isRequestBlocked()) {
+            return auctionParticipation;
+        }
+
+        Set<String> requestedImpIds = auctionParticipation.getBidderRequest().getBidRequest().getImp().stream()
+                .map(Imp::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<String> bidsImpIds = auctionParticipation.getBidderResponse().getSeatBid().getBids().stream()
+                .map(BidderBid::getBid)
+                .filter(Objects::nonNull)
+                .map(Bid::getImpid)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+
+        Map<String, RejectionReason> rejectedImpIds = SetUtils.difference(requestedImpIds, bidsImpIds).stream()
+                .collect(Collectors.toMap(Function.identity(), ignored -> RejectionReason.UNKNOWN));
+
+        return auctionParticipation.with(rejectedImpIds);
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,

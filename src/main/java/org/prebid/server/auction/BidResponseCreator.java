@@ -207,7 +207,9 @@ public class BidResponseCreator {
                                 cacheInfo,
                                 bidderToMultiBids,
                                 videoStoredDataResult,
-                                eventsContext)));
+                                eventsContext))
+
+                        .map(bidResponse -> populateExtPrebidSeatNonBid(bidResponse, auctionParticipations)));
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -1629,6 +1631,37 @@ public class BidResponseCreator {
             throw new PreBidException(
                     "Error decoding bidRequest.prebid.targeting.pricegranularity: " + e.getMessage(), e);
         }
+    }
+
+    private static BidResponse populateExtPrebidSeatNonBid(
+            BidResponse bidResponse,
+            List<AuctionParticipation> auctionParticipations) {
+
+        final List<ExtBidResponsePrebid.SeatNonBid> seatNonBid = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(auctionParticipation -> ExtBidResponsePrebid.SeatNonBid.of(
+                        auctionParticipation.getBidder(),
+                        auctionParticipation.getRejectedImpIds().entrySet().stream()
+                                .map(entry -> ExtBidResponsePrebid.NonBid.of(entry.getKey(), entry.getValue().code))
+                                .toList()))
+                .toList();
+
+        final ExtBidResponse extBidResponse;
+        if (bidResponse.getExt() == null) {
+            extBidResponse = ExtBidResponse.builder()
+                    .prebid(ExtBidResponsePrebid.builder().seatNonBid(seatNonBid).build())
+                    .build();
+        } else {
+            extBidResponse = bidResponse.getExt().toBuilder()
+                    .prebid(ObjectUtil.getIfNotNullOrDefault(bidResponse.getExt().getPrebid(), ExtBidResponsePrebid::toBuilder, ExtBidResponsePrebid::builder)
+                            .seatNonBid(seatNonBid)
+                            .build())
+                    .build();
+        }
+
+        return bidResponse.toBuilder()
+                .ext(extBidResponse)
+                .build();
     }
 
     /**
