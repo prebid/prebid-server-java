@@ -271,7 +271,7 @@ class UUIDSpec extends BaseSpec {
 
         then: "BidResponse should generate UUID for imp[].id"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
-        assert bidderRequest.imp[1].id
+        assert bidderRequest.imp[1].id.length() == 16
     }
 
     def "PBS auction should generate UUID for all imp[].id and merge StoredRequest when imp[].id not different and generate-storedrequest-bidrequest-id = true"() {
