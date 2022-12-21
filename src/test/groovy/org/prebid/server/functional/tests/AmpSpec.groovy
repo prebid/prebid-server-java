@@ -7,10 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Retry
-import spock.lang.Shared
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
