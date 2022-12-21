@@ -274,7 +274,7 @@ class UUIDSpec extends BaseSpec {
         assert bidderRequest.imp[1].id.length() == 16
     }
 
-    def "PBS auction should generate UUID for all imp[].id and merge StoredRequest when imp[].id not different and generate-storedrequest-bidrequest-id = true"() {
+    def "PBS auction should re-assign UUID for all imp[].id and merge StoredRequest when imp[].id not different and generate-storedrequest-bidrequest-id = true"() {
         given: "PBS config with settings.generate-storedrequest-bidrequest-id"
         def pbsService = pbsServiceFactory.getService(["settings.generate-storedrequest-bidrequest-id": "true"])
 
@@ -313,5 +313,10 @@ class UUIDSpec extends BaseSpec {
         assert bidderRequest.imp[0].id != bidRequest.imp[0].id
         assert bidderRequest.imp[1].id != bidRequest.imp[1].id
         assert bidderRequest.imp[2].id != bidRequest.imp[2].id
+
+        and: "Re-assign imp[].id should contain id from 1"
+        assert bidderRequest.imp[0].id == "1"
+        assert bidderRequest.imp[1].id == "2"
+        assert bidderRequest.imp[2].id == "3"
     }
 }
