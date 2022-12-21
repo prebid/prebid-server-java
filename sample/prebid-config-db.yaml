@@ -23,15 +23,14 @@ settings:
   database:
     type: mysql
     dbname: pbs
-    host: db-writer-prebid-qa0.lab1.fanops.net
+    host: DBNAME
     pool-size: 4
     port: 3306
-    user: readonly
-    password: readonly
-    account-query: SELECT JSON_MERGE_PATCH( JSON_OBJECT( 'id', uuid, 'status', status, 'auction', JSON_OBJECT( 'price-granularity', price_granularity, 'banner-cache-ttl', banner_cache_ttl, 'video-cache-ttl', video_cache_ttl, 'truncate-target-attr', truncate_target_attr, 'default-integration', default_integration, 'bid-validations', bid_validations, 'events', JSON_OBJECT( 'enabled', NOT NOT (events_enabled) ) ), 'privacy', JSON_OBJECT( 'ccpa', JSON_OBJECT( 'enabled', NOT NOT(enforce_ccpa) ), 'gdpr', tcf_config ), 'analytics', JSON_MERGE_PATCH(COALESCE(analytics_config, '{}'), JSON_OBJECT( 'modules', JSON_OBJECT( 'rubicon', JSON_OBJECT( 'sampling-factor', analytics_sampling_factor ) ) )) ), COALESCE(config, '{}') ) as consolidated_config FROM accounts_account WHERE uuid = %ACCOUNT_ID% LIMIT 1
-    amp-stored-requests-query: SELECT accountId, uuid, config, 'request' as dataType FROM stored_requests WHERE uuid IN (%REQUEST_ID_LIST%)
-    stored-requests-query: SELECT accountId, uuid, config, 'request' as dataType FROM stored_requests WHERE uuid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, uuid, config, 'imp' as dataType FROM stored_requests WHERE uuid IN (%IMP_ID_LIST%)
-    stored-responses-query: SELECT resid, responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)
+    user: USER
+    password: PASSWORD
+    account-query: ACCOUNT-QUERY
+    stored-requests-query: STORED-REQUEST-QUERY
+    stored-responses-query: STORED-RESPONSE-QUERY
     circuit-breaker:
       enabled: false
       opening-threshold: 100
@@ -42,10 +41,6 @@ gdpr:
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2
-  rubicon:
-    enable-cookie: false
-    rsid-cookie-encryption-key: blahblahblahblahblahblahblahblahblahblahblahblahblahblahblah
-    audit-cookie-encryption-key: blahblahblahblahblahblahblahblahblahblahblahblahblahblahblah
 admin-endpoints:
   logging-changelevel:
     enabled: true
