@@ -1020,7 +1020,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getImp().stream()
                 .map(Imp::getId)
                 .collect(Collectors.toSet()))
-                .hasSize(2);
+                .hasSize(2)
+                .containsExactly("1", "2");
     }
 
     @Test

@@ -60,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Ortb2ImplicitParametersResolver {
 
@@ -492,17 +493,21 @@ public class Ortb2ImplicitParametersResolver {
         final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
         final boolean isUniqueIds = isUniqueIds(imps);
-        final List<ImpPopulationContext> impPopulationContexts = imps.stream()
-                .map(imp -> new ImpPopulationContext(
-                        imp,
-                        secureFromRequest,
-                        globalBidderParams,
-                        generateBidRequestId,
-                        hasStoredBidRequest,
-                        !isUniqueIds,
-                        mapper,
-                        tidGenerator,
-                        jsonMerger))
+        final List<ImpPopulationContext> impPopulationContexts = IntStream
+                .range(0, imps.size())
+                .mapToObj(index -> {
+                    final Imp imp = imps.get(index);
+                    return new ImpPopulationContext(
+                            imp,
+                            secureFromRequest,
+                            globalBidderParams,
+                            generateBidRequestId,
+                            hasStoredBidRequest,
+                            !isUniqueIds ? String.valueOf(index + 1) : null,
+                            mapper,
+                            tidGenerator,
+                            jsonMerger);
+                })
                 .toList();
 
         if (impPopulationContexts.stream()
@@ -807,7 +812,7 @@ public class Ortb2ImplicitParametersResolver {
                              ObjectNode globalBidderParams,
                              boolean generateBidRequestId,
                              boolean hasStoredBidRequest,
-                             boolean generateImpId,
+                             String impIdOverride,
                              JacksonMapper mapper,
                              IdGenerator tidGenerator,
                              JsonMerger jsonMerger) {
@@ -819,7 +824,7 @@ public class Ortb2ImplicitParametersResolver {
                     globalBidderParams,
                     generateBidRequestId,
                     hasStoredBidRequest,
-                    generateImpId,
+                    impIdOverride,
                     mapper,
                     tidGenerator,
                     jsonMerger);
@@ -834,13 +839,13 @@ public class Ortb2ImplicitParametersResolver {
                                        ObjectNode globalBidderParams,
                                        boolean generateBidRequestId,
                                        boolean hasStoredBidRequest,
-                                       boolean generateImpId,
+                                       String impIdOverride,
                                        JacksonMapper mapper,
                                        IdGenerator tidGenerator,
                                        JsonMerger jsonMerger) {
 
             final String impId = imp.getId();
-            final String populatedImpId = populateImpId(impId, generateImpId);
+            final String populatedImpId = populateImpId(impId, impIdOverride);
 
             final Integer impSecure = imp.getSecure();
             final Integer populatedImpSecure = populateImpSecure(impSecure, secureFromRequest);
@@ -864,9 +869,9 @@ public class Ortb2ImplicitParametersResolver {
                     : null;
         }
 
-        private static String populateImpId(String impId, boolean generateImpId) {
-            return generateImpId || impId == null
-                    ? generateSixteenDigitRandomString()
+        private static String populateImpId(String impId, String impIdOverride) {
+            return StringUtils.isNotBlank(impIdOverride) || StringUtils.isBlank(impId)
+                    ? StringUtils.isNotBlank(impIdOverride) ? impIdOverride : generateSixteenDigitRandomString()
                     : null;
         }
 
