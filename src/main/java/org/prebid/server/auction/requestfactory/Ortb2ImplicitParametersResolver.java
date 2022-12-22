@@ -495,19 +495,16 @@ public class Ortb2ImplicitParametersResolver {
         final boolean isUniqueIds = isUniqueIds(imps);
         final List<ImpPopulationContext> impPopulationContexts = IntStream
                 .range(0, imps.size())
-                .mapToObj(index -> {
-                    final Imp imp = imps.get(index);
-                    return new ImpPopulationContext(
-                            imp,
-                            secureFromRequest,
-                            globalBidderParams,
-                            generateBidRequestId,
-                            hasStoredBidRequest,
-                            !isUniqueIds ? String.valueOf(index + 1) : null,
-                            mapper,
-                            tidGenerator,
-                            jsonMerger);
-                })
+                .mapToObj(index -> new ImpPopulationContext(
+                        imps.get(index),
+                        secureFromRequest,
+                        globalBidderParams,
+                        generateBidRequestId,
+                        hasStoredBidRequest,
+                        !isUniqueIds ? String.valueOf(index + 1) : null,
+                        mapper,
+                        tidGenerator,
+                        jsonMerger))
                 .toList();
 
         if (impPopulationContexts.stream()
@@ -876,11 +873,10 @@ public class Ortb2ImplicitParametersResolver {
         }
 
         private static String generateSixteenDigitRandomString() {
-            long smallest = 1000_0000_0000_0000L;
-            long biggest = 9999_9999_9999_9999L;
-            long random = ThreadLocalRandom.current().nextLong(smallest, biggest + 1);
-
-            return String.valueOf(random);
+            return String.valueOf(
+                    ThreadLocalRandom.current().nextLong(
+                            1000_0000_0000_0000L,
+                            1_0000_0000_0000_0000L));
         }
 
         private static Integer populateImpSecure(Integer impSecure, Integer secureFromRequest) {
