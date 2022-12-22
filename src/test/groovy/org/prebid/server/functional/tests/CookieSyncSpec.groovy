@@ -15,7 +15,6 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Ignore
 
 import java.time.Instant
 
@@ -466,8 +465,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -505,10 +503,10 @@ class CookieSyncSpec extends BaseSpec {
         where:
         reason                                       | config
         "is invalid bidder name, ignoring"           | ["cookie-sync.pri": PBSUtils.randomString]
-        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled" : "false",
-                                                        "cookie-sync.pri": "generic"]
+        "disabled in current pbs instance, ignoring" | ["adapters.generic.enabled": "false",
+                                                        "cookie-sync.pri"         : "generic"]
         "has no user-sync configuration, ignoring"   | ["adapters.generic.usersync.cookie-family-name": "null",
-                                                        "cookie-sync.pri"                   : "generic",]
+                                                        "cookie-sync.pri"                             : "generic",]
     }
 
     def "PBS cookie sync with filter setting should reject bidder sync"() {
@@ -586,8 +584,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -606,8 +603,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
