@@ -38,7 +38,6 @@ class CookieSyncSpec extends BaseSpec {
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final List<BidderName> BIDDERS = [GENERIC, RUBICON, APPNEXUS]
 
     private static Map<String, String> PBS_CONFIG = [
             "adapters.${RUBICON.value}.enabled"                                     : "true",
@@ -595,8 +594,9 @@ class CookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain bidder with error"
-        assert BIDDERS.findResult {response.getBidderUserSync(it)?.error } == "limit reached"
+        then: "Response should contain error generic bidder"
+        def genericBidder = response.getBidderUserSync(GENERIC)
+        assert genericBidder.error == "limit reached"
     }
 
     def "PBS cookie sync shouldn't emit error limit reached when bidder coop-synced"() {
