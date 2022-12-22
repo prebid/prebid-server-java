@@ -14,9 +14,9 @@ import spock.lang.Shared
 import java.time.Clock
 import java.time.ZonedDateTime
 
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -93,7 +93,7 @@ class SetUidSpec extends BaseSpec {
         given: "PBS config"
         def bidderGeneric = GENERIC
         PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri"                  : bidderGeneric.value])
+                ["cookie-sync.pri": bidderGeneric.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -115,7 +115,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should remove earliest expiration bidder when size is full"() {
         given: "PBS config"
         PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri"                  : GENERIC.value])
+                ["cookie-sync.pri": GENERIC.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -140,7 +140,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should ignore requested bidder and log metric when cookie's filled and requested bidder not in prioritize list"() {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri"                  : APPNEXUS.value])
+                ["cookie-sync.pri": APPNEXUS.value])
 
         and: "Setuid request"
         def bidderName = BidderName.GENERIC
@@ -200,7 +200,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should remove oldest uid and log metric when cookie's filled and oldest uid's not on the pri"() {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri"                  : GENERIC.value])
+                ["cookie-sync.pri": GENERIC.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -212,8 +212,8 @@ class SetUidSpec extends BaseSpec {
             def uidWithExpiry = UidWithExpiry.defaultUidWithExpiry.tap {
                 expires.plusDays(10)
             }
-            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (bidderName) : uidWithExpiry]
+            tempUIDs = [(APPNEXUS)  : defaultUidWithExpiry,
+                        (bidderName): uidWithExpiry]
         }
 
         when: "PBS processes setuid request"
