@@ -10,12 +10,16 @@
       "displaymanager": "prebid-s2s",
       "displaymanagerver": "2.0.0",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "site_id": "site_id"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "id": "site_id",
     "domain": "www.example.com",
