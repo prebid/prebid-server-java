@@ -62,59 +62,65 @@ class SetUidSpec extends BaseSpec {
             def uidWithExpiry = defaultUidWithExpiry.tap {
                 expires = ZonedDateTime.now(Clock.systemUTC()).minusDays(2)
             }
-            tempUIDs = [(GENERIC): uidWithExpiry]
+            tempUIDs = [(RUBICON): uidWithExpiry]
         }
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response shouldn't contain uids cookie"
-        assert response.uidsCookie.tempUIDs.size() == 0
+        assert !response.uidsCookie.tempUIDs[RUBICON]
     }
 
-    def "PBS setuid should populate uids cookie with non priority bidder"() {
-        given: "Setuid request"
+    def "PBS setuid should return requested uids cookie when priority bidder not present in config"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["cookie-sync.pri": "null"])
+
+        and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
             uid = UUID.randomUUID().toString()
         }
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (RUBICON) : defaultUidWithExpiry]
+            tempUIDs = [(RUBICON): defaultUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
-        then: "Response should contain none priority uids"
-        assert response.uidsCookie.tempUIDs.size() == 2
+        then: "Response should contain requested uids"
+        assert response.uidsCookie.tempUIDs[GENERIC]
+        assert response.uidsCookie.tempUIDs[RUBICON]
     }
 
     def "PBS setuid should return prioritized uids bidder when size is full"() {
         given: "PBS config"
-        def bidderGeneric = GENERIC
-        PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": bidderGeneric.value])
+        def genericBidder = GENERIC
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["cookie-sync.pri": genericBidder.value])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
-            it.bidder = bidderGeneric
+            it.bidder = genericBidder
             uid = UUID.randomUUID().toString()
         }
+        def rubiconBidder = BidderName.RUBICON
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (RUBICON) : defaultUidWithExpiry]
+            tempUIDs = [(APPNEXUS)     : defaultUidWithExpiry,
+                        (rubiconBidder): defaultUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookies"
-        assert response.uidsCookie.tempUIDs[GENERIC]
+        assert response.uidsCookie.tempUIDs[rubiconBidder]
+        assert response.uidsCookie.tempUIDs[genericBidder]
     }
 
     def "PBS setuid should remove earliest expiration bidder when size is full"() {
         given: "PBS config"
-        PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
                 ["cookie-sync.pri": GENERIC.value])
 
         and: "Setuid request"
@@ -122,11 +128,14 @@ class SetUidSpec extends BaseSpec {
             uid = UUID.randomUUID().toString()
         }
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            def uidWithExpiry = defaultUidWithExpiry.tap {
-                expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(2)
+            def appnexusUidWithExpiry = defaultUidWithExpiry.tap {
+                expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(5)
             }
-            tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (RUBICON) : uidWithExpiry]
+            def rubiconUidWithExpiry = defaultUidWithExpiry.tap {
+                expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(1)
+            }
+            tempUIDs = [(APPNEXUS): appnexusUidWithExpiry,
+                        (RUBICON) : rubiconUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
@@ -201,6 +210,9 @@ class SetUidSpec extends BaseSpec {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
                 ["cookie-sync.pri": GENERIC.value])
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
