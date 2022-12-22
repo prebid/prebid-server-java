@@ -8,7 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
@@ -129,7 +129,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
+        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
 
         // then
         assertThat(result).isFalse();
@@ -144,7 +144,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
+        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
 
         // then
         assertThat(result).isFalse();
@@ -160,7 +160,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
 
         // when
-        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
+        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
 
         // then
         assertThat(result).isTrue();
@@ -177,7 +177,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
+        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
 
         // then
         assertThat(result).isTrue();

@@ -50,7 +50,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -1098,7 +1098,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugContext(DebugContext.of(true, null))
                 .build();
 
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.bidderDebugContextFrom(auctionContext, "bidder"))
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
@@ -1146,7 +1146,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .debugContext(DebugContext.of(true, null))
                 .build();
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.bidderDebugContextFrom(auctionContext, "bidder"))
                 .willReturn(true);
 
         // when
@@ -1174,7 +1174,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .debugContext(DebugContext.of(false, null))
                 .build();
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.bidderDebugContextFrom(auctionContext, "bidder"))
                 .willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
@@ -1205,7 +1205,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .debugContext(DebugContext.of(true, null))
                 .build();
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.bidderDebugContextFrom(auctionContext, "bidder"))
                 .willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(

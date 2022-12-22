@@ -4,7 +4,8 @@ import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.BidderDebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -15,6 +16,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class DebugResolver {
 
@@ -30,9 +32,12 @@ public class DebugResolver {
     }
 
     public DebugContext debugContextFrom(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+
         final boolean debugEnabled = isDebugEnabled(auctionContext);
-        final TraceLevel traceLevel = getTraceLevel(auctionContext.getBidRequest());
-        return DebugContext.of(debugEnabled, traceLevel);
+        final boolean returnAllBidStatus = shouldReturnAllBidStatus(bidRequest, debugEnabled);
+        final TraceLevel traceLevel = getTraceLevel(bidRequest);
+        return DebugContext.of(debugEnabled, returnAllBidStatus, traceLevel);
     }
 
     private boolean isDebugEnabled(AuctionContext auctionContext) {
@@ -66,6 +71,15 @@ public class DebugResolver {
         return ObjectUtils.defaultIfNull(debugAllowed, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
     }
 
+    private static boolean shouldReturnAllBidStatus(BidRequest bidRequest, boolean debugEnabled) {
+        final boolean shouldReturnAllBidStatus = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::isReturnallbidstatus)
+                .orElse(false);
+
+        return shouldReturnAllBidStatus || debugEnabled;
+    }
+
     private static TraceLevel getTraceLevel(BidRequest bidRequest) {
         return ObjectUtil.getIfNotNull(getExtRequestPrebid(bidRequest), ExtRequestPrebid::getTrace);
     }
@@ -75,7 +89,7 @@ public class DebugResolver {
                 ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt), ExtRequest::getPrebid);
     }
 
-    public boolean resolveDebugForBidder(AuctionContext auctionContext, String bidder) {
+    public BidderDebugContext bidderDebugContextFrom(AuctionContext auctionContext, String bidder) {
         final DebugContext debugContext = auctionContext.getDebugContext();
         final boolean debugEnabled = debugContext.isDebugEnabled();
         final boolean debugOverride = isDebugOverridden(auctionContext.getHttpRequest());
@@ -86,6 +100,8 @@ public class DebugResolver {
                     .add("Debug turned off for bidder: " + bidder);
         }
 
-        return debugOverride || (debugEnabled && debugAllowedByBidder);
+        final boolean debugEnabledForBidder = debugOverride || (debugEnabled && debugAllowedByBidder);
+
+        return BidderDebugContext.of(debugEnabledForBidder, debugContext.isShouldReturnAllBidStatuses());
     }
 }

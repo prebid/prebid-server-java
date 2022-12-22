@@ -25,6 +25,11 @@ public class ExtRequestPrebid {
     Integer debug;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.returnallbidstatus
+     */
+    boolean returnallbidstatus;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.trace
      */
     TraceLevel trace;

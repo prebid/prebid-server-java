@@ -12,6 +12,7 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.debug.BidderDebugContext;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -79,7 +80,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
                                                  BidderAliases aliases,
-                                                 boolean debugEnabled) {
+                                                 BidderDebugContext bidderDebugContext) {
 
         final List<Imp> imps = bidderRequest.getBidRequest().getImp();
         final Map<String, Imp> idToImps = imps.stream().collect(Collectors.toMap(Imp::getId, Function.identity()));
