@@ -10,6 +10,9 @@
       "tagid": "pub1_place1"
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "app": {
     "publisher": {
       "id": "pub1"
