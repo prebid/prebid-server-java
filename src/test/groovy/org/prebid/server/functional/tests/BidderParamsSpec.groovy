@@ -616,7 +616,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "PBS with adapter configuration"
         def compressionType = GZIP.value
         def pbsService = pbsServiceFactory.getService(
-                ["adapters.generic.endpoint-compression"                            : compressionType])
+                ["adapters.generic.endpoint-compression": compressionType])
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -674,14 +674,14 @@ class BidderParamsSpec extends BaseSpec {
         given: "Default bid request with stored request and id"
         def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = requestSecure
+            imp[0].secure = secureRequest
             imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
         }
 
         and: "Save storedImp into DB"
         def storedImp = StoredImp.getStoredImp(bidRequest).tap {
             impData = Imp.defaultImpression.tap {
-                it.secure = storedRequest
+                it.secure = secureStoredRequest
             }
         }
         storedImpDao.save(storedImp)
@@ -694,10 +694,10 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0].secure == secureReponse
 
         where:
-        requestSecure | storedRequest | secureReponse
-        0             | null          | 0
-        1             | null          | 1
-        null          | 1             | 1
-        null          | 0             | 0
+        secureRequest | secureStoredRequest | secureReponse
+        0             | null                | 0
+        1             | null                | 1
+        null          | 1                   | 1
+        null          | 0                   | 0
     }
 }
