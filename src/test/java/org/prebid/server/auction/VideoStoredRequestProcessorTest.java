@@ -79,8 +79,6 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private TimeoutResolver timeoutResolver;
-    @Mock
     private TimeoutFactory timeoutFactory;
 
     private VideoStoredRequestProcessor target;
@@ -101,7 +99,6 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 validator,
                 metrics,
                 timeoutFactory,
-                timeoutResolver,
                 jacksonMapper,
                 new JsonMerger(jacksonMapper));
     }
@@ -207,7 +204,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv"))
                 .cur(singletonList("USD"))
-                .tmax(0L)
+                .tmax(null)
                 .ext(ExtRequest.of(ext))
                 .build();
 

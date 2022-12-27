@@ -121,7 +121,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(idGenerator.generateId()).willReturn(null);
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
+        given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         target = target(false);
     }
@@ -1092,7 +1092,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("tidValue")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1118,7 +1118,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("tidValue")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1144,7 +1144,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         when(idGenerator.generateId()).thenReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", MissingNode.getInstance()))
+                        .ext(mapper.createObjectNode().set("tid", MissingNode.getInstance()))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1170,7 +1170,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         when(idGenerator.generateId()).thenReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("prefix_{{UUID}}_suffix")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("prefix_{{UUID}}_suffix")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();

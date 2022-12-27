@@ -26,15 +26,11 @@ public class TimeoutResolver {
         }
     }
 
-    public long resolve(Long requestTimeout) {
+    public long limitToMax(Long requestTimeout) {
         return requestTimeout == null
                 ? maxTimeout
-                : Math.max(Math.min(requestTimeout, maxTimeout), minTimeout);
+                : Math.min(requestTimeout, maxTimeout);
     }
 
-    public long adjustTimeout(long requestTimeout) {
-        return requestTimeout == minTimeout || requestTimeout == maxTimeout || requestTimeout <= timeoutAdjustment
-                ? requestTimeout
-                : requestTimeout - timeoutAdjustment;
-    }
+
 }

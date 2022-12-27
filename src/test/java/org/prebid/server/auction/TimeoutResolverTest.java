@@ -37,37 +37,17 @@ public class TimeoutResolverTest {
     }
 
     @Test
-    public void resolveShouldReturnExpectedTimeout() {
-        assertThat(timeoutResolver.resolve(142L)).isEqualTo(142L);
+    public void limitToMaxShouldReturnExpectedTimeout() {
+        assertThat(timeoutResolver.limitToMax(142L)).isEqualTo(142L);
     }
 
     @Test
-    public void resolveShouldReturnMaxTimeoutAsDefault() {
-        assertThat(timeoutResolver.resolve(null)).isEqualTo(MAX_TIMEOUT);
+    public void limitToMaxShouldReturnMaxTimeoutAsDefault() {
+        assertThat(timeoutResolver.limitToMax(null)).isEqualTo(MAX_TIMEOUT);
     }
 
     @Test
-    public void resolveShouldReturnMaxTimeout() {
-        assertThat(timeoutResolver.resolve(300L)).isEqualTo(MAX_TIMEOUT);
-    }
-
-    @Test
-    public void resolveShouldReturnMinTimeout() {
-        assertThat(timeoutResolver.resolve(50L)).isEqualTo(MIN_TIMEOUT);
-    }
-
-    @Test
-    public void adjustTimeoutShouldReturnExpectedTimeout() {
-        assertThat(timeoutResolver.adjustTimeout(142L)).isEqualTo(132L);
-    }
-
-    @Test
-    public void adjustTimeoutShouldReturnMinTimeout() {
-        assertThat(timeoutResolver.adjustTimeout(MIN_TIMEOUT)).isEqualTo(MIN_TIMEOUT);
-    }
-
-    @Test
-    public void adjustTimeoutShouldReturnMaxTimeout() {
-        assertThat(timeoutResolver.adjustTimeout(MAX_TIMEOUT)).isEqualTo(MAX_TIMEOUT);
+    public void limitToMaxShouldReturnMaxTimeout() {
+        assertThat(timeoutResolver.limitToMax(300L)).isEqualTo(MAX_TIMEOUT);
     }
 }

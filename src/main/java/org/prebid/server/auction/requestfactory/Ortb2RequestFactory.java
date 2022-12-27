@@ -300,7 +300,7 @@ public class Ortb2RequestFactory {
     }
 
     private Long resolveTmax(Long requestTimeout) {
-        final long timeout = timeoutResolver.resolve(requestTimeout);
+        final long timeout = timeoutResolver.limitToMax(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }
 
@@ -308,8 +308,7 @@ public class Ortb2RequestFactory {
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
-        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
+        final long timeout = timeoutResolver.limitToMax(bidRequest.getTmax());
         return timeoutFactory.create(startTime, timeout);
     }
 

@@ -441,7 +441,6 @@ public class ServiceConfiguration {
             VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            TimeoutResolver auctionTimeoutResolver,
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
@@ -456,7 +455,6 @@ public class ServiceConfiguration {
                 videoRequestValidator,
                 metrics,
                 timeoutFactory,
-                auctionTimeoutResolver,
                 mapper,
                 jsonMerger);
     }
