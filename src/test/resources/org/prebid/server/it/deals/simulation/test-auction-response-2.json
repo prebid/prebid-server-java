@@ -80,11 +80,11 @@
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
                       "sizes": [
-                         {
-                           "w": 300,
-                           "h": 250
-                         }
-                       ],
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
                       "bidder": "rubicon"
                     }
                   }
@@ -92,6 +92,7 @@
               ]
             },
             "ext": {
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -104,6 +105,9 @@
             }
           }
         ],
+        "source": {
+          "tid": "someTid"
+        },
         "site": {
           "domain": "www.example.com",
           "page": "http://www.example.com",

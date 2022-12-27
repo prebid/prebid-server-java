@@ -9,6 +9,7 @@
       },
       "tagid": "pkey",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "pkey": "pkey"
         }
@@ -35,6 +36,7 @@
     "USD"
   ],
   "source": {
+    "tid": "${json-unit.any-string}",
     "ext": {
       "str": "10.0",
       "version": "{{ pbs.java.version }}"

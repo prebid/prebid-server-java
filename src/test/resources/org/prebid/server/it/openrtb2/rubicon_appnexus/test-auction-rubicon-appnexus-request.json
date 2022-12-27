@@ -22,6 +22,7 @@
         ]
       },
       "ext": {
+        "tid": "tid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -81,6 +82,7 @@
         ]
       },
       "ext": {
+        "tid": "tid",
         "prebid": {
           "bidder": {
             "appnexus": {
@@ -126,6 +128,7 @@
         "ver": "1.1"
       },
       "ext": {
+        "tid": "tid",
         "prebid": {
           "bidder": {
             "appnexus": {
@@ -143,6 +146,7 @@
         ]
       },
       "ext": {
+        "tid": "tid",
         "prebid": {
           "bidder": {
             "appnexus": {
@@ -163,6 +167,7 @@
         ]
       },
       "ext": {
+        "tid": "tid",
         "prebid": {
           "storedauctionresponse": {
             "id": "test-stored-auction-response"

@@ -108,6 +108,9 @@
               ]
             },
             "ext": {
+
+                "tid": "someTid",
+
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -120,6 +123,9 @@
             }
           }
         ],
+        "source": {
+          "tid": "someTid"
+        },
         "site": {
           "domain": "www.example.com",
           "page": "http://www.example.com",

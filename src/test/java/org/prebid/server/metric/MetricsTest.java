@@ -272,40 +272,8 @@ public class MetricsTest {
     }
 
     @Test
-    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(
-                metrics -> metrics.cookieSync().incCounter(MetricName.gen));
-    }
-
-    @Test
-    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithPrefix() {
-        // when
-        metrics.cookieSync().incCounter(MetricName.gen);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.gen").getCount()).isOne();
-    }
-
-    @Test
     public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
-    }
-
-    @Test
-    public void shouldReturnBidderCookieSyncMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(metrics -> metrics
-                .cookieSync()
-                .forBidder(RUBICON)
-                .incCounter(MetricName.gen));
-    }
-
-    @Test
-    public void shouldReturnBidderCookieSyncMetricsConfiguredWithBidder() {
-        // when
-        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.gen);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isOne();
     }
 
     @Test
@@ -680,21 +648,15 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateCookieSyncGenMetricShouldIncrementMetric() {
+    public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncGenMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
 
         // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isOne();
-    }
-
-    @Test
-    public void updateCookieSyncMatchesMetricShouldIncrementMetric() {
-        // when
-        metrics.updateCookieSyncMatchesMetric(RUBICON);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.matches").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.filtered").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.conversant.filtered").getCount()).isEqualTo(2);
     }
 
     @Test

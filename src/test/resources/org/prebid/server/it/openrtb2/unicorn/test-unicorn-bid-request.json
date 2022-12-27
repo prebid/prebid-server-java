@@ -35,6 +35,7 @@
     "USD"
   ],
   "source": {
+    "tid": "${json-unit.any-string}",
     "ext": {
       "bidder": "unicorn",
       "stype": "prebid_server_uncn"

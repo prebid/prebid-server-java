@@ -17,11 +17,15 @@
           "bidFloor": 0.5,
           "width": 640,
           "height": 480,
-          "impMediaType": "Video"
+          "impMediaType": "Video",
+          "adUnitCode": "imp_id"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
