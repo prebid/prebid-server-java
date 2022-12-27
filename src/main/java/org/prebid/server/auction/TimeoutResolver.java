@@ -4,14 +4,14 @@ public class TimeoutResolver {
 
     private final long minTimeout;
     private final long maxTimeout;
-    private final long timeoutAdjustment;
+    private final long upstreamResponseTime;
 
-    public TimeoutResolver(long minTimeout, long maxTimeout, long timeoutAdjustment) {
+    public TimeoutResolver(long minTimeout, long maxTimeout, long upstreamResponseTime) {
         validateTimeouts(minTimeout, maxTimeout);
 
         this.minTimeout = minTimeout;
         this.maxTimeout = maxTimeout;
-        this.timeoutAdjustment = timeoutAdjustment;
+        this.upstreamResponseTime = upstreamResponseTime;
     }
 
     private static void validateTimeouts(long minTimeout, long maxTimeout) {

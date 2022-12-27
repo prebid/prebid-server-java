@@ -80,7 +80,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
-- `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+- `auction.tmax-upstream-response-time` - the amount of time that PBS needs to respond to the original caller.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.

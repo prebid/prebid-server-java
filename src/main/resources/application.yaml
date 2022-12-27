@@ -120,7 +120,7 @@ auction:
   biddertmax:
     min: 50
     max: 5000
-  timeout-adjustment-ms: 30
+  tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 50
   timeout-notification:
     timeout-ms: 200

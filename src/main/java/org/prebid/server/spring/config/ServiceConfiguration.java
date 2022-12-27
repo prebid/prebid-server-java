@@ -220,9 +220,12 @@ public class ServiceConfiguration {
             @Value("${auction.biddertmax.min}") long minTimeout,
             @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
             @Value("${auction.biddertmax.max:#{null}}") Long maxTimeout,
-            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment) {
+            @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(minTimeout, resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout), timeoutAdjustment);
+        return new TimeoutResolver(
+                minTimeout,
+                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
+                upstreamResponseTime);
     }
 
     // TODO: Remove
