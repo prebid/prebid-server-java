@@ -20,12 +20,22 @@ cache:
 settings:
   enforce-valid-account: false
   generate-storedrequest-bidrequest-id: true
-  filesystem:
-    settings-filename: sample/sample-app-settings.yaml
-    stored-requests-dir: sample/stored
-    stored-imps-dir: sample/stored
-    stored-responses-dir: sample/stored
-    categories-dir:
+  database:
+    type: mysql
+    dbname: pbs
+    host: DBNAME
+    pool-size: 4
+    port: 3306
+    user: USER
+    password: PASSWORD
+    account-query: ACCOUNT-QUERY
+    stored-requests-query: STORED-REQUEST-QUERY
+    stored-responses-query: STORED-RESPONSE-QUERY
+    circuit-breaker:
+      enabled: false
+      opening-threshold: 100
+      opening-interval-ms: 2000
+      closing-interval-ms: 20000
 gdpr:
   default-value: 1
   vendorlist:

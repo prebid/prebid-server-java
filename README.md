@@ -55,6 +55,8 @@ cd prebid-server-java
 And from this step there are two common use cases, which can be chosen depending on your goals 
 
 1. Create prebid-server JAR only
+
+- First, make sure nothing's running on your local port 8080 or 8090
 - Run below command to build project:
 ```bash
 mvn clean package
@@ -65,14 +67,14 @@ mvn clean package
 ```bash
 mvn clean package --file extra/pom.xml
 ```
-For more information how to configure the server follow [documentation](docs/build.md).
+For more information how to build the server follow [documentation](docs/build.md).
 
 ## Configuration
 
-The source code includes minimal required configuration file `sample/prebid-config.yaml`.
+The source code includes an example configuration file `sample/prebid-config.yaml`.
 Also, check the account settings file `sample/sample-app-settings.yaml`.
 
-For more information how to configure the server follow [documentation](docs/config.md).
+For more information how to configure the server follow [documentation](docs/config.md). There are many settings you'll want to consider such as which bidders you're going to enable, privacy defaults, admin endpoints, etc.
 
 
 ## Running
@@ -88,6 +90,8 @@ For more options how to start the server, please follow [documentation](docs/run
 
 To check the server is started go to [http://localhost:8080/status](http://localhost:8080/status) 
 and verify response status is `200 OK`.
+
+There are a couple of 'hello world' test requests described in sample/requests/README.txt
 
 # Documentation
 
