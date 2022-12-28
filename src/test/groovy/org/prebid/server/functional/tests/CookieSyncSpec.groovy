@@ -464,8 +464,7 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync should sync bidder by limit value"() {
         given: "PBS config with bidders usersync config"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders and limit of 1"
         def limit = 1
@@ -596,8 +595,7 @@ class CookieSyncSpec extends BaseSpec {
         def limit = 1
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : limit as String,
-                 "cookie-sync.default-limit": limit as String,
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "cookie-sync.default-limit": limit as String] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def bidders = [BIDDER, RUBICON]
@@ -622,8 +620,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with bidders usersync config"
         def prebidServerService = pbsServiceFactory.getService(
                 ["cookie-sync.max-limit"    : "1",
-                 "cookie-sync.default-limit": "1",
-                 "adapters.rubicon.enabled" : "true"] + PBS_CONFIG)
+                 "cookie-sync.default-limit": "1"] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
