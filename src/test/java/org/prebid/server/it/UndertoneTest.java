@@ -25,11 +25,6 @@ public class UndertoneTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/undertone/test-undertone-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/undertone/test-undertone-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/undertone/test-cache-undertone-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/undertone/test-cache-undertone-response.json"))));
-
         // when
         final Response response = responseFor("openrtb2/undertone/test-auction-undertone-request.json",
                 Endpoint.openrtb2_auction);
