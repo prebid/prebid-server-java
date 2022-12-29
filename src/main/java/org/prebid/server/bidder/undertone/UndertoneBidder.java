@@ -3,9 +3,11 @@ package org.prebid.server.bidder.undertone;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -28,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,7 +95,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest makeBidRequest(BidRequest bidRequest, int publisherId, List<Imp> imps) {
-        final Publisher publisher = makePublisher(bidRequest, publisherId);
+        final Publisher publisher = makePublisher(bidRequest.getSite(), bidRequest.getApp(), publisherId);
 
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .bidderparams(BIDDER_PARAMS)
@@ -102,8 +105,9 @@ public class UndertoneBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .ext(ExtRequest.of(extRequestPrebid));
 
-        if (bidRequest.getSite() != null) {
-            bidRequestBuilder.site(bidRequest.getSite()
+        final Site site = bidRequest.getSite();
+        if (site != null) {
+            bidRequestBuilder.site(site
                     .toBuilder()
                     .publisher(publisher)
                     .build());
@@ -124,10 +128,10 @@ public class UndertoneBidder implements Bidder<BidRequest> {
         return objectNode;
     }
 
-    private Publisher makePublisher(BidRequest bidRequest, int publisherId) {
-        final Publisher publisher = bidRequest.getSite() != null
-                ? bidRequest.getSite().getPublisher()
-                : bidRequest.getApp().getPublisher();
+    private Publisher makePublisher(Site site, App app, int publisherId) {
+        final Publisher publisher = site != null
+                ? site.getPublisher()
+                : app.getPublisher();
 
         final Publisher.PublisherBuilder publisherBuilder = publisher == null
                 ? Publisher.builder()
@@ -172,7 +176,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return List.of();
+            return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -196,7 +200,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
                 .collect(Collectors.groupingBy(Imp::getId))
                 .entrySet()
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, imps -> imps.getValue().get(0)));
+                .collect(Collectors.toMap(Map.Entry::getKey, imps -> imps.getValue().get(0)));
     }
 
     private BidType getBidType(Bid bid, Map<String, Imp> idImpMap) {
