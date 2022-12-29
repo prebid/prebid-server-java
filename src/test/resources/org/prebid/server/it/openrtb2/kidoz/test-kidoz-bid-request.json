@@ -12,6 +12,7 @@
         ]
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "access_token": "test-token-1",
           "publisher_id": "test-publisher-1"
@@ -19,6 +20,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

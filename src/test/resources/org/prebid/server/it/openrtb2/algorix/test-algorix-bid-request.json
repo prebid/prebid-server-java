@@ -22,6 +22,7 @@
         "prebid": {
           "is_rewarded_inventory": 1
         },
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "sid": "testSid",
           "token": "testToken",
@@ -32,6 +33,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

@@ -31,7 +31,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2509,12 +2508,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode siteWithPage = mapper.valueToTree(Site.builder().page("testPage").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithPage, null, null));
+                ExtBidderConfigOrtb.of(siteWithPage, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithDomain, null, null));
+                ExtBidderConfigOrtb.of(siteWithDomain, null, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2549,7 +2548,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRemoveSiteObjectIfBothSiteAndAppPresentAfterFpdStage() {
+    public void shouldRejectIfBothSiteAndAppPresentAfterFpdStage() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2571,20 +2570,11 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(auctionContext);
 
         // then
-        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester)
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), anyBoolean());
-        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
-
-        assertThat(capturedBidRequests)
-                .extracting(BidderRequest::getBidRequest)
-                .extracting(BidRequest::getApp, BidRequest::getSite)
-                .containsExactly(tuple(App.builder().id("appId").build(), null));
+        verifyNoInteractions(httpBidderRequester);
         assertThat(auctionContext)
                 .extracting(AuctionContext::getDebugWarnings)
-                .asInstanceOf(InstanceOfAssertFactories.list(Site.class))
                 .asList()
-                .containsExactly("BidRequest contains app and site. Removed site object");
+                .containsExactly("BidRequest contains App and Site for bidder someBidder. Request rejected.");
     }
 
     @Test
@@ -2596,7 +2586,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
         final ObjectNode appWithPublisherId = mapper.valueToTree(App.builder().publisher(publisherWithId).build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithPublisherId, null));
+                ExtBidderConfigOrtb.of(null, appWithPublisherId, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
@@ -2604,7 +2594,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(
                 App.builder().publisher(publisherWithIdAndDomain).build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null));
+                ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2643,13 +2633,13 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final ObjectNode bidderConfigUser = mapper.valueToTree(User.builder().id("userFromConfig").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, bidderConfigUser));
+                ExtBidderConfigOrtb.of(null, null, bidderConfigUser));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
         final ObjectNode emptyUser = mapper.valueToTree(User.builder().build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, emptyUser));
+                ExtBidderConfigOrtb.of(null, null, emptyUser));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
         final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
@@ -2711,46 +2701,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedUser = captureBidRequest().getUser();
         assertThat(capturedUser).isEqualTo(User.builder().buyeruid("buyerid").build());
-    }
-
-    @Test
-    public void shouldRemoveSiteIfBothSiteAndAppPresent() {
-        // given
-        givenBidder(givenEmptySeatBid());
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .site(Site.builder().build())
-                        .app(App.builder().build()));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final BidRequest captureBidRequest = captureBidRequest();
-        assertThat(captureBidRequest)
-                .extracting(BidRequest::getSite)
-                .isNull();
-        assertThat(captureBidRequest)
-                .extracting(BidRequest::getApp)
-                .isNotNull();
-    }
-
-    @Test
-    public void shouldAddDebugWarningIfBothSiteAndAppPresent() {
-        // given
-        givenBidder(givenEmptySeatBid());
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .site(Site.builder().build())
-                        .app(App.builder().build()));
-        final AuctionContext givenContext = givenRequestContext(bidRequest);
-
-        // when
-        exchangeService.holdAuction(givenContext);
-        // then
-        assertThat(givenContext)
-                .extracting(AuctionContext::getDebugWarnings)
-                .isEqualTo(singletonList("BidRequest contains app and site. Removed site object"));
     }
 
     @Test

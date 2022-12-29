@@ -9,6 +9,7 @@
       },
       "tagid": "tag_id",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "seatId": "seat_id",
           "tagId": "tag_id"
@@ -16,6 +17,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

@@ -15,6 +15,7 @@
         "w": 300
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "force_bid": true,
           "pub_id": "1234",
@@ -25,6 +26,9 @@
       "tagid": "N4zTDq3PPEHBIODv7cXK"
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0

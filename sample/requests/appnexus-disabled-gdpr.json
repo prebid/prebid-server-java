@@ -1,0 +1,55 @@
+{
+    "id": "7b3e93dc-10cc-42cd-b855-76ddea2e3f7d",
+    "source": {
+        "tid": "7b3e93dc-10cc-42cd-b855-76ddea2e3f7d"
+    },
+    "tmax": 1000,
+    "imp": [
+        {
+            "id": "test-div",
+            "ext": {
+		"appnexus": {
+		    "placementId": 13144370
+		}
+            },
+            "secure": 0,
+            "banner": {
+                "format": [
+                    {
+                        "w": 300,
+                        "h": 250
+                    },
+		    {
+                        "w": 728,
+                        "h": 90
+		    }
+                ]
+            }
+        }
+    ],
+    "test": 1,
+    "site": {
+        "publisher": {
+            "id": "1001"
+        },
+        "page": "http://rubitest.com/index.html"
+    },
+    "ext": {
+        "prebid": {
+	    "cache": {
+		"bids": {},
+		"vastXml": {}
+	   },
+           "targeting": {
+		"pricegranularity": "med",
+		"includewinners": true,
+		"includebidderkeys": true
+           }
+	}
+    },
+    "regs": {
+      "ext": {
+        "gdpr": 0
+      }
+    }
+}
