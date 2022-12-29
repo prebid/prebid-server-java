@@ -50,4 +50,24 @@ public class TimeoutResolverTest {
     public void limitToMaxShouldReturnMaxTimeout() {
         assertThat(timeoutResolver.limitToMax(300L)).isEqualTo(MAX_TIMEOUT);
     }
+
+    @Test
+    public void adjustForBidderShouldReturnExpectedResult() {
+        assertThat(timeoutResolver.adjustForBidder(200L, 0.7, 10L)).isEqualTo(120L);
+    }
+
+    @Test
+    public void adjustForBidderShouldReturnMinTimeout() {
+        assertThat(timeoutResolver.adjustForBidder(200L, 0.5, 10L)).isEqualTo(MIN_TIMEOUT);
+    }
+
+    @Test
+    public void adjustForRequestShouldReturnExpectedResult() {
+        assertThat(timeoutResolver.adjustForRequest(200L, 10L)).isEqualTo(180L);
+    }
+
+    @Test
+    public void adjustForRequestShouldReturnMinTimeout() {
+        assertThat(timeoutResolver.adjustForRequest(80L, 10L)).isEqualTo(MIN_TIMEOUT);
+    }
 }

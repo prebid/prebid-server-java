@@ -26,11 +26,25 @@ public class TimeoutResolver {
         }
     }
 
-    public long limitToMax(Long requestTimeout) {
-        return requestTimeout == null
+    public long limitToMax(Long timeout) {
+        return timeout == null
                 ? maxTimeout
-                : Math.min(requestTimeout, maxTimeout);
+                : Math.min(timeout, maxTimeout);
     }
 
+    public long adjustForBidder(long timeout, double adjustFactor, long spentTime) {
+        return adjustWithFactor(timeout, adjustFactor, spentTime);
+    }
 
+    public long adjustForRequest(long timeout, long spentTime) {
+        return adjustWithFactor(timeout, 1.0, spentTime);
+    }
+
+    private long adjustWithFactor(long timeout, double adjustFactor, long spentTime) {
+        return limitToMin((long) (timeout * adjustFactor) - spentTime - upstreamResponseTime);
+    }
+
+    private long limitToMin(long timeout) {
+        return Math.max(timeout, minTimeout);
+    }
 }
