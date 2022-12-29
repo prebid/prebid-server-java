@@ -77,6 +77,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1451,7 +1452,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any()))
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean()))
                 .willReturn(updatedBidRequest);
 
         // when
@@ -1604,7 +1605,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));

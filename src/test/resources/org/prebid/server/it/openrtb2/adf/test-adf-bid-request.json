@@ -9,6 +9,7 @@
       },
       "tagid": "1",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "mid": "1",
           "priceType": "net"
@@ -26,6 +27,7 @@
         ]
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "inv": 1234,
           "mname": "wallpaper",
@@ -34,6 +36,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

@@ -9,12 +9,16 @@
       },
       "tagid": "tag_id",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "TagID": "tag_id"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

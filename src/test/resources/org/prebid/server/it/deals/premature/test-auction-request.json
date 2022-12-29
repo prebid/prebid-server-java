@@ -12,6 +12,7 @@
         ]
       },
       "ext": {
+        "tid": "someTid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -31,6 +32,9 @@
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
     }
+  },
+  "source": {
+    "tid": "someTid"
   },
   "site": {
     "publisher": {

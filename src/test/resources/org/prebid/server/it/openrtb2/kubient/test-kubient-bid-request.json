@@ -8,12 +8,16 @@
         "h": 250
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "zoneid": "9042"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
