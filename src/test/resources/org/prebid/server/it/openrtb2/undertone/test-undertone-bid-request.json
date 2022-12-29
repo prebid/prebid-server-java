@@ -25,6 +25,9 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
