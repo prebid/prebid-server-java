@@ -23,6 +23,8 @@ public class ExtImpRubicon {
     @JsonProperty("zoneId")
     Integer zoneId;
 
+    Boolean bidOnMultiFormat;
+
     List<Integer> sizes;
 
     ObjectNode inventory;
