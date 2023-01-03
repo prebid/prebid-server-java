@@ -210,7 +210,11 @@ public class OrtbTypesResolver {
                                        String containerName,
                                        String action) {
 
-        if (fieldNode == null || fieldNode.isNull() || fieldNode.isTextual()) {
+        if (fieldNode == null || fieldNode.isNull()) {
+            return null;
+        }
+
+        if (fieldNode.isTextual()) {
             return (TextNode) fieldNode;
         }
 
