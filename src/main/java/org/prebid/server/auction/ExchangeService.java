@@ -41,7 +41,6 @@ import org.prebid.server.auction.model.ImpRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.debug.BidderDebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
@@ -1309,11 +1308,10 @@ public class ExchangeService {
 
         final BidderRequest modifiedBidderRequest = bidderRequest.with(convertedBidRequest);
 
-        final BidderDebugContext bidderDebugContext =
-                debugResolver.bidderDebugContextFrom(auctionContext, resolvedBidderName);
+        final boolean debugEnabled = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
 
         return httpBidderRequester
-                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, bidderDebugContext)
+                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabled)
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),

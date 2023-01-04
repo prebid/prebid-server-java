@@ -14,7 +14,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidderRequest;
-import org.prebid.server.auction.model.debug.BidderDebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
@@ -85,7 +84,7 @@ public class HttpBidderRequester {
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
                                                  BidderAliases aliases,
-                                                 BidderDebugContext bidderDebugContext) {
+                                                 boolean debugEnabled) {
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
@@ -121,7 +120,7 @@ public class HttpBidderRequester {
         return CompositeFuture.any(
                         CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
                         completionTracker.future())
-                .map(ignored -> resultBuilder.toBidderSeatBid(bidderDebugContext.isDebugEnabled()));
+                .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
     private <T> List<HttpRequest<T>> enrichRequests(String bidderName,

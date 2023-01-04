@@ -157,7 +157,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.populateDealsInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
-        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                 TcfContext.empty());
@@ -300,7 +300,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext())
-                .isEqualTo(DebugContext.of(true, null));
+                .isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test

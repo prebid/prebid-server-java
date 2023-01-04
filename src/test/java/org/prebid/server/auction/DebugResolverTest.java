@@ -58,7 +58,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(true, null));
+        assertThat(result).isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test
@@ -72,7 +72,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, null));
+        assertThat(result).isEqualTo(DebugContext.of(false, false, null));
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
@@ -87,7 +87,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, null));
+        assertThat(result).isEqualTo(DebugContext.of(false, false, null));
         assertThat(auctionContext.getDebugWarnings()).hasSize(1)
                 .containsOnly("Debug turned off for account");
     }
@@ -103,7 +103,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(true, null));
+        assertThat(result).isEqualTo(DebugContext.of(true, true, null));
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
@@ -118,7 +118,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, TraceLevel.basic));
+        assertThat(result).isEqualTo(DebugContext.of(false, false, TraceLevel.basic));
     }
 
     @Test
@@ -129,7 +129,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
+        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
         assertThat(result).isFalse();
@@ -144,7 +144,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
+        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
         assertThat(result).isFalse();
@@ -160,7 +160,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
 
         // when
-        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
+        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
         assertThat(result).isTrue();
@@ -177,7 +177,7 @@ public class DebugResolverTest {
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         // when
-        final boolean result = debugResolver.bidderDebugContextFrom(auctionContext, "bidder");
+        final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
         assertThat(result).isTrue();
@@ -199,7 +199,7 @@ public class DebugResolverTest {
 
         return givenAuctionContext(builder -> builder
                 .httpRequest(httpRequestContext)
-                .debugContext(DebugContext.of(debugEnabled, null)));
+                .debugContext(DebugContext.of(debugEnabled, false, null)));
     }
 
     private static BidRequest givenBidRequest(

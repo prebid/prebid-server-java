@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.debug.BidderDebugContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.HttpRequestContext;
@@ -74,7 +73,7 @@ public class DebugResolver {
     private static boolean shouldReturnAllBidStatus(BidRequest bidRequest, boolean debugEnabled) {
         final boolean shouldReturnAllBidStatus = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::isReturnallbidstatus)
+                .map(ExtRequestPrebid::getReturnallbidstatus)
                 .orElse(false);
 
         return shouldReturnAllBidStatus || debugEnabled;
@@ -89,7 +88,7 @@ public class DebugResolver {
                 ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt), ExtRequest::getPrebid);
     }
 
-    public BidderDebugContext bidderDebugContextFrom(AuctionContext auctionContext, String bidder) {
+    public boolean resolveDebugForBidder(AuctionContext auctionContext, String bidder) {
         final DebugContext debugContext = auctionContext.getDebugContext();
         final boolean debugEnabled = debugContext.isDebugEnabled();
         final boolean debugOverride = isDebugOverridden(auctionContext.getHttpRequest());
@@ -100,8 +99,6 @@ public class DebugResolver {
                     .add("Debug turned off for bidder: " + bidder);
         }
 
-        final boolean debugEnabledForBidder = debugOverride || (debugEnabled && debugAllowedByBidder);
-
-        return BidderDebugContext.of(debugEnabledForBidder, debugContext.isShouldReturnAllBidStatuses());
+        return debugOverride || (debugEnabled && debugAllowedByBidder);
     }
 }

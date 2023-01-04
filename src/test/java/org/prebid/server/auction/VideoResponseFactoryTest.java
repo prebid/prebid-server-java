@@ -61,7 +61,7 @@ public class VideoResponseFactoryTest extends VertxTest {
         final BidResponse bidResponse = BidResponse.builder().seatbid(emptyList()).build();
         final CachedDebugLog cachedDebugLog = new CachedDebugLog(true, 100, null, jacksonMapper);
         final AuctionContext auctionContext = AuctionContext.builder()
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .cachedDebugLog(cachedDebugLog)
                 .bidRequest(BidRequest.builder().build())
                 .build();

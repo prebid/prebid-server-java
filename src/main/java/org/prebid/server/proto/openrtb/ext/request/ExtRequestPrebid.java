@@ -27,7 +27,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.returnallbidstatus
      */
-    boolean returnallbidstatus;
+    Boolean returnallbidstatus;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.trace
