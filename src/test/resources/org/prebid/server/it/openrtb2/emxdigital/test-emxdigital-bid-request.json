@@ -10,12 +10,16 @@
       "tagid": "25251",
       "secure": 0,
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "tagid": "25251"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

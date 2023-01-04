@@ -35,8 +35,8 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_BUYER_IDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_KEYWORDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_LANGUAGE
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UIDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UIDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_KEYWORDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_YOB
 
@@ -113,7 +113,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         UFPD_BUYER_UIDS   | new UserExtData(buyeruids: [stringTargetingValue])
     }
 
-    def "PBS should support taking Site First Party Data from different sources"() {
+    def "PBS should support taking Site First Party Data from #place source"() {
         given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
@@ -132,24 +132,27 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        bidRequest << [
-                BidRequest.defaultBidRequest.tap {
-                    imp = [Imp.defaultImpression.tap {
-                        banner = Banner.defaultBanner
-                        ext.context = new ImpExtContext(data: new ImpExtContextData(language: stringTargetingValue))
-                    }]
-                },
-                BidRequest.defaultBidRequest.tap {
-                    site = Site.defaultSite.tap {
-                        ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
-                    }
-                },
-                BidRequest.defaultBidRequest.tap {
-                    app = new App(id: PBSUtils.randomString).tap {
-                        ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
-                    }
-                }
-        ]
+        place               | bidRequest
+        "imp[].ext.context" | BidRequest.defaultBidRequest.tap {
+            imp = [Imp.defaultImpression.tap {
+                ext.context = new ImpExtContext(data: new ImpExtContextData(language: stringTargetingValue))
+            }]
+        }
+        "site"              | BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite.tap {
+                ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
+            }
+        }
+        "app"               | BidRequest.defaultBidRequest.tap {
+            app = new App(id: PBSUtils.randomString).tap {
+                ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
+            }
+        }
+        "imp[].ext.data"    | BidRequest.defaultBidRequest.tap {
+            imp = [Imp.defaultImpression.tap {
+                ext.data = new ImpExtContextData(language: stringTargetingValue)
+            }]
+        }
     }
 
     def "PBS should support String array input for Site First Party Data to be matched by INTERSECTS matching function"() {

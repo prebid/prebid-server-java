@@ -84,21 +84,6 @@
   },
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT",
-    "data": [
-      {
-        "segment": [
-          {
-            "id": "segmentId1"
-          },
-          {
-            "id": "segmentId2"
-          }
-        ],
-        "ext": {
-          "segtax": 4
-        }
-      }
-    ],
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
@@ -134,16 +119,6 @@
               "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
             }
           ]
-        }
-      ],
-      "tpid": [
-        {
-          "source": "tdid",
-          "uid": "cd96870f-f53d-4986-a08e-cd1612fb13b0"
-        },
-        {
-          "source": "liveintent.com",
-          "uid": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
         }
       ],
       "rp": {

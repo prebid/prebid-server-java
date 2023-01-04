@@ -12,6 +12,7 @@
         ]
       },
       "ext": {
+        "tid": "someTid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -34,6 +35,7 @@
         ]
       },
       "ext": {
+          "tid": "someTid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -56,6 +58,7 @@
         ]
       },
       "ext": {
+        "tid": "someTid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -80,6 +83,7 @@
         ]
       },
       "ext": {
+        "tid": "someTid",
         "prebid": {
           "bidder": {
             "rubicon": {
@@ -95,6 +99,9 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "someTid"
+  },
   "site": {
     "publisher": {
       "id": "2001"

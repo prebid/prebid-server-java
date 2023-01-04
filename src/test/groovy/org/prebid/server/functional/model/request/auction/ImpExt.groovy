@@ -19,6 +19,7 @@ class ImpExt {
     ImpExtContext context
     ImpExtContextData data
     String tid
+    String gpid
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {

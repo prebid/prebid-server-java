@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 241
     usersync:
-      url: https://onetag-sys.com/usync/?redir=
-      redirect-url: /setuid?bidder=onetag&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${USER_TOKEN}
       cookie-family-name: onetag
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://onetag-sys.com/usync/?redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+        support-cors: false
+        uid-macro: '${USER_TOKEN}'

@@ -11,6 +11,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -82,6 +83,7 @@ public class HttpBidderRequester {
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
+                                                 BidderAliases aliases,
                                                  boolean debugEnabled) {
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
@@ -91,7 +93,7 @@ public class HttpBidderRequester {
 
         final String bidderName = bidderRequest.getBidder();
         final List<HttpRequest<T>> httpRequests = enrichRequests(
-                bidderName, httpRequestsWithErrors.getValue(), requestHeaders, bidRequest);
+                bidderName, httpRequestsWithErrors.getValue(), requestHeaders, aliases, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -124,11 +126,12 @@ public class HttpBidderRequester {
     private <T> List<HttpRequest<T>> enrichRequests(String bidderName,
                                                     List<HttpRequest<T>> httpRequests,
                                                     CaseInsensitiveMultiMap requestHeaders,
+                                                    BidderAliases aliases,
                                                     BidRequest bidRequest) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
                         .headers(requestEnricher.enrichHeaders(
-                                bidderName, httpRequest.getHeaders(), requestHeaders, bidRequest))
+                                bidderName, httpRequest.getHeaders(), requestHeaders, aliases, bidRequest))
                         .build())
                 .toList();
     }

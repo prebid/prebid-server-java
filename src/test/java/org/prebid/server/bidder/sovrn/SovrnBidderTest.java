@@ -72,8 +72,30 @@ public class SovrnBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
+                        .mimes(List.of())
                         .maxduration(0)
                         .minduration(0)
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required video parameter"));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .video(Video.builder()
+                        .mimes(List.of())
+                        .maxduration(null)
+                        .minduration(null)
                         .build()));
 
         // when
@@ -264,7 +286,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldSetRequestUrlWithoutMemberIdIfItMissedRequestBodyImps() {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
@@ -340,7 +362,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
-        //given
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                         .adm("encoded+url+test"))));
@@ -355,7 +377,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnVideoBidderBid() throws JsonProcessingException {
-        //given
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -369,7 +391,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnErrorIfBidImpIdAndBidRequestImpIdDoesntMatch() throws JsonProcessingException {
-        //given
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("unknownId"))));
 

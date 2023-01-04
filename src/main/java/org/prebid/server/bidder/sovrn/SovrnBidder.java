@@ -75,8 +75,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private static void validateImpVideo(Video video) {
         if (video != null) {
             if (video.getMimes() == null
-                    || video.getMinduration() == 0
-                    || video.getMaxduration() == 0
+                    || BidderUtil.isNullOrZero(video.getMinduration())
+                    || BidderUtil.isNullOrZero(video.getMaxduration())
                     || video.getProtocols() == null) {
                 throw new PreBidException("Missing required video parameter");
             }

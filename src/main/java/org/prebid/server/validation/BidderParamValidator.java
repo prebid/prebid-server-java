@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class BidderParamValidator {
 
-    private static final JsonSchemaFactory SCHEMA_FACTORY = new JsonSchemaFactory();
+    private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
     private static final String JSON_FILE_EXT = ".json";
     private static final String FILE_SEP = "/";
 

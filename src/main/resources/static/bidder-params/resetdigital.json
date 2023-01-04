@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ResetDigital Adapter Params",
+  "description": "A schema which validates params accepted by the ResetDigital adapter",
+  "type": "object",
+  "properties": {
+    "pubId": {
+      "type": "string",
+      "description": "The publisher's ID provided"
+    },
+    "zoneId": {
+      "type": "string",
+      "description": "Zone ID"
+    },
+    "forceBid": {
+      "type": "boolean",
+      "description": "Force bids with a test creative"
+    }
+  },
+  "required": [
+    "pubId"
+  ]
+}

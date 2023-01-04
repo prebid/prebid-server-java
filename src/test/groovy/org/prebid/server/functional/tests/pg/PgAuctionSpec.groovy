@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.deals.lineitem.FrequencyCap
 import org.prebid.server.functional.model.deals.lineitem.LineItem
 import org.prebid.server.functional.model.deals.lineitem.LineItemSize
 import org.prebid.server.functional.model.deals.lineitem.Price
+import org.prebid.server.functional.model.deals.lineitem.RelativePriority
 import org.prebid.server.functional.model.deals.lineitem.targeting.Targeting
 import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
@@ -487,33 +488,15 @@ class PgAuctionSpec extends BasePgSpec {
         def accountId = bidRequest.site.publisher.id
 
         and: "Planner Mock line items with different priorities and CPMs"
-        def currency = Price.defaultPrice.currency
-        def lowPriorityHighPriceLineItems =
-                [LineItem.getDefaultLineItem(accountId).tap {
-                    relativePriority = VERY_LOW
-                    price = new Price(cpm: 5, currency: currency)
-                },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = LOW
-                     price = new Price(cpm: 5, currency: currency)
-                 }]
-        def highPriorityLowPriceLineItems =
-                [LineItem.getDefaultLineItem(accountId).tap {
-                    relativePriority = MEDIUM
-                    price = new Price(cpm: 1, currency: currency)
-                },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = HIGH
-                     price = new Price(cpm: 1, currency: currency)
-                 },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = VERY_HIGH
-                     price = new Price(cpm: 1, currency: currency)
-                 }]
-        def lineItems = lowPriorityHighPriceLineItems + highPriorityLowPriceLineItems
+        def lineItems = RelativePriority.values().collect { relativePriority ->
+            LineItem.getDefaultLineItem(accountId).tap {
+                it.relativePriority = relativePriority
+                it.price = Price.defaultPrice
+            }
+        }
+
         def plansResponse = new PlansResponse(lineItems: lineItems)
         generalPlanner.initPlansResponse(plansResponse)
-        def higherPriorityLineItemIds = highPriorityLowPriceLineItems.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
@@ -526,9 +509,12 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "#maxDealsPerBidder[3] line items were send to bidder"
         def sentToBidder = auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value)
-        assert sentToBidder?.size() == pgConfig.maxDealsPerBidder
+        def dealsPerBidder = pgConfig.maxDealsPerBidder
+        assert sentToBidder?.size() == dealsPerBidder
 
         and: "Those line items with the highest priority were sent"
-        assert sentToBidder.sort() == higherPriorityLineItemIds.sort()
+        def prioritizedLineItems = lineItems.sort { it.relativePriority.value }
+                                            .take(dealsPerBidder)
+        assert sentToBidder.sort() == prioritizedLineItems.collect { it.lineItemId }.sort()
     }
 }

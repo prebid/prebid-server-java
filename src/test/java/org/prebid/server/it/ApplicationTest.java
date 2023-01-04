@@ -21,6 +21,8 @@ import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.bidder.UsersyncMethodType;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -35,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -43,6 +46,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -63,6 +67,7 @@ import static org.assertj.core.api.Assertions.within;
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
+    private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String RUBICON = "rubicon";
 
@@ -339,7 +344,7 @@ public class ApplicationTest extends IntegrationTest {
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.builder()
-                        .bidders(asList(RUBICON, APPNEXUS))
+                        .bidders(Set.of(RUBICON, APPNEXUS))
                         .gdpr(1)
                         .gdprConsent(gdprConsent)
                         .usPrivacy("1YNN")
@@ -353,31 +358,30 @@ public class ApplicationTest extends IntegrationTest {
                 .as(CookieSyncResponse.class);
 
         // then
-        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
-        assertThat(cookieSyncResponse.getBidderStatus())
-                .hasSize(2)
-                .containsOnly(BidderUsersyncStatus.builder()
-                                .bidder(RUBICON)
-                                .noCookie(true)
-                                .usersync(UsersyncInfo.of(
-                                        "http://localhost:8080/setuid?bidder=rubicon"
-                                                + "&gdpr=1&gdpr_consent=" + gdprConsent
-                                                + "&us_privacy=1YNN"
-                                                + "&f=i"
-                                                + "&uid=host-cookie-uid",
-                                        "redirect", false))
-                                .build(),
-                        BidderUsersyncStatus.builder()
-                                .bidder(APPNEXUS)
-                                .noCookie(true)
-                                .usersync(UsersyncInfo.of(
-                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
-                                                + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
-                                                + "%26us_privacy%3D1YNN"
-                                                + "%26f%3Di"
-                                                + "%26uid%3D%24UID",
-                                        "redirect", false))
-                                .build());
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
+        assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
+                BidderUsersyncStatus.builder()
+                        .bidder(RUBICON)
+                        .noCookie(true)
+                        .usersync(UsersyncInfo.of(
+                                "http://localhost:8080/setuid?bidder=rubicon"
+                                        + "&gdpr=1&gdpr_consent=" + gdprConsent
+                                        + "&us_privacy=1YNN"
+                                        + "&f=i"
+                                        + "&uid=host-cookie-uid",
+                                UsersyncMethodType.REDIRECT, false))
+                        .build(),
+                BidderUsersyncStatus.builder()
+                        .bidder(APPNEXUS_COOKIE_FAMILY)
+                        .noCookie(true)
+                        .usersync(UsersyncInfo.of(
+                                "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
+                                        + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                        + "%26us_privacy%3D1YNN"
+                                        + "%26f%3Db"
+                                        + "%26uid%3D%24UID",
+                                UsersyncMethodType.IFRAME, false))
+                        .build());
     }
 
     @Test
@@ -408,12 +412,14 @@ public class ApplicationTest extends IntegrationTest {
         final Uids uids = decodeUids(uidsCookie.getValue());
         assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
         assertThat(uids.getUidsLegacy()).isEmpty();
+        assertThat(uids.getUids())
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .containsExactly(RUBICON);
         assertThat(uids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
         assertThat(uids.getUids().get(RUBICON).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
-        assertThat(uids.getUids().get("adnxs").getUid()).isEqualTo("12345");
-        assertThat(uids.getUids().get("adnxs").getExpires().toInstant())
-                .isCloseTo(Instant.now().minus(5, ChronoUnit.MINUTES), within(10, ChronoUnit.SECONDS));
     }
 
     @Test

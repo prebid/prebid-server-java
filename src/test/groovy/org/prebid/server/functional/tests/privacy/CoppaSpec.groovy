@@ -78,7 +78,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithGeo.tap {
             regs.coppa = 0
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -119,7 +119,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithGeo.tap {
             regs.coppa = 1
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

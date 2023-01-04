@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 280
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: openweb
-      type: redirect
-      support-cors: false

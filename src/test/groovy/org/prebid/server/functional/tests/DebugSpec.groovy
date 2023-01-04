@@ -262,7 +262,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -291,7 +291,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -331,7 +331,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedBidResponse: storedBidResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"

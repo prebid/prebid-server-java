@@ -27,6 +27,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -38,31 +41,7 @@
       }
     },
     "content": {
-      "data": [
-        {
-          "segment": [
-            {
-              "id": "segmentId1"
-            },
-            {
-              "id": "segmentId2"
-            }
-          ],
-          "ext": {
-            "segtax": 1
-          }
-        },
-        {
-          "segment": [
-            {
-              "id": "segmentId3"
-            }
-          ],
-          "ext": {
-            "segtax": 2
-          }
-        }
-      ]
+      "language": "en"
     },
     "ext": {
       "amp": 0,
@@ -87,18 +66,6 @@
     }
   },
   "user": {
-    "data": [
-      {
-        "segment": [
-          {
-            "id": "segmentId4"
-          }
-        ],
-        "ext": {
-          "segtax": 4
-        }
-      }
-    ],
     "ext": {
       "rp": {
         "target": {

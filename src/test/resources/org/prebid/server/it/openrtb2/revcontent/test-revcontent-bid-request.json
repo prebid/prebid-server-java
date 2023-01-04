@@ -8,10 +8,14 @@
         "h": 250
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {}
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
