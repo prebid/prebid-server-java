@@ -3409,6 +3409,37 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsFalse() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of(
+                        "someBidder",
+                        givenSeatBid(BidderBid.of(bid, banner, null)),
+                        100));
+
+        final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
+                bidderResponses, singletonMap("impId2", ImpRejectionReason.UNKNOWN));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp("impId")),
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(auctionParticipations)
+                        .debugContext(DebugContext.of(false, false, null)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getSeatnonbid)
+                .isNull();
+    }
+
+    @Test
     public void shouldPopulateBidExtWhenExtMediaTypePriceGranularityHasValidVideoExtPriceGranularity() {
         // given
         final ExtMediaTypePriceGranularity extMediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
