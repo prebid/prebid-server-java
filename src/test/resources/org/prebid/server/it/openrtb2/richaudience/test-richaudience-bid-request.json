@@ -11,6 +11,7 @@
       "bidfloorcur": "USD",
       "secure": 0,
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "pid": "some_pid",
           "supplyType": "some_type",
@@ -19,6 +20,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

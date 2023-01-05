@@ -58,6 +58,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -333,7 +334,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
         verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
-        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()));
+        verify(paramsResolver)
+                .resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()), eq(false));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
@@ -393,7 +395,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
-        given(paramsResolver.resolve(any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean()))
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
