@@ -55,7 +55,6 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -2789,11 +2788,14 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldDropBidsWithInvalidPriceAndAddDebugWarnings() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("bidder", bidder, givenSeatBid(asList(
-                givenBidderBid(Bid.builder().id("valid_bid").impid("impId").price(BigDecimal.valueOf(2.0)).build()),
-                givenBidderBid(Bid.builder().id("invalid_bid_1").impid("impId").price(null).build()),
-                givenBidderBid(Bid.builder().id("invalid_bid_2").impid("impId").price(BigDecimal.ZERO).build()),
-                givenBidderBid(Bid.builder().id("invalid_bid_3").impid("impId").price(BigDecimal.valueOf(-0.01)).build()))));
+        final List<Bid> bids = List.of(
+                Bid.builder().id("valid_bid").impid("impId").price(BigDecimal.valueOf(2.0)).build(),
+                Bid.builder().id("invalid_bid_1").impid("impId").price(null).build(),
+                Bid.builder().id("invalid_bid_2").impid("impId").price(BigDecimal.ZERO).build(),
+                Bid.builder().id("invalid_bid_3").impid("impId").price(BigDecimal.valueOf(-0.01)).build());
+        final BidderSeatBid seatBid = givenSeatBid(bids.stream().map(ExchangeServiceTest::givenBidderBid).toList());
+
+        givenBidder("bidder", bidder, seatBid);
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 identity());
@@ -3514,8 +3516,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnBidsAcceptedByPriceFloorEnforcer() {
         // given
-        final BidderBid bidToAccept = givenBidderBid(Bid.builder().id("bidId1").impid("impId1").price(ONE).build(), "USD");
-        final BidderBid bidToReject = givenBidderBid(Bid.builder().id("bidId2").impid("impId2").price(TEN).build(), "USD");
+        final BidderBid bidToAccept =
+                givenBidderBid(Bid.builder().id("bidId1").impid("impId1").price(ONE).build(), "USD");
+        final BidderBid bidToReject =
+                givenBidderBid(Bid.builder().id("bidId2").impid("impId2").price(TEN).build(), "USD");
+
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(List.of(bidToAccept, bidToReject)));
 
         final BidRequest bidRequest = givenBidRequest(List.of(
@@ -4323,8 +4328,10 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        givenBidder(givenSeatBid(singletonList(
-                givenBidderBid(Bid.builder().id("bidId2").impid("impId1").dealid("dealId2").price(BigDecimal.ONE).build()))));
+        final BidderBid bidderBid = givenBidderBid(
+                Bid.builder().id("bidId2").impid("impId1").dealid("dealId2").price(BigDecimal.ONE).build());
+
+        givenBidder(givenSingleSeatBid(bidderBid));
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
 
