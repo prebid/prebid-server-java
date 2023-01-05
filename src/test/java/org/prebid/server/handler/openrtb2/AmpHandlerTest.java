@@ -489,7 +489,6 @@ public class AmpHandlerTest extends VertxTest {
                 .auctiontimestamp(1000L)
                 .targeting(targeting)
                 .build();
-        ;
 
         givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
 
