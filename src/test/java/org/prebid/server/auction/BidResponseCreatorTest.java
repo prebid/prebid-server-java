@@ -40,6 +40,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
+import org.prebid.server.auction.model.ImpRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -93,6 +94,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -3371,6 +3374,41 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of(
+                        "someBidder",
+                        givenSeatBid(BidderBid.of(bid, banner, null)),
+                        100));
+
+        final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
+                bidderResponses, singletonMap("impId2", ImpRejectionReason.UNKNOWN));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp("impId")),
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(auctionParticipations)
+                        .debugContext(DebugContext.of(false, true, null)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
+                "someBidder", singletonList(NonBid.of("impId2", ImpRejectionReason.UNKNOWN)));
+
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getSeatnonbid)
+                .asList()
+                .containsExactly(expectedSeatNonBid);
+    }
+
+    @Test
     public void shouldPopulateBidExtWhenExtMediaTypePriceGranularityHasValidVideoExtPriceGranularity() {
         // given
         final ExtMediaTypePriceGranularity extMediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
@@ -3529,10 +3567,18 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static List<AuctionParticipation> toAuctionParticipant(List<BidderResponse> bidderResponses) {
+        return toAuctionParticipantWithRejectedImps(bidderResponses, emptyMap());
+    }
+
+    private static List<AuctionParticipation> toAuctionParticipantWithRejectedImps(
+            List<BidderResponse> bidderResponses,
+            Map<String, ImpRejectionReason> rejectedImpIds) {
+
         return bidderResponses.stream()
                 .map(bidderResponse -> AuctionParticipation.builder()
                         .bidder(bidderResponse.getBidder())
                         .bidderResponse(bidderResponse)
+                        .rejectedImpIds(rejectedImpIds)
                         .build())
                 .toList();
     }
