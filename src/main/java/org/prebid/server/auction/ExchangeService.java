@@ -1354,7 +1354,7 @@ public class ExchangeService {
                 .collect(Collectors.toSet());
 
         Map<String, ImpRejectionReason> rejectedImpIds = SetUtils.difference(requestedImpIds, bidsImpIds).stream()
-                .collect(Collectors.toMap(Function.identity(), ignored -> ImpRejectionReason.UNKNOWN));
+                .collect(Collectors.toMap(Function.identity(), ignored -> ImpRejectionReason.NO_BID));
 
         return auctionParticipation.with(rejectedImpIds);
     }

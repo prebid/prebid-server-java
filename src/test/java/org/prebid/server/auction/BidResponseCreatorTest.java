@@ -3446,7 +3446,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         100));
 
         final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", ImpRejectionReason.UNKNOWN));
+                bidderResponses, singletonMap("impId2", ImpRejectionReason.NO_BID));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),
@@ -3461,7 +3461,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "someBidder", singletonList(NonBid.of("impId2", ImpRejectionReason.UNKNOWN)));
+                "someBidder", singletonList(NonBid.of("impId2", ImpRejectionReason.NO_BID)));
 
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getPrebid)
@@ -3481,7 +3481,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         100));
 
         final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", ImpRejectionReason.UNKNOWN));
+                bidderResponses, singletonMap("impId2", ImpRejectionReason.NO_BID));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),

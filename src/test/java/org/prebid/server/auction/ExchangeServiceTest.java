@@ -2927,7 +2927,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPopulateMissingBidsWithUnknownRejectionReason() {
+    public void shouldPopulateMissingBidsWithNoBidRejectionReason() {
         // given
         final Map<String, Integer> impExt = singletonMap("someBidder", 1);
 
@@ -2950,7 +2950,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(context.result().getAuctionParticipations())
                 .extracting(AuctionParticipation::getRejectedImpIds)
                 .flatExtracting(Map::entrySet)
-                .containsExactly(Map.entry("impId2", ImpRejectionReason.UNKNOWN));
+                .containsExactly(Map.entry("impId2", ImpRejectionReason.NO_BID));
     }
 
     @SuppressWarnings("unchecked")

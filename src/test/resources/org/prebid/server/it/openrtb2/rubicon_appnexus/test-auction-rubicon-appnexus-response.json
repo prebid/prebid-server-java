@@ -843,8 +843,8 @@
               "seat": "appnexus",
               "nonbid": [
                   {
-                      "imp_id": "impId32",
-                      "reason": 0
+                      "impid": "impId32",
+                      "statuscode": 0
                   }
               ]
             }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ImpRejectionReason {
 
-    UNKNOWN(0);
+    NO_BID(0);
 
     public final int code;
 
