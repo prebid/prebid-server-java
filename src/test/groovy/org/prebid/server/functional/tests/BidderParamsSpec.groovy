@@ -648,10 +648,9 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS auction should populate imp[0].secure = 1 when in stored imp request imp[0].secure = null"() {
         given: "Default bid request"
-        def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = null
-            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
         }
 
         and: "Save storedImp into DB"
@@ -672,10 +671,9 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS auction should leave the same imp[0].secure value as in imp stored request"() {
         given: "Default bid request"
-        def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = secureRequest
-            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
         }
 
         and: "Save storedImp into DB"
