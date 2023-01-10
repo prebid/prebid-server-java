@@ -157,7 +157,6 @@ public class ExchangeService {
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
-    private final long expectedCacheTime;
     private final double timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
@@ -186,8 +185,7 @@ public class ExchangeService {
     private final JacksonMapper mapper;
     private final CriteriaLogManager criteriaLogManager;
 
-    public ExchangeService(long expectedCacheTime,
-                           double timeoutAdjustmentFactor,
+    public ExchangeService(double timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsProcessor dealsProcessor,
@@ -215,10 +213,9 @@ public class ExchangeService {
                            JacksonMapper mapper,
                            CriteriaLogManager criteriaLogManager) {
 
-        if (expectedCacheTime < 0) {
-            throw new IllegalArgumentException("Expected cache time should be positive");
+        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 1) {
+            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 1].");
         }
-        this.expectedCacheTime = expectedCacheTime;
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
@@ -296,7 +293,7 @@ public class ExchangeService {
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
                                         receivedContext,
                                         auctionParticipation.getBidderRequest(),
-                                        auctionTimeout(timeout, cacheInfo.isDoCaching()),
+                                        timeout,
                                         aliases)
                                         .map(auctionParticipation::with))
                                 .collect(Collectors.toCollection(ArrayList::new))))
@@ -1606,19 +1603,6 @@ public class ExchangeService {
 
     private int responseTime(long startTime) {
         return Math.toIntExact(clock.millis() - startTime);
-    }
-
-    /**
-     * If we need to cache bids, then it will take some time to call prebid cache.
-     * We should reduce the amount of time the bidders have, to compensate.
-     */
-    private Timeout auctionTimeout(Timeout timeout, boolean shouldCacheBids) {
-        // A static timeout here is not ideal. This is a hack because we have some aggressive timelines for OpenRTB
-        // support.
-        // In reality, the cache response time will probably fluctuate with the traffic over time. Someday, this
-        // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
-        // dynamically.
-        return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
     }
 
     /**

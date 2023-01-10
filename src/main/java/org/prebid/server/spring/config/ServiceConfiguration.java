@@ -715,7 +715,6 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             @Value("${auction.biddertmax.percent}") double timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
@@ -745,7 +744,6 @@ public class ServiceConfiguration {
             CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
-                expectedCacheTimeMs,
                 timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,

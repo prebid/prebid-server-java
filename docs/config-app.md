@@ -84,7 +84,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
-- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
 - `auction.generate-source-tid` - whether to generate bidrequest.source.tid in the OpenRTB request.
