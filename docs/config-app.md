@@ -80,6 +80,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
 - `auction.tmax-upstream-response-time` - the amount of time that PBS needs to respond to the original caller.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.

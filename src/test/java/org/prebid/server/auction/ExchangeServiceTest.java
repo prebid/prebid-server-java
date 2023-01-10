@@ -172,6 +172,7 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -409,6 +410,40 @@ public class ExchangeServiceTest extends VertxTest {
                 clock,
                 jacksonMapper,
                 criteriaLogManager);
+    }
+
+    @Test
+    public void creationShouldFailOnNegativeExpectedCacheTime() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ExchangeService(
+                        -1,
+                        bidderCatalog,
+                        storedResponseProcessor,
+                        dealsProcessor,
+                        privacyEnforcementService,
+                        fpdResolver,
+                        supplyChainResolver,
+                        debugResolver,
+                        new NoOpMediaTypeProcessor(),
+                        timeoutResolver,
+                        timeoutFactory,
+                        ortbVersionConversionManager,
+                        httpBidderRequester,
+                        responseBidValidator,
+                        currencyService,
+                        bidResponseCreator,
+                        bidResponsePostProcessor,
+                        hookStageExecutor,
+                        applicationEventService,
+                        httpInteractionLogger,
+                        priceFloorAdjuster,
+                        priceFloorEnforcer,
+                        bidAdjustmentFactorResolver,
+                        metrics,
+                        clock,
+                        jacksonMapper,
+                        criteriaLogManager))
+                .withMessage("Expected timeout adjustment factor should be in [0, 1].");
     }
 
     @Test
@@ -4341,7 +4376,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("bidderName", 1)),
                 request -> request.source(Source.builder().tid("uniqTid").build()));
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
         exchangeService.holdAuction(auctionContext);
@@ -4354,6 +4389,35 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getSource)
                 .isNull();
+    }
+
+    @Test
+    public void shouldPassAdjustedTimeoutToAdapterAndToBidResponseCreator() {
+        // given
+        given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
+                .willReturn(450L);
+        given(timeoutResolver.adjustForBidder(anyLong(), eq(0.9), anyLong()))
+                .willReturn(400L);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidderName", 1)),
+                request -> request.source(Source.builder().tid("uniqTid").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
+        verify(httpBidderRequester).requestBids(
+                any(),
+                bidderRequestCaptor.capture(),
+                timeoutCaptor.capture(),
+                any(),
+                any(),
+                anyBoolean());
+        assertThat(bidderRequestCaptor.getValue().getBidRequest().getTmax()).isEqualTo(400L);
+        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(450L);
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
