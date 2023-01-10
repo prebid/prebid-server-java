@@ -58,11 +58,14 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, ResponseModel responseModel, Map<String, String> headers = [:]) {
+    void setResponse(String value,
+                     HttpStatusCode statusCode = OK_200,
+                     ResponseModel responseModel,
+                     Map<String, String> headers = [:]) {
         def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = encode(responseModel)
         mockServerClient.when(getRequest(value), Times.unlimited())
-                        .respond(response().withStatusCode(OK_200.code())
+                        .respond(response().withStatusCode(statusCode.code())
                                            .withBody(mockResponse, APPLICATION_JSON)
                                            .withHeaders(responseHeaders))
     }
