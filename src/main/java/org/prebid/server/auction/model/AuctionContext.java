@@ -38,6 +38,9 @@ public class AuctionContext {
     List<AuctionParticipation> auctionParticipations;
 
     @JsonIgnore
+    long startTime;
+
+    @JsonIgnore
     Timeout timeout;
 
     Account account;

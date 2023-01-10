@@ -746,6 +746,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
+                .startTime(100L)
                 .timeout(timeout)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())

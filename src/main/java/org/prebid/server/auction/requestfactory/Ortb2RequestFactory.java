@@ -146,6 +146,7 @@ public class Ortb2RequestFactory {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
+                .startTime(startTime)
                 .timeout(timeout(bidRequest, startTime))
                 .deepDebugLog(createDeepDebugLog(bidRequest))
                 .build();

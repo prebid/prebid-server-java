@@ -716,6 +716,7 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${auction.biddertmax.percent}") double timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             DealsProcessor dealsProcessor,
@@ -724,6 +725,8 @@ public class ServiceConfiguration {
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
+            TimeoutResolver timeoutResolver,
+            TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
@@ -743,6 +746,7 @@ public class ServiceConfiguration {
 
         return new ExchangeService(
                 expectedCacheTimeMs,
+                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -751,6 +755,8 @@ public class ServiceConfiguration {
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                timeoutResolver,
+                timeoutFactory,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,

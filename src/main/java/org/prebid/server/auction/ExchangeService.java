@@ -55,6 +55,7 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -157,6 +158,7 @@ public class ExchangeService {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final long expectedCacheTime;
+    private final double timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsProcessor dealsProcessor;
@@ -165,6 +167,8 @@ public class ExchangeService {
     private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
     private final MediaTypeProcessor mediaTypeProcessor;
+    private final TimeoutResolver timeoutResolver;
+    private final TimeoutFactory timeoutFactory;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
@@ -183,6 +187,7 @@ public class ExchangeService {
     private final CriteriaLogManager criteriaLogManager;
 
     public ExchangeService(long expectedCacheTime,
+                           double timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsProcessor dealsProcessor,
@@ -191,6 +196,8 @@ public class ExchangeService {
                            SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
                            MediaTypeProcessor mediaTypeProcessor,
+                           TimeoutResolver timeoutResolver,
+                           TimeoutFactory timeoutFactory,
                            BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
@@ -212,6 +219,7 @@ public class ExchangeService {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.expectedCacheTime = expectedCacheTime;
+        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.dealsProcessor = Objects.requireNonNull(dealsProcessor);
@@ -220,6 +228,8 @@ public class ExchangeService {
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
@@ -697,7 +707,7 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
+                        .prebid(null)
                         .data(shouldCleanExtData ? null : extUser.getData())
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
@@ -1292,7 +1302,8 @@ public class ExchangeService {
 
         final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
 
-        final long startTime = clock.millis();
+        final long auctionStartTime = auctionContext.getStartTime();
+        final long bidderRequestStartTime = clock.millis();
 
         final MediaTypeProcessingResult mediaTypeProcessingResult =
                 mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
@@ -1307,19 +1318,41 @@ public class ExchangeService {
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
-        final BidRequest convertedBidRequest = ortbVersionConversionManager.convertFromAuctionSupportedVersion(
-                mediaTypeProcessingResult.getBidRequest(), bidderRequest.getOrtbVersion());
-
-        final BidderRequest modifiedBidderRequest = bidderRequest.with(convertedBidRequest);
-
-        return httpBidderRequester
-                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabledForBidder)
+        return Future.succeededFuture(mediaTypeProcessingResult.getBidRequest())
+                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, bidderRequestStartTime))
+                .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
+                        bidRequest, bidderRequest.getOrtbVersion()))
+                .map(bidderRequest::with)
+                .compose(convertedBidderRequest -> httpBidderRequester.requestBids(
+                        bidder,
+                        convertedBidderRequest,
+                        adjustTimeout(timeout, auctionStartTime, bidderRequestStartTime),
+                        requestHeaders,
+                        aliases,
+                        debugEnabledForBidder))
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),
                         seatBid.getErrors(),
                         ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
-                .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
+                .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
+    }
+
+    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, long currentTime) {
+        final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
+        final long adjustedTmax = timeoutResolver.adjustForBidder(
+                tmax, timeoutAdjustmentFactor, currentTime - startTime);
+
+        return tmax != adjustedTmax
+                ? bidRequest.toBuilder().tmax(adjustedTmax).build()
+                : bidRequest;
+    }
+
+    private Timeout adjustTimeout(Timeout timeout, long startTime, long currentTime) {
+        final long adjustedTmax = timeoutResolver.adjustForRequest(
+                timeout.getDeadline() - startTime, currentTime - startTime);
+
+        return timeoutFactory.create(currentTime, adjustedTmax);
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
