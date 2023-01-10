@@ -36,10 +36,11 @@ class BidValidationSpec extends BaseSpec {
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
-    def "PBS should reject request for bidder and emit warning when both site and app present"() {
+    def "PBS should remove site object and emit warning when both site and app present, debug mode is enabled"() {
         given: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
+        bidRequest.ext.prebid.debug = 1
 
         and: "Set app"
         bidRequest.app = App.defaultApp
@@ -47,9 +48,34 @@ class BidValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain warning"
+        then: "Bidder request should not contain site"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.site
+
+        and: "Response should contain debug warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains App and Site for bidder generic. Request rejected."]
+                ["BidRequest contains app and site. Removed site object"]
+    }
+
+    def "PBS should remove site object and emit warning when both site and app present, debug mode is disabled"() {
+        given: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
+        bidRequest.ext.prebid.debug = 0
+
+        and: "Set app"
+        bidRequest.app = App.defaultApp
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should not contain site"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.site
+
+        and: "Response should contain debug warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["BidRequest contains app and site. Removed site object"]
     }
 
     def "PBS should validate site when it is present"() {
