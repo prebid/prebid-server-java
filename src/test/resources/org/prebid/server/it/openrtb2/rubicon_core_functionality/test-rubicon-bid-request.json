@@ -59,7 +59,7 @@
     "buyeruid": "RUB-UID"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "regs": {
     "ext": {
       "gdpr": 0

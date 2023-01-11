@@ -73,5 +73,5 @@
     }
   },
   "at": 1,
-  "tmax": 5000
+  "tmax": "${json-unit.any-number}"
 }

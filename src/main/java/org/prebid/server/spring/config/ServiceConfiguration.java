@@ -228,7 +228,7 @@ public class ServiceConfiguration {
                 upstreamResponseTime);
     }
 
-    // TODO: Remove
+    // TODO: Remove after transition period
     private static long resolveMaxTimeout(long maxTimeoutDeprecated, Long maxTimeout) {
         if (maxTimeout != null) {
             return maxTimeout;
