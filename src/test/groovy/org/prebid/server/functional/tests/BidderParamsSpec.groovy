@@ -675,8 +675,8 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureRequest | secureBidderRequest
-        null                | 1
-        1                   | 1
-        0                   | 0
+        null          | 1
+        1             | 1
+        0             | 0
     }
 }
