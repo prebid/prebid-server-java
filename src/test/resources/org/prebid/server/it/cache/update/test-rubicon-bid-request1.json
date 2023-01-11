@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId-cache-update",
+      "secure": 1,
       "banner": {
         "format": [
           {

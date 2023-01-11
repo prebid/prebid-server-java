@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId-video-cache-update",
+      "secure": 1,
       "video": {
         "mimes": [
           "video/mp4"

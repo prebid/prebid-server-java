@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "native": {
         "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":0,\"required\":1,\"title\":{\"len\":500}}]}"
       },

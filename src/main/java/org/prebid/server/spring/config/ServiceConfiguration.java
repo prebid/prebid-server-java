@@ -565,6 +565,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -576,6 +577,7 @@ public class ServiceConfiguration {
                 ttlDays,
                 maxCookieSizeBytes,
                 prioritizedCoopSyncProvider,
+                metrics,
                 mapper);
     }
 

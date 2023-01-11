@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId4",
+      "secure": 1,
       "banner": {
         "format": [
           {

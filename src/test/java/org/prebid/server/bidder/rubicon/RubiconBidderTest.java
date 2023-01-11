@@ -229,6 +229,59 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateSeparateRequestForEachMediaTypeForMultiFormatImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                        .video(Video.builder().w(300).h(200).build())
+                        .xNative(Native.builder().build())
+                        .banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(2).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .allSatisfy(imp -> {
+                    if (imp.getBanner() != null) {
+                        assertThat(imp.getBanner()).isNotNull();
+                        assertThat(imp.getVideo()).isNull();
+                        assertThat(imp.getXNative()).isNull();
+                    } else if (imp.getXNative() != null) {
+                        assertThat(imp.getXNative()).isNotNull();
+                        assertThat(imp.getVideo()).isNull();
+                        assertThat(imp.getBanner()).isNull();
+                    } else {
+                        assertThat(imp.getVideo()).isNotNull();
+                        assertThat(imp.getXNative()).isNull();
+                        assertThat(imp.getBanner()).isNull();
+                    }
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSeparateRequestsOnlyForMultiformatImps() {
+        // given
+        final Imp imp1 = givenImp(impBuilder -> impBuilder
+                        .video(Video.builder().w(300).h(200).build())
+                        .banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
+        final Imp imp2 = givenImp(impBuilder -> impBuilder
+                        .video(Video.builder().w(300).h(200).build())
+                        .banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(false));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(3);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
         // given
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
