@@ -1,0 +1,42 @@
+{
+  "ext": {
+    "prebid": {
+      "bidder": {
+        "rubicon": {
+          "siteId": 267318,
+          "zoneId": 1861698,
+          "accountId": 1001
+        }
+      },
+      "storedauctionresponse": {
+        "id": "1001-sar-prebid-vast"
+      }
+    }
+  },
+  "video": {
+    "h": 480,
+    "w": 640,
+    "api": [
+      2
+    ],
+    "mimes": [
+      "video/mp4",
+      "video/x-ms-wmv"
+    ],
+    "context": "instream",
+    "linearity": 1,
+    "protocols": [
+      2,
+      3,
+      5,
+      6
+    ],
+    "playerSize": [
+      [
+        640,
+        480
+      ]
+    ],
+    "maxduration": 30
+  }
+}
