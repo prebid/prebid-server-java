@@ -32,8 +32,8 @@ public class TimeoutResolver {
                 : Math.min(timeout, maxTimeout);
     }
 
-    public long adjustForBidder(long timeout, double adjustFactor, long spentTime) {
-        return adjustWithFactor(timeout, adjustFactor, spentTime);
+    public long adjustForBidder(long timeout, int adjustFactor, long spentTime) {
+        return adjustWithFactor(timeout, adjustFactor / 100.0, spentTime);
     }
 
     public long adjustForRequest(long timeout, long spentTime) {

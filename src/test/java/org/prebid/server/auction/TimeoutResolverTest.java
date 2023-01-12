@@ -53,12 +53,12 @@ public class TimeoutResolverTest {
 
     @Test
     public void adjustForBidderShouldReturnExpectedResult() {
-        assertThat(timeoutResolver.adjustForBidder(200L, 0.7, 10L)).isEqualTo(120L);
+        assertThat(timeoutResolver.adjustForBidder(200L, 70, 10L)).isEqualTo(120L);
     }
 
     @Test
     public void adjustForBidderShouldReturnMinTimeout() {
-        assertThat(timeoutResolver.adjustForBidder(200L, 0.5, 10L)).isEqualTo(MIN_TIMEOUT);
+        assertThat(timeoutResolver.adjustForBidder(200L, 50, 10L)).isEqualTo(MIN_TIMEOUT);
     }
 
     @Test

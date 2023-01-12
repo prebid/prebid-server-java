@@ -177,7 +177,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -368,7 +367,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
-        given(timeoutResolver.adjustForBidder(anyLong(), anyDouble(), anyLong()))
+        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
@@ -384,7 +383,7 @@ public class ExchangeServiceTest extends VertxTest {
         dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
-                0.9,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -414,7 +413,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailOnNegativeExpectedCacheTime() {
+    public void creationShouldFailOnNegativeTimeoutAdjustmentFactor() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new ExchangeService(
                         -1,
@@ -444,7 +443,7 @@ public class ExchangeServiceTest extends VertxTest {
                         clock,
                         jacksonMapper,
                         criteriaLogManager))
-                .withMessage("Expected timeout adjustment factor should be in [0, 1].");
+                .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
     @Test
@@ -699,7 +698,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
         // given
         exchangeService = new ExchangeService(
-                0.9,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -4377,7 +4376,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
 
         exchangeService = new ExchangeService(
-                0.9,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -4446,7 +4445,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
                 .willReturn(450L);
-        given(timeoutResolver.adjustForBidder(anyLong(), eq(0.9), anyLong()))
+        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), anyLong()))
                 .willReturn(400L);
 
         final BidRequest bidRequest = givenBidRequest(

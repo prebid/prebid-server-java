@@ -717,7 +717,7 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.biddertmax.percent}") double timeoutAdjustmentFactor,
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             DealsProcessor dealsProcessor,

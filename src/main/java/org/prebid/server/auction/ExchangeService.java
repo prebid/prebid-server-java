@@ -156,7 +156,7 @@ public class ExchangeService {
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
-    private final double timeoutAdjustmentFactor;
+    private final int timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsProcessor dealsProcessor;
@@ -184,7 +184,7 @@ public class ExchangeService {
     private final JacksonMapper mapper;
     private final CriteriaLogManager criteriaLogManager;
 
-    public ExchangeService(double timeoutAdjustmentFactor,
+    public ExchangeService(int timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsProcessor dealsProcessor,
@@ -212,8 +212,8 @@ public class ExchangeService {
                            JacksonMapper mapper,
                            CriteriaLogManager criteriaLogManager) {
 
-        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 1) {
-            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 1].");
+        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
+            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
         }
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
