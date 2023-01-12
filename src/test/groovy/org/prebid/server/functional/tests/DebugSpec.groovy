@@ -347,7 +347,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    def "PBS should emit error when #reason and bidder return error"() {
+    def "PBS should populate seatNonBid when #reason and bidder return error"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: returnAllBidStatus, debug: debug)
@@ -375,7 +375,7 @@ class DebugSpec extends BaseSpec {
 
     }
 
-    def "PBS shouldn't emit error when return all bid status and debug flags are disable and bidder return error in response"() {
+    def "PBS shouldn't populate seatNonBid when return all bid status and debug flags are disable and bidder return error in response"() {
         given: "Default bid request with disable returnAllBidStatus and debug flags"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: false, debug: 0)
@@ -392,5 +392,8 @@ class DebugSpec extends BaseSpec {
 
         then: "PBS response shouldn't contain seatNonBid"
         assert !response.ext.prebid.seatNonBid
+
+        and: "PBS response shouldn't contain seatBid"
+        assert !response.seatbid
     }
 }
