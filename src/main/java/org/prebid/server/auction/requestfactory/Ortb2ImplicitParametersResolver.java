@@ -149,7 +149,6 @@ public class Ortb2ImplicitParametersResolver {
 
         final List<Imp> populatedImps = populateImps(
                 bidRequest,
-                httpRequest,
                 generateBidRequestId,
                 hasStoredBidRequest);
 
@@ -480,7 +479,6 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private List<Imp> populateImps(BidRequest bidRequest,
-                                   HttpRequestContext httpRequest,
                                    boolean generateBidRequestId,
                                    boolean hasStoredBidRequest) {
 
@@ -489,7 +487,6 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
-        final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
         final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
         final boolean isUniqueIds = isUniqueIds(imps);
@@ -497,7 +494,6 @@ public class Ortb2ImplicitParametersResolver {
                 .range(0, imps.size())
                 .mapToObj(index -> new ImpPopulationContext(
                         imps.get(index),
-                        secureFromRequest,
                         globalBidderParams,
                         generateBidRequestId,
                         hasStoredBidRequest,
@@ -805,7 +801,6 @@ public class Ortb2ImplicitParametersResolver {
         Imp populatedImp;
 
         ImpPopulationContext(Imp imp,
-                             Integer secureFromRequest,
                              ObjectNode globalBidderParams,
                              boolean generateBidRequestId,
                              boolean hasStoredBidRequest,
@@ -817,7 +812,6 @@ public class Ortb2ImplicitParametersResolver {
             this.imp = imp;
             populatedImp = populateImp(
                     imp,
-                    secureFromRequest,
                     globalBidderParams,
                     generateBidRequestId,
                     hasStoredBidRequest,
@@ -832,7 +826,6 @@ public class Ortb2ImplicitParametersResolver {
         }
 
         private static Imp populateImp(Imp imp,
-                                       Integer secureFromRequest,
                                        ObjectNode globalBidderParams,
                                        boolean generateBidRequestId,
                                        boolean hasStoredBidRequest,
@@ -845,7 +838,7 @@ public class Ortb2ImplicitParametersResolver {
             final String populatedImpId = populateImpId(impId, impIdOverride);
 
             final Integer impSecure = imp.getSecure();
-            final Integer populatedImpSecure = populateImpSecure(impSecure, secureFromRequest);
+            final Integer populatedImpSecure = populateImpSecure(impSecure);
 
             final ObjectNode impExt = imp.getExt();
             final ObjectNode populatedImpExt = populateImpExt(
@@ -879,10 +872,8 @@ public class Ortb2ImplicitParametersResolver {
                             1_0000_0000_0000_0000L));
         }
 
-        private static Integer populateImpSecure(Integer impSecure, Integer secureFromRequest) {
-            return impSecure == null && Objects.equals(secureFromRequest, 1)
-                    ? secureFromRequest
-                    : null;
+        private static Integer populateImpSecure(Integer impSecure) {
+            return impSecure == null ? 1 : null;
         }
 
         private static ObjectNode populateImpExt(ObjectNode impExt,

@@ -14,7 +14,7 @@
   ],
   "domain": "www.example.com",
   "page": "http://www.example.com",
-  "secure": 0,
+  "secure": 1,
   "isMobile": 0,
   "ua": "userAgent",
   "adapterName": "BF_PREBID_S2S",
