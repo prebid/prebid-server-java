@@ -50,6 +50,12 @@
     }
   },
   "regs": {
+    "gpp": "gppValue",
+    "gpp_sid": [
+      1,
+      3,
+      7
+    ],
     "ext": {
       "gdpr": 0
     }

@@ -189,8 +189,8 @@ public class ApplicationTest extends IntegrationTest {
         // given
         // rubicon exchange
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-generic-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("amp/test-generic-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
 
         // appnexus exchange
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
