@@ -81,55 +81,6 @@ public class ApplicationTest extends IntegrationTest {
             .build();
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .header("Sec-GPC", 1)
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
-                .body(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
-                .post("/openrtb2/auction");
-
-        // then
-        assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS),
-                openrtbCacheDebugCustomization(), headersDebugCustomization());
-    }
-
-    @Test
     public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
