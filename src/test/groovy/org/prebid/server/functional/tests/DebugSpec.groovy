@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
+import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
@@ -15,7 +16,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.NO_BID
@@ -347,53 +347,77 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    def "PBS should populate seatNonBid when #reason and bidder return error"() {
+    def "PBS should populate seatNonBid when returnAllBidStatus=#returnAllBidStatus, debug=#debug and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: returnAllBidStatus, debug: debug)
         }
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        and: "Default bidder response without bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
 
         and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, BAD_REQUEST_400, bidResponse)
+        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain seatNonBid"
+        then: "PBS response should contain seatNonBid for called bidder"
+        assert response.ext.prebid.seatNonBid.size() == 1
+
         def seatNonBid = response.ext.prebid.seatNonBid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == NO_BID
 
         where:
-        returnAllBidStatus | debug | reason
-        true               | 0     | "returnAllBidStatus is true and debug 0"
-        false              | 1     | "returnAllBidStatus is false and debug 1"
+        returnAllBidStatus | debug
+        true               | 0
+        false              | 1
 
     }
 
-    def "PBS shouldn't populate seatNonBid when return all bid status and debug flags are disable and bidder return error in response"() {
-        given: "Default bid request with disable returnAllBidStatus and debug flags"
+    def "PBS shouldn't populate seatNonBid when returnAllBidStatus and debug flags are disabled and bidder didn't bid for any reason"() {
+        given: "Default bid request with disabled returnAllBidStatus and debug flags"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: false, debug: 0)
         }
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        and: "Default bidder response without bids"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
 
         and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, BAD_REQUEST_400, bidResponse)
+        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid"
         assert !response.ext.prebid.seatNonBid
-
-        and: "PBS response shouldn't contain seatBid"
         assert !response.seatbid
+    }
+
+    def "PBS shouldn't populate seatNonBid with successful bids"() {
+        given: "Default bid request with enabled returnAllBidStatus"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        and: "Default bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain seatNonBid"
+        assert !response.ext.prebid.seatNonBid
+        assert response.seatbid
     }
 }
