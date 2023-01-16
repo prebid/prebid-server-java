@@ -107,17 +107,6 @@ class BidRequest {
         }
     }
 
-    @JsonIgnore
-    String getStoredRequestId() {
-        def storedRequestId = ext?.prebid?.storedRequest?.id
-
-        if (!storedRequestId) {
-            throw new IllegalStateException("Stored request id is missing")
-        }
-
-        storedRequestId
-    }
-
     void enableCache() {
         if (!ext) {
             ext = new BidRequestExt()
