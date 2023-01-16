@@ -44,7 +44,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -69,7 +69,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -96,7 +96,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
@@ -126,7 +126,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
@@ -165,7 +165,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -347,7 +347,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getStoredRequest(bidRequest.storedRequestId, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
