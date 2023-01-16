@@ -3,11 +3,13 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 100,
         "h": 200
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "adunit": "adunit",
           "client": "testClient"
@@ -15,6 +17,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

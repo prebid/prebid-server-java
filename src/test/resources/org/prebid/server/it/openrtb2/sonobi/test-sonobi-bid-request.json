@@ -3,18 +3,23 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "tagid": "first-tagid",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "TagID": "first-tagid"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

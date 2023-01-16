@@ -28,7 +28,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -56,13 +56,13 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -459,7 +459,10 @@ public class AmpHandlerTest extends VertxTest {
                 .bid(bids)
                 .build());
 
-        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting);
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(1000L)
+                .targeting(targeting)
+                .build();
 
         givenHoldAuction(BidResponse.builder()
                 .ext(ExtBidResponse.builder().prebid(extBidResponsePrebid).build())
@@ -482,7 +485,10 @@ public class AmpHandlerTest extends VertxTest {
         final Map<String, JsonNode> targeting =
                 Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
 
-        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, null, targeting);
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(1000L)
+                .targeting(targeting)
+                .build();
 
         givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
 
@@ -497,7 +503,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .build();
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
@@ -505,7 +511,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
-                        .prebid(ExtBidResponsePrebid.of(1000L, null, null, Collections.emptyMap()))
+                        .prebid(ExtBidResponsePrebid.builder().auctiontimestamp(1000L).targeting(emptyMap()).build())
                         .build()));
 
         // when
@@ -526,13 +532,14 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                        .prebid(ExtBidResponsePrebid.of(
-                                1000L,
-                                ExtModules.of(
+                        .prebid(ExtBidResponsePrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .modules(ExtModules.of(
                                         singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
                                         singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
-                                        ExtModulesTrace.of(2L, emptyList())),
-                                null, Collections.emptyMap()))
+                                        ExtModulesTrace.of(2L, emptyList())))
+                                .targeting(emptyMap())
+                                .build())
                         .build()));
 
         // when

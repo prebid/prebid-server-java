@@ -80,7 +80,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                 .bidfloor(extImpAlkimi.getBidFloor())
                 .banner(updatedBanner)
                 .video(updatedVideo)
-                .ext(makeImpExt(updatedBanner, updatedVideo, extImpAlkimi))
+                .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
                 .build();
     }
 
@@ -101,7 +101,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         return video != null ? video.toBuilder().pos(position).build() : null;
     }
 
-    private ObjectNode makeImpExt(Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
+    private ObjectNode makeImpExt(Imp imp, Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
         final ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = extImpAlkimi.toBuilder();
 
         if (banner != null) {
@@ -115,6 +115,8 @@ public class AlkimiBidder implements Bidder<BidRequest> {
             extBuilder.height(video.getH());
             extBuilder.impMediaType(TYPE_VIDEO);
         }
+
+        extBuilder.adUnitCode(imp.getId());
 
         return mapper.mapper().valueToTree(ExtPrebid.of(null, extBuilder.build()));
     }

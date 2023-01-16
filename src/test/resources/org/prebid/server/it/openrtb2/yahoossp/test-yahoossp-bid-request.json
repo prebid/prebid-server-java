@@ -3,12 +3,14 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "tagid": "pos",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "dcn": "dcn",
           "pos": "pos"
@@ -16,6 +18,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "id": "dcn",
     "domain": "www.example.com",

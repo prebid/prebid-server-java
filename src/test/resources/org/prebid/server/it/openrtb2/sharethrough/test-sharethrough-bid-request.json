@@ -3,12 +3,14 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 320,
         "h": 250
       },
       "tagid": "pkey",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "pkey": "pkey"
         }
@@ -35,6 +37,7 @@
     "USD"
   ],
   "source": {
+    "tid": "${json-unit.any-string}",
     "ext": {
       "str": "10.0",
       "version": "{{ pbs.java.version }}"

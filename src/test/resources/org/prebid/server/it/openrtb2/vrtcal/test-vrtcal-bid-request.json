@@ -3,17 +3,22 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "Just_an_unused_vrtcal_param": "unused_data"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "app": {},
   "device": {
     "ua": "userAgent",

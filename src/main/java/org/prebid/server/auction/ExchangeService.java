@@ -25,6 +25,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
@@ -36,6 +37,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.ImpRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -291,7 +293,7 @@ public class ExchangeService {
                                 .collect(Collectors.toCollection(ArrayList::new))))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
-
+                .map(ExchangeService::populateMissingBids)
                 .map(storedResponseProcessor::updateStoredBidResponse)
                 .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
@@ -301,11 +303,7 @@ public class ExchangeService {
 
                 .map(receivedContext::with)
                 // produce response from bidder results
-                .compose(context -> bidResponseCreator.create(
-                                context.getAuctionParticipations(),
-                                context,
-                                cacheInfo,
-                                bidderToMultiBid)
+                .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
                         .map(bidResponse -> publishAuctionEvent(bidResponse, receivedContext))
                         .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse,
                                 receivedContext.getBidRequest(), receivedContext.getDebugContext().isDebugEnabled()))
@@ -1267,8 +1265,6 @@ public class ExchangeService {
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
 
-        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
-
         final long startTime = clock.millis();
 
         final MediaTypeProcessingResult mediaTypeProcessingResult =
@@ -1289,8 +1285,10 @@ public class ExchangeService {
 
         final BidderRequest modifiedBidderRequest = bidderRequest.with(convertedBidRequest);
 
+        final boolean debugEnabled = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
+
         return httpBidderRequester
-                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabledForBidder)
+                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, aliases, debugEnabled)
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),
@@ -1307,6 +1305,35 @@ public class ExchangeService {
                 : stageResult.getPayload().bids();
 
         return bidderResponse.with(bidderResponse.getSeatBid().with(bids));
+    }
+
+    private static List<AuctionParticipation> populateMissingBids(List<AuctionParticipation> auctionParticipations) {
+        return auctionParticipations.stream()
+                .map(ExchangeService::populateMissingBids)
+                .toList();
+    }
+
+    private static AuctionParticipation populateMissingBids(AuctionParticipation auctionParticipation) {
+        if (auctionParticipation.isRequestBlocked()) {
+            return auctionParticipation;
+        }
+
+        Set<String> requestedImpIds = auctionParticipation.getBidderRequest().getBidRequest().getImp().stream()
+                .map(Imp::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<String> bidsImpIds = auctionParticipation.getBidderResponse().getSeatBid().getBids().stream()
+                .map(BidderBid::getBid)
+                .filter(Objects::nonNull)
+                .map(Bid::getImpid)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+
+        Map<String, ImpRejectionReason> rejectedImpIds = SetUtils.difference(requestedImpIds, bidsImpIds).stream()
+                .collect(Collectors.toMap(Function.identity(), ignored -> ImpRejectionReason.NO_BID));
+
+        return auctionParticipation.with(rejectedImpIds);
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
@@ -1646,11 +1673,12 @@ public class ExchangeService {
         final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
         final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);
 
-        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
-                extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null),
-                extModules,
-                extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null),
-                extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null));
+        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null))
+                .modules(extModules)
+                .passthrough(extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null))
+                .targeting(extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null))
+                .build();
 
         final ExtBidResponse updatedExt = ext
                 .map(ExtBidResponse::toBuilder)

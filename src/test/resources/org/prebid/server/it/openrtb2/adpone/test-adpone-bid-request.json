@@ -3,17 +3,22 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "placementId": "some_placement_id"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

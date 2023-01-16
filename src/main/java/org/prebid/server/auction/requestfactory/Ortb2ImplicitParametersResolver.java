@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -55,8 +56,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Ortb2ImplicitParametersResolver {
 
@@ -71,36 +75,43 @@ public class Ortb2ImplicitParametersResolver {
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
             Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid");
+    private static final String OVERRIDE_SOURCE_ID_TEMPLATE = "{{UUID}}";
 
     private final boolean shouldCacheOnlyWinningBids;
+    private final boolean generateBidRequestId;
     private final String adServerCurrency;
     private final List<String> blacklistedApps;
     private final ExtRequestPrebidServer serverInfo;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final TimeoutResolver timeoutResolver;
     private final IpAddressHelper ipAddressHelper;
-    private final IdGenerator sourceIdGenerator;
+    private final IdGenerator tidGenerator;
     private final JsonMerger jsonMerger;
     private final JacksonMapper mapper;
 
     public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
+                                           boolean generateBidRequestId,
                                            String adServerCurrency,
                                            List<String> blacklistedApps,
                                            String externalUrl,
                                            Integer hostVendorId,
                                            String datacenterRegion,
                                            ImplicitParametersExtractor paramsExtractor,
+                                           TimeoutResolver timeoutResolver,
                                            IpAddressHelper ipAddressHelper,
-                                           IdGenerator sourceIdGenerator,
+                                           IdGenerator tidGenerator,
                                            JsonMerger jsonMerger,
                                            JacksonMapper mapper) {
 
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
+        this.generateBidRequestId = generateBidRequestId;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
-        this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
+        this.tidGenerator = Objects.requireNonNull(tidGenerator);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -125,8 +136,8 @@ public class Ortb2ImplicitParametersResolver {
      */
     public BidRequest resolve(BidRequest bidRequest,
                               HttpRequestContext httpRequest,
-                              TimeoutResolver timeoutResolver,
-                              String endpoint) {
+                              String endpoint,
+                              boolean hasStoredBidRequest) {
 
         checkBlacklistedApp(bidRequest);
 
@@ -136,7 +147,10 @@ public class Ortb2ImplicitParametersResolver {
         final Site site = bidRequest.getSite();
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
 
-        final List<Imp> populatedImps = populateImps(bidRequest, httpRequest);
+        final List<Imp> populatedImps = populateImps(
+                bidRequest,
+                generateBidRequestId,
+                hasStoredBidRequest);
 
         final Integer at = bidRequest.getAt();
         final Integer resolvedAt = resolveAt(at);
@@ -145,7 +159,7 @@ public class Ortb2ImplicitParametersResolver {
         final List<String> resolvedCurrencies = resolveCurrencies(cur);
 
         final Long tmax = bidRequest.getTmax();
-        final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
+        final Long resolvedTmax = resolveTmax(tmax);
 
         final ExtRequest ext = bidRequest.getExt();
         final List<Imp> imps = bidRequest.getImp();
@@ -153,7 +167,7 @@ public class Ortb2ImplicitParametersResolver {
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
 
         final Source source = bidRequest.getSource();
-        final Source populatedSource = populateSource(source, populatedExt);
+        final Source populatedSource = populateSource(source, populatedExt, hasStoredBidRequest);
 
         return bidRequest.toBuilder()
                 .device(populatedDevice != null ? populatedDevice : device)
@@ -322,26 +336,23 @@ public class Ortb2ImplicitParametersResolver {
             return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
-        return lmt == null ? 0 : null;
+        return !Objects.equals(lmt, 0) ? 0 : null;
     }
 
     private static Integer resolveLmtForIos14Minor2AndHigher(Device device) {
         final Integer lmt = device.getLmt();
-        if (lmt != null) {
-            return null;
-        }
-
         final Integer atts = ObjectUtil.getIfNotNull(device.getExt(), ExtDevice::getAtts);
+
         if (atts == null) {
             return null;
         }
 
-        if (atts == 1 || atts == 2) {
-            return 1;
+        if (atts == 3) {
+            return !Objects.equals(lmt, 0) ? 0 : null;
         }
 
-        if (atts == 0 || atts == 3) {
-            return 0;
+        if (atts == 0 || atts == 1 || atts == 2) {
+            return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
         return null;
@@ -408,9 +419,16 @@ public class Ortb2ImplicitParametersResolver {
         }
     }
 
-    private Source populateSource(Source source, ExtRequest extRequest) {
+    private Source populateSource(Source source,
+                                  ExtRequest extRequest,
+                                  boolean hasStoredBidRequest) {
+
         final String tid = source != null ? source.getTid() : null;
-        final String populatedTid = populateSourceTid(tid);
+        final String populatedTid = populateTidValue(
+                tid,
+                generateBidRequestId,
+                hasStoredBidRequest,
+                tidGenerator);
 
         final SupplyChain supplyChain = source != null ? source.getSchain() : null;
         final SupplyChain populatedSupplyChain = populateSupplyChain(supplyChain, extRequest);
@@ -425,14 +443,27 @@ public class Ortb2ImplicitParametersResolver {
         return null;
     }
 
-    private String populateSourceTid(String tid) {
-        if (StringUtils.isNotEmpty(tid)) {
+    private static String populateTidValue(String tid,
+                                           boolean generateBidRequestId,
+                                           boolean hasStoredBidRequest,
+                                           IdGenerator tidGenerator) {
+
+        final boolean containsTidMacro = StringUtils.containsIgnoreCase(tid, OVERRIDE_SOURCE_ID_TEMPLATE);
+        if (StringUtils.isNotBlank(tid)
+                && !containsTidMacro
+                && !(generateBidRequestId
+                && hasStoredBidRequest)) {
             return null;
         }
 
-        final String generatedId = sourceIdGenerator.generateId();
+        final String generatedId = tidGenerator.generateId();
 
-        return StringUtils.isNotEmpty(generatedId) ? generatedId : null;
+        return StringUtils.isBlank(tid)
+                || (generateBidRequestId
+                && hasStoredBidRequest)
+                && !containsTidMacro
+                ? generatedId
+                : StringUtils.replaceIgnoreCase(tid, OVERRIDE_SOURCE_ID_TEMPLATE, generatedId);
     }
 
     private SupplyChain populateSupplyChain(SupplyChain supplyChain, ExtRequest extRequest) {
@@ -447,17 +478,29 @@ public class Ortb2ImplicitParametersResolver {
         }
     }
 
-    private List<Imp> populateImps(BidRequest bidRequest, HttpRequestContext httpRequest) {
+    private List<Imp> populateImps(BidRequest bidRequest,
+                                   boolean generateBidRequestId,
+                                   boolean hasStoredBidRequest) {
+
         final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
             return null;
         }
 
-        final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
         final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
-        final List<ImpPopulationContext> impPopulationContexts = imps.stream()
-                .map(imp -> new ImpPopulationContext(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger))
+        final boolean isUniqueIds = isUniqueIds(imps);
+        final List<ImpPopulationContext> impPopulationContexts = IntStream
+                .range(0, imps.size())
+                .mapToObj(index -> new ImpPopulationContext(
+                        imps.get(index),
+                        globalBidderParams,
+                        generateBidRequestId,
+                        hasStoredBidRequest,
+                        !isUniqueIds ? String.valueOf(index + 1) : null,
+                        mapper,
+                        tidGenerator,
+                        jsonMerger))
                 .toList();
 
         if (impPopulationContexts.stream()
@@ -491,6 +534,16 @@ public class Ortb2ImplicitParametersResolver {
 
     private static boolean isObjectNode(JsonNode node) {
         return node != null && node.isObject();
+    }
+
+    private static boolean isUniqueIds(List<Imp> imps) {
+        final List<String> impIdsList = imps.stream()
+                .filter(Objects::nonNull)
+                .map(Imp::getId)
+                .toList();
+        final Set<String> impIdsSet = new HashSet<>(impIdsList);
+
+        return impIdsSet.size() == impIdsList.size();
     }
 
     private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps, String endpoint) {
@@ -731,7 +784,7 @@ public class Ortb2ImplicitParametersResolver {
      * Determines request timeout with the help of {@link TimeoutResolver}.
      * Returns resolved new value or null if existing request timeout doesn't need to update.
      */
-    private static Long resolveTmax(Long requestTimeout, TimeoutResolver timeoutResolver) {
+    private Long resolveTmax(Long requestTimeout) {
         final long timeout = timeoutResolver.resolve(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }
@@ -741,19 +794,31 @@ public class Ortb2ImplicitParametersResolver {
 
         private static final String DEALS_ONLY = "dealsonly";
         private static final String PG_DEALS_ONLY = "pgdealsonly";
+        private static final String TID = "tid";
 
         Imp imp;
 
         Imp populatedImp;
 
         ImpPopulationContext(Imp imp,
-                             Integer secureFromRequest,
                              ObjectNode globalBidderParams,
+                             boolean generateBidRequestId,
+                             boolean hasStoredBidRequest,
+                             String impIdOverride,
                              JacksonMapper mapper,
+                             IdGenerator tidGenerator,
                              JsonMerger jsonMerger) {
 
             this.imp = imp;
-            populatedImp = populateImp(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger);
+            populatedImp = populateImp(
+                    imp,
+                    globalBidderParams,
+                    generateBidRequestId,
+                    hasStoredBidRequest,
+                    impIdOverride,
+                    mapper,
+                    tidGenerator,
+                    jsonMerger);
         }
 
         public Imp getPopulationResult() {
@@ -761,43 +826,76 @@ public class Ortb2ImplicitParametersResolver {
         }
 
         private static Imp populateImp(Imp imp,
-                                       Integer secureFromRequest,
                                        ObjectNode globalBidderParams,
+                                       boolean generateBidRequestId,
+                                       boolean hasStoredBidRequest,
+                                       String impIdOverride,
                                        JacksonMapper mapper,
+                                       IdGenerator tidGenerator,
                                        JsonMerger jsonMerger) {
 
+            final String impId = imp.getId();
+            final String populatedImpId = populateImpId(impId, impIdOverride);
+
             final Integer impSecure = imp.getSecure();
-            final Integer populatedImpSecure = populateImpSecure(impSecure, secureFromRequest);
+            final Integer populatedImpSecure = populateImpSecure(impSecure);
 
             final ObjectNode impExt = imp.getExt();
-            final ObjectNode populatedImpExt = populateImpExt(impExt, globalBidderParams, mapper, jsonMerger);
+            final ObjectNode populatedImpExt = populateImpExt(
+                    impExt,
+                    globalBidderParams,
+                    generateBidRequestId,
+                    hasStoredBidRequest,
+                    mapper,
+                    tidGenerator,
+                    jsonMerger);
 
-            return ObjectUtils.anyNotNull(populatedImpSecure, populatedImpExt)
+            return ObjectUtils.anyNotNull(populatedImpId, populatedImpSecure, populatedImpExt)
                     ? imp.toBuilder()
+                    .id(populatedImpId != null ? populatedImpId : impId)
                     .secure(populatedImpSecure != null ? populatedImpSecure : impSecure)
                     .ext(populatedImpExt != null ? populatedImpExt : impExt)
                     .build()
                     : null;
         }
 
-        private static Integer populateImpSecure(Integer impSecure, Integer secureFromRequest) {
-            return impSecure == null && Objects.equals(secureFromRequest, 1)
-                    ? secureFromRequest
+        private static String populateImpId(String impId, String impIdOverride) {
+            return StringUtils.isNotBlank(impIdOverride) || StringUtils.isBlank(impId)
+                    ? StringUtils.isNotBlank(impIdOverride) ? impIdOverride : generateSixteenDigitRandomString()
                     : null;
+        }
+
+        private static String generateSixteenDigitRandomString() {
+            return String.valueOf(
+                    ThreadLocalRandom.current().nextLong(
+                            1000_0000_0000_0000L,
+                            1_0000_0000_0000_0000L));
+        }
+
+        private static Integer populateImpSecure(Integer impSecure) {
+            return impSecure == null ? 1 : null;
         }
 
         private static ObjectNode populateImpExt(ObjectNode impExt,
                                                  ObjectNode globalBidderParams,
+                                                 boolean generateBidRequestId,
+                                                 boolean hasStoredBidRequest,
                                                  JacksonMapper mapper,
+                                                 IdGenerator tidGenerator,
                                                  JsonMerger jsonMerger) {
 
-            final ObjectNode modifiedImpEXt = prepareValidImpExtCopy(impExt, mapper);
-            final boolean isMoved = moveBidderParamsToPrebid(modifiedImpEXt);
-            final boolean isMerged = mergeGlobalBidderParamsToImpExt(modifiedImpEXt, globalBidderParams, jsonMerger);
-            final boolean isDealsOnlyModified = modifyDealsOnly(modifiedImpEXt);
+            final ObjectNode modifiedImpExt = prepareValidImpExtCopy(impExt, mapper);
+            final boolean isMoved = moveBidderParamsToPrebid(modifiedImpExt);
+            final boolean isMerged = mergeGlobalBidderParamsToImpExt(modifiedImpExt, globalBidderParams, jsonMerger);
+            final boolean isDealsOnlyModified = modifyDealsOnly(modifiedImpExt);
+            final boolean isNonBidderFieldsModified = modifyNonBidderFields(
+                    modifiedImpExt,
+                    generateBidRequestId,
+                    hasStoredBidRequest,
+                    tidGenerator);
 
-            return isMoved || isMerged || isDealsOnlyModified
-                    ? modifiedImpEXt
+            return isMoved || isMerged || isDealsOnlyModified || isNonBidderFieldsModified
+                    ? modifiedImpExt
                     : null;
         }
 
@@ -900,6 +998,32 @@ public class Ortb2ImplicitParametersResolver {
 
             bidderFields.set(DEALS_ONLY, BooleanNode.TRUE);
             return true;
+        }
+
+        private static boolean modifyNonBidderFields(ObjectNode impExt,
+                                                     boolean generateBidRequestId,
+                                                     boolean hasStoredBidRequest,
+                                                     IdGenerator tidGenerator) {
+
+            final JsonNode impExtTid = Optional.of(impExt)
+                    .map(extNode -> extNode.get(TID))
+                    .filter(JsonNode::isTextual)
+                    .orElse(null);
+
+            final String populatedTid = populateTidValue(
+                    Optional.ofNullable(impExtTid)
+                            .map(JsonNode::asText)
+                            .orElse(null),
+                    generateBidRequestId,
+                    hasStoredBidRequest,
+                    tidGenerator);
+
+            if (populatedTid != null) {
+                impExt.set(TID, new TextNode(populatedTid));
+                return true;
+            }
+
+            return false;
         }
     }
 }

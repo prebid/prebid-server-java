@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "instl": 1,
       "banner": {
         "w": 300,
@@ -11,6 +12,9 @@
       "tagid": "130563103"
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "publisher": {
       "id": "11000"

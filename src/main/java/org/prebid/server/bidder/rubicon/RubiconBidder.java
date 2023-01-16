@@ -177,6 +177,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
 
     private final String endpointUrl;
     private final Set<String> supportedVendors;
@@ -218,10 +219,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = parseRubiconImpExts(imps, errors);
+        final Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> multiformatImpToImpExt = new HashSet<>();
+        final Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> nonMultiformatImpToImpExt = new HashSet<>();
+        impToImpExt.entrySet().forEach(entry -> {
+            if (isMultiformatEnabled(entry.getValue())) {
+                multiformatImpToImpExt.addAll(separateImpByMediaType(entry));
+            } else {
+                nonMultiformatImpToImpExt.add(entry);
+            }
+        });
+
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
         final String uri = makeUri(bidRequest);
 
-        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
+        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt
+                : CollectionUtils.union(multiformatImpToImpExt, nonMultiformatImpToImpExt)) {
             try {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
@@ -340,6 +352,39 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private static boolean isMultiformatEnabled(ExtPrebid<ExtImpPrebid, ExtImpRubicon> extImp) {
+        return Optional.ofNullable(extImp)
+                .map(ExtPrebid::getBidder)
+                .map(ExtImpRubicon::getBidOnMultiFormat)
+                .orElse(DEFAULT_MULTIFORMAT_VALUE);
+    }
+
+    private static Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> separateImpByMediaType(
+            Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> entry) {
+
+        return separateImpByMediaType(entry.getKey()).stream()
+                .map(imp -> Map.entry(imp, entry.getValue()))
+                .collect(Collectors.toSet());
+    }
+
+    private static Set<Imp> separateImpByMediaType(Imp imp) {
+        final Set<Imp> separatedImps = new HashSet<>();
+        if (imp.getBanner() != null) {
+            separatedImps.add(imp.toBuilder().video(null).xNative(null).audio(null).build());
+        }
+        if (imp.getVideo() != null) {
+            separatedImps.add(imp.toBuilder().banner(null).xNative(null).audio(null).build());
+        }
+        if (imp.getXNative() != null) {
+            separatedImps.add(imp.toBuilder().banner(null).video(null).audio(null).build());
+        }
+        if (imp.getAudio() != null) {
+            separatedImps.add(imp.toBuilder().banner(null).video(null).xNative(null).build());
+        }
+
+        return separatedImps;
     }
 
     private static String firstImpExtLanguage(Collection<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> rubiconImpExts) {
