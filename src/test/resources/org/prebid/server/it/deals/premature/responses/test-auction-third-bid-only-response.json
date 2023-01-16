@@ -371,7 +371,8 @@
     },
     "tmaxrequest": 2000,
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "seatnonbid": []
     }
   }
 }

@@ -8,7 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
@@ -58,7 +58,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(true, null));
+        assertThat(result.isDebugEnabled()).isTrue();
     }
 
     @Test
@@ -72,7 +72,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, null));
+        assertThat(result.isDebugEnabled()).isFalse();
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
@@ -87,7 +87,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, null));
+        assertThat(result.isDebugEnabled()).isFalse();
         assertThat(auctionContext.getDebugWarnings()).hasSize(1)
                 .containsOnly("Debug turned off for account");
     }
@@ -103,7 +103,38 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(true, null));
+        assertThat(result.isDebugEnabled()).isTrue();
+        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+    }
+
+    @Test
+    public void debugContextFromShouldSetReturnAllBidStatusFlagToTrueWhenSetToTrueInBidRequestExt() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(builder -> builder
+                .bidRequest(givenBidRequest(extPrebid -> extPrebid.returnallbidstatus(true)))
+                .account(givenAccount(true)));
+
+        // when
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
+
+        // then
+        assertThat(result.isShouldReturnAllBidStatuses()).isTrue();
+        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+    }
+
+    @Test
+    public void debugContextFromShouldSetReturnAllBidStatusFlagToTrueWhenDebugTrue() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(builder -> builder
+                .bidRequest(givenBidRequest(extPrebid -> extPrebid.debug(1)))
+                .account(givenAccount(true)));
+
+        // when
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
+
+        // then
+        assertThat(result.isDebugEnabled()).isTrue();
+        assertThat(result.isShouldReturnAllBidStatuses()).isTrue();
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
@@ -118,7 +149,7 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, TraceLevel.basic));
+        assertThat(result.getTraceLevel()).isEqualTo(TraceLevel.basic);
     }
 
     @Test
@@ -199,7 +230,7 @@ public class DebugResolverTest {
 
         return givenAuctionContext(builder -> builder
                 .httpRequest(httpRequestContext)
-                .debugContext(DebugContext.of(debugEnabled, null)));
+                .debugContext(DebugContext.of(debugEnabled, false, null)));
     }
 
     private static BidRequest givenBidRequest(

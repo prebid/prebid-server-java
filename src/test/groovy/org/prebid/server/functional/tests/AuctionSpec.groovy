@@ -12,7 +12,6 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 class AuctionSpec extends BaseSpec {
 
     def "PBS should return version in response header for auction request for #description"() {
-
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequestRaw(bidRequest)
 
