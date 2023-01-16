@@ -219,7 +219,7 @@ public class ServiceConfiguration {
     TimeoutResolver auctionTimeoutResolver(
             @Value("${auction.biddertmax.min}") long minTimeout,
             @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
-            @Value("${auction.biddertmax.max:#{null}}") Long maxTimeout,
+            @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
             @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
         return new TimeoutResolver(
@@ -229,8 +229,8 @@ public class ServiceConfiguration {
     }
 
     // TODO: Remove after transition period
-    private static long resolveMaxTimeout(long maxTimeoutDeprecated, Long maxTimeout) {
-        if (maxTimeout != null) {
+    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
+        if (maxTimeout != 0) {
             return maxTimeout;
         }
 
