@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.bidder.BidderName
 class Prebid {
 
     Integer debug
+    Boolean returnAllBidStatus
     Map<String, BidderName> aliases
     Map<String, Integer> aliasgvlids
     BidAdjustmentFactors bidAdjustmentFactors
