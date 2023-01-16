@@ -83,21 +83,20 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
-                .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-request.json")))
+                        jsonFrom("openrtb2/generic_core_functionality/test-generic-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-response.json"))));
+                        jsonFrom("openrtb2/generic_core_functionality/test-generic-bid-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-request.json")))
+                        jsonFrom("openrtb2/generic_core_functionality/test-cache-generic-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-response.json"))));
+                        jsonFrom("openrtb2/generic_core_functionality/test-cache-generic-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -107,13 +106,13 @@ public class ApplicationTest extends IntegrationTest {
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rubicon":"RUB-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJSVUItVUlEIn19")
-                .body(jsonFrom("openrtb2/rubicon_core_functionality/test-auction-rubicon-request.json"))
+                .body(jsonFrom("openrtb2/generic_core_functionality/test-auction-generic-request.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/rubicon_core_functionality/test-auction-rubicon-response.json",
-                response, singletonList("rubicon"));
+                "openrtb2/generic_core_functionality/test-auction-generic-response.json",
+                response, singletonList("generic"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

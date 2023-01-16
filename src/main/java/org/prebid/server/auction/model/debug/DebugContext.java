@@ -1,4 +1,4 @@
-package org.prebid.server.auction.model;
+package org.prebid.server.auction.model.debug;
 
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -6,9 +6,11 @@ import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 @Value(staticConstructor = "of")
 public class DebugContext {
 
-    private static final DebugContext EMPTY = DebugContext.of(false, null);
+    private static final DebugContext EMPTY = DebugContext.of(false, false, null);
 
     boolean debugEnabled;
+
+    boolean shouldReturnAllBidStatuses;
 
     TraceLevel traceLevel;
 

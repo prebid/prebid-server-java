@@ -8,7 +8,7 @@ class Rubicon implements BidderAdapter {
     Integer siteId
     Integer zoneId
 
-    static Rubicon getDefault() {
+    static Rubicon getDefaultRubicon() {
         new Rubicon().tap {
             accountId = PBSUtils.randomNumber
             siteId = PBSUtils.randomNumber

@@ -11,7 +11,7 @@
         "h": 250
       },
       "ext": {
-        "rubicon": {
+        "generic": {
           "accountId": 2001,
           "siteId": 3001,
           "zoneId": 4001
@@ -28,7 +28,7 @@
       "bidadjustmentfactors": {
         "mediatypes": {
           "video": {
-            "rubicon": 0.9
+            "generic": 0.9
           }
         }
       },
