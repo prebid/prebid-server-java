@@ -1514,7 +1514,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer gdpr = regs.getGdpr();
         final String usPrivacy = regs.getUsPrivacy();
         if (gdpr == null && usPrivacy == null) {
-            return null;
+            return regs;
         }
 
         final ExtRegs extRegs = copyProperties(regs.getExt(), ExtRegs.of(gdpr, usPrivacy));
