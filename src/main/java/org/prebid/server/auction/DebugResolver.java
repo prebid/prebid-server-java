@@ -34,7 +34,7 @@ public class DebugResolver {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         final boolean debugEnabled = isDebugEnabled(auctionContext);
-        final boolean returnAllBidStatus = shouldReturnAllBidStatus(bidRequest, debugEnabled);
+        final boolean returnAllBidStatus = shouldReturnAllBidStatus(bidRequest);
         final TraceLevel traceLevel = getTraceLevel(bidRequest);
         return DebugContext.of(debugEnabled, returnAllBidStatus, traceLevel);
     }
@@ -70,13 +70,11 @@ public class DebugResolver {
         return ObjectUtils.defaultIfNull(debugAllowed, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
     }
 
-    private static boolean shouldReturnAllBidStatus(BidRequest bidRequest, boolean debugEnabled) {
-        final boolean shouldReturnAllBidStatus = Optional.ofNullable(bidRequest.getExt())
+    private static boolean shouldReturnAllBidStatus(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getReturnallbidstatus)
                 .orElse(false);
-
-        return shouldReturnAllBidStatus || debugEnabled;
     }
 
     private static TraceLevel getTraceLevel(BidRequest bidRequest) {

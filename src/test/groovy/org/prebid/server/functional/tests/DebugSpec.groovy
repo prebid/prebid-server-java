@@ -347,10 +347,36 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    def "PBS should populate seatNonBid when returnAllBidStatus=#returnAllBidStatus, debug=#debug and requested bidder didn't bid for any reason"() {
+    def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid for any reason"() {
+        given: "Default bid request with returnAllBidStatus"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid = new Prebid(returnAllBidStatus: true)
+        }
+
+        and: "Default bidder response without bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid for called bidder"
+        assert response.ext.prebid.seatNonBid.size() == 1
+
+        def seatNonBid = response.ext.prebid.seatNonBid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == NO_BID
+    }
+
+    def "PBS should populate seatNonBid and debug when returnAllBidStatus=true, debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid = new Prebid(returnAllBidStatus: returnAllBidStatus, debug: debug)
+            ext.prebid = new Prebid(returnAllBidStatus: true, debug: 0)
         }
 
         and: "Default bidder response without bid"
@@ -372,17 +398,14 @@ class DebugSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == NO_BID
 
-        where:
-        returnAllBidStatus | debug
-        true               | 0
-        false              | 1
-
+        and: "PBS response shouldn't contain debug"
+        assert !response?.ext?.debug
     }
 
-    def "PBS shouldn't populate seatNonBid when returnAllBidStatus and debug flags are disabled and bidder didn't bid for any reason"() {
-        given: "Default bid request with disabled returnAllBidStatus and debug flags"
+    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and bidder didn't bid for any reason"() {
+        given: "Default bid request with disabled returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid = new Prebid(returnAllBidStatus: false, debug: 0)
+            ext.prebid = new Prebid(returnAllBidStatus: false)
         }
 
         and: "Default bidder response without bids"
@@ -399,6 +422,27 @@ class DebugSpec extends BaseSpec {
         then: "PBS response shouldn't contain seatNonBid"
         assert !response.ext.prebid.seatNonBid
         assert !response.seatbid
+    }
+
+    def "PBS shouldn't populate seatNonBid when debug=0 and requested bidder didn't bid for any reason"() {
+        given: "Default bid request with returnAllBidStatus and debug, test"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid = new Prebid(returnAllBidStatus: false, debug: 0)
+        }
+
+        and: "Default bidder response without bids"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain seatNonBid for called bidder"
+        assert !response.ext.prebid.seatNonBid
     }
 
     def "PBS shouldn't populate seatNonBid with successful bids"() {

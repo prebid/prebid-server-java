@@ -178,7 +178,7 @@
               ]
             },
             "ext": {
-                "tid": "someTid",
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -370,8 +370,7 @@
     },
     "tmaxrequest": 2000,
     "prebid": {
-      "auctiontimestamp": 1000,
-      "seatnonbid": []
+      "auctiontimestamp": 1000
     }
   }
 }

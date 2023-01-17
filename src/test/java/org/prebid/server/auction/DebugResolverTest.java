@@ -123,22 +123,6 @@ public class DebugResolverTest {
     }
 
     @Test
-    public void debugContextFromShouldSetReturnAllBidStatusFlagToTrueWhenDebugTrue() {
-        // given
-        final AuctionContext auctionContext = givenAuctionContext(builder -> builder
-                .bidRequest(givenBidRequest(extPrebid -> extPrebid.debug(1)))
-                .account(givenAccount(true)));
-
-        // when
-        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
-
-        // then
-        assertThat(result.isDebugEnabled()).isTrue();
-        assertThat(result.isShouldReturnAllBidStatuses()).isTrue();
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
-    }
-
-    @Test
     public void debugContextFromShouldPassTraceLevelThrough() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder
