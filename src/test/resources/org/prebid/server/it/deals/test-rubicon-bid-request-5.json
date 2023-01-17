@@ -101,5 +101,5 @@
     }
   },
   "at": 1,
-  "tmax": 2000
+  "tmax": "${json-unit.any-number}"
 }

@@ -785,7 +785,7 @@ public class Ortb2ImplicitParametersResolver {
      * Returns resolved new value or null if existing request timeout doesn't need to update.
      */
     private Long resolveTmax(Long requestTimeout) {
-        final long timeout = timeoutResolver.resolve(requestTimeout);
+        final long timeout = timeoutResolver.limitToMax(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }
 

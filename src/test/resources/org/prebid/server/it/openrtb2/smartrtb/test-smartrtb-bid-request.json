@@ -45,7 +45,7 @@
       "domain": "example.com"
     }
   },
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "ext": {
     "prebid": {
       "pbs": {
