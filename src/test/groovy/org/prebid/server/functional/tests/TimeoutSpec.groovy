@@ -290,10 +290,10 @@ class TimeoutSpec extends BaseSpec {
     }
 
     def "PBS amp should return error when auction.biddertmax.min value not enough for bidder request"() {
-        given: "PBS config with biddertmax.min = 5"
-        def bidderTMaxMin = "5"
+        given: "PBS config with biddertmax.min"
+        def bidderTMaxMin = PBSUtils.getRandomNumber(0,5)
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                                                                "auction.biddertmax.min"    : bidderTMaxMin])
+                                                                                "auction.biddertmax.min"    : bidderTMaxMin as String])
 
         and: "Default AMP request without timeout"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
