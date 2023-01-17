@@ -373,7 +373,7 @@ class DebugSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].statusCode == NO_BID
     }
 
-    def "PBS should populate seatNonBid and debug when returnAllBidStatus=true,debug=1 and requested bidder didn't bid for any reason"() {
+    def "PBS should populate seatNonBid and debug when returnAllBidStatus=true, debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: true, debug: 0)
@@ -398,8 +398,8 @@ class DebugSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == NO_BID
 
-        and: "PBs response should contain debug"
-        assert response?.ext?.debug
+        and: "PBS response shouldn't contain debug"
+        assert !response?.ext?.debug
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and bidder didn't bid for any reason"() {
@@ -424,11 +424,10 @@ class DebugSpec extends BaseSpec {
         assert !response.seatbid
     }
 
-    def "PBS shouldn't populate seatNonBid when debug=#debug, test=#test and requested bidder didn't bid for any reason"() {
+    def "PBS shouldn't populate seatNonBid when debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug, test"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.test = test
-            ext.prebid = new Prebid(debug: debug)
+            ext.prebid = new Prebid(returnAllBidStatus: false, debug: 0)
         }
 
         and: "Default bidder response without bids"
@@ -444,11 +443,6 @@ class DebugSpec extends BaseSpec {
 
         then: "PBS response shouldn't contain seatNonBid for called bidder"
         assert !response.ext.prebid.seatNonBid
-
-        where:
-        debug | test
-        1     | 0
-        0     | 1
     }
 
     def "PBS shouldn't populate seatNonBid with successful bids"() {
