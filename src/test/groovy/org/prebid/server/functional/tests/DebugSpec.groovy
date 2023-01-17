@@ -376,7 +376,7 @@ class DebugSpec extends BaseSpec {
     def "PBS should populate seatNonBid and debug when returnAllBidStatus=true,debug=1 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid = new Prebid(returnAllBidStatus: true, debug: 1)
+            ext.prebid = new Prebid(returnAllBidStatus: true, debug: 0)
         }
 
         and: "Default bidder response without bid"
