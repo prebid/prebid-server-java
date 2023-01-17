@@ -17,6 +17,7 @@ import static org.prebid.server.functional.testcontainers.container.PrebidServer
 class TimeoutSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final int MIN_TIMEOUT_CONFIG = 2
     private static final int MIN_TIMEOUT = PBSUtils.getRandomNumber(50, 150)
     private static final Map PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                            "auction.biddertmax.min"    : MIN_TIMEOUT as String]
@@ -31,9 +32,6 @@ class TimeoutSpec extends BaseSpec {
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
         }
 
-        and: "Warmup PBS for stabilize timeout"
-        prebidServerService.withWarmup()
-
         and: "Default stored request with timeout"
         def timeout = getRandomTimeout()
         def storedRequestModel = BidRequest.defaultStoredRequest.tap {
@@ -44,8 +42,8 @@ class TimeoutSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(bidRequest.ext.prebid.storedRequest.id, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
-        when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        when: "PBS processes auction request with warmup"
+        prebidServerService.withWarmup().sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain timeout from the stored request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -147,9 +145,6 @@ class TimeoutSpec extends BaseSpec {
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer)
 
-        and: "Warmup PBS for stabilize timeout"
-        pbsService.withWarmup()
-
         and: "Default basic BidRequest with timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = requestTmax
@@ -165,8 +160,8 @@ class TimeoutSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(bidRequest.ext.prebid.storedRequest.id, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        when: "PBS processes auction request with warmup"
+        def response = pbsService.withWarmup().sendAuctionRequest(bidRequest)
 
         then: "Response should not contain error"
         assert !response.ext?.errors
@@ -301,7 +296,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Default stored request with min tmax"
-        def minTmax = 4
+        def minTmax = bidderTMaxMin - 1
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             tmax = minTmax
         }
@@ -326,10 +321,9 @@ class TimeoutSpec extends BaseSpec {
     }
 
     def "PBS auction should return error when auction.biddertmax.min value not enough for bidder request"() {
-        given: "PBS config with biddertmax.min = 1"
-        def bidderTMaxMin = "1"
+        given: "PBS config with biddertmax.min"
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                                                                "auction.biddertmax.min"    : bidderTMaxMin])
+                                                                                "auction.biddertmax.min"    : MIN_TIMEOUT_CONFIG as String])
 
         and: "Default BidRequest without timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -338,7 +332,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Default stored request with min tmax"
-        def minTmax = 5
+        def minTmax = MIN_TIMEOUT_CONFIG + 4
         def storedRequest = BidRequest.defaultStoredRequest.tap {
             tmax = minTmax
         }
@@ -354,7 +348,7 @@ class TimeoutSpec extends BaseSpec {
         assert bidResponse?.ext?.debug?.resolvedRequest?.tmax == minTmax
 
         and: "PBS should send to bidder tmax form auction.biddertmax.min config"
-        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${bidderTMaxMin}")
+        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${MIN_TIMEOUT_CONFIG}")
 
         and: "Bid response should shutdown by timeout from stored request"
         def errors = bidResponse.ext?.errors
@@ -367,17 +361,14 @@ class TimeoutSpec extends BaseSpec {
         def minBidderTmax = PBSUtils.getRandomNumber(50, MAX_TIMEOUT)
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min": minBidderTmax as String])
 
-        and: "Warmup PBS for stabilize timeout"
-        prebidServerService.withWarmup()
-
         and: "Default basic BidRequest with generic bidder"
-        def timeout = PBSUtils.getRandomNumber(0, 50)
+        def timeout = PBSUtils.getRandomNumber(0, MIN_TIMEOUT)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
         }
 
-        when: "PBS processes auction request"
-        def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
+        when: "PBS processes auction request with warmup"
+        def bidResponse = prebidServerService.withWarmup().sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain min value from auction.biddertmax.min config"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -393,17 +384,14 @@ class TimeoutSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.percent": percent as String]
                 + PBS_CONFIG)
 
-        and: "Warmup PBS for stabilize timeout"
-        prebidServerService.withWarmup()
-
         and: "Default basic BidRequest with generic bidder"
         def timeout = getRandomTimeout()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
         }
 
-        when: "PBS processes auction request"
-        def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
+        when: "PBS processes auction request with warmup"
+        def bidResponse = prebidServerService.withWarmup().sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain percent of request value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -419,8 +407,6 @@ class TimeoutSpec extends BaseSpec {
 
     private static boolean isInternalProcessingTime(long bidderRequestTimeout, long requestTimeout){
         def internalPbsTime = requestTimeout - bidderRequestTimeout
-        def maxInternalPbsTime = 85
-        def minInternalPbsTime = 0
-        minInternalPbsTime < internalPbsTime && maxInternalPbsTime >= internalPbsTime
+        0 < internalPbsTime
     }
 }

@@ -287,8 +287,9 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
-    void withWarmup(){
+    PrebidServerService withWarmup(){
         sendAuctionRequest(BidRequest.defaultBidRequest)
+        this
     }
 
     private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
