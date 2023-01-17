@@ -348,7 +348,7 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid for any reason"() {
-        given: "Default bid request with returnAllBidStatus and debug"
+        given: "Default bid request with returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: true)
         }
@@ -373,8 +373,37 @@ class DebugSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].statusCode == NO_BID
     }
 
+    def "PBS should populate seatNonBid and debug when returnAllBidStatus=true,debug=1 and requested bidder didn't bid for any reason"() {
+        given: "Default bid request with returnAllBidStatus and debug"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid = new Prebid(returnAllBidStatus: true, debug: 1)
+        }
+
+        and: "Default bidder response without bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid for called bidder"
+        assert response.ext.prebid.seatNonBid.size() == 1
+
+        def seatNonBid = response.ext.prebid.seatNonBid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == NO_BID
+
+        and: "PBs response should contain debug"
+        assert response?.ext?.debug
+    }
+
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and bidder didn't bid for any reason"() {
-        given: "Default bid request with disabled returnAllBidStatus and debug flags"
+        given: "Default bid request with disabled returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: false)
         }
@@ -396,7 +425,7 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS shouldn't populate seatNonBid when debug=#debug, test=#test and requested bidder didn't bid for any reason"() {
-        given: "Default bid request with returnAllBidStatus and debug"
+        given: "Default bid request with returnAllBidStatus and debug, test"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.test = test
             ext.prebid = new Prebid(debug: debug)
