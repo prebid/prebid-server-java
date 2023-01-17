@@ -419,6 +419,8 @@ class TimeoutSpec extends BaseSpec {
 
     private static boolean isInternalProcessingTime(long bidderRequestTimeout, long requestTimeout){
         def internalPbsTime = requestTimeout - bidderRequestTimeout
-        0 < internalPbsTime && 85 >= internalPbsTime
+        def maxInternalPbsTime = 85
+        def minInternalPbsTime = 0
+        minInternalPbsTime < internalPbsTime && maxInternalPbsTime >= internalPbsTime
     }
 }
