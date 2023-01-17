@@ -358,11 +358,11 @@ class TimeoutSpec extends BaseSpec {
 
     def "PBS should choose min timeout form config for bidder request when in request value lowest that in auction.biddertmax.min"() {
         given: "PBS config with percent"
-        def minBidderTmax = PBSUtils.getRandomNumber(50, MAX_TIMEOUT)
+        def minBidderTmax = PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min": minBidderTmax as String])
 
-        and: "Default basic BidRequest with generic bidder"
-        def timeout = PBSUtils.getRandomNumber(0, MIN_TIMEOUT)
+        and: "Default basic BidRequest"
+        def timeout = PBSUtils.getRandomNumber(0, minBidderTmax)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
         }
