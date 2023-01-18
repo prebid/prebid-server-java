@@ -1,0 +1,13 @@
+{
+  "tmax": 2000,
+  "ext": {
+    "prebid": {
+      "cache": {
+        "bids": {}
+      },
+      "targeting": {
+        "includewinners": true
+      }
+    }
+  }
+}

@@ -383,7 +383,9 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
         final Integer gdpr = regs.getGdpr();
         final String usPrivacy = regs.getUsPrivacy();
-        if (gdpr == null && usPrivacy == null) {
+        final String gpp = regs.getGpp();
+        final List<Integer> gppSid = regs.getGppSid();
+        if (gdpr == null && usPrivacy == null && gpp == null && gppSid == null) {
             return null;
         }
 
@@ -393,6 +395,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         return regs.toBuilder()
                 .gdpr(null)
                 .usPrivacy(null)
+                .gpp(null)
+                .gppSid(null)
                 .ext(extRegs)
                 .build();
     }

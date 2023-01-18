@@ -290,7 +290,11 @@ public class VideoRequestFactory {
                                                              boolean debugEnabled) {
 
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, ENDPOINT);
+        final BidRequest updatedBidRequest = paramsResolver.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled
                 ? updatedBidRequest.toBuilder().test(1).build()
                 : updatedBidRequest;

@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -132,6 +133,25 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(Regs::getExt)
                             .isEqualTo(expectedRegsExt);
                 });
+    }
+
+    @Test
+    public void convertShouldRemoveRegsGppData() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.regs(
+                Regs.builder()
+                        .gpp("gppValue")
+                        .gppSid(List.of(1, 2, 3))
+                        .build()));
+
+        // when
+        final BidRequest result = converter.convert(bidRequest);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getGpp, Regs::getGppSid)
+                .containsOnlyNulls();
     }
 
     @Test

@@ -29,7 +29,7 @@
     "responsetimemillis": {
       "dianomi": "{{ dianomi.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 0
     }
