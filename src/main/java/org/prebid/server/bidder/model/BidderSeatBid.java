@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
@@ -17,7 +16,6 @@ import java.util.List;
  * back with type safety.
  */
 @Value
-@AllArgsConstructor(staticName = "of")
 @Builder(toBuilder = true)
 public class BidderSeatBid {
 
@@ -64,12 +62,6 @@ public class BidderSeatBid {
 
     public static BidderSeatBid empty() {
         return BidderSeatBid.builder().build();
-    }
-
-    public static BidderSeatBid emptyWithErrors(List<BidderError> errors) {
-        return BidderSeatBid.builder()
-                .errors(errors)
-                .build();
     }
 
     public static BidderSeatBid of(List<BidderBid> bids) {

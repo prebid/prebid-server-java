@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
@@ -12,29 +11,35 @@ import java.util.List;
 /**
  * Composite bidder response (bids + other data) returned by a {@link Bidder}.
  */
-@AllArgsConstructor(staticName = "of")
-@Builder(toBuilder = true)
 @Value
+@Builder(toBuilder = true)
 public class CompositeBidderResponse {
 
-    List<BidderBid> bids;
+    @Builder.Default
+    List<BidderBid> bids = Collections.emptyList();
 
-    List<BidderError> errors;
+    @Builder.Default
+    List<BidderError> errors = Collections.emptyList();
 
-    /** FLEDGE interest group bids passback */
+    /**
+     * FLEDGE interest group bids passback
+     */
     List<FledgeAuctionConfig> fledgeAuctionConfigs;
 
     public static CompositeBidderResponse empty() {
-        return new CompositeBidderResponse(Collections.emptyList(), Collections.emptyList(), null);
+        return builder().build();
     }
 
     public static CompositeBidderResponse withBids(List<BidderBid> bids,
                                                    List<FledgeAuctionConfig> fledgeAuctionConfigs) {
-        return new CompositeBidderResponse(bids, Collections.emptyList(), fledgeAuctionConfigs);
+
+        return builder()
+                .bids(bids)
+                .fledgeAuctionConfigs(fledgeAuctionConfigs)
+                .build();
     }
 
     public static CompositeBidderResponse withError(BidderError error) {
-        return new CompositeBidderResponse(
-                Collections.emptyList(), Collections.singletonList(error), null);
+        return builder().errors(Collections.singletonList(error)).build();
     }
 }

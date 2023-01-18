@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
@@ -13,7 +12,6 @@ import java.util.Map;
  * Defines the contract for bidresponse.ext.prebid
  */
 @Value
-@AllArgsConstructor(staticName = "of")
 @Builder(toBuilder = true)
 public class ExtBidResponsePrebid {
 

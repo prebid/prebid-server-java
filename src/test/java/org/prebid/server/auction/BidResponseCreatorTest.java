@@ -2719,11 +2719,14 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).adm("[]").price(BigDecimal.valueOf(5.67)).build();
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-                BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
-                        singletonList(BidderError.badInput("bad_input")),
-                        singletonList(BidderError.generic("some_warning")),
-                        emptyList()), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder1",
+                BidderSeatBid.builder()
+                        .bids(singletonList(BidderBid.of(bid, xNative, null)))
+                        .errors(singletonList(BidderError.badInput("bad_input")))
+                        .warnings(singletonList(BidderError.generic("some_warning")))
+                        .build(),
+                100));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2990,12 +2993,10 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
                 "bidder1",
-                BidderSeatBid.of(
-                        singletonList(BidderBid.of(bid, banner, null)),
-                        singletonList(ExtHttpCall.builder().status(200).build()),
-                        emptyList(),
-                        emptyList(),
-                        emptyList()),
+                BidderSeatBid.builder()
+                        .bids(singletonList(BidderBid.of(bid, banner, null)))
+                        .httpCalls(singletonList(ExtHttpCall.builder().status(200).build()))
+                        .build(),
                 100));
 
         final AuctionContext auctionContext = givenAuctionContext(

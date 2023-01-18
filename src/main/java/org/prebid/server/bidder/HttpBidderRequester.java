@@ -170,7 +170,9 @@ public class HttpBidderRequester {
                 "The bidder failed to generate any bid requests, but also failed to generate an error"))
                 : bidderErrors;
 
-        return Future.succeededFuture(BidderSeatBid.emptyWithErrors(errors));
+        return Future.succeededFuture(BidderSeatBid.builder()
+                .errors(errors)
+                .build());
     }
 
     /**
@@ -370,7 +372,12 @@ public class HttpBidderRequester {
                     : Collections.emptyList();
 
             final List<BidderError> errors = combineErrors(previousErrors, httpCalls, errorsRecorded);
-            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors, Collections.emptyList(), fledgeRecorded);
+            return BidderSeatBid.builder()
+                    .bids(bidsRecorded)
+                    .httpCalls(extHttpCalls)
+                    .errors(errors)
+                    .fledgeAuctionConfigs(fledgeRecorded)
+                    .build();
         }
 
         /**

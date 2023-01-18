@@ -42,7 +42,10 @@ public interface Bidder<T> {
     default CompositeBidderResponse makeBidderResponse(BidderCall<T> httpCall, BidRequest bidRequest) {
         var result = makeBids(httpCall, bidRequest);
         return result != null
-                ? CompositeBidderResponse.of(result.getValue(), result.getErrors(), null)
+                ? CompositeBidderResponse.builder()
+                    .bids(result.getValue())
+                    .errors(result.getErrors())
+                    .build()
                 : null;
     }
 

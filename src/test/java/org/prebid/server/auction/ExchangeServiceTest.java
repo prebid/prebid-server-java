@@ -1177,9 +1177,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        emptyList(), singletonList(ExtHttpCall.builder().build()),
-                        emptyList(), emptyList(), emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                        .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                        .build()));
 
         given(bidResponseCreator.create(any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1205,8 +1205,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                .build();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -3247,19 +3248,17 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldIncrementGotBidsAndErrorMetricsIfBidderReturnsBidAndDifferentErrors() {
         // given
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())),
-                        emptyList(),
-                        asList(
-                                // two identical errors to verify corresponding metric is submitted only once
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badServerResponse("rubicon error"),
-                                BidderError.failedToRequestBids("rubicon failed to request bids"),
-                                BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")),
-                        emptyList(),
-                        emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                                .bids(singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))
+                                .errors(asList(
+                                    // two identical errors to verify corresponding metric is submitted only once
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badServerResponse("rubicon error"),
+                                    BidderError.failedToRequestBids("rubicon failed to request bids"),
+                                    BidderError.timeout("timeout error"),
+                                    BidderError.generic("timeout error")))
+                                .build()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -4455,12 +4454,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .getBidderResponse()
                         .equals(BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error.")),
-                                        Collections.emptyList()),
+                                BidderSeatBid.builder()
+                                        .warnings(Collections.singletonList(
+                                                BidderError.badInput("MediaTypeProcessor error.")))
+                                        .build(),
                                 0))),
                 any(),
                 any()))

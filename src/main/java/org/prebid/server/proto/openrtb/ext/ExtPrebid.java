@@ -16,8 +16,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 @Value
 public class ExtPrebid<P, B> {
 
-    public static final String AUCTION_ENVIRONMENT_KEY = "ae";
-
     P prebid;
 
     /**
@@ -30,7 +28,7 @@ public class ExtPrebid<P, B> {
      */
     B bidder;
 
-    @JsonProperty(AUCTION_ENVIRONMENT_KEY)
+    @JsonProperty("ae")
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     ExtImpAuctionEnvironment auctionEnvironment;
 

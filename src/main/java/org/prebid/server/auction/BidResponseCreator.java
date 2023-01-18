@@ -60,7 +60,6 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
@@ -823,7 +822,7 @@ public class BidResponseCreator {
     private boolean validateFledgeConfig(FledgeAuctionConfig fledgeAuctionConfig, List<Imp> imps) {
         final ExtImpAuctionEnvironment fledgeEnabled = correspondingImp(fledgeAuctionConfig.getImpId(), imps)
                 .map(Imp::getExt)
-                .map(ext -> convertValue(ext, ExtPrebid.AUCTION_ENVIRONMENT_KEY, ExtImpAuctionEnvironment.class))
+                .map(ext -> convertValue(ext, "ae", ExtImpAuctionEnvironment.class))
                 .orElse(ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION);
 
         return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;

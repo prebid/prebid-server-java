@@ -95,13 +95,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     @Override
     @Deprecated(forRemoval = true)
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final OpenxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(),
-                    OpenxBidResponse.class);
-            return Result.withValues(extractBids(bidRequest, bidResponse));
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
+        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
     }
 
     private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,

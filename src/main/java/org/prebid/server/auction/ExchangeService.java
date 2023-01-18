@@ -1280,12 +1280,9 @@ public class ExchangeService {
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
-            final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    mediaTypeProcessingErrors,
-                    Collections.emptyList());
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                    .warnings(mediaTypeProcessingErrors)
+                    .build();
 
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }

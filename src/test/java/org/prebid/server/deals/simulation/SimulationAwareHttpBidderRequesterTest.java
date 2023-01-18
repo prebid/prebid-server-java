@@ -256,9 +256,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.emptyWithErrors(
-                singletonList(BidderError.failedToRequestBids(
-                        "Matched or ready to serve line items were not found, but required in simulation mode"))));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.builder()
+                .errors(singletonList(BidderError.failedToRequestBids(
+                        "Matched or ready to serve line items were not found, but required in simulation mode")))
+                .build());
     }
 
     @Test
