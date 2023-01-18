@@ -31,9 +31,9 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -88,6 +88,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -180,11 +182,11 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    Future<BidResponse> create(List<AuctionParticipation> auctionParticipations,
-                               AuctionContext auctionContext,
+    Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {
 
+        final List<AuctionParticipation> auctionParticipations = auctionContext.getAuctionParticipations();
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
         final EventsContext eventsContext = createEventsContext(auctionContext);
 
@@ -210,7 +212,9 @@ public class BidResponseCreator {
                                 cacheInfo,
                                 bidderToMultiBids,
                                 videoStoredDataResult,
-                                eventsContext)));
+                                eventsContext))
+
+                        .map(bidResponse -> populateSeatNonBid(auctionContext, bidResponse)));
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -791,8 +795,11 @@ public class BidResponseCreator {
                 .map(ExtRequestPrebid::getPassthrough)
                 .orElse(null);
 
-        return ExtBidResponsePrebid.of(
-                auctionTimestamp, null, passThrough, null, extBidResponseFledge);
+        return ExtBidResponsePrebid.builder()
+                .auctiontimestamp(auctionTimestamp)
+                .passthrough(passThrough)
+                .fledge(extBidResponseFledge)
+                .build();
     }
 
     private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
@@ -1675,6 +1682,43 @@ public class BidResponseCreator {
             throw new PreBidException(
                     "Error decoding bidRequest.prebid.targeting.pricegranularity: " + e.getMessage(), e);
         }
+    }
+
+    private static BidResponse populateSeatNonBid(AuctionContext auctionContext, BidResponse bidResponse) {
+        if (!auctionContext.getDebugContext().isShouldReturnAllBidStatuses()) {
+            return bidResponse;
+        }
+
+        final List<AuctionParticipation> auctionParticipations = auctionContext.getAuctionParticipations();
+        final List<SeatNonBid> seatNonBids = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(BidResponseCreator::toSeatNonBid)
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .toList();
+
+        final Optional<ExtBidResponse> initialExtBidResponse = Optional.ofNullable(bidResponse.getExt());
+        final ExtBidResponsePrebid updatedExtBidResponsePrebid = initialExtBidResponse
+                .map(ExtBidResponse::getPrebid)
+                .map(ExtBidResponsePrebid::toBuilder)
+                .orElseGet(ExtBidResponsePrebid::builder)
+                .seatnonbid(seatNonBids)
+                .build();
+
+        final ExtBidResponse updatedExtBidResponse = initialExtBidResponse
+                .map(ExtBidResponse::toBuilder)
+                .orElseGet(ExtBidResponse::builder)
+                .prebid(updatedExtBidResponsePrebid)
+                .build();
+
+        return bidResponse.toBuilder().ext(updatedExtBidResponse).build();
+    }
+
+    private static SeatNonBid toSeatNonBid(AuctionParticipation auctionParticipation) {
+        final List<NonBid> nonBid = auctionParticipation.getRejectedImpIds().entrySet().stream()
+                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+                .toList();
+
+        return SeatNonBid.of(auctionParticipation.getBidder(), nonBid);
     }
 
     /**

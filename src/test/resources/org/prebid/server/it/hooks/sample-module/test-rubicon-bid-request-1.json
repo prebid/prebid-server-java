@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId1",
+      "secure": 1,
       "banner": {
         "format": [
           {
@@ -68,10 +69,8 @@
     }
   },
   "user": {
-    "ext": {
-      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
-    }
+    "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
   },
   "at": 1,
-  "tmax": 5000
+  "tmax": "${json-unit.any-number}"
 }

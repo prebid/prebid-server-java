@@ -24,7 +24,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -142,8 +142,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
+        given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -716,9 +715,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         final long resolvedTimeout = 200L;
-        final long adjustedTimeout = 250L;
-        given(timeoutResolver.resolve(anyLong())).willReturn(resolvedTimeout);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(adjustedTimeout);
+        given(timeoutResolver.limitToMax(anyLong())).willReturn(resolvedTimeout);
         given(timeoutFactory.create(anyLong(), anyLong())).willReturn(timeout);
 
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
@@ -739,9 +736,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 100);
 
         // then
-        verify(timeoutResolver).resolve(1000L);
-        verify(timeoutResolver).adjustTimeout(resolvedTimeout);
-        verify(timeoutFactory).create(100, adjustedTimeout);
+        verify(timeoutResolver).limitToMax(1000L);
+        verify(timeoutFactory).create(100, resolvedTimeout);
 
         verify(uidsCookieService).parseFromRequest(httpRequest);
 
@@ -750,6 +746,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
+                .startTime(100L)
                 .timeout(timeout)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
@@ -1158,7 +1155,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void updateTimeoutShouldReturnSameContextIfNoNeedUpdates() {
         // given
-        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
         given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
         given(timeout.getDeadline()).willReturn(500L);
 
@@ -1179,7 +1176,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final Timeout updatedTimeout = mock(Timeout.class);
 
-        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
         given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
         given(timeout.getDeadline()).willReturn(400L);
         given(updatedTimeout.getDeadline()).willReturn(500L);
@@ -1200,7 +1197,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void updateTimeoutShouldReturnContextWithUpdatedBidRequestTmax() {
         // given
-        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
         given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
         given(timeout.getDeadline()).willReturn(500L);
 
@@ -1222,7 +1219,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final Timeout updatedTimeout = mock(Timeout.class);
 
-        given(timeoutResolver.resolve(any())).willReturn(500L);
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
         given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
         given(timeout.getDeadline()).willReturn(400L);
         given(updatedTimeout.getDeadline()).willReturn(500L);

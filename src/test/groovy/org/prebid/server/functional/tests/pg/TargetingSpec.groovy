@@ -200,7 +200,7 @@ class TargetingSpec extends BasePgSpec {
             imp = [Imp.defaultImpression.tap {
                 banner = Banner.defaultBanner
                 ext = ImpExt.defaultImpExt
-                ext.prebid.bidder = new Bidder(rubicon: Rubicon.default.tap { accountId = integerTargetingValue })
+                ext.prebid.bidder = new Bidder(rubicon: Rubicon.defaultRubicon.tap { accountId = integerTargetingValue })
             }]
         }
 

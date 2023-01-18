@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,7 +27,10 @@ public class ExtBidResponsePrebid {
      */
     ExtModules modules;
 
-    JsonNode passthrough;
+    /**
+     * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
+     */
+    ExtBidResponseFledge fledge;
 
     /**
      * Additional targeting key/values for the bid response (only used for AMP)
@@ -34,8 +39,13 @@ public class ExtBidResponsePrebid {
      */
     Map<String, JsonNode> targeting;
 
-    /**
-     * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
+    /*
+     * Value from bidrequest.ext.prebid.passthrough.
      */
-    ExtBidResponseFledge fledge;
+    JsonNode passthrough;
+
+    /*
+     * Additional debug info for imp ids that have no corresponding bid in response.
+     */
+    List<SeatNonBid> seatnonbid;
 }
