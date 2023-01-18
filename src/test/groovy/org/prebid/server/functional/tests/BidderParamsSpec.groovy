@@ -21,10 +21,8 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.model.response.auction.FledgeAuctionConfig
 import org.prebid.server.functional.model.response.auction.OpenxBidResponse
 import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
