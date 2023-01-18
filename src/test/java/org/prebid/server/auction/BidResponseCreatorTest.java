@@ -3446,7 +3446,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
         final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
@@ -3455,9 +3454,13 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
                                 .build(), 100));
 
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
         // when
         final BidResponse bidResponse = bidResponseCreator
-                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
                 .result();
 
         // then
@@ -3479,7 +3482,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
         final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
@@ -3487,9 +3489,13 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
                                 .build(), 100));
 
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
         // when
         final BidResponse bidResponse = bidResponseCreator
-                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
                 .result();
 
         // then
@@ -3509,7 +3515,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final Imp imp = givenImp("i1");
         final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
         final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
@@ -3517,9 +3522,13 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
                                 .build(), 100));
 
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
         // when
         final BidResponse bidResponse = bidResponseCreator
-                .create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
                 .result();
 
         // then
