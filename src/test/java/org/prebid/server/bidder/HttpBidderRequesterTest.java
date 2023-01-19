@@ -876,7 +876,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
     }
 
-    private static <T> HttpRequest<T> givenSimpleHttpRequest(UnaryOperator<HttpRequest.HttpRequestBuilder<T>> customizer) {
+    private static <T> HttpRequest<T> givenSimpleHttpRequest(
+            UnaryOperator<HttpRequest.HttpRequestBuilder<T>> customizer) {
         return customizer.apply(HttpRequest.<T>builder()
                 .method(HttpMethod.POST)
                 .uri(EMPTY)
