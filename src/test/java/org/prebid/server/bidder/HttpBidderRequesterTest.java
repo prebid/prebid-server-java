@@ -28,6 +28,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -35,6 +36,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -336,6 +338,41 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+    }
+
+    @Test
+    public void shouldReturnFledgeCreatedByBidder() {
+        // given
+        givenSuccessfulBidderMakeHttpRequests();
+
+        final List<FledgeAuctionConfig> fledgeAuctionConfigs = List.of(
+                givenFledgeAuctionConfig("imp-1"),
+                givenFledgeAuctionConfig("imp-2"));
+        final List<BidderBid> bids = emptyList();
+
+        given(bidder.makeBidderResponse(any(), any()))
+                .willReturn(CompositeBidderResponse.builder()
+                        .bids(bids)
+                        .fledgeAuctionConfigs(fledgeAuctionConfigs)
+                        .build());
+
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, BidRequest.builder().build());
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                httpBidderRequester
+                        .requestBids(
+                                bidder,
+                                bidderRequest,
+                                timeout,
+                                CaseInsensitiveMultiMap.empty(),
+                                bidderAliases,
+                                false)
+                        .result();
+
+        // then
+        assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+        assertThat(bidderSeatBid.getFledgeAuctionConfigs()).hasSameElementsAs(fledgeAuctionConfigs);
     }
 
     @Test
@@ -921,6 +958,29 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .deals(singletonList(Deal.builder().id(dealId).build()))
                         .build())
                 .build();
+    }
+
+    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
+                .build();
+    }
+
+    private static <T> HttpRequest<T> givenSimpleHttpRequest() {
+        return HttpRequest.<T>builder()
+                .method(HttpMethod.POST)
+                .uri(EMPTY)
+                .body(EMPTY_BYTE_BODY)
+                .headers(MultiMap.caseInsensitiveMultiMap())
+                .build();
+    }
+
+    private void givenSuccessfulBidderMakeHttpRequests() {
+        given(bidder.makeHttpRequests(any())).willReturn(
+                Result.of(singletonList(givenSimpleHttpRequest()), emptyList()));
+
+        givenHttpClientResponse(200, "responseBody");
     }
 
     private void givenHttpClientResponse(int statusCode, String response) {
