@@ -173,12 +173,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         headers.add("header1", "value1");
         headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri("uri")
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(headers)
-                                .build()),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder.uri("uri"))),
                 emptyList()));
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
@@ -211,18 +206,12 @@ public class HttpBidderRequesterTest extends VertxTest {
         headers.add("header1", "value1");
         headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri")
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(headers)
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                                .headers(headers)),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri")
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(headers)
-                                .build()),
+                                .headers(headers))),
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of(
@@ -274,20 +263,13 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         givenHttpClientResponse(200, null);
         final BidRequest bidRequest = givenBidRequest(identity());
+        final byte[] body = mapper.writeValueAsBytes(bidRequest);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(mapper.writeValueAsBytes(bidRequest))
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(mapper.writeValueAsBytes(bidRequest))
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .body(body)),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .body(body))),
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, BidRequest.builder().build());
@@ -308,16 +290,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldReturnBidsCreatedByBidder() {
         // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
-                emptyList()));
-
-        givenHttpClientResponse(200, "responseBody");
+        givenSuccessfulBidderMakeHttpRequests();
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.withBids(bids, emptyList()));
@@ -405,13 +378,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(
+                singletonList(givenSimpleHttpRequest(identity())),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -452,34 +420,18 @@ public class HttpBidderRequesterTest extends VertxTest {
         final byte[] forthRequestBody = mapper.writeValueAsBytes(forthRequest);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(Arrays.asList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .body(firstRequestBody)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal1"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
+                                .payload(bidRequestWithDeals("deal1"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .body(secondRequestBody)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal1"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
+                                .payload(bidRequestWithDeals("deal1"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .body(thirdRequestBody)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal2"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
+                                .payload(bidRequestWithDeals("deal2"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .body(forthRequestBody)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal1"))
-                                .build()),
+                                .payload(bidRequestWithDeals("deal1")))),
                 emptyList()));
 
         final HttpClientResponse respWithDeal1 = HttpClientResponse.of(200, null,
@@ -523,35 +475,15 @@ public class HttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, bidRequest);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(Arrays.asList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal1"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal2"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal2"))
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .payload(bidRequestWithDeals("deal2"))
-                                .build()),
-                emptyList()));
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .payload(bidRequestWithDeals("deal1"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .payload(bidRequestWithDeals("deal2"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .payload(bidRequestWithDeals("deal2"))),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .payload(bidRequestWithDeals("deal2")))),
+                        emptyList()));
 
         givenHttpClientResponse(200, "responseBody");
 
@@ -579,21 +511,19 @@ public class HttpBidderRequesterTest extends VertxTest {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest firstBidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.id("firstId"));
         final BidRequest secondBidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.id("secondId"));
+        final byte[] firstRequestBody = mapper.writeValueAsBytes(firstBidRequest);
+        final byte[] secondRequestBody = mapper.writeValueAsBytes(secondBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .body(mapper.writeValueAsBytes(firstBidRequest))
+                                .body(firstRequestBody)
                                 .payload(firstBidRequest)
-                                .headers(headers)
-                                .build(),
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                                .headers(headers)),
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri2")
-                                .body(mapper.writeValueAsBytes(secondBidRequest))
+                                .body(secondRequestBody)
                                 .payload(secondBidRequest)
-                                .headers(headers)
-                                .build()),
+                                .headers(headers))),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -642,12 +572,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         headers.add("headerKey", "headerValue");
         headers.add("Authorization", "authorizationValue");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(headers)
-                                .build()),
+                                .headers(headers))),
                 emptyList()));
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
 
@@ -680,14 +607,13 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
                                 .headers(headers)
                                 .payload(givenBidRequest)
-                                .body(mapper.writeValueAsBytes(givenBidRequest))
-                                .build()),
+                                .body(requestBody))),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -713,14 +639,13 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .body(mapper.writeValueAsBytes(givenBidRequest))
-                                .payload(givenBidRequest)
                                 .headers(headers)
-                                .build()),
+                                .payload(givenBidRequest)
+                                .body(requestBody))),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -755,14 +680,13 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .body(mapper.writeValueAsBytes(givenBidRequest))
-                                .payload(givenBidRequest)
                                 .headers(headers)
-                                .build()),
+                                .payload(givenBidRequest)
+                                .body(requestBody))),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -800,13 +724,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldTolerateAlreadyExpiredGlobalTimeout() {
         // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(
+                singletonList(givenSimpleHttpRequest(identity())),
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, null, BidRequest.builder().build());
@@ -826,11 +745,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotifyBidderOfTimeout() {
         // given
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(EMPTY)
-                .body(EMPTY_BYTE_BODY)
-                .build();
+        final HttpRequest<BidRequest> httpRequest = givenSimpleHttpRequest(identity());
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
 
@@ -853,47 +768,17 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                         // this request will fail with response exception
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
+                        givenSimpleHttpRequest(identity()),
                         // this request will fail with timeout
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
+                        givenSimpleHttpRequest(identity()),
                         // this request will fail with 500 status
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
+                        givenSimpleHttpRequest(identity()),
                         // this request will fail with 400 status
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
+                        givenSimpleHttpRequest(identity()),
                         // this request will get 204 status
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build(),
+                        givenSimpleHttpRequest(identity()),
                         // finally this request will succeed
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
+                        givenSimpleHttpRequest(identity())),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
         when(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any()))
                 .thenAnswer(invocation -> MultiMap.caseInsensitiveMultiMap());
@@ -940,13 +825,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotMakeBidsIfResponseStatusIs204() {
         // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(EMPTY)
-                                .body(EMPTY_BYTE_BODY)
-                                .headers(MultiMap.caseInsensitiveMultiMap())
-                                .build()),
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(
+                singletonList(givenSimpleHttpRequest(identity())),
                 emptyList()));
 
         givenHttpClientResponse(204, EMPTY);
@@ -996,18 +876,18 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
     }
 
-    private static <T> HttpRequest<T> givenSimpleHttpRequest() {
-        return HttpRequest.<T>builder()
+    private static <T> HttpRequest<T> givenSimpleHttpRequest(UnaryOperator<HttpRequest.HttpRequestBuilder<T>> customizer) {
+        return customizer.apply(HttpRequest.<T>builder()
                 .method(HttpMethod.POST)
                 .uri(EMPTY)
                 .body(EMPTY_BYTE_BODY)
-                .headers(MultiMap.caseInsensitiveMultiMap())
+                .headers(MultiMap.caseInsensitiveMultiMap()))
                 .build();
     }
 
     private void givenSuccessfulBidderMakeHttpRequests() {
         given(bidder.makeHttpRequests(any())).willReturn(
-                Result.of(singletonList(givenSimpleHttpRequest()), emptyList()));
+                Result.of(singletonList(givenSimpleHttpRequest(identity())), emptyList()));
 
         givenHttpClientResponse(200, "responseBody");
     }
