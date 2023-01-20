@@ -40,7 +40,7 @@
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.14.1</jackson.version>
-        <json-schema-validator.version>1.0.72</json-schema-validator.version>
+        <json-schema-validator.version>1.0.76</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
         <postgresql.version>42.4.3</postgresql.version>
@@ -52,8 +52,8 @@
         <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.12.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
-        <logback.version>1.2.9</logback.version>
-        <log4j.version>2.17.1</log4j.version>
+        <logback.version>1.2.11</logback.version>
+        <log4j.version>2.19.0</log4j.version>
         <hikari.version>5.0.1</hikari.version>
 
         <!-- test dependencies versions -->
