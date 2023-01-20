@@ -58,9 +58,9 @@
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
-        <junit-jupiter.version>5.9.0</junit-jupiter.version>
-        <mockito.version>4.7.0</mockito.version>
-        <assertj.version>3.23.1</assertj.version>
+        <junit-jupiter.version>5.9.2</junit-jupiter.version>
+        <mockito.version>4.11.0</mockito.version>
+        <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.33.2</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.48.v20220622</jetty.version>
