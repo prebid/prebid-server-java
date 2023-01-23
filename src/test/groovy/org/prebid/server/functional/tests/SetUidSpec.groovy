@@ -41,7 +41,9 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS should set uids cookie"() {
         given: "Default SetuidRequest"
-        def request = SetuidRequest.defaultSetuidRequest
+        def request = SetuidRequest.defaultSetuidRequest.tap {
+            uid = null
+        }
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         when: "PBS processes setuid request"

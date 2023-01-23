@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.Format
+import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -22,6 +23,7 @@ class SetuidRequest {
     static SetuidRequest getDefaultSetuidRequest() {
         def request = new SetuidRequest()
         request.bidder = GENERIC
+        request.uid = UUID.randomUUID().toString()
         request.gdpr = "0"
         request
     }
