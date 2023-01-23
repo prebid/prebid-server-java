@@ -61,6 +61,10 @@ public class PrivacyExtractor {
     }
 
     private static List<Integer> parseGppSid(String gppSid) {
+        if (gppSid == null) {
+            return DEFAULT_GPP_SID_VALUE;
+        }
+
         try {
             return Arrays.stream(gppSid.split(","))
                     .map(StringUtils::strip)

@@ -53,15 +53,24 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
-                        "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
-                                + "%26us_privacy={{us_privacy}}",
+                        """
+                                http://url?redir=\
+                                %26gdpr%3D{{gdpr}}\
+                                %26gdpr_consent%3D{{gdpr_consent}}\
+                                %26us_privacy%3D{{us_privacy}}\
+                                %26gpp%3D{{gpp}}\
+                                %26gpp_sid%3D{{gpp_sid}}""",
                         null))
-                .privacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
+                .privacy(Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent$1")
+                        .ccpa(Ccpa.of("1YNN"))
+                        .build())
                 .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YNN");
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26gpp%3D%26gpp_sid%3D");
     }
 
     @Test
@@ -69,14 +78,20 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
-                        "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
-                                + "%26us_privacy%3D{{us_privacy}}",
+                        """
+                                http://url?redir=\
+                                %26gdpr%3D{{gdpr}}\
+                                %26gdpr_consent%3D{{gdpr_consent}}\
+                                %26us_privacy%3D{{us_privacy}}\
+                                %26gpp%3D{{gpp}}\
+                                %26gpp_sid%3D{{gpp_sid}}""",
                         null))
-                .privacy(Privacy.of(null, null, Ccpa.EMPTY, null))
+                .privacy(Privacy.builder().ccpa(Ccpa.EMPTY).build())
                 .build();
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D");
+        assertThat(result.getUrl()).isEqualTo(
+                "http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D%26gpp%3D%26gpp_sid%3D");
     }
 
     @Test
@@ -84,7 +99,11 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod("http://url?redir=a%3Db", null))
-                .privacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
+                .privacy(Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent")
+                        .ccpa(Ccpa.of("YNN"))
+                        .build())
                 .build();
 
         // then
@@ -99,7 +118,11 @@ public class UsersyncInfoBuilderTest {
                         "http://url/{{gdpr}}/{{gdpr_consent}}?redir={{redirect_url}}",
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                 + "&us_privacy={{us_privacy}}&uid=$UID"))
-                .privacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null))
+                .privacy(Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent$1")
+                        .ccpa(Ccpa.of("1YNN"))
+                        .build())
                 .build();
 
         // then
