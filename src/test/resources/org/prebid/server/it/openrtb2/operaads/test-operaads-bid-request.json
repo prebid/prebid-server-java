@@ -3,12 +3,14 @@
   "imp": [
     {
       "id": "imp_id:opa:banner",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "tagid": "placementId",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "publisherId": "publisherId",
           "placementId": "placementId",
@@ -17,6 +19,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -33,7 +38,7 @@
     "os": "deviceOs"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
