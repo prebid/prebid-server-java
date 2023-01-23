@@ -15,6 +15,7 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -227,6 +228,8 @@ public class PrivacyExtractorTest extends VertxTest {
                 .gdpr(0)
                 .gdprConsent("consent")
                 .usPrivacy("1Yn-")
+                .gpp("gpp")
+                .gppSid("1, 2, 3")
                 .build();
 
         // when
@@ -239,8 +242,8 @@ public class PrivacyExtractorTest extends VertxTest {
                         .consentString("consent")
                         .ccpa(Ccpa.of("1Yn-"))
                         .coppa(0)
-                        .gpp("")
-                        .gppSid(emptyList())
+                        .gpp("gpp")
+                        .gppSid(List.of(1, 2, 3))
                         .build());
     }
 }

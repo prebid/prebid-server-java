@@ -5,6 +5,8 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UsersyncInfoBuilderTest {
@@ -65,12 +67,15 @@ public class UsersyncInfoBuilderTest {
                         .gdpr("1")
                         .consentString("consent$1")
                         .ccpa(Ccpa.of("1YNN"))
+                        .gpp("gpp")
+                        .gppSid(List.of(1))
                         .build())
                 .build();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26gpp%3D%26gpp_sid%3D");
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241" +
+                        "%26us_privacy%3D1YNN%26gpp%3Dgpp%26gpp_sid%3D1");
     }
 
     @Test
@@ -115,9 +120,22 @@ public class UsersyncInfoBuilderTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoBuilder
                 .from(createUsersyncMethod(
-                        "http://url/{{gdpr}}/{{gdpr_consent}}?redir={{redirect_url}}",
-                        "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
-                                + "&us_privacy={{us_privacy}}&uid=$UID"))
+                        """
+                                http://url\
+                                ?gdpr={{gdpr}}\
+                                &{{gdpr_consent}}\
+                                &gpp={{gpp}}\
+                                &gpp_sid={{gpp_sid}}\
+                                &redir={{redirect_url}}""",
+                        """
+                                http://localhost:8000/setuid\
+                                ?bidder=adnxs\
+                                &gdpr={{gdpr}}\
+                                &gdpr_consent={{gdpr_consent}}\
+                                &us_privacy={{us_privacy}}\
+                                &gpp={{gpp}}\
+                                &gpp_sid={{gpp_sid}}\
+                                &uid=$UID"""))
                 .privacy(Privacy.builder()
                         .gdpr("1")
                         .consentString("consent$1")
@@ -127,8 +145,10 @@ public class UsersyncInfoBuilderTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url/1/consent%241?redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26"
-                        + "gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26f%3Di%26uid%3D%24UID");
+                "http://url?gdpr=1&consent%241&gpp=&gpp_sid=" +
+                        "&redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26gdpr%3D1" +
+                        "%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN" +
+                        "%26gpp%3D%26gpp_sid%3D%26f%3Di%26uid%3D%24UID");
     }
 
     @Test
