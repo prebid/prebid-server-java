@@ -145,6 +145,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SOURCE_RUBICON = "rubiconproject.com";
 
     private static final String FPD_GPID_FIELD = "gpid";
+    private static final String FPD_SKADN_FIELD = "skadn";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
     private static final String FPD_PAGECAT_FIELD = "pagecat";
     private static final String FPD_PAGE_FIELD = "page";
@@ -656,15 +657,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconImpExtPrebid rubiconImpExtPrebid = priceFloorResult != null
                 ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
                 : null;
-        return RubiconImpExt.of(
-                RubiconImpExtRp.of(
+        return RubiconImpExt.builder()
+                .rp(RubiconImpExtRp.of(
                         rubiconImpExt.getZoneId(),
                         makeTarget(imp, rubiconImpExt, site, app, context),
-                        RubiconImpExtRpTrack.of("", "")),
-                mapVendorsNamesToUrls(imp.getMetric()),
-                getMaxBids(extRequest),
-                getGpid(imp.getExt()),
-                rubiconImpExtPrebid);
+                        RubiconImpExtRpTrack.of("", "")))
+                .viewabilityvendors(mapVendorsNamesToUrls(imp.getMetric()))
+                .maxbids(getMaxBids(extRequest))
+                .gpid(getGpid(imp.getExt()))
+                .skadn(getSkadn(imp.getExt()))
+                .prebid(rubiconImpExtPrebid)
+                .build();
     }
 
     private ExtImpContext extImpContext(Imp imp) {
@@ -948,6 +951,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private String getGpid(ObjectNode impExt) {
         final JsonNode gpidNode = impExt.get(FPD_GPID_FIELD);
         return gpidNode != null && gpidNode.isTextual() ? gpidNode.asText() : null;
+    }
+
+    private ObjectNode getSkadn(ObjectNode impExt) {
+        final JsonNode skadnNode = impExt.get(FPD_SKADN_FIELD);
+        return skadnNode != null && skadnNode.isObject() ? (ObjectNode) skadnNode : null;
     }
 
     private String getAdSlot(Imp imp, ExtImpContext context) {
@@ -1580,8 +1588,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconImpExtRp modifiedImpExtRp = RubiconImpExtRp.of(impExtRp.getZoneId(), modifiedTargetNode,
                 impExtRp.getTrack());
 
-        return mapper.mapper().valueToTree(RubiconImpExt.of(modifiedImpExtRp, rubiconImpExt.getViewabilityvendors(),
-                getMaxBids(extRequest), adSlot, null));
+        return mapper.mapper().valueToTree(rubiconImpExt.toBuilder()
+                .rp(modifiedImpExtRp)
+                .maxbids(getMaxBids(extRequest))
+                .gpid(adSlot)
+                .prebid(null)
+                .build());
     }
 
     private List<BidderBid> extractBids(BidRequest prebidRequest,
