@@ -186,7 +186,12 @@ public class PrivacyExtractorTest extends VertxTest {
                 .validPrivacyFrom(BidRequest.builder().regs(regs).user(user).build(), new ArrayList<>());
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
+        assertThat(privacy).isEqualTo(Privacy.builder()
+                .gdpr("0")
+                .consentString("consent")
+                .ccpa(Ccpa.of("1Yn-"))
+                .coppa(0)
+                .build());
     }
 
     @Test
@@ -200,7 +205,12 @@ public class PrivacyExtractorTest extends VertxTest {
         final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(request);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.EMPTY, 0));
+        assertThat(privacy).isEqualTo(Privacy.builder()
+                .gdpr("0")
+                .consentString("consent")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(0)
+                .build());
     }
 
     @Test
@@ -216,6 +226,11 @@ public class PrivacyExtractorTest extends VertxTest {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(request);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
+        assertThat(privacy).isEqualTo(Privacy.builder()
+                .gdpr("0")
+                .consentString("consent")
+                .ccpa(Ccpa.of("1Yn-"))
+                .coppa(0)
+                .build());
     }
 }

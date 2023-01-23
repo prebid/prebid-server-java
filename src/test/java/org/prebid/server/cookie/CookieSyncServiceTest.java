@@ -938,7 +938,14 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private PrivacyContext givenPrivacyContext(TcfContext tcfContext) {
-        return PrivacyContext.of(Privacy.of("gdpr", "consent-string", Ccpa.EMPTY, 1), tcfContext);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("gdpr")
+                .consentString("consent-string")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(1)
+                .build();
+
+        return PrivacyContext.of(privacy, tcfContext);
     }
 
     private void givenValidActiveBidders(String... bidders) {

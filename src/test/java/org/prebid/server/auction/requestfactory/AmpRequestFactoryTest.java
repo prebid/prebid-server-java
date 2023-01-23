@@ -159,7 +159,12 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         given(ampPrivacyContextFactory.contextFrom(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
@@ -1468,7 +1473,12 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("1", "consent", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
 
         given(ampPrivacyContextFactory.contextFrom(any()))
