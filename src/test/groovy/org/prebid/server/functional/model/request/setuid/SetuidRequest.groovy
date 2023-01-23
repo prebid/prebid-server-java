@@ -22,7 +22,6 @@ class SetuidRequest {
     static SetuidRequest getDefaultSetuidRequest() {
         def request = new SetuidRequest()
         request.bidder = GENERIC
-        request.uid = UUID.randomUUID().toString()
         request.gdpr = "0"
         request
     }
