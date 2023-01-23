@@ -28,8 +28,8 @@ import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -58,6 +58,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -106,7 +107,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(debugResolver.debugContextFrom(any()))
-                .willReturn(DebugContext.of(true, null));
+                .willReturn(DebugContext.of(true, true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -270,7 +271,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getData().getDebugContext())
-                .isEqualTo(DebugContext.of(true, null));
+                .isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test
@@ -333,7 +334,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
         verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
-        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()));
+        verify(paramsResolver)
+                .resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()), eq(false));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
@@ -393,7 +395,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
-        given(paramsResolver.resolve(any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean()))
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))

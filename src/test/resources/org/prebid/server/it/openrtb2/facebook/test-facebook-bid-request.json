@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": -1,
         "h": 50
@@ -10,6 +11,9 @@
       "tagid": "pub1_place1"
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "app": {
     "publisher": {
       "id": "pub1"
@@ -23,7 +27,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],

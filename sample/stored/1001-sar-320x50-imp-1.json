@@ -1,0 +1,22 @@
+[
+  {
+    "bid": [
+      {
+        "h": 50,
+        "w": 320,
+        "id": "1",
+        "adm": "<img src=\"https://files.prebid.org/creatives/prebid320x50.png\">",
+        "ext": {
+          "prebid": {
+            "type": "banner"
+          }
+        },
+        "crid": "888888",
+        "impid": "1",
+        "price": 1.23
+      }
+    ],
+    "seat": "rubicon",
+    "group": 0
+  }
+]
