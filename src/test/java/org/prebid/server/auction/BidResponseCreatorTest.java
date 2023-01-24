@@ -3464,8 +3464,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 "someBidder", singletonList(NonBid.of("impId2", ImpRejectionReason.NO_BID)));
 
         assertThat(bidResponse.getExt())
-                .extracting(ExtBidResponse::getPrebid)
-                .extracting(ExtBidResponsePrebid::getSeatnonbid)
+                .extracting(ExtBidResponse::getSeatnonbid)
                 .asList()
                 .containsExactly(expectedSeatNonBid);
     }
@@ -3496,8 +3495,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getExt())
-                .extracting(ExtBidResponse::getPrebid)
-                .extracting(ExtBidResponsePrebid::getSeatnonbid)
+                .extracting(ExtBidResponse::getSeatnonbid)
                 .isNull();
     }
 
