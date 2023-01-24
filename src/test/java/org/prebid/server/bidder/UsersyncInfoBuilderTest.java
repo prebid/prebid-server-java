@@ -74,8 +74,8 @@ public class UsersyncInfoBuilderTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo(
-                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241" +
-                        "%26us_privacy%3D1YNN%26gpp%3Dgpp%26gpp_sid%3D1");
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241"
+                        + "%26us_privacy%3D1YNN%26gpp%3Dgpp%26gpp_sid%3D1");
     }
 
     @Test
@@ -144,11 +144,11 @@ public class UsersyncInfoBuilderTest {
                 .build();
 
         // then
-        assertThat(result.getUrl()).isEqualTo(
-                "http://url?gdpr=1&consent%241&gpp=&gpp_sid=" +
-                        "&redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26gdpr%3D1" +
-                        "%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN" +
-                        "%26gpp%3D%26gpp_sid%3D%26f%3Di%26uid%3D%24UID");
+        assertThat(result.getUrl()).isEqualTo("""
+                http://url?gdpr=1&consent%241&gpp=&gpp_sid=\
+                 &redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26gdpr%3D1\
+                 %26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN\
+                 %26gpp%3D%26gpp_sid%3D%26f%3Di%26uid%3D%24UID""");
     }
 
     @Test
