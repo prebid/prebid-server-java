@@ -25,7 +25,7 @@
       "tagid": "abc",
       "bidfloor": 1.0,
       "ext": {
-        "appnexus": {
+        "genericAlias": {
           "keywords": "foo=bar,foo=baz",
           "traffic_source_code": "trafficSource"
         }
@@ -120,7 +120,7 @@
       },
       "multibid": [
         {
-          "bidder": "appnexus",
+          "bidder": "genericAlias",
           "maxbids": 2
         }
       ],
@@ -133,7 +133,7 @@
         "datacenter": "local"
       }
     },
-    "appnexus": {
+    "genericAlias": {
       "is_amp": 0,
       "hb_source": 5
     }
