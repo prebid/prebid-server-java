@@ -75,7 +75,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should return requested uids cookie when priority bidder not present in config"() {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": "null"])
+                ["cookie-sync.pri": null])
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
