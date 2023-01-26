@@ -1,6 +1,9 @@
 adapters:
   generic:
     endpoint: https://
+    aliases:
+      genericAlias:
+        enabled: false
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:

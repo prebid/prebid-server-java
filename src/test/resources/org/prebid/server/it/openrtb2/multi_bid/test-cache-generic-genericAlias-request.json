@@ -118,9 +118,6 @@
         "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
         "cid": "958",
         "crid": "69595837",
-        "cat": [
-          "IAB20-3"
-        ],
         "ext": {
           "prebid": {
             "type": "video",
