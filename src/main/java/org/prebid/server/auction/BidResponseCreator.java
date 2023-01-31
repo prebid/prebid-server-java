@@ -1695,18 +1695,10 @@ public class BidResponseCreator {
                 .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
                 .toList();
 
-        final Optional<ExtBidResponse> initialExtBidResponse = Optional.ofNullable(bidResponse.getExt());
-        final ExtBidResponsePrebid updatedExtBidResponsePrebid = initialExtBidResponse
-                .map(ExtBidResponse::getPrebid)
-                .map(ExtBidResponsePrebid::toBuilder)
-                .orElseGet(ExtBidResponsePrebid::builder)
-                .seatnonbid(seatNonBids)
-                .build();
-
-        final ExtBidResponse updatedExtBidResponse = initialExtBidResponse
+        final ExtBidResponse updatedExtBidResponse = Optional.ofNullable(bidResponse.getExt())
                 .map(ExtBidResponse::toBuilder)
                 .orElseGet(ExtBidResponse::builder)
-                .prebid(updatedExtBidResponsePrebid)
+                .seatnonbid(seatNonBids)
                 .build();
 
         return bidResponse.toBuilder().ext(updatedExtBidResponse).build();
