@@ -85,8 +85,8 @@
   },
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT",
-    "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
     "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "rp": {
         "target": {
           "ucat": [
