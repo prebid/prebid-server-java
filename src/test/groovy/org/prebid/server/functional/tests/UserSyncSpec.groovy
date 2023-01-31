@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.util.HttpUtil
+import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Format.BLANK
@@ -77,6 +78,56 @@ class UserSyncSpec extends BaseSpec {
         then: "Response userSync url should contain empty uid"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "uid").isEmpty()
+
+        where:
+        userSyncFormat << [REDIRECT, IFRAME]
+    }
+
+    def "PBS should return empty gpp and gppSid in usersync url when gpp and gppSid is not present in request"() {
+        given: "Pbs config with usersync.#userSyncFormat.url"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+
+        and: "Default CookieSyncRequest without gpp and gppSid"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            gpp = null
+            gppSid = null
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response userSync url shouldn't contain gpp and gpp_sid"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp").isEmpty()
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid").isEmpty()
+
+        where:
+        userSyncFormat << [REDIRECT, IFRAME]
+    }
+
+    def "PBS should populate gpp and gppSid in usersync url when gpp and gppSid is present in request"() {
+        given: "Pbs config with usersync.#userSyncFormat.url"
+        def prebidServerService = pbsServiceFactory.getService(
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+
+        and: "Default CookieSyncRequest with gpp and gppSid"
+        def gpp = PBSUtils.randomString
+        def gppSid = "${PBSUtils.randomNumber},${PBSUtils.randomNumber}"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gpp = gpp
+            it.gppSid = gppSid
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response userSync url should contain gpp and gppSid"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == gpp
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid
 
         where:
         userSyncFormat << [REDIRECT, IFRAME]
