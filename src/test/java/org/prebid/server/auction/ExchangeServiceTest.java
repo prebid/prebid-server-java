@@ -100,6 +100,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
@@ -229,6 +230,9 @@ public class ExchangeServiceTest extends VertxTest {
     private MediaTypeProcessor mediaTypeProcessor;
 
     @Mock
+    private UidUpdater uidUpdater;
+
+    @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
 
     @Mock
@@ -344,6 +348,13 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
+        given(uidUpdater.updateUid(any(), any(), any()))
+                .willAnswer(inv -> Optional.ofNullable((AuctionContext) inv.getArgument(1))
+                        .map(AuctionContext::getBidRequest)
+                        .map(BidRequest::getUser)
+                        .map(user -> UpdateResult.updated(null))
+                        .orElse(UpdateResult.unaltered(null)));
+
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
@@ -379,6 +390,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
+                uidUpdater,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -410,6 +422,7 @@ public class ExchangeServiceTest extends VertxTest {
                         supplyChainResolver,
                         debugResolver,
                         null,
+                        uidUpdater,
                         ortbVersionConversionManager,
                         httpBidderRequester,
                         responseBidValidator,
@@ -690,6 +703,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
+                uidUpdater,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -1679,38 +1693,15 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotModifyUserFromRequestIfNoBuyeridInCookie() {
-        // given
-        givenBidder(givenEmptySeatBid());
-
-        // this is not required but stated for clarity's sake. The case when bidder is disabled.
-        given(bidderCatalog.isActive(anyString())).willReturn(false);
-        given(uidsCookie.uidFrom(any())).willReturn(null);
-
-        final User user = User.builder().id("userId").build();
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.user(user));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        verify(uidsCookie).uidFrom(isNull());
-
-        final BidRequest capturedBidRequest = captureBidRequest();
-        assertThat(capturedBidRequest.getUser()).isSameAs(user);
-    }
-
-    @Test
     public void shouldHonorBuyeridFromRequestAndClearBuyerIdsFromUserExtPrebidIfContains() {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
+        given(uidUpdater.updateUid(any(), any(), any())).willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder()
-                        .buyeruid("buyeridFromRequest")
+                        .buyeruid("buyerid")
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
                                 .build())
@@ -1722,7 +1713,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
-                .buyeruid("buyeridFromRequest")
+                .buyeruid("buyerid")
                 .build());
     }
 
@@ -1869,34 +1860,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting(impExtNode -> impExtNode.get("skadn"))
                 .containsOnly(new TextNode("skadnValue"));
-    }
-
-    @Test
-    public void shouldSetUserBuyerIdsFromUserExtPrebidAndClearPrebidBuyerIdsAfterwards() {
-        // given
-        givenBidder(givenEmptySeatBid());
-
-        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder
-                        .user(User.builder()
-                                .ext(ExtUser.builder()
-                                        .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
-                                        .build())
-                                .build())
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .data(ExtRequestPrebidData.of(singletonList("someBidder"), null))
-                                .build())));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final User capturedBidRequestUser = captureBidRequest().getUser();
-        assertThat(capturedBidRequestUser).isEqualTo(User.builder()
-                .buyeruid("uidval")
-                .build());
     }
 
     @Test
@@ -2631,7 +2594,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddBuyeridToUserFromRequest() {
         // given
         givenBidder(givenEmptySeatBid());
-        given(uidsCookie.uidFrom(eq("cookieFamily"))).willReturn("buyerid");
+        given(uidUpdater.updateUid(any(), any(), any()))
+                .willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder().id("userId").build()));
@@ -2645,11 +2609,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateUserIfMissingInRequestAndBuyeridPresentInCookie() {
+    public void shouldCreateUserIfMissingInRequestAndBuyeridPresentForBidder() {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(uidsCookie.uidFrom(eq("cookieFamily"))).willReturn("buyerid");
+        given(uidUpdater.updateUid(eq("someBidder"), any(), any()))
+                .willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -2728,6 +2693,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
+                uidUpdater,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -4466,6 +4432,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                uidUpdater,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,

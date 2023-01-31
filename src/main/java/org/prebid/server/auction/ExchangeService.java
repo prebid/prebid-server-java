@@ -80,6 +80,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -166,6 +167,7 @@ public class ExchangeService {
     private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
     private final MediaTypeProcessor mediaTypeProcessor;
+    private final UidUpdater uidUpdater;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
@@ -192,6 +194,7 @@ public class ExchangeService {
                            SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
                            MediaTypeProcessor mediaTypeProcessor,
+                           UidUpdater uidUpdater,
                            BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
@@ -221,6 +224,7 @@ public class ExchangeService {
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
+        this.uidUpdater = Objects.requireNonNull(uidUpdater);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
@@ -540,17 +544,13 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid) {
 
         final BidRequest bidRequest = context.getBidRequest();
-        final User user = bidRequest.getUser();
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final Map<String, String> uidsBody = uidsFromBody(extUser);
 
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
         final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs,
-                        eidPermissions);
+                prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
@@ -619,12 +619,10 @@ public class ExchangeService {
     private Map<String, User> prepareUsers(List<String> bidders,
                                            AuctionContext context,
                                            BidderAliases aliases,
-                                           BidRequest bidRequest,
-                                           ExtUser extUser,
-                                           Map<String, String> uidsBody,
                                            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                            Map<String, List<String>> eidPermissions) {
 
+        final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
         final Map<String, User> bidderToUser = new HashMap<>();
@@ -633,8 +631,8 @@ public class ExchangeService {
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-            final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    context.getUidsCookie(), useFirstPartyData, fpdConfig, eidPermissions);
+            final User preparedUser = prepareUser(
+                    bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
             bidderToUser.put(bidder, preparedUser);
         }
         return bidderToUser;
@@ -647,17 +645,17 @@ public class ExchangeService {
      * Also, removes user.ext.prebid (if present), user.ext.data and user.data (in case bidder does not use first
      * party data).
      */
-    private User prepareUser(User user,
-                             ExtUser extUser,
-                             String bidder,
+    private User prepareUser(String bidder,
+                             AuctionContext context,
                              BidderAliases aliases,
-                             Map<String, String> uidsBody,
-                             UidsCookie uidsCookie,
                              boolean useFirstPartyData,
                              ExtBidderConfigOrtb fpdConfig,
                              Map<String, List<String>> eidPermissions) {
 
-        final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
+        final User user = context.getBidRequest().getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
+
+        final UpdateResult<String> buyerUidUpdateResult = uidUpdater.updateUid(bidder, context, aliases);
         final List<Eid> userEids = extractUserEids(user);
         final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
         final boolean shouldUpdateUserEids = allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
@@ -667,11 +665,9 @@ public class ExchangeService {
         final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
-        if (updatedBuyerUid != null || shouldUpdateUserEids || shouldUpdateUserExt || shouldCleanData) {
+        if (buyerUidUpdateResult.isUpdated() || shouldUpdateUserEids || shouldUpdateUserExt || shouldCleanData) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
-            if (updatedBuyerUid != null) {
-                userBuilder.buyeruid(updatedBuyerUid);
-            }
+            userBuilder.buyeruid(buyerUidUpdateResult.getValue());
 
             if (shouldUpdateUserEids) {
                 userBuilder.eids(nullIfEmpty(allowedUserEids));
@@ -695,19 +691,6 @@ public class ExchangeService {
         return useFirstPartyData
                 ? fpdResolver.resolveUser(maskedUser, fpdConfig == null ? null : fpdConfig.getUser())
                 : maskedUser;
-    }
-
-    /**
-     * Returns updated buyerUid or null if it doesn't need to be updated.
-     */
-    private String updateUserBuyerUid(User user, String bidder, BidderAliases aliases,
-                                      Map<String, String> uidsBody, UidsCookie uidsCookie) {
-        final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, aliases.resolveBidder(bidder));
-        final String buyerUidFromUser = user != null ? user.getBuyeruid() : null;
-
-        return StringUtils.isBlank(buyerUidFromUser) && StringUtils.isNotBlank(buyerUidFromBodyOrCookie)
-                ? buyerUidFromBodyOrCookie
-                : null;
     }
 
     private List<Eid> extractUserEids(User user) {
@@ -734,24 +717,6 @@ public class ExchangeService {
         return CollectionUtils.isEmpty(allowedBidders)
                 || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
                 || allowedBidders.contains(bidder);
-    }
-
-    /**
-     * Extracts UID from uids from body or {@link UidsCookie}.
-     */
-    private String extractUid(Map<String, String> uidsBody, UidsCookie uidsCookie, String bidder) {
-        final String uid = uidsBody.get(bidder);
-        return StringUtils.isNotBlank(uid) ? uid : uidsCookie.uidFrom(resolveCookieFamilyName(bidder));
-    }
-
-    /**
-     * Extract cookie family name from bidder's {@link Usersyncer} if it is enabled. If not - return null.
-     */
-    private String resolveCookieFamilyName(String bidder) {
-        return bidderCatalog.usersyncerByName(bidder)
-                .filter(usersyncer -> bidderCatalog.isActive(bidder))
-                .map(Usersyncer::getCookieFamilyName)
-                .orElse(null);
     }
 
     /**
