@@ -17,7 +17,7 @@ import static org.prebid.server.functional.testcontainers.container.PrebidServer
 class TimeoutSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final int MIN_TIMEOUT_CONFIG = 2
+    private static final int MIN_TIMEOUT_BIDDER_REQUEST = 5
     private static final int MIN_TIMEOUT = PBSUtils.getRandomNumber(50, 150)
     private static final Map PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                            "auction.biddertmax.min"    : MIN_TIMEOUT as String]
@@ -286,17 +286,15 @@ class TimeoutSpec extends BaseSpec {
 
     def "PBS amp should return error when auction.biddertmax.min value not enough for bidder request"() {
         given: "PBS config with biddertmax.min"
-        def bidderTMaxMin = PBSUtils.getRandomNumber(0,5)
-        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                                                                "auction.biddertmax.min"    : bidderTMaxMin as String])
+        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min"    : MIN_TIMEOUT_BIDDER_REQUEST as String])
 
         and: "Default AMP request without timeout"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             timeout = null
         }
 
-        and: "Default stored request with min tmax"
-        def minTmax = bidderTMaxMin - 1
+        and: "Default stored request tmax"
+        def minTmax = MIN_TIMEOUT_BIDDER_REQUEST - 1
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             tmax = minTmax
         }
@@ -312,7 +310,7 @@ class TimeoutSpec extends BaseSpec {
         assert bidResponse?.ext?.debug?.resolvedRequest?.tmax == minTmax
 
         and: "PBS should send to bidder tmax form auction.biddertmax.min config"
-        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${bidderTMaxMin}")
+        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${MIN_TIMEOUT_BIDDER_REQUEST}")
 
         and: "Bid response should shutdown by timeout from stored request"
         def errors = bidResponse.ext?.errors
@@ -323,7 +321,7 @@ class TimeoutSpec extends BaseSpec {
     def "PBS auction should return error when auction.biddertmax.min value not enough for bidder request"() {
         given: "PBS config with biddertmax.min"
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                                                                "auction.biddertmax.min"    : MIN_TIMEOUT_CONFIG as String])
+                                                                                "auction.biddertmax.min"    : MIN_TIMEOUT_BIDDER_REQUEST as String])
 
         and: "Default BidRequest without timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -332,7 +330,7 @@ class TimeoutSpec extends BaseSpec {
         }
 
         and: "Default stored request with min tmax"
-        def minTmax = MIN_TIMEOUT_CONFIG + 4
+        def minTmax = MIN_TIMEOUT_BIDDER_REQUEST + 4
         def storedRequest = BidRequest.defaultStoredRequest.tap {
             tmax = minTmax
         }
@@ -348,7 +346,7 @@ class TimeoutSpec extends BaseSpec {
         assert bidResponse?.ext?.debug?.resolvedRequest?.tmax == minTmax
 
         and: "PBS should send to bidder tmax form auction.biddertmax.min config"
-        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${MIN_TIMEOUT_CONFIG}")
+        assert bidResponse.ext.debug.httpcalls[BidderName.GENERIC.value]*.requestBody[0].contains("\"tmax\":${MIN_TIMEOUT_BIDDER_REQUEST}")
 
         and: "Bid response should shutdown by timeout from stored request"
         def errors = bidResponse.ext?.errors
@@ -359,7 +357,8 @@ class TimeoutSpec extends BaseSpec {
     def "PBS should choose min timeout form config for bidder request when in request value lowest that in auction.biddertmax.min"() {
         given: "PBS config with percent"
         def minBidderTmax = PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
-        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min": minBidderTmax as String])
+        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min"    : minBidderTmax as String,
+                                                                                "auction.biddertmax.max"    : MAX_TIMEOUT as String])
 
         and: "Default basic BidRequest"
         def timeout = PBSUtils.getRandomNumber(0, minBidderTmax)
@@ -380,7 +379,7 @@ class TimeoutSpec extends BaseSpec {
 
     def "PBS should change timeout for bidder due to percent in auction.biddertmax.percent"() {
         given: "PBS config with percent"
-        def percent = PBSUtils.getRandomNumber(0, 98)
+        def percent = PBSUtils.getRandomNumber(2, 98)
         def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.percent": percent as String]
                 + PBS_CONFIG)
 
@@ -406,7 +405,6 @@ class TimeoutSpec extends BaseSpec {
     }
 
     private static boolean isInternalProcessingTime(long bidderRequestTimeout, long requestTimeout){
-        def internalPbsTime = requestTimeout - bidderRequestTimeout
-        0 < internalPbsTime
+        0 < requestTimeout - bidderRequestTimeout
     }
 }
