@@ -1,5 +1,5 @@
 adapters:
-  yourBidderCode:
+  appush:
     endpoint: http://hb.appush.com/pserver
     meta-info:
       maintainer-email: support@appush.com

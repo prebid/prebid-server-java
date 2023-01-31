@@ -69,7 +69,6 @@ public class AppushBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpAppush extImpAppush) {
 
-
         AppushImpExtBidder impExtAppushWithType = buildImpExtAppushWithType(extImpAppush);
 
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
@@ -103,7 +102,13 @@ public class AppushBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
         final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
 
-        return HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri(endpointUrl).headers(HttpUtil.headers()).payload(outgoingRequest).body(mapper.encodeToBytes(outgoingRequest)).build();
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(outgoingRequest)
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .build();
     }
 
     @Override
