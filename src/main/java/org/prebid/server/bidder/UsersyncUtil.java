@@ -5,8 +5,15 @@ import org.apache.commons.lang3.StringUtils;
 
 public class UsersyncUtil {
 
-    public static final String CALLBACK_URL_TEMPLATE =
-            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
+    public static final String CALLBACK_URL_TEMPLATE = """
+            %s/setuid?\
+            bidder=%s\
+            &gdpr={{gdpr}}\
+            &gdpr_consent={{gdpr_consent}}\
+            &us_privacy={{us_privacy}}\
+            &gpp={{gpp}}\
+            &gpp_sid={{gpp_sid}}\
+            &uid=%s""";
 
     public static final String FORMAT_PARAMETER = "f";
 

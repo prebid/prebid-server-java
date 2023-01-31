@@ -161,8 +161,16 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        FutureAssertion.assertThat(privacyContext)
-                .succeededWith(PrivacyContext.of(Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 1), tcfContext));
+        final Privacy privacy = Privacy.builder()
+                .gdpr(EMPTY)
+                .consentString(EMPTY)
+                .ccpa(Ccpa.EMPTY)
+                .coppa(1)
+                .gpp(EMPTY)
+                .gppSid(emptyList())
+                .build();
+
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
     }
 
     @Test
@@ -201,7 +209,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .ccpa(Ccpa.of("1YYY"))
+                .coppa(0)
+                .gpp(EMPTY)
+                .gppSid(emptyList())
+                .build();
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(requestType, referer, accountId);
@@ -250,7 +265,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .ccpa(Ccpa.of("1YYY"))
+                .coppa(0)
+                .gpp(EMPTY)
+                .gppSid(emptyList())
+                .build();
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext, "ip-masked"));
 
         verify(tcfDefinerService).resolveTcfContext(
@@ -335,7 +357,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 httpRequest, Account.empty(accountId), null);
 
         // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(0)
+                .gpp(EMPTY)
+                .gppSid(emptyList())
+                .build();
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.setuid, null, accountId);
@@ -375,7 +404,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 cookieSyncRequest, httpRequest, Account.empty(accountId), null);
 
         // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .ccpa(Ccpa.of("1YYY"))
+                .coppa(0)
+                .gpp(EMPTY)
+                .gppSid(emptyList())
+                .build();
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.cookiesync, null, accountId);
@@ -1738,7 +1774,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private PrivacyContext givenPrivacyContext(String gdpr, Ccpa ccpa, Integer coppa) {
         return PrivacyContext.of(
-                Privacy.of(gdpr, EMPTY, ccpa, coppa),
+                Privacy.builder().gdpr(gdpr).consentString(EMPTY).ccpa(ccpa).coppa(coppa).build(),
                 TcfContext.empty());
     }
 

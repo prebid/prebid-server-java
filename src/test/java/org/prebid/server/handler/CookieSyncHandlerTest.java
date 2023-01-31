@@ -101,7 +101,12 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
-                        Privacy.of("", EMPTY, Ccpa.EMPTY, 0),
+                        Privacy.builder()
+                                .gdpr("")
+                                .consentString(EMPTY)
+                                .ccpa(Ccpa.EMPTY)
+                                .coppa(0)
+                                .build(),
                         TcfContext.empty())));
 
         target = new CookieSyncHandler(

@@ -16,6 +16,8 @@ class CookieSyncRequest {
     Integer gdpr
     String gdprConsent
     String usPrivacy
+    String gpp
+    String gppSid
     @JsonProperty("coopSync")
     Boolean coopSync
     Boolean debug

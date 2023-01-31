@@ -922,8 +922,16 @@ public class CookieSyncServiceTest extends VertxTest {
         final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
 
         // then
-        final String expectedUrl = "https://external-url.com/setuid?bidder=host-bidder-cookie-family"
-                + "&gdpr=gdpr&gdpr_consent=consent-string&us_privacy=&f=b&uid=bogus";
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .noCookie(true)
                 .bidder("host-bidder-cookie-family")
@@ -938,7 +946,14 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private PrivacyContext givenPrivacyContext(TcfContext tcfContext) {
-        return PrivacyContext.of(Privacy.of("gdpr", "consent-string", Ccpa.EMPTY, 1), tcfContext);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("gdpr")
+                .consentString("consent-string")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(1)
+                .build();
+
+        return PrivacyContext.of(privacy, tcfContext);
     }
 
     private void givenValidActiveBidders(String... bidders) {
