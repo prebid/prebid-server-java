@@ -115,7 +115,12 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
