@@ -25,6 +25,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
@@ -582,6 +583,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    UidUpdater uidUpdater(
+            @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
+            BidderCatalog bidderCatalog,
+            UidsCookieService uidsCookieService) {
+
+        return new UidUpdater(hostCookieFamily, bidderCatalog, uidsCookieService);
+    }
+
+    @Bean
     CoopSyncProvider coopSyncProvider(
             BidderCatalog bidderCatalog,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
@@ -726,6 +736,7 @@ public class ServiceConfiguration {
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
+            UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
@@ -755,6 +766,7 @@ public class ServiceConfiguration {
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
                 bidRequestOrtbVersionConversionManager,

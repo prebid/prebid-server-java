@@ -1,14 +1,10 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-class UserExt {
+class UserExtPrebid {
 
-    String consent
-    List<Eid> eids
-    List<String> fcapids
-    UserTime time
-    UserExtData data
-    UserExtPrebid prebid
+    Map<BidderName, String> buyeruids
 }
