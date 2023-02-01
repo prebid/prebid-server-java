@@ -11,16 +11,18 @@
           }
         ],
         "w": 300,
-        "h": 600,
-        "pos": 3
+        "h": 600
       },
-      "tagid": "abc",
-      "bidfloor": 1,
+      "tagid": "overwrite-tagId",
       "secure": 1,
       "ext": {
-        "appnexus": {
-          "keywords": "foo=bar,foo=baz",
-          "traffic_source_code": "trafficSource"
+        "data": {
+          "gam-key1": "val1",
+          "gam-key2": "val2"
+        },
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "property1" : "value1"
         }
       }
     }
@@ -62,10 +64,6 @@
     }
   },
   "ext": {
-    "appnexus": {
-      "is_amp": 1,
-      "hb_source": 5
-    },
     "prebid": {
       "server": {
         "externalurl": "http://localhost:8080",

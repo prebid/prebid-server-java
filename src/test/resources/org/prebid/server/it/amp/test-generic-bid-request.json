@@ -21,17 +21,17 @@
           "gam-key2": "val2"
         },
         "tid": "6b8762d8-26ec-45bc-821b-8d6a72fdcd55",
-        "generic": {
+        "bidder": {
           "accountId": 5001,
           "siteId": 6001,
           "zoneId": 7001
-        },
-        "genericAlias": {
-          "property1": "value1"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "google.com",
     "page": "https://google.com",
@@ -55,17 +55,14 @@
     }
   },
   "at": 1,
-  "tmax": 4751,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
-  "source": {
-    "tid": "94a0b173-1fd2-45cc-a8a1-95ff41a84059"
-  },
   "regs": {
     "ext": {
-      "gdpr": 0,
-      "us_privacy": "1YNN"
+      "us_privacy": "1YNN",
+      "gdpr": 0
     }
   },
   "ext": {

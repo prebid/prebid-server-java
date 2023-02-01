@@ -2,6 +2,7 @@ package org.prebid.server.proto.openrtb.ext.response;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,11 @@ import java.util.Map;
 public class ExtBidResponse {
 
     ExtResponseDebug debug;
+
+    /*
+     * Additional debug info for imp ids that have no corresponding bid in response.
+     */
+    List<SeatNonBid> seatnonbid;
 
     /**
      * Defines the contract for bidresponse.ext.errors
