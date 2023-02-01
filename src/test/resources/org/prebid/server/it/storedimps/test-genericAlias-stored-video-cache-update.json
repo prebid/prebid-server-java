@@ -18,10 +18,8 @@
     ]
   },
   "ext": {
-    "rubicon": {
-      "accountId": 5001,
-      "siteId": 6001,
-      "zoneId": 7001
+    "genericAlias": {
+      "property2": "value2"
     }
   }
 }

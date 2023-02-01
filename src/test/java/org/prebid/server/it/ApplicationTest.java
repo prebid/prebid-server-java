@@ -183,21 +183,21 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/storedresponse/test-auction-response.json",
-                response, singletonList(RUBICON), openrtbCacheDebugCustomization());
+                response, singletonList(GENERIC), openrtbCacheDebugCustomization());
     }
 
     @Test
     public void ampShouldReturnTargeting() throws IOException, JSONException {
         // given
-        // rubicon exchange
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
+        // generic exchange
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-generic-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-generic-bid-response.json"))));
 
-        // appnexus exchange
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-appnexus-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("amp/test-appnexus-bid-response.json"))));
+        // genericAlias exchange
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-genericAlias-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-genericAlias-bid-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
@@ -231,7 +231,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&consent_string=1YNN");
 
         // then
-        assertJsonEquals("amp/test-amp-response.json", response, asList(RUBICON, APPNEXUS));
+        assertJsonEquals("amp/test-amp-response.json", response, asList(GENERIC, GENERIC_ALIAS));
     }
 
     @Test
@@ -512,14 +512,14 @@ public class ApplicationTest extends IntegrationTest {
                 .body(Matchers.equalTo(""))
                 .statusCode(200);
 
-        // rubicon bid response
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response1.json"))));
+        // generic bid response
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-generic-bid-request1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-generic-bid-response1.json"))));
 
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response2.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-genericAlias-bid-request2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-genericAlias-bid-response2.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -534,7 +534,7 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        assertJsonEquals("cache/update/test-auction-response.json", response, singletonList(RUBICON));
+        assertJsonEquals("cache/update/test-auction-response.json", response, asList(GENERIC, GENERIC_ALIAS));
     }
 
     @Test
