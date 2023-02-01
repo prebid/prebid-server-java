@@ -68,8 +68,9 @@ public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
-    private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String RUBICON = "rubicon";
+    private static final String GENERIC = "generic";
+    private static final String GENERIC_ALIAS = "genericAlias";
 
     private static final int ADMIN_PORT = 8060;
 
@@ -118,33 +119,34 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void openrtb2MultiBidAuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
+    public void openrtb2MultiBidAuctionShouldRespondWithMoreThanOneBid() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", equalTo("rp-pbs"))
-                .withBasicAuth("rubicon_user", "rubicon_password")
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-request-1.json")))
+                        jsonFrom("openrtb2/multi_bid/test-generic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-response-1.json"))));
+                        "openrtb2/multi_bid/test-generic-bid-response-1.json"))));
 
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-request-1.json")))
+                        jsonFrom(
+                                "openrtb2/multi_bid/test-genericAlias-bid-request-1.json"
+                        )))
                 .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-response-1.json"))));
+                        "openrtb2/multi_bid/test-genericAlias-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-cache-rubicon-appnexus-request.json")))
+                        jsonFrom(
+                                "openrtb2/multi_bid/test-cache-generic-genericAlias-request.json"
+                        )))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")));
+                                "openrtb2/multi_bid/test-cache-matcher-generic-genericAlias.json")));
 
         // when
         final Response response = given(SPEC)
@@ -153,12 +155,12 @@ public class ApplicationTest extends IntegrationTest {
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
-                .body(jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-request.json"))
+                .body(jsonFrom("openrtb2/multi_bid/test-auction-generic-genericAlias-request.json"))
                 .post("/openrtb2/auction");
 
         // then
-        assertJsonEquals("openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
+        assertJsonEquals("openrtb2/multi_bid/test-auction-generic-genericAlias-response.json",
+                response, asList(GENERIC, GENERIC_ALIAS));
     }
 
     @Test
@@ -317,6 +319,8 @@ public class ApplicationTest extends IntegrationTest {
                                 "http://localhost:8080/setuid?bidder=rubicon"
                                         + "&gdpr=1&gdpr_consent=" + gdprConsent
                                         + "&us_privacy=1YNN"
+                                        + "&gpp="
+                                        + "&gpp_sid="
                                         + "&f=i"
                                         + "&uid=host-cookie-uid",
                                 UsersyncMethodType.REDIRECT, false))
@@ -328,6 +332,8 @@ public class ApplicationTest extends IntegrationTest {
                                 "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                         + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                         + "%26us_privacy%3D1YNN"
+                                        + "%26gpp%3D"
+                                        + "%26gpp_sid%3D"
                                         + "%26f%3Db"
                                         + "%26uid%3D%24UID",
                                 UsersyncMethodType.IFRAME, false))
@@ -667,7 +673,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s" .formatted(bidderName, e.getMessage()));
         }
     }
 }

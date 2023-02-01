@@ -97,11 +97,11 @@
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
                       "sizes": [
-                         {
-                           "w": 300,
-                           "h": 250
-                         }
-                       ],
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
                       "bidder": "rubicon"
                     }
                   }
@@ -109,9 +109,7 @@
               ]
             },
             "ext": {
-
-                "tid": "someTid",
-
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -153,7 +151,7 @@
           }
         },
         "at": 1,
-        "tmax": 2000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
@@ -275,10 +273,9 @@
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
-      "auctiontimestamp": 1000,
-      "seatnonbid": []
+      "auctiontimestamp": 1000
     }
   }
 }

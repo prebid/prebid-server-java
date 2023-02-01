@@ -180,6 +180,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -233,6 +234,12 @@ public class ExchangeServiceTest extends VertxTest {
     private UidUpdater uidUpdater;
 
     @Mock
+    private TimeoutResolver timeoutResolver;
+
+    @Mock
+    private TimeoutFactory timeoutFactory;
+
+    @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
 
     @Mock
@@ -261,6 +268,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private PriceFloorAdjuster priceFloorAdjuster;
+
     @Mock
     private PriceFloorEnforcer priceFloorEnforcer;
 
@@ -273,14 +281,15 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    private Clock clock;
+    @Mock
+    private Timeout timeout;
 
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
-    private ExchangeService exchangeService;
+    private Clock clock;
 
-    private Timeout timeout;
+    private ExchangeService exchangeService;
 
     private DealsProcessor dealsProcessor;
 
@@ -373,15 +382,27 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
+        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(timeoutFactory.create(anyLong()))
+                .willReturn(timeout);
+
+        given(timeoutFactory.create(anyLong(), anyLong()))
+                .willReturn(timeout);
+
         given(ortbVersionConversionManager.convertFromAuctionSupportedVersion(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        timeout = new TimeoutFactory(clock).create(500);
+
         dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
-                0,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -391,6 +412,8 @@ public class ExchangeServiceTest extends VertxTest {
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
                 uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -410,7 +433,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailOnNegativeExpectedCacheTime() {
+    public void creationShouldFailOnNegativeTimeoutAdjustmentFactor() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new ExchangeService(
                         -1,
@@ -421,8 +444,10 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         supplyChainResolver,
                         debugResolver,
-                        null,
+                        new NoOpMediaTypeProcessor(),
                         uidUpdater,
+                        timeoutResolver,
+                        timeoutFactory,
                         ortbVersionConversionManager,
                         httpBidderRequester,
                         responseBidValidator,
@@ -439,7 +464,7 @@ public class ExchangeServiceTest extends VertxTest {
                         clock,
                         jacksonMapper,
                         criteriaLogManager))
-                .withMessage("Expected cache time should be positive");
+                .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
     @Test
@@ -694,7 +719,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
         // given
         exchangeService = new ExchangeService(
-                100,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -704,6 +729,8 @@ public class ExchangeServiceTest extends VertxTest {
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
                 uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -2667,73 +2694,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassGlobalTimeoutToConnectorUnchangedIfCachingIsNotRequested() {
-        // given
-        givenBidder(givenEmptySeatBid());
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        verify(httpBidderRequester).requestBids(any(), any(), same(timeout), any(), any(), anyBoolean());
-    }
-
-    @Test
-    public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToBidResponseCreator() {
-        // given
-        exchangeService = new ExchangeService(
-                100,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsProcessor,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                new NoOpMediaTypeProcessor(),
-                uidUpdater,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager);
-
-        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
-        givenBidder(givenSeatBid(singletonList(givenBidderBid(bid))));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                        // imp ids are not really used for matching, included them here for clarity
-                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .targeting(givenTargeting(true))
-                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, null))
-                        .auctiontimestamp(1000L)
-                        .build())));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
-        verify(httpBidderRequester).requestBids(any(), any(), timeoutCaptor.capture(), any(), any(), anyBoolean());
-        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(400L);
-        verify(bidResponseCreator).create(any(), any(), any());
-    }
-
-    @Test
     public void shouldReturnBidsWithUpdatedPriceCurrencyConversion() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -4423,7 +4383,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
 
         exchangeService = new ExchangeService(
-                100,
+                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -4433,6 +4393,8 @@ public class ExchangeServiceTest extends VertxTest {
                 debugResolver,
                 mediaTypeProcessor,
                 uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
                 ortbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
@@ -4471,7 +4433,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("bidderName", 1)),
                 request -> request.source(Source.builder().tid("uniqTid").build()));
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
         exchangeService.holdAuction(auctionContext);
@@ -4484,6 +4446,36 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getSource)
                 .isNull();
+    }
+
+    @Test
+    public void shouldPassAdjustedTimeoutToAdapterAndToBidResponseCreator() {
+        // given
+        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), anyLong()))
+                .willReturn(400L);
+        given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
+                .willReturn(450L);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidderName", 1)),
+                request -> request.source(Source.builder().tid("uniqTid").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(httpBidderRequester).requestBids(
+                any(),
+                bidderRequestCaptor.capture(),
+                any(),
+                any(),
+                any(),
+                anyBoolean());
+        verify(timeoutFactory).create(anyLong(), timeoutCaptor.capture());
+        assertThat(bidderRequestCaptor.getValue().getBidRequest().getTmax()).isEqualTo(400L);
+        assertThat(timeoutCaptor.getAllValues()).containsExactly(450L);
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
@@ -4505,6 +4497,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugWarnings(new ArrayList<>())
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
+                .startTime(clock.millis())
                 .timeout(timeout)
                 .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
                 .debugContext(DebugContext.empty())
@@ -4527,7 +4520,9 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             List<Imp> imp, Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
-        return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(singletonList("USD")).imp(imp)).build();
+        return bidRequestBuilderCustomizer
+                .apply(BidRequest.builder().cur(singletonList("USD")).imp(imp).tmax(500L))
+                .build();
     }
 
     private static BidRequest givenBidRequest(List<Imp> imp) {

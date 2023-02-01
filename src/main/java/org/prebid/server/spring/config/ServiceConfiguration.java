@@ -218,11 +218,25 @@ public class ServiceConfiguration {
 
     @Bean
     TimeoutResolver auctionTimeoutResolver(
-            @Value("${auction.default-timeout-ms}") long defaultTimeout,
-            @Value("${auction.max-timeout-ms}") long maxTimeout,
-            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment) {
+            @Value("${auction.biddertmax.min}") long minTimeout,
+            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
+            @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
+            @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+        return new TimeoutResolver(
+                minTimeout,
+                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
+                upstreamResponseTime);
+    }
+
+    // TODO: Remove after transition period
+    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
+        if (maxTimeout != 0) {
+            return maxTimeout;
+        }
+
+        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
+        return maxTimeoutDeprecated;
     }
 
     @Bean
@@ -431,7 +445,6 @@ public class ServiceConfiguration {
             VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            TimeoutResolver auctionTimeoutResolver,
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
@@ -446,7 +459,6 @@ public class ServiceConfiguration {
                 videoRequestValidator,
                 metrics,
                 timeoutFactory,
-                auctionTimeoutResolver,
                 mapper,
                 jsonMerger);
     }
@@ -715,7 +727,7 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             DealsProcessor dealsProcessor,
@@ -725,6 +737,8 @@ public class ServiceConfiguration {
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
             UidUpdater uidUpdater,
+            TimeoutResolver timeoutResolver,
+            TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
@@ -743,7 +757,7 @@ public class ServiceConfiguration {
             CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
-                expectedCacheTimeMs,
+                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -753,6 +767,8 @@ public class ServiceConfiguration {
                 debugResolver,
                 mediaTypeProcessor,
                 uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,

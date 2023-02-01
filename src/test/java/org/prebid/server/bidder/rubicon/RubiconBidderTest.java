@@ -110,6 +110,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -361,6 +362,12 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder
                         .zoneId(4001)
                         .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+        final ObjectNode givenSkadn = mapper.createObjectNode();
+        givenSkadn.put("property1", "value1");
+        givenSkadn.put("property2", 2);
+        Optional.ofNullable(bidRequest.getImp().get(0))
+                .map(Imp::getExt)
+                .ifPresent(s -> s.set("skadn", givenSkadn));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -372,9 +379,13 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
-                        mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                        RubiconImpExtRpTrack.of("", "")), null, 1, null, null));
+                .containsOnly(RubiconImpExt.builder()
+                        .rp(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")))
+                        .skadn(givenSkadn)
+                        .maxbids(1)
+                        .build());
     }
 
     @Test
@@ -1871,6 +1882,25 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyRegs() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.regs(Regs.builder().coppa(1).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getRegs).doesNotContainNull()
+                .containsOnly(Regs.builder().coppa(1).build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillDeviceExtIfDevicePresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -2065,16 +2095,21 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest expectedBidRequest1 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null, null)))
+                        .ext(mapper.valueToTree(RubiconImpExt.builder()
+                                .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                .maxbids(1)
+                                .build()))
                         .build()))
                 .build();
         final BidRequest expectedBidRequest2 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("2")
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1, null, null)))
+                        .ext(mapper.valueToTree(
+                                RubiconImpExt.builder()
+                                        .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                        .maxbids(1)
+                                        .build()))
                         .build()))
                 .build();
 
@@ -2723,9 +2758,8 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null, null,
-                                RubiconImpExtRpTrack.of("", "")),
-                        asList("moat.com", "doubleclickbygoogle.com"), 1, null, null));
+                .extracting(RubiconImpExt::getViewabilityvendors)
+                .containsExactly(asList("moat.com", "doubleclickbygoogle.com"));
     }
 
     @Test
@@ -2948,11 +2982,9 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
-                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
-                        RubiconImpExtPrebid.of(
-                                ExtImpPrebidFloors.of("video", BigDecimal.TEN, BigDecimal.TEN, null, null))));
+                .extracting(RubiconImpExt::getPrebid)
+                .extracting(RubiconImpExtPrebid::getFloors)
+                .containsOnly(ExtImpPrebidFloors.of("video", BigDecimal.TEN, BigDecimal.TEN, null, null));
     }
 
     @Test
@@ -3031,11 +3063,9 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
-                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
-                        RubiconImpExtPrebid.of(
-                                ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE, null, null))));
+                .extracting(RubiconImpExt::getPrebid)
+                .extracting(RubiconImpExtPrebid::getFloors)
+                .containsOnly(ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE, null, null));
     }
 
     @Test
