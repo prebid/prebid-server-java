@@ -1366,8 +1366,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .containsOnly(User.builder()
                         .buyeruid("buyeruid")
-                        .consent("consent")
-                        .ext(ExtUser.builder().build())
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
                         .build());
     }
 

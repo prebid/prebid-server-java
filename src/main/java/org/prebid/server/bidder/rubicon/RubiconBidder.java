@@ -1157,6 +1157,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEid);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
         final String liverampId = extractLiverampId(sourceToUserEid);
+        final String consent = user != null ? user.getConsent() : null;
 
         if (userExtRp == null
                 && userExtData == null
@@ -1165,6 +1166,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && resolvedId == null
                 && Objects.equals(userBuyeruid, resolvedBuyeruid)
                 && !hasStypeToRemove
+                && consent == null
         ) {
 
             return hasDataToRemove
@@ -1179,6 +1181,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
                 .liverampIdl(liverampId)
+                .consent(consent)
                 .build();
 
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
@@ -1191,6 +1194,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .geo(null)
                 .data(null)
                 .eids(null)
+                .consent(null)
                 .ext(mapper.fillExtension(userExt, rubiconUserExt))
                 .build();
     }

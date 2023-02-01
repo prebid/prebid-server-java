@@ -79,11 +79,8 @@
     }
   },
   "user": {
-    "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
     "ext": {
-      "fcapids": [
-        "fcapId3"
-      ]
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
     }
   },
   "at": 1,
