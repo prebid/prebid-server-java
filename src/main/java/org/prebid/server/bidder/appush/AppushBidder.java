@@ -43,8 +43,8 @@ public class AppushBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public AppushBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = endpointUrl;
-        this.mapper = mapper;
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
