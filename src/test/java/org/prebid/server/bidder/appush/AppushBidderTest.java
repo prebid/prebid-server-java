@@ -40,8 +40,9 @@ public class AppushBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
     private AppushBidder appushBidder;
+
     @Before
-    public void setUp(){
+    public void setUp() {
         appushBidder = new AppushBidder(ENDPOINT_URL, jacksonMapper);
     }
 
@@ -267,7 +268,8 @@ public class AppushBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtAppushBidder(UnaryOperator<AppushImpExtBidder.AppushImpExtBidderBuilder> impExtAppushBidderBuilder) {
+    private ObjectNode givenImpExtAppushBidder(
+            UnaryOperator<AppushImpExtBidder.AppushImpExtBidderBuilder> impExtAppushBidderBuilder) {
         final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
 
         return modifiedImpExtBidder.set("bidder", mapper.convertValue(

@@ -24,11 +24,6 @@ public class AppushTest extends IntegrationTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appush-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/appush/test-appush-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/appush/test-appush-bid-response.json"))));
-//
-//        // pre-bid cache
-//        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-//                .withRequestBody(equalToJson(jsonFrom("openrtb2/appush/test-cache-appush-request.json")))
-//                .willReturn(aResponse().withBody(jsonFrom("openrtb2/appush/test-cache-appush-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/appush/test-auction-appush-request.json",
