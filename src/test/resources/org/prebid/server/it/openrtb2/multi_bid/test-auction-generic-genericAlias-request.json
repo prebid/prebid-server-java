@@ -24,52 +24,13 @@
       "ext": {
         "prebid": {
           "bidder": {
-            "rubicon": {
-              "accountId": 2001,
-              "siteId": 3001,
-              "zoneId": 4001,
-              "inventory": {
-                "rating": [
-                  "5-star"
-                ],
-                "prodtype": [
-                  "tech"
-                ]
-              },
-              "visitor": {
-                "ucat": [
-                  "new"
-                ],
-                "search": [
-                  "iphone"
-                ]
-              },
-              "video": {
-                "size_id": 15,
-                "playerWidth": 780,
-                "playerHeight": "438",
-                "skip": 5,
-                "skipdelay": 1
-              }
+            "generic": {
+              "genericProperty": 1
             },
-            "appnexus": {
-              "member": "103",
-              "inv_code": "abc",
-              "reserve": 1.0,
-              "position": "below",
-              "traffic_source_code": "trafficSource",
-              "keywords": [
-                {
-                  "key": "foo",
-                  "value": [
-                    "bar",
-                    "baz"
-                  ]
-                }
-              ]
+            "genericAlias": {
+              "genericAliasProperty" : 2
             }
-          },
-          "is_rewarded_inventory": 1
+          }
         }
       }
     }
@@ -137,13 +98,13 @@
       },
       "multibid": [
         {
-          "bidder": "rubicon",
+          "bidder": "generic",
           "maxbids": 2,
           "targetbiddercodeprefix": "rubN"
         },
         {
           "bidders": [
-            "appnexus",
+            "genericAlias",
             "someBidder"
           ],
           "maxbids": 2
@@ -159,6 +120,7 @@
   },
   "regs": {
     "ext": {
+      "gdpr": 0,
       "us_privacy": "1YNN"
     }
   }

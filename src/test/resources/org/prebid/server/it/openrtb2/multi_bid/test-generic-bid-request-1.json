@@ -1,0 +1,137 @@
+{
+  "at": 1,
+  "cur": [
+    "USD"
+  ],
+  "device": {
+    "dnt": 2,
+    "ext": {
+      "prebid": {
+        "interstitial": {
+          "minheightperc": 60,
+          "minwidthperc": 50
+        }
+      }
+    },
+    "ifa": "ifaId",
+    "ip": "80.215.195.0",
+    "language": "en",
+    "pxratio": 4.2,
+    "ua": "userAgent"
+  },
+  "ext": {
+    "prebid": {
+      "auctiontimestamp": 1000,
+      "cache": {
+        "bids": {
+        },
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "channel": {
+        "name": "web"
+      },
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.811
+          }
+        },
+        "usepbsrates": false
+      },
+      "debug": 0,
+      "events": {
+      },
+      "multibid": [
+        {
+          "bidder": "generic",
+          "maxbids": 2,
+          "targetbiddercodeprefix": "rubN"
+        }
+      ],
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "datacenter": "local",
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1
+      },
+      "targeting": {
+        "includebidderkeys": true,
+        "includewinners": true,
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "increment": 0.1,
+              "max": 20
+            }
+          ]
+        }
+      }
+    }
+  },
+  "id": "tid",
+  "imp": [
+    {
+      "ext": {
+        "bidder": {
+          "genericProperty": 1
+        },
+        "tid": "${json-unit.any-string}"
+      },
+      "id": "impId1",
+      "secure": 1,
+      "video": {
+        "h": 250,
+        "maxduration": 60,
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "playbackmethod": [
+          1
+        ],
+        "protocols": [
+          1
+        ],
+        "skipafter": 0,
+        "skipmin": 0,
+        "startdelay": 5,
+        "w": 300
+      }
+    }
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0,
+      "us_privacy": "1YNN"
+    }
+  },
+  "site": {
+    "domain": "www.example.com",
+    "ext": {
+      "amp": 0
+    },
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com",
+      "id": "5001"
+    }
+  },
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "tmax": "${json-unit.any-number}",
+  "user": {
+    "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+    }
+  }
+}
