@@ -10,6 +10,4 @@ public class RubiconUserExt {
     RubiconUserExtRp rp;
 
     String liverampIdl;
-
-    String consent;
 }
