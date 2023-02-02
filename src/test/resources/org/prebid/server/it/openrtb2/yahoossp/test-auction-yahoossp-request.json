@@ -17,6 +17,8 @@
   ],
   "tmax": 5000,
   "regs": {
+    "gpp": "gppstring",
+    "gpp_sid": [6],
     "ext": {
       "gdpr": 0
     }

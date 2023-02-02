@@ -7,14 +7,22 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.auction.versionconverter.down.BidRequestOrtb26To25Converter;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -22,6 +30,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 
 import java.util.List;
@@ -35,6 +44,9 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -44,14 +56,25 @@ public class YahooSSPBidderTest extends VertxTest {
 
     private YahooSSPBidder yahooSSPBidder;
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidRequestOrtbVersionConversionManager conversionManager;
+
     @Before
     public void setUp() {
-        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper);
+        BidRequestOrtb26To25Converter innerConverter = new BidRequestOrtb26To25Converter(jacksonMapper);
+        when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
+                .thenAnswer(answer ->
+                        innerConverter.convert(answer.getArgument(0)));
+        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper, conversionManager);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url",
+                jacksonMapper, conversionManager));
     }
 
     @Test
@@ -395,6 +418,55 @@ public class YahooSSPBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldRemoveTheOpenRTB26Regs() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                                .gdpr(1)
+                                .usPrivacy("1YNN")
+                                .gpp("gppconsent")
+                                .gppSid(List.of(6))
+                        .build()).device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        Regs regs = result.getValue().get(0).getPayload().getRegs();
+        assertThat(regs.getGdpr()).isNull();
+        assertThat(regs.getUsPrivacy()).isNull();
+        assertThat(regs.getGpp()).isNull();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
+        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
+        assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
+    }
+
+    @Test
+    public void makeBidsShouldOverwriteRegsExtValues() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gdpr(1)
+                        .ext(ExtRegs.of(0, "1YNN"))
+                        .build()).device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        Regs regs = result.getValue().get(0).getPayload().getRegs();
+        assertThat(regs.getGdpr()).isNull();
+        assertThat(regs.getUsPrivacy()).isNull();
+        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
+        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
     }
 
     private static BidRequest givenBidRequest(

@@ -1,6 +1,7 @@
 adapters:
   yahoossp:
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+    ortb-version: "2.6"
     aliases:
       verizonmedia:
         enabled: false

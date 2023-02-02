@@ -43,6 +43,8 @@
   },
   "regs": {
     "ext": {
+      "gpp": "gppstring",
+      "gpp_sid": [6],
       "gdpr": 0
     }
   },

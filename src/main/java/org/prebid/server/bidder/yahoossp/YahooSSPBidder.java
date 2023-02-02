@@ -1,13 +1,17 @@
 package org.prebid.server.bidder.yahoossp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -16,6 +20,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,6 +32,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -35,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class YahooSSPBidder implements Bidder<BidRequest> {
 
@@ -45,9 +54,13 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public YahooSSPBidder(String endpointUrl, JacksonMapper mapper) {
+    private final BidRequestOrtbVersionConversionManager conversionManager;
+
+    public YahooSSPBidder(String endpointUrl, JacksonMapper mapper,
+                          BidRequestOrtbVersionConversionManager conversionManager) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.conversionManager = Objects.requireNonNull(conversionManager);
     }
 
     @Override
@@ -55,12 +68,16 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
+        Regs regs = bidRequest.getRegs();
+        bidRequest = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
+                OrtbVersion.ORTB_2_5);
+
         final List<Imp> impList = bidRequest.getImp();
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooSSP extImpYahooSSP = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooSSP);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooSSP, regs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -91,15 +108,20 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         return extImpYahooSSP;
     }
 
-    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooSSP extImpYahooSSP) {
+    private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooSSP extImpYahooSSP, Regs regs) {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         final Site site = request.getSite();
         final App app = request.getApp();
+
         if (site != null) {
             requestBuilder.site(site.toBuilder().id(extImpYahooSSP.getDcn()).build());
         } else if (app != null) {
             requestBuilder.app(app.toBuilder().id(extImpYahooSSP.getDcn()).build());
+        }
+
+        if (regs != null) {
+            requestBuilder.regs(modifyRegs(regs));
         }
 
         return requestBuilder
@@ -142,6 +164,39 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 .w(firstFormat.getW())
                 .h(firstFormat.getH())
                 .build();
+    }
+
+    private Regs modifyRegs(Regs regs) {
+        Integer gdpr = regs.getGdpr();
+        String usPrivacy = regs.getUsPrivacy();
+        final String gpp = regs.getGpp();
+        final List<Integer> gppSid = regs.getGppSid();
+
+        if (regs.getExt() != null) {
+            if (gdpr == null) {
+                gdpr = regs.getExt().getGdpr();
+            }
+            if (usPrivacy == null) {
+                usPrivacy = regs.getExt().getUsPrivacy();
+            }
+        }
+
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
+        extRegs.addProperty("gpp", TextNode.valueOf(gpp));
+        if (!CollectionUtils.isEmpty(gppSid)) {
+            final ArrayNode gppArrayNode = mapper.mapper().createArrayNode();
+            gppSid.forEach(gppArrayNode::add);
+            extRegs.addProperty("gpp_sid", gppArrayNode);
+        }
+        if (regs.getCoppa() != null) {
+            extRegs.addProperty("coppa", IntNode.valueOf(regs.getCoppa()));
+        }
+
+        Optional.ofNullable(regs.getExt())
+                .map(FlexibleExtension::getProperties)
+                .ifPresent(extRegs::addProperties);
+
+        return Regs.builder().ext(extRegs).build();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {
