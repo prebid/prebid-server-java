@@ -1366,8 +1366,29 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .containsOnly(User.builder()
                         .buyeruid("buyeruid")
-                        .consent("consent")
-                        .ext(ExtUser.builder().build())
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMoveUserConsentToUserExtConsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().consent("consent").build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .containsExactly(
+                        User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build());
     }
 
