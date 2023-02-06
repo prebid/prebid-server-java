@@ -1243,12 +1243,11 @@ public class ExchangeService {
         final MediaTypeProcessingResult mediaTypeProcessingResult =
                 mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
 
+        final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
-            final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    mediaTypeProcessingResult.getErrors());
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                    .warnings(mediaTypeProcessingErrors)
+                    .build();
 
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
@@ -1265,11 +1264,7 @@ public class ExchangeService {
                         requestHeaders,
                         aliases,
                         debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName)))
-                .map(seatBid -> BidderSeatBid.of(
-                        seatBid.getBids(),
-                        seatBid.getHttpCalls(),
-                        seatBid.getErrors(),
-                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
+                .map(seatBid -> addWarnings(seatBid, mediaTypeProcessingErrors))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
@@ -1288,6 +1283,14 @@ public class ExchangeService {
                 timeout.getDeadline() - startTime, currentTime - startTime);
 
         return timeoutFactory.create(currentTime, adjustedTmax);
+    }
+
+    private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> mediaTypeProcessingErrors) {
+        return CollectionUtils.isEmpty(mediaTypeProcessingErrors)
+                ? seatBid
+                : seatBid.toBuilder()
+                .warnings(ListUtils.union(mediaTypeProcessingErrors, seatBid.getWarnings()))
+                .build();
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1433,9 +1436,14 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse = errors.isEmpty()
+        final BidderResponse resultBidderResponse = errors.size() == seatBid.getErrors().size()
                 ? bidderResponse
-                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors, warnings));
+                : bidderResponse.with(
+                        seatBid.toBuilder()
+                                .bids(validBids)
+                                .errors(errors)
+                                .warnings(warnings)
+                                .build());
         return auctionParticipation.with(resultBidderResponse);
     }
 
@@ -1498,8 +1506,10 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse = bidderResponse.with(BidderSeatBid.of(
-                updatedBidderBids, seatBid.getHttpCalls(), errors, seatBid.getWarnings()));
+        final BidderResponse resultBidderResponse = bidderResponse.with(seatBid.toBuilder()
+                .bids(updatedBidderBids)
+                .errors(errors)
+                .build());
         return auctionParticipation.with(resultBidderResponse);
     }
 
@@ -1653,11 +1663,10 @@ public class ExchangeService {
         final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
         final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);
 
-        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.builder()
-                .auctiontimestamp(extPrebid.map(ExtBidResponsePrebid::getAuctiontimestamp).orElse(null))
+        final ExtBidResponsePrebid updatedExtPrebid = extPrebid
+                .map(ExtBidResponsePrebid::toBuilder)
+                .orElse(ExtBidResponsePrebid.builder())
                 .modules(extModules)
-                .passthrough(extPrebid.map(ExtBidResponsePrebid::getPassthrough).orElse(null))
-                .targeting(extPrebid.map(ExtBidResponsePrebid::getTargeting).orElse(null))
                 .build();
 
         final ExtBidResponse updatedExt = ext

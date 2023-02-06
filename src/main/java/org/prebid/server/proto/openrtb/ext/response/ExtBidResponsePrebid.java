@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext.prebid
  */
-@Value(staticConstructor = "of")
+@Value
 @Builder(toBuilder = true)
 public class ExtBidResponsePrebid {
 
@@ -22,6 +22,11 @@ public class ExtBidResponsePrebid {
      * Defines the contract for bidresponse.ext.prebid.modules
      */
     ExtModules modules;
+
+    /**
+     * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
+     */
+    ExtBidResponseFledge fledge;
 
     /**
      * Additional targeting key/values for the bid response (only used for AMP)

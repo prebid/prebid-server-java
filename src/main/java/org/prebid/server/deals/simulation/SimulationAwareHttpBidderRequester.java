@@ -91,12 +91,10 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .collect(Collectors.toSet())));
 
         if (impsToDealInfo.values().stream().noneMatch(CollectionUtils::isNotEmpty)) {
-            return Future.succeededFuture(BidderSeatBid.of(
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    Collections.singletonList(BidderError.failedToRequestBids(
-                            "Matched or ready to serve line items were not found, but required in simulation mode")),
-                    Collections.emptyList()));
+            return Future.succeededFuture(BidderSeatBid.builder()
+                    .errors(Collections.singletonList(BidderError.failedToRequestBids(
+                            "Matched or ready to serve line items were not found, but required in simulation mode")))
+                    .build());
         }
 
         final List<BidderBid> bidderBids = impsToDealInfo.entrySet().stream()

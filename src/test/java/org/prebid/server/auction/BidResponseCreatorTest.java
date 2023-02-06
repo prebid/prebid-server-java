@@ -94,6 +94,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
@@ -2718,10 +2719,14 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).adm("[]").price(BigDecimal.valueOf(5.67)).build();
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-                BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
-                        singletonList(BidderError.badInput("bad_input")),
-                        singletonList(BidderError.generic("some_warning"))), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder1",
+                BidderSeatBid.builder()
+                        .bids(singletonList(BidderBid.of(bid, xNative, null)))
+                        .errors(singletonList(BidderError.badInput("bad_input")))
+                        .warnings(singletonList(BidderError.generic("some_warning")))
+                        .build(),
+                100));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2988,11 +2993,10 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
                 "bidder1",
-                BidderSeatBid.of(
-                        singletonList(BidderBid.of(bid, banner, null)),
-                        singletonList(ExtHttpCall.builder().status(200).build()),
-                        emptyList(),
-                        emptyList()),
+                BidderSeatBid.builder()
+                        .bids(singletonList(BidderBid.of(bid, banner, null)))
+                        .httpCalls(singletonList(ExtHttpCall.builder().status(200).build()))
+                        .build(),
                 100));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -3436,6 +3440,104 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddExtPrebidFledgeIfAvailable() {
+        // given
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge().getAuctionConfigs())
+                .isNotEmpty()
+                .first()
+                .usingRecursiveComparison()
+                .isEqualTo(fledgeAuctionConfig.toBuilder()
+                        .bidder("bidder1")
+                        .adapter("bidder1")
+                        .build());
+    }
+
+    @Test
+    public void shouldAddExtPrebidFledgeIfAvailableEvenIfBidsEmpty() {
+        // given
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(Collections.emptyList())
+                                .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge().getAuctionConfigs())
+                .isNotEmpty()
+                .first()
+                .usingRecursiveComparison()
+                .isEqualTo(fledgeAuctionConfig.toBuilder()
+                        .bidder("bidder1")
+                        .adapter("bidder1")
+                        .build());
+    }
+
+    @Test
+    public void shouldDropFledgeResponsesReferencingUnknownImps() {
+        // given
+        final Imp imp = givenImp("i1");
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("i1");
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(Collections.emptyList())
+                                .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getPrebid().getFledge())
+                .isNull();
+    }
+
+    @Test
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
@@ -3767,6 +3869,13 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private static BidderSeatBid givenSeatBid(BidderBid... bids) {
         return BidderSeatBid.of(List.of(bids));
+    }
+
+    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
+                .build();
     }
 
     private static ExtRequestTargeting givenTargeting() {

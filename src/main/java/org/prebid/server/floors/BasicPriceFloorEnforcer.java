@@ -171,8 +171,11 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
-        final BidderSeatBid bidderSeatBid =
-                BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors, warnings);
+        final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
+                .bids(updatedBidderBids)
+                .errors(errors)
+                .warnings(warnings)
+                .build();
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 

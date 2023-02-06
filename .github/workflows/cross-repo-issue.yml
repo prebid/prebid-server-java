@@ -17,7 +17,10 @@ jobs:
           app_id: ${{ secrets.XREPO_APP_ID }}
           private_key: ${{ secrets.XREPO_PEM }}
       - name: create issue in other repo
-        if: "!contains(github.event.pull_request.labels.*.name, 'do not port') && github.event.pull_request.merged"
+        if: |
+          !contains(github.event.pull_request.labels.*.name, 'do not port') &&
+          !contains(github.event.pull_request.labels.*.name, 'tests')  &&
+          github.event.pull_request.merged
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |

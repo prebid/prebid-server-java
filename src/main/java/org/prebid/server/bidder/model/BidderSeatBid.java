@@ -1,8 +1,10 @@
 package org.prebid.server.bidder.model;
 
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,19 +15,22 @@ import java.util.List;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@Value(staticConstructor = "of")
+@Value
+@Builder(toBuilder = true)
 public class BidderSeatBid {
 
     /**
      * List of bids which bidder wishes to make.
      */
-    List<BidderBid> bids;
+    @Builder.Default
+    List<BidderBid> bids = Collections.emptyList();
 
     /**
      * List of debugging info. It should only be populated if the request.test == 1.
      * This will become response.ext.debug.httpcalls.{bidder} on the final OpenRTB response
      */
-    List<ExtHttpCall> httpCalls;
+    @Builder.Default
+    List<ExtHttpCall> httpCalls = Collections.emptyList();
 
     /**
      * List of errors produced by bidder. Errors should describe situations which
@@ -39,22 +44,29 @@ public class BidderSeatBid {
      * Any errors will be user-facing in the API.
      * Error messages should help publishers understand what might account for "bad" bids.
      */
-    List<BidderError> errors;
+    @Builder.Default
+    List<BidderError> errors = Collections.emptyList();
 
     /**
      * List of bidder warnings.
      */
-    List<BidderError> warnings;
+    @Builder.Default
+    List<BidderError> warnings = Collections.emptyList();
+
+    @Builder.Default
+    List<FledgeAuctionConfig> fledgeAuctionConfigs = Collections.emptyList();
 
     public BidderSeatBid with(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors(), this.getWarnings());
+        return toBuilder().bids(bids).build();
     }
 
     public static BidderSeatBid empty() {
-        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return BidderSeatBid.builder().build();
     }
 
     public static BidderSeatBid of(List<BidderBid> bids) {
-        return of(bids, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return BidderSeatBid.builder()
+                .bids(bids)
+                .build();
     }
 }
