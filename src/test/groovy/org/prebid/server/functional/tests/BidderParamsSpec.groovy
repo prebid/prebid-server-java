@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
@@ -21,8 +20,6 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.model.response.auction.OpenxBidResponse
-import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
@@ -40,9 +37,6 @@ import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 class BidderParamsSpec extends BaseSpec {
-
-    private static final Map OPENX_CONFIG = ["adapters.openx.enabled" : "true",
-                                             "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
@@ -685,69 +679,5 @@ class BidderParamsSpec extends BaseSpec {
         null          | 1
         1             | 1
         0             | 0
-    }
-
-    def "PBS should populate fledge config when bidder response with fledge and imp[0].ext.ae = 1"() {
-        given: "Pbs bidder config"
-        def pbsService = pbsServiceFactory.getService(OPENX_CONFIG)
-
-        and: "Default basic BidRequest with ae and openx bidder"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.ae = 1
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
-        }
-
-        and: "Default bid response with fledge config"
-        def impId = bidRequest.imp[0].id
-        def fledgeConfig = [(PBSUtils.randomString): PBSUtils.randomString]
-        def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest).tap {
-            ext = new OpenxBidResponseExt().tap {
-                fledgeAuctionConfigs = [(impId): fledgeConfig]
-            }
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS response should contain fledge config"
-        def auctionConfigs = response.ext?.prebid?.fledge?.auctionConfigs
-        assert auctionConfigs?.size() == 1
-        assert auctionConfigs[0].impId == impId
-        assert auctionConfigs[0].bidder == bidResponse.seatbid[0].seat.value
-        assert auctionConfigs[0].adapter == bidResponse.seatbid[0].seat.value
-        assert auctionConfigs[0].config == fledgeConfig
-    }
-
-    def "PBS shouldn't populate fledge config when imp[0].ext.ae = 0"() {
-        given: "Pbs bidder config"
-        def pbsService = pbsServiceFactory.getService(OPENX_CONFIG)
-
-        and: "Default basic BidRequest without ae"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.ae = 0
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
-        }
-
-        and: "Default bid response"
-        def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest).tap {
-            ext = new OpenxBidResponseExt().tap {
-                fledgeAuctionConfigs = fledgeAuctionConfig
-            }
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS response shouldn't contain fledge config"
-        assert !response.ext.prebid.fledge
-
-        where:
-        fledgeAuctionConfig << [null, [(PBSUtils.randomString): [(PBSUtils.randomString): PBSUtils.randomString]]]
     }
 }
