@@ -1711,7 +1711,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final RubiconBid updatedRubiconBid = bid.toBuilder()
                 .id(bidId)
-                .adm(resolveAdm(bid.getAdm(), bid.getAdmobject()))
+                .adm(resolveAdm(bid.getAdm(), bid.getAdmNative()))
                 .price(bidPrice)
                 .build();
 

@@ -3130,15 +3130,15 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldNotReplacePresentAdmWithAdmObject() throws JsonProcessingException {
+    public void makeBidsShouldNotReplacePresentAdmWithAdmNative() throws JsonProcessingException {
         // given
-        final ObjectNode admObject = mapper.createObjectNode();
-        admObject.put("admObjectProperty", "admObjectValue");
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("impId")),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm("someAdm")
-                        .admobject(admObject)
+                        .admNative(admNative)
                         .price(ONE).impid("mismatched_impId")));
 
         // when
@@ -3153,15 +3153,15 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReplaceNotPresentAdmWithAdmObject() throws JsonProcessingException {
+    public void makeBidsShouldReplaceNotPresentAdmWithAdmNative() throws JsonProcessingException {
         // given
-        final ObjectNode admObject = mapper.createObjectNode();
-        admObject.put("admObjectProperty", "admObjectValue");
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("impId")),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm(null)
-                        .admobject(admObject)
+                        .admNative(admNative)
                         .price(ONE).impid("mismatched_impId")));
 
         // when
@@ -3172,7 +3172,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .containsExactly("{\"admObjectProperty\":\"admObjectValue\"}");
+                .containsExactly("{\"admNativeProperty\":\"admNativeValue\"}");
     }
 
     @Test
