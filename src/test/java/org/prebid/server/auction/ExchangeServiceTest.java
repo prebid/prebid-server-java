@@ -108,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -143,6 +144,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -1132,6 +1134,50 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPropagateFledgeResponseWithBidderAlias() {
+        // given
+        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("impId");
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenEmptySeatBid()
+                        .toBuilder()
+                        .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(
+                                doubleMap("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
+                                "ae", 1)))
+                        .build()),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("bidderAlias", "bidder"))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        verify(httpBidderRequester, times(1)).requestBids(any(), any(), any(), any(), any(), anyBoolean());
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.valueToTree(ExtPrebid.of(null, 1,
+                        ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)));
+
+        final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
+
+        assertThat(auctionParticipations)
+                .hasSize(1)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .extracting(BidderSeatBid::getFledgeAuctionConfigs)
+                .containsExactly(List.of(fledgeAuctionConfig));
+    }
+
+    @Test
     public void shouldOverrideDebugEnabledFlag() {
         // given
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
@@ -1145,8 +1191,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                        .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                        .build()));
 
         given(bidResponseCreator.create(any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1172,8 +1219,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                .build();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -3165,18 +3213,17 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldIncrementGotBidsAndErrorMetricsIfBidderReturnsBidAndDifferentErrors() {
         // given
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())),
-                        emptyList(),
-                        asList(
-                                // two identical errors to verify corresponding metric is submitted only once
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badServerResponse("rubicon error"),
-                                BidderError.failedToRequestBids("rubicon failed to request bids"),
-                                BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")),
-                        emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                                .bids(singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))
+                                .errors(asList(
+                                    // two identical errors to verify corresponding metric is submitted only once
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badServerResponse("rubicon error"),
+                                    BidderError.failedToRequestBids("rubicon failed to request bids"),
+                                    BidderError.timeout("timeout error"),
+                                    BidderError.generic("timeout error")))
+                                .build()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -4372,11 +4419,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .getBidderResponse()
                         .equals(BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
+                                BidderSeatBid.builder()
+                                        .warnings(Collections.singletonList(
+                                                BidderError.badInput("MediaTypeProcessor error.")))
+                                        .build(),
                                 0))),
                 any(),
                 any()))
@@ -4584,6 +4630,13 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
+                .build();
+    }
+
+    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
                 .build();
     }
 

@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -257,12 +256,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.of(
-                emptyList(),
-                emptyList(),
-                singletonList(BidderError.failedToRequestBids(
-                        "Matched or ready to serve line items were not found, but required in simulation mode")),
-                emptyList()));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.builder()
+                .errors(singletonList(BidderError.failedToRequestBids(
+                        "Matched or ready to serve line items were not found, but required in simulation mode")))
+                .build());
     }
 
     @Test
