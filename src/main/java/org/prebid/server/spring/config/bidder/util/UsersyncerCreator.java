@@ -32,6 +32,7 @@ public class UsersyncerCreator {
         final String cookieFamilyName = usersync.getCookieFamilyName();
 
         return Usersyncer.of(
+                usersync.getEnabled(),
                 cookieFamilyName,
                 cookieFamilySource,
                 toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName, externalUrl),

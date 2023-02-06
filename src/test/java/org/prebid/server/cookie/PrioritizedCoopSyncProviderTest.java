@@ -11,7 +11,6 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountCoopSyncConfig;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -129,7 +128,6 @@ public class PrioritizedCoopSyncProviderTest {
         given(bidderCatalog.usersyncerByName(bidder)).willReturn(
                 Optional.of(Usersyncer.of(
                         "cookie-family-name",
-                        CookieFamilySource.ROOT,
                         UsersyncMethod.builder().build(),
                         null)));
     }
