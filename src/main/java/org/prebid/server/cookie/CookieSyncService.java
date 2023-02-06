@@ -193,7 +193,7 @@ public class CookieSyncService {
     private CookieSyncContext filterBiddersWithDisabledUsersync(CookieSyncContext cookieSyncContext) {
         return filterBidders(
                 cookieSyncContext,
-                bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
+                bidder -> !bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
                 RejectionReason.DISABLED_USERSYNC);
     }
 
