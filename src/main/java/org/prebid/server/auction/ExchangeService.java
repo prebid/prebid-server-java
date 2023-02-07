@@ -605,16 +605,6 @@ public class ExchangeService {
     }
 
     /**
-     * Returns UIDs from request.user.ext or empty map if not defined.
-     */
-    private static Map<String, String> uidsFromBody(ExtUser extUser) {
-        return extUser != null && extUser.getPrebid() != null
-                // as long as ext.prebid exists we are guaranteed that user.ext.prebid.buyeruids also exists
-                ? extUser.getPrebid().getBuyeruids()
-                : Collections.emptyMap();
-    }
-
-    /**
      * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
      */
     private static List<String> firstPartyDataBidders(ExtRequest requestExt) {
