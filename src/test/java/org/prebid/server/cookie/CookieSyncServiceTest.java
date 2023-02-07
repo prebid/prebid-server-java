@@ -1022,7 +1022,8 @@ public class CookieSyncServiceTest extends VertxTest {
                                           CookieFamilySource cookieFamilySource) {
 
         final UsersyncMethod usersyncMethod = givenUsersyncMethod(bidder);
-        final Usersyncer usersyncer = Usersyncer.of(enabled, cookieFamilyName, cookieFamilySource, usersyncMethod, null);
+        final Usersyncer usersyncer = Usersyncer.of(
+                enabled, cookieFamilyName, cookieFamilySource, usersyncMethod, null);
 
         given(bidderCatalog.usersyncerByName(eq(bidder))).willReturn(Optional.of(usersyncer));
         given(bidderCatalog.cookieFamilyName(eq(bidder))).willReturn(Optional.of(cookieFamilyName));
