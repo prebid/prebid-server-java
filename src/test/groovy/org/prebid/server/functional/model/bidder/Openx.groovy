@@ -8,13 +8,12 @@ class Openx implements BidderAdapter {
     String delDomain
     String platform
     Integer customFloor
-    Map customParams
+    Map<String, Map> customParams
 
     static Openx getDefaultOpenx() {
         new Openx().tap {
             it.unit = PBSUtils.randomNumber
             it.platform = UUID.randomUUID().toString()
-            it.customParams = [(PBSUtils.randomString): PBSUtils.randomString]
         }
     }
 }
