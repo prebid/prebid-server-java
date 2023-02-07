@@ -851,7 +851,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
 
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty(),
                 "ip");
 
@@ -886,7 +891,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder()
                         .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
                         .build(),
@@ -918,7 +928,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().build(),
                 "ipv4");
 
@@ -946,7 +961,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().build(),
                 "ipv6");
 

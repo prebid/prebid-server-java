@@ -100,6 +100,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
@@ -107,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -142,6 +144,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -228,6 +231,9 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private MediaTypeProcessor mediaTypeProcessor;
+
+    @Mock
+    private UidUpdater uidUpdater;
 
     @Mock
     private TimeoutResolver timeoutResolver;
@@ -353,6 +359,13 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
+        given(uidUpdater.updateUid(any(), any(), any()))
+                .willAnswer(inv -> Optional.ofNullable((AuctionContext) inv.getArgument(1))
+                        .map(AuctionContext::getBidRequest)
+                        .map(BidRequest::getUser)
+                        .map(user -> UpdateResult.updated(null))
+                        .orElse(UpdateResult.unaltered(null)));
+
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
@@ -400,6 +413,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
+                uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
                 ortbVersionConversionManager,
@@ -433,6 +447,7 @@ public class ExchangeServiceTest extends VertxTest {
                         supplyChainResolver,
                         debugResolver,
                         new NoOpMediaTypeProcessor(),
+                        uidUpdater,
                         timeoutResolver,
                         timeoutFactory,
                         ortbVersionConversionManager,
@@ -715,6 +730,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 new NoOpMediaTypeProcessor(),
+                uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
                 ortbVersionConversionManager,
@@ -1118,6 +1134,50 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPropagateFledgeResponseWithBidderAlias() {
+        // given
+        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("impId");
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenEmptySeatBid()
+                        .toBuilder()
+                        .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(
+                                doubleMap("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
+                                "ae", 1)))
+                        .build()),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("bidderAlias", "bidder"))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        verify(httpBidderRequester, times(1)).requestBids(any(), any(), any(), any(), any(), anyBoolean());
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.valueToTree(ExtPrebid.of(null, 1,
+                        ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)));
+
+        final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
+
+        assertThat(auctionParticipations)
+                .hasSize(1)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .extracting(BidderSeatBid::getFledgeAuctionConfigs)
+                .containsExactly(List.of(fledgeAuctionConfig));
+    }
+
+    @Test
     public void shouldOverrideDebugEnabledFlag() {
         // given
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
@@ -1131,8 +1191,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                        .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                        .build()));
 
         given(bidResponseCreator.create(any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1158,8 +1219,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .httpCalls(singletonList(ExtHttpCall.builder().build()))
+                .build();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1706,38 +1768,15 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotModifyUserFromRequestIfNoBuyeridInCookie() {
-        // given
-        givenBidder(givenEmptySeatBid());
-
-        // this is not required but stated for clarity's sake. The case when bidder is disabled.
-        given(bidderCatalog.isActive(anyString())).willReturn(false);
-        given(uidsCookie.uidFrom(any())).willReturn(null);
-
-        final User user = User.builder().id("userId").build();
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.user(user));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        verify(uidsCookie).uidFrom(isNull());
-
-        final BidRequest capturedBidRequest = captureBidRequest();
-        assertThat(capturedBidRequest.getUser()).isSameAs(user);
-    }
-
-    @Test
     public void shouldHonorBuyeridFromRequestAndClearBuyerIdsFromUserExtPrebidIfContains() {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
+        given(uidUpdater.updateUid(any(), any(), any())).willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder()
-                        .buyeruid("buyeridFromRequest")
+                        .buyeruid("buyerid")
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
                                 .build())
@@ -1749,7 +1788,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
-                .buyeruid("buyeridFromRequest")
+                .buyeruid("buyerid")
                 .build());
     }
 
@@ -1896,34 +1935,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting(impExtNode -> impExtNode.get("skadn"))
                 .containsOnly(new TextNode("skadnValue"));
-    }
-
-    @Test
-    public void shouldSetUserBuyerIdsFromUserExtPrebidAndClearPrebidBuyerIdsAfterwards() {
-        // given
-        givenBidder(givenEmptySeatBid());
-
-        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder
-                        .user(User.builder()
-                                .ext(ExtUser.builder()
-                                        .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
-                                        .build())
-                                .build())
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .data(ExtRequestPrebidData.of(singletonList("someBidder"), null))
-                                .build())));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final User capturedBidRequestUser = captureBidRequest().getUser();
-        assertThat(capturedBidRequestUser).isEqualTo(User.builder()
-                .buyeruid("uidval")
-                .build());
     }
 
     @Test
@@ -2658,7 +2669,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddBuyeridToUserFromRequest() {
         // given
         givenBidder(givenEmptySeatBid());
-        given(uidsCookie.uidFrom(eq("cookieFamily"))).willReturn("buyerid");
+        given(uidUpdater.updateUid(any(), any(), any()))
+                .willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder().id("userId").build()));
@@ -2672,11 +2684,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateUserIfMissingInRequestAndBuyeridPresentInCookie() {
+    public void shouldCreateUserIfMissingInRequestAndBuyeridPresentForBidder() {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(uidsCookie.uidFrom(eq("cookieFamily"))).willReturn("buyerid");
+        given(uidUpdater.updateUid(eq("someBidder"), any(), any()))
+                .willReturn(UpdateResult.updated("buyerid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -3200,18 +3213,17 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldIncrementGotBidsAndErrorMetricsIfBidderReturnsBidAndDifferentErrors() {
         // given
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(
-                        singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())),
-                        emptyList(),
-                        asList(
-                                // two identical errors to verify corresponding metric is submitted only once
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badServerResponse("rubicon error"),
-                                BidderError.failedToRequestBids("rubicon failed to request bids"),
-                                BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")),
-                        emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.builder()
+                                .bids(singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))
+                                .errors(asList(
+                                    // two identical errors to verify corresponding metric is submitted only once
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badInput("rubicon error"),
+                                    BidderError.badServerResponse("rubicon error"),
+                                    BidderError.failedToRequestBids("rubicon failed to request bids"),
+                                    BidderError.timeout("timeout error"),
+                                    BidderError.generic("timeout error")))
+                                .build()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -4407,11 +4419,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .getBidderResponse()
                         .equals(BidderResponse.of(
                                 "bidder1",
-                                BidderSeatBid.of(
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.emptyList(),
-                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
+                                BidderSeatBid.builder()
+                                        .warnings(Collections.singletonList(
+                                                BidderError.badInput("MediaTypeProcessor error.")))
+                                        .build(),
                                 0))),
                 any(),
                 any()))
@@ -4427,6 +4438,7 @@ public class ExchangeServiceTest extends VertxTest {
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
                 ortbVersionConversionManager,
@@ -4618,6 +4630,13 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
+                .build();
+    }
+
+    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
+        return FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(mapper.createObjectNode().put("references", impId))
                 .build();
     }
 

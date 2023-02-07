@@ -1,10 +1,13 @@
 package org.prebid.server.bidder;
 
-import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.HttpUtil;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class UsersyncInfoBuilder {
 
@@ -36,24 +39,45 @@ public class UsersyncInfoBuilder {
     }
 
     public UsersyncInfoBuilder privacy(Privacy privacy) {
-        final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
-        final String consent = ObjectUtils.defaultIfNull(privacy.getConsentString(), "");
-        final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa().getUsPrivacy(), "");
-        redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, ccpa);
+        final String gdpr = StringUtils.defaultString(privacy.getGdpr());
+        final String consent = StringUtils.defaultString(privacy.getConsentString());
+        final String ccpa = StringUtils.defaultString(privacy.getCcpa().getUsPrivacy());
+        final String gpp = StringUtils.defaultString(privacy.getGpp());
+        final String gppSid = toString(privacy.getGppSid());
+
+        redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, ccpa, gpp, gppSid);
 
         final String encodedGdpr = HttpUtil.encodeUrl(gdpr);
         final String encodedConsent = HttpUtil.encodeUrl(consent);
         final String encodedUsPrivacy = HttpUtil.encodeUrl(ccpa);
-        usersyncUrl = updateUrlWithPrivacy(usersyncUrl, encodedGdpr, encodedConsent, encodedUsPrivacy);
+        final String encodedGpp = HttpUtil.encodeUrl(gpp);
+        final String endodedGppSid = HttpUtil.encodeUrl(gppSid);
+
+        usersyncUrl = updateUrlWithPrivacy(
+                usersyncUrl, encodedGdpr, encodedConsent, encodedUsPrivacy, encodedGpp, endodedGppSid);
 
         return this;
     }
 
-    private static String updateUrlWithPrivacy(String url, String gdpr, String gdprConsent, String usPrivacy) {
+    private static String toString(List<Integer> gppSid) {
+        return CollectionUtils.emptyIfNull(gppSid).stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+    }
+
+    private static String updateUrlWithPrivacy(String url,
+                                               String gdpr,
+                                               String gdprConsent,
+                                               String usPrivacy,
+                                               String gpp,
+                                               String gppSid) {
+
         return url
                 .replace(UsersyncInfo.GDPR_PLACEHOLDER, gdpr)
                 .replace(UsersyncInfo.GDPR_CONSENT_PLACEHOLDER, gdprConsent)
-                .replace(UsersyncInfo.US_PRIVACY_PLACEHOLDER, usPrivacy);
+                .replace(UsersyncInfo.US_PRIVACY_PLACEHOLDER, usPrivacy)
+                .replace(UsersyncInfo.GPP_PLACEHOLDER, gpp)
+                .replace(UsersyncInfo.GPP_SID_PLACEHOLDER, gppSid);
     }
 
     public UsersyncInfo build() {

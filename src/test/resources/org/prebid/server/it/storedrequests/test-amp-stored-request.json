@@ -6,46 +6,68 @@
       "banner": {
         "format": [
           {
-            "w": 300,
-            "h": 600
+            "w": 980,
+            "h": 120
           }
         ],
         "w": 300,
         "h": 600
       },
+      "tagid": "overwrite-tagId",
+      "secure": 1,
       "ext": {
-        "rubicon": {
+        "data": {
+          "gam-key1": "val1",
+          "gam-key2": "val2"
+        },
+        "tid": "6b8762d8-26ec-45bc-821b-8d6a72fdcd55",
+        "generic": {
           "accountId": 5001,
           "siteId": 6001,
           "zoneId": 7001
         },
-        "appnexus": {
-          "invCode": "abc",
-          "keywords": [
-            {
-              "key": "foo",
-              "value": [
-                "bar",
-                "baz"
-              ]
-            }
-          ],
-          "member": "103",
-          "position": "below",
-          "reserve": 1,
-          "trafficSourceCode": "trafficSource"
+        "genericAlias": {
+          "property1": "value1"
         }
       }
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com"
+    "domain": "google.com",
+    "page": "https://google.com",
+    "publisher": {
+      "id": "accountId",
+      "domain": "google.com"
+    },
+    "ext": {
+      "amp": 1
+    }
   },
-  "tmax": 5000,
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "user": {
+    "ext": {
+      "ConsentedProvidersSettings": {
+        "consented_providers": "someConsent"
+      }
+    }
+  },
+  "at": 1,
+  "tmax": 4751,
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "94a0b173-1fd2-45cc-a8a1-95ff41a84059"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0,
+      "us_privacy": "1YNN"
+    }
+  },
   "ext": {
     "prebid": {
       "currency": {
@@ -54,29 +76,72 @@
             "USD": 1.2406
           },
           "USD": {
-            "EUR": 0.8110
+            "EUR": 0.811
           }
         }
       },
       "targeting": {
-        "pricegranularity": "dense"
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 3,
+              "increment": 0.01
+            },
+            {
+              "max": 8,
+              "increment": 0.05
+            },
+            {
+              "max": 20,
+              "increment": 0.5
+            }
+          ]
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "storedrequest": {
+        "id": "test-amp-stored-request"
       },
       "cache": {
         "bids": {}
       },
       "auctiontimestamp": 0,
+      "amp": {
+        "data": {
+          "curl": "https%3A%2F%2Fgoogle.com",
+          "consent_string": "1YNN",
+          "ow": "980",
+          "slot": "overwrite-tagId",
+          "timeout": "10000000",
+          "consent_type": "3",
+          "targeting": "%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D",
+          "addtl_consent": "someConsent",
+          "oh": "120",
+          "tag_id": "test-amp-stored-request",
+          "gdpr_applies": "false",
+          "account": "accountId"
+        }
+      },
       "adservertargeting": [
         {
           "key": "static_keyword1",
           "source": "static",
           "value": "static_value1"
         }
-      ]
-    }
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
+      ],
+      "channel": {
+        "name": "amp"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/amp"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
     }
   }
 }

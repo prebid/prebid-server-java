@@ -10,6 +10,6 @@ class BidResponsePrebid {
 
     Long auctionTimeStamp
     Map passThrough
-    ExtBidResponseFledge fledge
     List<SeatNonBid> seatNonBid
+    ExtBidResponseFledge fledge
 }

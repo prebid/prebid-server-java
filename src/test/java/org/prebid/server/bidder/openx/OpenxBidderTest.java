@@ -19,9 +19,12 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
+import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -31,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -367,6 +371,30 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnResultWithAuctionEnvironment() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder()
+                                .id("impId2")
+                                .banner(Banner.builder().build())
+                                .tagid("unitId")
+                                .ext(mapper.valueToTree(Map.of("ae", 1, "bidder", Map.of())))
+                                .build())
+                        ).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .contains(mapper.valueToTree(Map.of("ae", 1)));
+    }
+
+    @Test
     public void makeHttpRequestShouldReturnResultWithCustomBidFloorIfImpBidFloorIsNegative() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -395,19 +423,19 @@ public class OpenxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
+        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getBids()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -419,6 +447,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .build()))
                         .build()))
                 .cur("UAH")
+                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createObjectNode().put("somevalue", 1))))
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -430,11 +459,11 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, bidRequest);
+        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getBids()).hasSize(1)
                 .containsOnly(BidderBid.of(
                         Bid.builder()
                                 .impid("impId1")
@@ -445,6 +474,40 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
                         BidType.banner, "UAH"));
+        assertThat(result.getFledgeAuctionConfigs())
+                .containsOnly(FledgeAuctionConfig.builder()
+                        .impId("impId1")
+                        .config(mapper.createObjectNode().put("somevalue", 1))
+                        .build());
+    }
+
+    @Test
+    public void makeBidsShouldReturnFledgeConfigEvenIfNoBids() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
+                .seatbid(emptyList())
+                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createObjectNode().put("somevalue", 1))))
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getFledgeAuctionConfigs())
+                .containsOnly(FledgeAuctionConfig.builder()
+                        .impId("impId1")
+                        .config(mapper.createObjectNode().put("somevalue", 1))
+                        .build());
     }
 
     @Test
@@ -474,11 +537,11 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, bidRequest);
+        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getBids()).hasSize(1)
                 .containsOnly(BidderBid.of(
                         Bid.builder()
                                 .impid("impId1")
@@ -499,12 +562,12 @@ public class OpenxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
+        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result).isNotNull()
-                .extracting(Result::getValue, Result::getErrors)
+                .extracting(CompositeBidderResponse::getBids, CompositeBidderResponse::getErrors)
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
     }
 

@@ -10,4 +10,5 @@ class UserExt {
     List<String> fcapids
     UserTime time
     UserExtData data
+    UserExtPrebid prebid
 }
