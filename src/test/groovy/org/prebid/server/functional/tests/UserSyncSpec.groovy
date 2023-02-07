@@ -13,8 +13,8 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class UserSyncSpec extends BaseSpec {
 
-    private static final Map GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                                                        "adapters.${GENERIC.value}.usersync.${IFRAME.value}.support-cors": "false"]
+    private static final Map<String, String> GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                                                        "adapters.${GENERIC.value}.usersync.${IFRAME.value}.support-cors": "false"]
 
     def "PBS should return usersync url with '#formatParam' format parameter for #userSyncFormat when format-override absent"() {
         given: "Pbs config with usersync.#userSyncFormat"
@@ -136,7 +136,7 @@ class UserSyncSpec extends BaseSpec {
         userSyncFormat << [REDIRECT, IFRAME]
     }
 
-    def "PBS cookie sync should sync bidder by default when bidder.usersync.enabled not override"() {
+    def "PBS cookie sync should sync bidder by default when bidder.usersync.enabled not overridden"() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG)
 
@@ -151,7 +151,7 @@ class UserSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == 1
     }
 
-    def "PBS cookie sync should sync bidder which bidder.usersync.enabled=true"() {
+    def "PBS cookie sync should sync bidder when bidder.usersync.enabled=true"() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
                 + ["adapters.${GENERIC.value}.usersync.enabled": "true"])
@@ -167,7 +167,7 @@ class UserSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == 1
     }
 
-    def "PBS cookie sync shouldn't sync bidder which bidder.usersync.enabled=false"() {
+    def "PBS cookie sync shouldn't sync bidder when bidder.usersync.enabled=false"() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
                 + ["adapters.${GENERIC.value}.usersync.enabled": "false"])
