@@ -185,7 +185,6 @@ class UserSyncSpec extends BaseSpec {
         assert bidderStatus?.noCookie == null
     }
 
-
     def "PBS cookie sync shouldn't coop-sync bidder when coop-sync=true and bidder.usersync.enabled=false "() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
