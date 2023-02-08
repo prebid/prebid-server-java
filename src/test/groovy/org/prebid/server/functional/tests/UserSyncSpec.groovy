@@ -167,7 +167,7 @@ class UserSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == 1
     }
 
-    def "PBS cookie sync shouldn't sync bidder when bidder.usersync.enabled=false"() {
+    def "PBS cookie sync shouldn't sync bidder and emit error when bidder.usersync.enabled=false"() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
                 + ["adapters.${GENERIC.value}.usersync.enabled": "false"])
@@ -178,8 +178,51 @@ class UserSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request without cookies"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response shouldn't contain bidder"
-        assert !response.getBidderUserSync(GENERIC)
-        assert response.bidderStatus.size() == 0
+        then: "Response should contain bidder with error"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "Sync disabled by config"
+        assert bidderStatus?.userSync == null
+        assert bidderStatus?.noCookie == null
+    }
+
+
+    def "PBS cookie sync shouldn't coop-sync bidder when coop-sync=true and bidder.usersync.enabled=false "() {
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.enabled": "false"])
+
+        and: "Cookie sync request without bidders and coop-sync=true"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = true
+        }
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidder with error"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "Sync disabled by config"
+        assert bidderStatus?.userSync == null
+        assert bidderStatus?.noCookie == null
+    }
+
+    def "PBS cookie sync should coop-sync bidder when coop-sync=true and bidder.usersync.enabled=true "() {
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.enabled": "true"])
+
+        and: "Cookie sync request without bidders and coop-sync=true"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = null
+            coopSync = true
+        }
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidder"
+        assert response.getBidderUserSync(GENERIC)
+        assert response.bidderStatus.size() == 1
     }
 }
