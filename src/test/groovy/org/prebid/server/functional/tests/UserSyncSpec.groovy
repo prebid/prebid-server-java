@@ -13,6 +13,9 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class UserSyncSpec extends BaseSpec {
 
+    private static final Map<String, String> GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                                                                        "adapters.${GENERIC.value}.usersync.${IFRAME.value}.support-cors": "false"]
+
     def "PBS should return usersync url with '#formatParam' format parameter for #userSyncFormat when format-override absent"() {
         given: "Pbs config with usersync.#userSyncFormat"
         def prebidServerService = pbsServiceFactory.getService(
@@ -131,5 +134,52 @@ class UserSyncSpec extends BaseSpec {
 
         where:
         userSyncFormat << [REDIRECT, IFRAME]
+    }
+
+    def "PBS cookie sync should sync bidder by default when bidder.usersync.enabled not overridden"() {
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG)
+
+        and: "Default Cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain synced bidder"
+        assert response.getBidderUserSync(GENERIC)
+        assert response.bidderStatus.size() == 1
+    }
+
+    def "PBS cookie sync should sync bidder when bidder.usersync.enabled=true"() {
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.enabled": "true"])
+
+        and: "Default Cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain synced bidder"
+        assert response.getBidderUserSync(GENERIC)
+        assert response.bidderStatus.size() == 1
+    }
+
+    def "PBS cookie sync shouldn't sync bidder when bidder.usersync.enabled=false"() {
+        given: "PBS bidder config"
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_USERSYNC_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.enabled": "false"])
+
+        and: "Default Cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response shouldn't contain bidder"
+        assert !response.getBidderUserSync(GENERIC)
+        assert response.bidderStatus.size() == 0
     }
 }
