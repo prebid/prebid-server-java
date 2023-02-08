@@ -24,6 +24,7 @@ public class UsersyncerCreatorTest {
         methodConfig.setUidMacro("uid-macro");
         methodConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setCookieFamilyName("rubicon");
         config.setRedirect(methodConfig);
 
@@ -50,6 +51,8 @@ public class UsersyncerCreatorTest {
         methodConfig.setUrl("//usersync-url");
         methodConfig.setUidMacro("not-valid-macro");
         methodConfig.setSupportCors(true);
+
+        config.setEnabled(true);
         config.setRedirect(methodConfig);
 
         // given, when and then
@@ -74,6 +77,7 @@ public class UsersyncerCreatorTest {
         redirectConfig.setUidMacro("uid-macro-redirect");
         redirectConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setIframe(iframeConfig);
         config.setRedirect(redirectConfig);
 
@@ -113,7 +117,7 @@ public class UsersyncerCreatorTest {
                 .build();
 
         assertThat(result).isEqualTo(
-                Usersyncer.of("rubicon", CookieFamilySource.ROOT, expectedIframeMethod, expectedRedirectMethod));
+                Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
     }
 
     @Test
@@ -124,6 +128,7 @@ public class UsersyncerCreatorTest {
         methodConfig.setUrl("//redirect-url?uid=");
         methodConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setCookieFamilyName("rubicon");
         config.setRedirect(methodConfig);
 
