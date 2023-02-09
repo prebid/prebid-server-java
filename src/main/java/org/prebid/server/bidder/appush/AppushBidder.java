@@ -38,7 +38,6 @@ public class AppushBidder implements Bidder<BidRequest> {
     private static final String PUBLISHER_PROPERTY = "publisher";
     private static final String NETWORK_PROPERTY = "network";
     private static final String BIDDER_PROPERTY = "bidder";
-    private static final String FAILED_TO_FIND_IMPRESSION_ERROR_MESSAGE = "Failed to find impression for ID: '%s'";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -70,7 +69,7 @@ public class AppushBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpAppush extImpAppush) {
 
-        AppushImpExtBidder impExtAppushWithType = buildImpExtAppushWithType(extImpAppush);
+        final AppushImpExtBidder impExtAppushWithType = resolveImpExt(extImpAppush);
 
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
@@ -79,9 +78,9 @@ public class AppushBidder implements Bidder<BidRequest> {
         return imp.toBuilder().ext(modifiedImpExtBidder).build();
     }
 
-    private AppushImpExtBidder buildImpExtAppushWithType(ExtImpAppush extImpAppush) {
+    private AppushImpExtBidder resolveImpExt(ExtImpAppush extImpAppush) {
 
-        AppushImpExtBidder.AppushImpExtBidderBuilder builder = AppushImpExtBidder.builder();
+        final AppushImpExtBidder.AppushImpExtBidderBuilder builder = AppushImpExtBidder.builder();
 
         if (StringUtils.isNotEmpty(extImpAppush.getPlacementId())) {
             builder.type(PUBLISHER_PROPERTY).placementId(extImpAppush.getPlacementId());
@@ -153,6 +152,6 @@ public class AppushBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException(String.format(FAILED_TO_FIND_IMPRESSION_ERROR_MESSAGE, impId));
+        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
     }
 }
