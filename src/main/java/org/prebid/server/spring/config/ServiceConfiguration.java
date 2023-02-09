@@ -33,6 +33,7 @@ import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.gpp.AuctionGppProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
@@ -290,6 +291,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    AuctionGppProcessor auctionGppProcessor() {
+        return new AuctionGppProcessor();
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
@@ -334,6 +340,7 @@ public class ServiceConfiguration {
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+            AuctionGppProcessor auctionGppProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -346,6 +353,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
+                auctionGppProcessor,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
