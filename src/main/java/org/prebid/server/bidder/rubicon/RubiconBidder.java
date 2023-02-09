@@ -1201,11 +1201,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return user;
         }
 
-        final ExtUser newUserExt = Optional.ofNullable(user.getExt())
+        final ExtUser extUser = user.getExt();
+
+        final ExtUser newUserExt = Optional.ofNullable(extUser)
                 .map(ExtUser::toBuilder)
                 .orElseGet(ExtUser::builder)
                 .consent(user.getConsent())
                 .build();
+
+        if (extUser != null) {
+            newUserExt.addProperties(user.getExt().getProperties());
+        }
 
         return user.toBuilder()
                 .consent(null)
