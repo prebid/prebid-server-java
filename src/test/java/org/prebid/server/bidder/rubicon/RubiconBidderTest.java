@@ -83,6 +83,7 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -1041,6 +1042,36 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCopyUserExtDataToUserExtRpTarget() {
+        // given
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("property1", "value1");
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .consent("consent")
+                        .ext(ExtUser.builder().data(dataNode).build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode targetNode = mapper.createObjectNode();
+        targetNode.set("property1", mapper.createArrayNode().add("value1"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .extracting(properties -> properties.get("rp"))
+                .extracting(rp -> rp.get("target"))
+                .containsExactly(targetNode);
     }
 
     @Test
