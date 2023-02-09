@@ -33,6 +33,7 @@ import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.gpp.AmpGppProcessor;
 import org.prebid.server.auction.gpp.AuctionGppProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -296,6 +297,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    AmpGppProcessor ampGppProcessor() {
+        return new AmpGppProcessor();
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
@@ -389,6 +395,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+                                        AmpGppProcessor ampGppProcessor,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
@@ -401,6 +408,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
+                ampGppProcessor,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
