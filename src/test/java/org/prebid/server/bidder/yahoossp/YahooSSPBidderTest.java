@@ -436,7 +436,7 @@ public class YahooSSPBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().get(0).getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getGpp()).isNull();
@@ -462,7 +462,7 @@ public class YahooSSPBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().get(0).getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);

@@ -68,16 +68,16 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        Regs regs = bidRequest.getRegs();
-        bidRequest = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
+        final Regs regs = bidRequest.getRegs();
+        BidRequest bidRequestOpenRtb25 = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
                 OrtbVersion.ORTB_2_5);
 
-        final List<Imp> impList = bidRequest.getImp();
+        final List<Imp> impList = bidRequestOpenRtb25.getImp();
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooSSP extImpYahooSSP = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooSSP, regs);
+                final BidRequest modifiedRequest = modifyRequest(bidRequestOpenRtb25, imp, extImpYahooSSP, regs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -167,19 +167,26 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
     }
 
     private Regs modifyRegs(Regs regs) {
-        Integer gdpr = regs.getGdpr();
-        String usPrivacy = regs.getUsPrivacy();
+        final ExtRegs extRegs = resolveExtRegs(regs);
+
+        return Regs.builder().ext(extRegs).build();
+    }
+
+    private Integer resolveGdpr(Regs regs) {
+        return regs.getGdpr() != null ? regs.getGdpr()
+                : (regs.getExt() != null ? regs.getExt().getGdpr() : null);
+    }
+
+    private String resolveUsPrivacy(Regs regs) {
+        return regs.getUsPrivacy() != null ? regs.getUsPrivacy()
+                : (regs.getExt() != null ? regs.getExt().getUsPrivacy() : null);
+    }
+
+    private ExtRegs resolveExtRegs(Regs regs) {
+        final Integer gdpr = resolveGdpr(regs);
+        final String usPrivacy = resolveUsPrivacy(regs);
         final String gpp = regs.getGpp();
         final List<Integer> gppSid = regs.getGppSid();
-
-        if (regs.getExt() != null) {
-            if (gdpr == null) {
-                gdpr = regs.getExt().getGdpr();
-            }
-            if (usPrivacy == null) {
-                usPrivacy = regs.getExt().getUsPrivacy();
-            }
-        }
 
         final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
         extRegs.addProperty("gpp", TextNode.valueOf(gpp));
@@ -196,7 +203,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 .map(FlexibleExtension::getProperties)
                 .ifPresent(extRegs::addProperties);
 
-        return Regs.builder().ext(extRegs).build();
+        return extRegs;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {
