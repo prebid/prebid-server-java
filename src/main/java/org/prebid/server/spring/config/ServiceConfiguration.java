@@ -35,6 +35,7 @@ import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
 import org.prebid.server.auction.gpp.AmpGppProcessor;
 import org.prebid.server.auction.gpp.AuctionGppProcessor;
+import org.prebid.server.auction.gpp.CookieSyncGppProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
@@ -299,6 +300,11 @@ public class ServiceConfiguration {
     @Bean
     AmpGppProcessor ampGppProcessor() {
         return new AmpGppProcessor();
+    }
+
+    @Bean
+    CookieSyncGppProcessor cookieSyncGppProcessor() {
+        return new CookieSyncGppProcessor();
     }
 
     @Bean

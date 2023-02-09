@@ -18,6 +18,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.CookieSyncGppProcessor;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -74,6 +75,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private CookieSyncGppProcessor cookieSyncGppProcessor;
+    @Mock
     private CookieSyncService cookieSyncService;
     @Mock
     private ApplicationSettings applicationSettings;
@@ -95,6 +98,9 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
+        given(cookieSyncGppProcessor.process(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
@@ -113,6 +119,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 500,
                 0.05,
                 uidsCookieService,
+                cookieSyncGppProcessor,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,

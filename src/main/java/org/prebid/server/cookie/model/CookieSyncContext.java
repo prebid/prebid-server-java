@@ -42,8 +42,20 @@ public class CookieSyncContext {
     @JsonIgnore
     boolean debug;
 
+    public CookieSyncContext with(CookieSyncRequest cookieSyncRequest) {
+        return toBuilder().cookieSyncRequest(cookieSyncRequest).build();
+    }
+
     public CookieSyncContext with(BiddersContext biddersContext) {
         return toBuilder().biddersContext(biddersContext).build();
+    }
+
+    public CookieSyncContext with(Account account) {
+        return toBuilder().account(account).build();
+    }
+
+    public CookieSyncContext with(PrivacyContext privacyContext) {
+        return toBuilder().privacyContext(privacyContext).build();
     }
 
     public CookieSyncContext with(int limit) {
