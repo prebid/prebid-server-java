@@ -295,7 +295,7 @@ public class ExchangeService {
                         auctionParticipation, uidsCookie, aliases, account, requestTypeMetric))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
-                                .map(auctionParticipation -> invokeHooksAndRequestBids(
+                                .map(auctionParticipation -> processAndRequestBids(
                                         receivedContext,
                                         auctionParticipation.getBidderRequest(),
                                         timeout,
@@ -602,16 +602,6 @@ public class ExchangeService {
         return CollectionUtils.emptyIfNull(eidPermissions).stream()
                 .collect(Collectors.toMap(ExtRequestPrebidDataEidPermissions::getSource,
                         ExtRequestPrebidDataEidPermissions::getBidders));
-    }
-
-    /**
-     * Returns UIDs from request.user.ext or empty map if not defined.
-     */
-    private static Map<String, String> uidsFromBody(ExtUser extUser) {
-        return extUser != null && extUser.getPrebid() != null
-                // as long as ext.prebid exists we are guaranteed that user.ext.prebid.buyeruids also exists
-                ? extUser.getPrebid().getBuyeruids()
-                : Collections.emptyMap();
     }
 
     /**
@@ -1192,6 +1182,41 @@ public class ExchangeService {
         return auctionParticipations;
     }
 
+    private Future<BidderResponse> processAndRequestBids(AuctionContext auctionContext,
+                                                         BidderRequest bidderRequest,
+                                                         Timeout timeout,
+                                                         BidderAliases aliases) {
+
+        final String bidderName = bidderRequest.getBidder();
+        final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
+                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName));
+
+        final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
+        if (mediaTypeProcessingResult.isRejected()) {
+            return Future.succeededFuture(BidderResponse.of(
+                    bidderName,
+                    BidderSeatBid.builder()
+                            .warnings(mediaTypeProcessingErrors)
+                            .build(),
+                    0));
+        }
+
+        return Future.succeededFuture(mediaTypeProcessingResult.getBidRequest())
+                .map(bidderRequest::with)
+                .compose(modifiedBidderRequest -> invokeHooksAndRequestBids(
+                        auctionContext, modifiedBidderRequest, timeout, aliases))
+                .map(bidderResponse -> bidderResponse.with(
+                        addWarnings(bidderResponse.getSeatBid(), mediaTypeProcessingErrors)));
+    }
+
+    private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
+        return CollectionUtils.isNotEmpty(warnings)
+                ? seatBid.toBuilder()
+                .warnings(ListUtils.union(warnings, seatBid.getWarnings()))
+                .build()
+                : seatBid;
+    }
+
     private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
                                                              BidderRequest bidderRequest,
                                                              Timeout timeout,
@@ -1240,19 +1265,7 @@ public class ExchangeService {
         final long auctionStartTime = auctionContext.getStartTime();
         final long bidderRequestStartTime = clock.millis();
 
-        final MediaTypeProcessingResult mediaTypeProcessingResult =
-                mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
-
-        final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
-        if (mediaTypeProcessingResult.isRejected()) {
-            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
-                    .warnings(mediaTypeProcessingErrors)
-                    .build();
-
-            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
-        }
-
-        return Future.succeededFuture(mediaTypeProcessingResult.getBidRequest())
+        return Future.succeededFuture(bidderRequest.getBidRequest())
                 .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, bidderRequestStartTime))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
@@ -1264,7 +1277,6 @@ public class ExchangeService {
                         requestHeaders,
                         aliases,
                         debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName)))
-                .map(seatBid -> addWarnings(seatBid, mediaTypeProcessingErrors))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
@@ -1283,14 +1295,6 @@ public class ExchangeService {
                 timeout.getDeadline() - startTime, currentTime - startTime);
 
         return timeoutFactory.create(currentTime, adjustedTmax);
-    }
-
-    private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> mediaTypeProcessingErrors) {
-        return CollectionUtils.isEmpty(mediaTypeProcessingErrors)
-                ? seatBid
-                : seatBid.toBuilder()
-                .warnings(ListUtils.union(mediaTypeProcessingErrors, seatBid.getWarnings()))
-                .build();
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1439,11 +1443,11 @@ public class ExchangeService {
         final BidderResponse resultBidderResponse = errors.size() == seatBid.getErrors().size()
                 ? bidderResponse
                 : bidderResponse.with(
-                        seatBid.toBuilder()
-                                .bids(validBids)
-                                .errors(errors)
-                                .warnings(warnings)
-                                .build());
+                seatBid.toBuilder()
+                        .bids(validBids)
+                        .errors(errors)
+                        .warnings(warnings)
+                        .build());
         return auctionParticipation.with(resultBidderResponse);
     }
 
