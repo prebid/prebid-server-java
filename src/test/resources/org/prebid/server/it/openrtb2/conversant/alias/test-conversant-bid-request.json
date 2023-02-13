@@ -48,18 +48,13 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "conversantAlias": "conversant"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
-      },
-      "auctiontimestamp": 0,
-      "pbs": {
+        "datacenter": "local",
         "endpoint": "/openrtb2/auction"
-      }
+      },
+      "auctiontimestamp": 0
     }
   }
 }

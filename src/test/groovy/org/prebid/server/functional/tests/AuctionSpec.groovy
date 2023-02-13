@@ -15,6 +15,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
@@ -291,5 +292,23 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request shouldn't contain buyeruid from cookieName"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user
+    }
+
+    def "PBS should move and not populate certain fields when debug enabled"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(PBSUtils.randomString):GENERIC]
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
+
+        and: "BidderRequest shouldn't populate fields"
+        assert !bidderRequest.ext.prebid.aliases
     }
 }

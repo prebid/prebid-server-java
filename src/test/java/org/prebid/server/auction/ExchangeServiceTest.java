@@ -1092,7 +1092,6 @@ public class ExchangeServiceTest extends VertxTest {
                                         ExtPrebid.of(null, 1))))),
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
-                                .aliases(singletonMap("bidderAlias", "bidder"))
                                 .build()))))), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBidderBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
@@ -1105,7 +1104,6 @@ public class ExchangeServiceTest extends VertxTest {
                                         ExtPrebid.of(null, 2))))),
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
-                                .aliases(singletonMap("bidderAlias", "bidder"))
                                 .build()))))), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBidderBid(Bid.builder().impid("impId2").price(BigDecimal.ONE).build())))));
@@ -1943,6 +1941,24 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(asList("someBidder", "should_be_removed"), null))
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest capturedRequest = captureBidRequest().getExt();
+        assertThat(capturedRequest).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
+                .auctiontimestamp(1000L)
+                .build()));
+    }
+
+    @Test
+    public void shouldCleanRequestExtPrebidAliases() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("someBidder", "alias_should_stay"))
                         .auctiontimestamp(1000L)
                         .build())));
@@ -1953,7 +1969,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtRequest capturedRequest = captureBidRequest().getExt();
         assertThat(capturedRequest).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .aliases(singletonMap("someBidder", "alias_should_stay"))
                 .auctiontimestamp(1000L)
                 .build()));
     }
