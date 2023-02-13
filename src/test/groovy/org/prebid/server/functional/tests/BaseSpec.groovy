@@ -1,5 +1,14 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.PriceFloorsFetch
+import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.pricefloors.Country
+import org.prebid.server.functional.model.pricefloors.MediaType
+import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
@@ -9,19 +18,21 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
+import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer)
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(networkServiceContainer)
+    protected static final Bidder bidder = new Bidder(networkServiceContainer)
+    protected static final PrebidCache prebidCache = new PrebidCache(networkServiceContainer)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)

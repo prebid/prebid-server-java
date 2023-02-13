@@ -11,16 +11,21 @@ import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
+import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
 import static org.prebid.server.functional.model.pricefloors.DeviceType.MULTIPLE
@@ -45,6 +50,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
+import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.REJECTED_DUE_TO_FLOOR
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
@@ -868,5 +874,50 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond to appropriate rule value"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == 0.04
+    }
+
+    @PendingFeature
+    def "PBS should populate seatNonBid and fail with a rejected due to floor"() {
+        def pbsService = pbsServiceFactory.getService(["price-floors.enabled": "true",
+                                                       "settings.default-account-config": encode(defaultAccountConfigSettings)])
+
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
+            seatbid.first().bid[0].price = floorValue - 0.1
+            seatbid.first().bid[1].price = floorValue - 0.2
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid and contain errors"
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_FLOOR
+
+        where:
+        enforcePbs << [true, null]
     }
 }
