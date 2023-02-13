@@ -1,7 +1,6 @@
 package org.prebid.server.functional.util
 
 import org.apache.commons.lang3.RandomStringUtils
-import org.apache.commons.text.RandomStringGenerator
 import org.prebid.server.functional.model.request.auction.BidRequest
 
 import java.math.RoundingMode
@@ -96,5 +95,10 @@ class PBSUtils implements ObjectMapperWrapper {
 
     static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
+    }
+
+    static int getRandomNumberWithExcept(int exceptValue, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        value == exceptValue ? getRandomNumberWithExcept(exceptValue, min, max) : value
     }
 }
