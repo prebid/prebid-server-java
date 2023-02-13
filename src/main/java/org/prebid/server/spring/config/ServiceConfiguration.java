@@ -33,9 +33,9 @@ import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
-import org.prebid.server.auction.gpp.AmpGppProcessor;
-import org.prebid.server.auction.gpp.AuctionGppProcessor;
-import org.prebid.server.auction.gpp.CookieSyncGppProcessor;
+import org.prebid.server.auction.gpp.AmpGppService;
+import org.prebid.server.auction.gpp.AuctionGppService;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
@@ -293,18 +293,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AuctionGppProcessor auctionGppProcessor() {
-        return new AuctionGppProcessor();
+    AuctionGppService auctionGppProcessor() {
+        return new AuctionGppService();
     }
 
     @Bean
-    AmpGppProcessor ampGppProcessor() {
-        return new AmpGppProcessor();
+    AmpGppService ampGppProcessor() {
+        return new AmpGppService();
     }
 
     @Bean
-    CookieSyncGppProcessor cookieSyncGppProcessor() {
-        return new CookieSyncGppProcessor();
+    CookieSyncGppService cookieSyncGppProcessor() {
+        return new CookieSyncGppService();
     }
 
     @Bean
@@ -352,7 +352,7 @@ public class ServiceConfiguration {
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
-            AuctionGppProcessor auctionGppProcessor,
+            AuctionGppService auctionGppService,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -365,7 +365,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
-                auctionGppProcessor,
+                auctionGppService,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
@@ -401,7 +401,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
-                                        AmpGppProcessor ampGppProcessor,
+                                        AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
@@ -414,7 +414,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
-                ampGppProcessor,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,

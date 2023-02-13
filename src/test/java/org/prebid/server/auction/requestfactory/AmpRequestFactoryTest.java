@@ -29,7 +29,7 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.gpp.AmpGppProcessor;
+import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
@@ -102,7 +102,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
-    private AmpGppProcessor ampGppProcessor;
+    private AmpGppService ampGppService;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
@@ -132,7 +132,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(ampGppProcessor.process(any(), any()))
+        given(ampGppService.apply(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -180,7 +180,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
-                ampGppProcessor,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,

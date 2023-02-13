@@ -11,7 +11,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.gpp.AuctionGppProcessor;
+import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -35,7 +35,7 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    private final AuctionGppProcessor gppProcessor;
+    private final AuctionGppService gppProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
@@ -50,7 +50,7 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                                 AuctionGppProcessor gppProcessor,
+                                 AuctionGppService gppProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
@@ -186,7 +186,7 @@ public class AuctionRequestFactory {
 
         return Future.succeededFuture(auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> gppProcessor.process(bidRequest, auctionContext))
+                .map(bidRequest -> gppProcessor.apply(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(
                         bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
     }

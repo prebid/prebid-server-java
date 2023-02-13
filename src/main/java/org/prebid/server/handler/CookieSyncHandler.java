@@ -13,7 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.gpp.CookieSyncGppProcessor;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
@@ -47,7 +47,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
-    private final CookieSyncGppProcessor gppProcessor;
+    private final CookieSyncGppService gppProcessor;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -59,7 +59,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
-                             CookieSyncGppProcessor gppProcessor,
+                             CookieSyncGppService gppProcessor,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -150,7 +150,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private CookieSyncContext processGpp(CookieSyncContext cookieSyncContext) {
         return cookieSyncContext.with(
-                gppProcessor.process(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
+                gppProcessor.apply(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
     }
 
     private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {

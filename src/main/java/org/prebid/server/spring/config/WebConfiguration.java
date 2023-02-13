@@ -15,7 +15,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
-import org.prebid.server.auction.gpp.CookieSyncGppProcessor;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
@@ -263,7 +263,7 @@ public class WebConfiguration {
     CookieSyncHandler cookieSyncHandler(
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
-            CookieSyncGppProcessor cookieSyncGppProcessor,
+            CookieSyncGppService cookieSyncGppProcessor,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
