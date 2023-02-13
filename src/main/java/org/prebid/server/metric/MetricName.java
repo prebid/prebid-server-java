@@ -79,6 +79,8 @@ public enum MetricName {
     sets,
     blocked,
     filtered,
+    sizeblocked,
+    sizedout,
 
     // tcf
     userid_removed,

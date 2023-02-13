@@ -47,6 +47,7 @@
         "imp": [
           {
             "id": "impId1",
+            "secure": 1,
             "banner": {
               "format": [
                 {
@@ -96,11 +97,11 @@
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
                       "sizes": [
-                         {
-                           "w": 300,
-                           "h": 250
-                         }
-                       ],
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
                       "bidder": "rubicon"
                     }
                   }
@@ -108,6 +109,7 @@
               ]
             },
             "ext": {
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -120,6 +122,9 @@
             }
           }
         ],
+        "source": {
+          "tid": "someTid"
+        },
         "site": {
           "domain": "www.example.com",
           "page": "http://www.example.com",
@@ -146,7 +151,7 @@
           }
         },
         "at": 1,
-        "tmax": 2000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
@@ -266,7 +271,7 @@
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 1000
     }

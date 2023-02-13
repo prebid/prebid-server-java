@@ -105,6 +105,7 @@ public class CookieSyncService {
                 .map(this::filterInvalidBidders)
                 .map(this::filterDisabledBidders)
                 .map(this::filterBiddersWithoutUsersync)
+                .map(this::filterBiddersWithDisabledUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
                 .map(this::filterInSyncBidders);
@@ -187,6 +188,13 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> bidderCatalog.usersyncerByName(bidder).isEmpty(),
                 RejectionReason.UNCONFIGURED_USERSYNC);
+    }
+
+    private CookieSyncContext filterBiddersWithDisabledUsersync(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
+                RejectionReason.DISABLED_USERSYNC);
     }
 
     /**
@@ -440,6 +448,7 @@ public class CookieSyncService {
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
+            case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
             case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
         };

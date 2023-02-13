@@ -14,6 +14,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.metric.Metrics;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -31,6 +32,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UidsCookieServiceTest extends VertxTest {
@@ -51,6 +53,8 @@ public class UidsCookieServiceTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private PrioritizedCoopSyncProvider prioritizedCoopSyncProvider;
+    @Mock
+    private Metrics metrics;
 
     private UidsCookieService uidsCookieService;
 
@@ -65,6 +69,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
     }
 
@@ -259,6 +264,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
                 singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
@@ -282,6 +288,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
                 singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
@@ -305,6 +312,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(routingContext.cookieMap()).willReturn(singletonMap("khaos", Cookie.cookie("khaos", "abc123")));
 
@@ -327,6 +335,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         final Map<String, Cookie> cookies = new HashMap<>();
@@ -440,6 +449,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         // when
@@ -480,6 +490,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         // when
@@ -501,6 +512,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         final UidsCookie uidsCookie = new UidsCookie(
@@ -533,6 +545,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         given(routingContext.cookieMap()).willReturn(emptyMap());
@@ -556,6 +569,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 MAX_COOKIE_SIZE_BYTES,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         final UidsCookie uidsCookie = new UidsCookie(
@@ -655,7 +669,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateUidsCookieShouldNotUpdateNonPrioritizedFamilyWhenSizeExceedsLimit() {
+    public void updateUidsCookieShouldNotUpdateNonPrioritizedFamilyWhenSizeExceedsLimitAndLogMetric() {
         // given
         uidsCookieService = new UidsCookieService(
                 "trp_optout",
@@ -666,6 +680,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 500,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
         given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(false);
@@ -680,11 +695,12 @@ public class UidsCookieServiceTest extends VertxTest {
                 uidsCookie, "family", "uid");
 
         // then
+        verify(metrics).updateUserSyncSizeBlockedMetric("family");
         assertThat(result).isEqualTo(UidsCookieUpdateResult.unaltered(uidsCookie));
     }
 
     @Test
-    public void updateUidsCookieShouldUpdatePrioritizedFamilyWhenSizeExceedsLimitByTrimming() {
+    public void updateUidsCookieShouldUpdatePrioritizedFamilyWhenSizeExceedsLimitByTrimmingAndIncrementMetric() {
         // given
         uidsCookieService = new UidsCookieService(
                 "trp_optout",
@@ -695,6 +711,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 500,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
         given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(true);
@@ -709,6 +726,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 uidsCookie, "family", "uid");
 
         // then
+        verify(metrics).updateUserSyncSizedOutMetric("very-very-very-very-long-family");
         assertThat(result.isSuccessfullyUpdated()).isTrue();
         assertThat(result)
                 .extracting(UidsCookieUpdateResult::getUidsCookie)
@@ -733,6 +751,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 90,
                 500,
                 prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
         given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(false);
 

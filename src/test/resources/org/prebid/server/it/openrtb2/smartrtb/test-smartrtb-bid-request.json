@@ -15,6 +15,7 @@
         "w": 300
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "force_bid": true,
           "pub_id": "1234",
@@ -22,9 +23,13 @@
         }
       },
       "id": "imp_id",
+      "secure": 1,
       "tagid": "N4zTDq3PPEHBIODv7cXK"
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
@@ -40,7 +45,7 @@
       "domain": "example.com"
     }
   },
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "ext": {
     "prebid": {
       "server": {

@@ -5,6 +5,8 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +25,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
@@ -122,6 +125,8 @@ import java.util.stream.Stream;
 @Configuration
 public class ServiceConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
+
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
@@ -213,11 +218,25 @@ public class ServiceConfiguration {
 
     @Bean
     TimeoutResolver auctionTimeoutResolver(
-            @Value("${auction.default-timeout-ms}") long defaultTimeout,
-            @Value("${auction.max-timeout-ms}") long maxTimeout,
-            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment) {
+            @Value("${auction.biddertmax.min}") long minTimeout,
+            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
+            @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
+            @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+        return new TimeoutResolver(
+                minTimeout,
+                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
+                upstreamResponseTime);
+    }
+
+    // TODO: Remove after transition period
+    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
+        if (maxTimeout != 0) {
+            return maxTimeout;
+        }
+
+        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
+        return maxTimeoutDeprecated;
     }
 
     @Bean
@@ -229,6 +248,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${external-url}") String externalUrl,
@@ -243,6 +263,7 @@ public class ServiceConfiguration {
 
         return new Ortb2ImplicitParametersResolver(
                 cacheOnlyWinningBids,
+                generateBidRequestId,
                 adServerCurrency,
                 splitToList(blacklistedAppsString),
                 externalUrl,
@@ -346,11 +367,14 @@ public class ServiceConfiguration {
                 : new NoneIdGenerator();
     }
 
+    // TODO: Remove this bean creation after deprecation period
     @Bean
-    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
-        return generateSourceTid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
+    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") Boolean generateSourceTid) {
+        if (generateSourceTid != null) {
+            logger.warn("'auction.generate-source-tid' is no longer supported, pls remove from your config");
+        }
+
+        return new UUIDIdGenerator();
     }
 
     @Bean
@@ -421,7 +445,6 @@ public class ServiceConfiguration {
             VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            TimeoutResolver auctionTimeoutResolver,
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
@@ -436,7 +459,6 @@ public class ServiceConfiguration {
                 videoRequestValidator,
                 metrics,
                 timeoutFactory,
-                auctionTimeoutResolver,
                 mapper,
                 jsonMerger);
     }
@@ -544,6 +566,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -555,7 +578,17 @@ public class ServiceConfiguration {
                 ttlDays,
                 maxCookieSizeBytes,
                 prioritizedCoopSyncProvider,
+                metrics,
                 mapper);
+    }
+
+    @Bean
+    UidUpdater uidUpdater(
+            @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
+            BidderCatalog bidderCatalog,
+            UidsCookieService uidsCookieService) {
+
+        return new UidUpdater(hostCookieFamily, bidderCatalog, uidsCookieService);
     }
 
     @Bean
@@ -694,7 +727,7 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             DealsProcessor dealsProcessor,
@@ -703,6 +736,9 @@ public class ServiceConfiguration {
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
+            UidUpdater uidUpdater,
+            TimeoutResolver timeoutResolver,
+            TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
@@ -721,7 +757,7 @@ public class ServiceConfiguration {
             CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
-                expectedCacheTimeMs,
+                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsProcessor,
@@ -730,6 +766,9 @@ public class ServiceConfiguration {
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,

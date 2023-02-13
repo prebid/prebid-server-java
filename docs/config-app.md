@@ -77,13 +77,15 @@ Removes and downloads file again if depending service cant process probably corr
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
-- `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
+- `auction.tmax-upstream-response-time` - the amount of time that PBS needs to respond to the original caller.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
-- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
 - `auction.generate-source-tid` - whether to generate bidrequest.source.tid in the OpenRTB request.
@@ -114,9 +116,9 @@ Removes and downloads file again if depending service cant process probably corr
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
-- `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
-- `cookie-sync.coop-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
-- `cookie-sync.coop-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
+- `cookie-sync.pri` - lists of bidders prioritised in groups.
+- `cookie-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
+- `cookie-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
 
 ## Vtrack
 - `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.

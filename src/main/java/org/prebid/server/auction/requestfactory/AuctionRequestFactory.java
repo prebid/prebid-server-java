@@ -12,6 +12,7 @@ import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
@@ -171,9 +172,15 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
 
-                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
+                .map(auctionStoredResult -> AuctionStoredResult.of(
+                        auctionStoredResult.hasStoredBidRequest(),
+                        ortbVersionConversionManager.convertToAuctionSupportedVersion(
+                                auctionStoredResult.bidRequest())))
 
-                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, httpRequest, ENDPOINT))
+                .map(auctionStoredResult -> paramsResolver.resolve(auctionStoredResult.bidRequest(),
+                                httpRequest,
+                                ENDPOINT,
+                                auctionStoredResult.hasStoredBidRequest()))
 
                 .compose(resolvedBidRequest ->
                         ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))

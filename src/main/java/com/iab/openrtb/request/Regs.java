@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
+import java.util.List;
+
 /**
  * This object contains any legal, governmental, or industry regulations
  * that apply to the request. See Section 7.5 for more details on the
@@ -33,6 +35,16 @@ public class Regs {
      * Refer to Section 7.5 for more information.
      */
     String usPrivacy;
+
+    /**
+     * Placeholder for Global-Privacy-Platform security string.
+     */
+    String gpp;
+
+    /**
+     * Placeholder for Global-Privacy-Platform sid values.
+     */
+    List<Integer> gppSid;
 
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.

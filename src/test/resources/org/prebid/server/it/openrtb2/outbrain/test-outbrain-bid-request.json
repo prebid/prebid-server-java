@@ -3,12 +3,14 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "tagid": "tag_id",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "publisher": {
             "id": "extPubId",
@@ -26,6 +28,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain" : "www.example.com",
     "page": "http://www.example.com",
@@ -43,7 +48,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "bcat": [
     "bcatVal"
   ],

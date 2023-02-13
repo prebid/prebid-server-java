@@ -13,6 +13,7 @@ import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
 
@@ -47,6 +48,7 @@ public class UidsCookieService {
     private final int maxCookieSizeBytes;
 
     private final PrioritizedCoopSyncProvider prioritizedCoopSyncProvider;
+    private final Metrics metrics;
     private final JacksonMapper mapper;
 
     public UidsCookieService(String optOutCookieName,
@@ -57,6 +59,7 @@ public class UidsCookieService {
                              int ttlDays,
                              int maxCookieSizeBytes,
                              PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+                             Metrics metrics,
                              JacksonMapper mapper) {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
@@ -72,6 +75,7 @@ public class UidsCookieService {
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
         this.maxCookieSizeBytes = maxCookieSizeBytes;
         this.prioritizedCoopSyncProvider = Objects.requireNonNull(prioritizedCoopSyncProvider);
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -168,6 +172,13 @@ public class UidsCookieService {
     }
 
     /**
+     * Lookups host cookie value from request context by configured host cookie name.
+     */
+    public String parseHostCookie(HttpRequestContext httpRequest) {
+        return parseHostCookie(HttpUtil.cookiesAsMap(httpRequest));
+    }
+
+    /**
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
      * UIDs cookie sync.
      */
@@ -253,10 +264,13 @@ public class UidsCookieService {
             return UidsCookieUpdateResult.updated(updatedCookie);
         }
 
-        return !prioritizedCoopSyncProvider.hasPrioritizedBidders()
-                || prioritizedCoopSyncProvider.isPrioritizedFamily(familyName)
-                ? UidsCookieUpdateResult.updated(trimToLimit(updatedCookie))
-                : UidsCookieUpdateResult.unaltered(uidsCookie);
+        if (!prioritizedCoopSyncProvider.hasPrioritizedBidders()
+                || prioritizedCoopSyncProvider.isPrioritizedFamily(familyName)) {
+            return UidsCookieUpdateResult.updated(trimToLimit(updatedCookie));
+        } else {
+            metrics.updateUserSyncSizeBlockedMetric(familyName);
+            return UidsCookieUpdateResult.unaltered(uidsCookie);
+        }
     }
 
     private boolean cookieExceededMaxLength(UidsCookie uidsCookie) {
@@ -272,7 +286,9 @@ public class UidsCookieService {
         final Iterator<String> familyToRemoveIterator = cookieFamilyNamesByAscendingPriority(uidsCookie);
 
         while (familyToRemoveIterator.hasNext() && cookieExceededMaxLength(trimmedUids)) {
-            trimmedUids = trimmedUids.deleteUid(familyToRemoveIterator.next());
+            final String familyToRemove = familyToRemoveIterator.next();
+            metrics.updateUserSyncSizedOutMetric(familyToRemove);
+            trimmedUids = trimmedUids.deleteUid(familyToRemove);
         }
 
         return trimmedUids;
