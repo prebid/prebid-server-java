@@ -5,6 +5,12 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 
 public class CookieSyncGppService {
 
+    private final GppService gppService;
+
+    public CookieSyncGppService(GppService gppService) {
+        this.gppService = gppService;
+    }
+
     public CookieSyncRequest apply(CookieSyncRequest cookieSyncRequest, CookieSyncContext cookieSyncContext) {
         return cookieSyncRequest;
     }
