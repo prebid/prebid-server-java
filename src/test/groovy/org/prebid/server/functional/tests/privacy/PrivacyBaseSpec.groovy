@@ -20,6 +20,7 @@ import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -55,6 +56,13 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         AmpRequest.defaultAmpRequest.tap {
             consentString = consentStringVal
             consentType = US_PRIVACY
+        }
+    }
+
+    protected static AmpRequest getGppAmpRequest(ConsentString consentStringVal) {
+        AmpRequest.defaultAmpRequest.tap {
+            consentString = consentStringVal
+            consentType = GPP
         }
     }
 
