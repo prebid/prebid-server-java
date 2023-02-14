@@ -92,9 +92,10 @@ class AuctionGppSpec extends BaseSpec {
 
     def "PBS should copy regs.gpp to user.consent when gppSid contains 2, gpp is TCF2-EU and user.consent isn't specified"() {
         given: "Default bid request with gpp and gppSid"
+        def gppConsent = new GppConsent().setFieldValue()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [2]
-            regs.gpp = new GppConsent().setFieldValue()
+            regs.gpp = gppConsent
             user = new User().tap {
                 consent = null
             }
@@ -105,7 +106,8 @@ class AuctionGppSpec extends BaseSpec {
 
         then: "Bidder request should contain user.consent from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.user.consent == bidRequest.regs.gpp
+        assert bidderRequest.user.consent == gppConsent as String
+        assert bidderRequest.regs.gpp == gppConsent as String
     }
 
     def "PBS should emit warning when gppSid contains 2, gpp is TCF2-EU and regs.gpp and user.consent are different"() {
@@ -127,9 +129,10 @@ class AuctionGppSpec extends BaseSpec {
 
     def "PBS should copy regs.gpp to regs.usPrivacy when gppSid contains 6, gpp is TCF2-EU and regs.us_privacy isn't specified"() {
         given: "Default bid request with gpp and gppSid, without us_privacy"
+        def gppConsent = new GppConsent().setFieldValue()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [6]
-            regs.gpp = new GppConsent().setFieldValue()
+            regs.gpp = gppConsent
             regs.usPrivacy = null
         }
 
@@ -138,7 +141,8 @@ class AuctionGppSpec extends BaseSpec {
 
         then: "Bidder request should contain regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.regs.usPrivacy == bidRequest.regs.gpp
+        assert bidderRequest.regs.usPrivacy == gppConsent as String
+        assert bidderRequest.regs.gpp == gppConsent as String
     }
 
     def "PBS shouldn't copy regs.gpp to regs.usPrivacy when gppSid doesn't contain 6, gpp is TCF2-EU and regs.us_privacy isn't specified"() {
