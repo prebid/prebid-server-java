@@ -17,7 +17,15 @@
             "bar1",
             "bar2"
           ]
-        }
+        },
+        "gpid": "gpidvalue",
+        "data": {
+          "pbadslot": "adslotvalue"
+        },
+        "skadn": {
+          "version": "2.0"
+        },
+        "tid" : "${json-unit.any-string}"
       }
     }
   ],
