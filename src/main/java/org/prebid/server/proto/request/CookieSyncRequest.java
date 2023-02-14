@@ -5,9 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
 import java.util.Set;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class CookieSyncRequest {
 
@@ -21,7 +22,7 @@ public class CookieSyncRequest {
 
     String gpp;
 
-    String gppSid;
+    List<Integer> gppSid;
 
     @JsonProperty("coopSync")
     Boolean coopSync;

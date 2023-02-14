@@ -78,7 +78,7 @@ public class AuctionGppService {
                 : null;
     }
 
-    private static boolean needUpdates(Object original, Object gpp) {
+    private static <T> boolean needUpdates(T original, T gpp) {
         return original == null && gpp != null;
     }
 

@@ -14,7 +14,6 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,26 +54,11 @@ public class PrivacyExtractor {
         final String gdprConsent = request.getGdprConsent();
         final String usPrivacy = request.getUsPrivacy();
         final String gpp = request.getGpp();
-        final List<Integer> gppSid = parseGppSid(request.getGppSid());
+        final List<Integer> gppSid = request.getGppSid();
 
         return toValidPrivacy(gdpr, gdprConsent, usPrivacy, null, gpp, gppSid, null);
     }
 
-    private static List<Integer> parseGppSid(String gppSid) {
-        if (gppSid == null) {
-            return DEFAULT_GPP_SID_VALUE;
-        }
-
-        try {
-            return Arrays.stream(gppSid.split(","))
-                    .map(StringUtils::strip)
-                    .filter(StringUtils::isNotBlank)
-                    .map(Integer::parseInt)
-                    .toList();
-        } catch (NumberFormatException e) {
-            return DEFAULT_GPP_SID_VALUE;
-        }
-    }
 
     public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
         final String gdpr = request.getParam(SETUID_GDPR_PARAM);

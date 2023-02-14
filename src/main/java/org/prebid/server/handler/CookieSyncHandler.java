@@ -1,5 +1,9 @@
 package org.prebid.server.handler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
@@ -37,9 +41,14 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
+
+    private static final String REQUEST_BODY_CANNOT_BE_PARSED = "Request body cannot be parsed";
+    private static final String GPP_SID = "gpp_sid";
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
@@ -98,7 +107,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Future<CookieSyncContext> cookieSyncContext(RoutingContext routingContext) {
         final CookieSyncRequest cookieSyncRequest;
         try {
-            cookieSyncRequest = parseRequest(routingContext);
+            final ObjectNode bodyAsObjectNode = prepareBody(routingContext.getBody());
+            cookieSyncRequest = parseRequest(bodyAsObjectNode);
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
@@ -121,18 +131,58 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return Future.succeededFuture(cookieSyncContext);
     }
 
-    private CookieSyncRequest parseRequest(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+    private ObjectNode prepareBody(Buffer body) {
         if (body == null) {
             throw new InvalidCookieSyncRequestException("Request has no body");
         }
 
+        final ObjectNode bodyAsObjectNode;
         try {
-            return mapper.decodeValue(body, CookieSyncRequest.class);
+            bodyAsObjectNode = mapper.decodeValue(body, ObjectNode.class);
         } catch (DecodeException e) {
-            final String message = "Request body cannot be parsed";
-            logger.info(message, e);
-            throw new InvalidCookieSyncRequestException(message);
+            logger.info(REQUEST_BODY_CANNOT_BE_PARSED, e);
+            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+        }
+
+        return prepareGppSid(bodyAsObjectNode);
+    }
+
+    private static ObjectNode prepareGppSid(ObjectNode requestNode) {
+        final JsonNode gppSidNode = requestNode.get(GPP_SID);
+        if (gppSidNode == null) {
+            return requestNode;
+        }
+
+        if (!gppSidNode.isTextual()) {
+            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+        }
+
+        final List<Integer> gppSid = parseGppSid(gppSidNode.textValue());
+
+        final ArrayNode gppSidArrayNode = requestNode.putArray(GPP_SID);
+        gppSid.forEach(gppSidArrayNode::add);
+
+        return requestNode;
+    }
+
+    private static List<Integer> parseGppSid(String gppSid) {
+        try {
+            return Arrays.stream(gppSid.split(","))
+                    .map(StringUtils::strip)
+                    .filter(StringUtils::isNotBlank)
+                    .map(Integer::parseInt)
+                    .toList();
+        } catch (NumberFormatException e) {
+            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+        }
+    }
+
+    private CookieSyncRequest parseRequest(ObjectNode bodyAsObjectNode) {
+        try {
+            return mapper.mapper().treeToValue(bodyAsObjectNode, CookieSyncRequest.class);
+        } catch (JsonProcessingException e) {
+            logger.info(REQUEST_BODY_CANNOT_BE_PARSED, e);
+            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
         }
     }
 
