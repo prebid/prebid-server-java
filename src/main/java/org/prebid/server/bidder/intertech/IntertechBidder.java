@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -72,7 +73,7 @@ public class IntertechBidder implements Bidder<BidRequest> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
         }
-        // HttpUtil.headers().add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
+        HttpUtil.headers().add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
 
         return headers;
     }
