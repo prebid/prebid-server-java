@@ -12,8 +12,15 @@
             "origbidcpm": 3.33,
             "prebid": {
               "type": "banner"
-            }
-          }
+            },
+            "type": "standard"
+          },
+          "adm": "some-test-ad-1",
+          "adomain":[
+            "somedomain.com"
+          ],
+          "w": 300,
+          "h": 250
         }
       ],
       "seat": "ccx",
