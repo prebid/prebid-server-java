@@ -11,6 +11,8 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class UsersyncConfigurationProperties {
 
+    Boolean enabled;
+
     @NotBlank
     String cookieFamilyName;
 

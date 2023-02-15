@@ -287,6 +287,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
+    PrebidServerService withWarmup(){
+        sendAuctionRequest(BidRequest.defaultBidRequest)
+        this
+    }
+
     private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def payload = encode(bidRequest)
 

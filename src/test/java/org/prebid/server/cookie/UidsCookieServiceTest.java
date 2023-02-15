@@ -12,25 +12,27 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
+import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.metric.Metrics;
 
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UidsCookieServiceTest extends VertxTest {
@@ -49,13 +51,26 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private PrioritizedCoopSyncProvider prioritizedCoopSyncProvider;
+    @Mock
+    private Metrics metrics;
 
     private UidsCookieService uidsCookieService;
 
     @Before
     public void setUp() {
         uidsCookieService = new UidsCookieService(
-                "trp_optout", "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout",
+                "true",
+                null,
+                null,
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
     }
 
     @Test
@@ -218,26 +233,6 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldTrimUidsToNotExceedCookieBytesLengthLimit() {
-        // given
-        uidsCookieService = new UidsCookieService(
-                "trp_optout", "true", null, null, "cookie-domain", 90, 4096, jacksonMapper);
-
-        final Map<String, UidWithExpiry> uidWithExpiryMap = IntStream.range(0, 1000)
-                .mapToObj(i -> "a" + i)
-                .collect(Collectors.toMap(Function.identity(), UidWithExpiry::expired));
-
-        final Uids uids = Uids.builder().uids(uidWithExpiryMap).build();
-        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
-
-        // when
-        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
-
-        // then
-        assertThat(cookie.encode().getBytes().length).isLessThanOrEqualTo(4096);
-    }
-
-    @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieHasNotExpectedValue() {
         // given
         final Map<String, Cookie> cookies = new HashMap<>();
@@ -261,7 +256,16 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService(
-                null, "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                null,
+                "true",
+                null,
+                null,
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
                 singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
 
@@ -276,7 +280,16 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService(
-                "trp_optout", null, null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout",
+                null,
+                null,
+                null,
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
                 singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
 
@@ -291,7 +304,16 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
         uidsCookieService = new UidsCookieService(
-                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout",
+                "true",
+                "rubicon",
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
         given(routingContext.cookieMap()).willReturn(singletonMap("khaos", Cookie.cookie("khaos", "abc123")));
 
         // when
@@ -305,7 +327,16 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsPresentButDiffers() {
         // given
         uidsCookieService = new UidsCookieService(
-                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout",
+                "true",
+                "rubicon",
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
 
         final Map<String, Cookie> cookies = new HashMap<>();
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
@@ -410,7 +441,16 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldParseHostCookie() {
         // given
         uidsCookieService = new UidsCookieService(
-                "trp_optout", "true", null, "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout",
+                "true",
+                null,
+                "khaos",
+                "cookie-domain",
+                90,
+                MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
 
         // when
         final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", "userId"));
@@ -449,6 +489,8 @@ public class UidsCookieServiceTest extends VertxTest {
                 "cookie-domain",
                 90,
                 MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         // when
@@ -469,6 +511,8 @@ public class UidsCookieServiceTest extends VertxTest {
                 "cookie-domain",
                 90,
                 MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         final UidsCookie uidsCookie = new UidsCookie(
@@ -500,6 +544,8 @@ public class UidsCookieServiceTest extends VertxTest {
                 "cookie-domain",
                 90,
                 MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         given(routingContext.cookieMap()).willReturn(emptyMap());
@@ -522,6 +568,8 @@ public class UidsCookieServiceTest extends VertxTest {
                 "cookie-domain",
                 90,
                 MAX_COOKIE_SIZE_BYTES,
+                prioritizedCoopSyncProvider,
+                metrics,
                 jacksonMapper);
 
         final UidsCookie uidsCookie = new UidsCookie(
@@ -540,6 +588,197 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         assertThat(result).isNull();
+    }
+
+    @Test
+    public void updateUidsCookieShouldRemoveAllExpiredUids() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(
+                Map.of("family1", UidWithExpiry.expired("uid1"),
+                        "family2", UidWithExpiry.live("uid2"),
+                        "family3", UidWithExpiry.expired("uid3")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(uidsCookie, "family4", "uid4");
+
+        // the
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result.getUidsCookie())
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::values)
+                .extracting(ArrayList::new)
+                .asList()
+                .extracting(object -> (UidWithExpiry) object)
+                .extracting(UidWithExpiry::getExpires)
+                .allMatch(ZonedDateTime.now()::isBefore);
+    }
+
+    @Test
+    public void updateUidsCookieShouldRemoveUidWhenBlank() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(uidsCookie, "family", null);
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isFalse();
+        assertThat(result.getUidsCookie())
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .isEmpty();
+    }
+
+    @Test
+    public void updateUidsCookieShouldIgnoreFacebookSentinel() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "audienceNetwork", "0");
+
+        // then
+        assertThat(result).isEqualTo(UidsCookieUpdateResult.unaltered(uidsCookie));
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdateCookieAndNotTrimIfSizeNotExceededLimit() {
+        // given
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "another-family", "uid");
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactly("family", "another-family");
+    }
+
+    @Test
+    public void updateUidsCookieShouldNotUpdateNonPrioritizedFamilyWhenSizeExceedsLimitAndLogMetric() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
+        given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(false);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        verify(metrics).updateUserSyncSizeBlockedMetric("family");
+        assertThat(result).isEqualTo(UidsCookieUpdateResult.unaltered(uidsCookie));
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdatePrioritizedFamilyWhenSizeExceedsLimitByTrimmingAndIncrementMetric() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(true);
+        given(prioritizedCoopSyncProvider.isPrioritizedFamily("family")).willReturn(true);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        verify(metrics).updateUserSyncSizedOutMetric("very-very-very-very-long-family");
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactlyInAnyOrder("family", "another-very-very-very-long-family");
+    }
+
+    @Test
+    public void updateUidsCookieShouldUpdateNonPrioritizedFamilyWhenSizeExceedsLimitAndPrioritiesAbsentByTrimming() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout",
+                "true",
+                RUBICON,
+                "khaos",
+                "cookie-domain",
+                90,
+                500,
+                prioritizedCoopSyncProvider,
+                metrics,
+                jacksonMapper);
+        given(prioritizedCoopSyncProvider.hasPrioritizedBidders()).willReturn(false);
+
+        // cookie of encoded size 450 bytes
+        final UidsCookie uidsCookie = givenUidsCookie(Map.of(
+                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+
+        // when
+        final UidsCookieUpdateResult result = uidsCookieService.updateUidsCookie(
+                uidsCookie, "family", "uid");
+
+        // then
+        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result)
+                .extracting(UidsCookieUpdateResult::getUidsCookie)
+                .extracting(UidsCookie::getCookieUids)
+                .extracting(Uids::getUids)
+                .extracting(Map::keySet)
+                .extracting(ArrayList::new)
+                .asList()
+                .flatExtracting(identity())
+                .containsExactlyInAnyOrder("family", "another-very-very-very-long-family");
+    }
+
+    private UidsCookie givenUidsCookie(Map<String, UidWithExpiry> uids) {
+        return new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
     }
 
     private static String encodeUids(Uids uids) throws JsonProcessingException {

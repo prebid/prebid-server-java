@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.SetuidEvent;
@@ -27,6 +26,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
+import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -246,12 +246,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String uid = routingContext.request().getParam(UID_PARAM);
         final String bidder = setuidContext.getCookieName();
 
-        final UidsCookieUpdateResult uidsCookieUpdateResult = updateUidsCookie(
-                setuidContext.getUidsCookie(), bidder, uid);
-
+        final UidsCookieUpdateResult uidsCookieUpdateResult =
+                uidsCookieService.updateUidsCookie(setuidContext.getUidsCookie(), bidder, uid);
         final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
         addCookie(routingContext, updatedUidsCookie);
 
+        if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
+            metrics.updateUserSyncSetsMetric(bidder);
+        }
         final int statusCode = HttpResponseStatus.OK.code();
         HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
 
@@ -263,20 +265,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .success(uidsCookieUpdateResult.isSuccessfullyUpdated())
                 .build();
         analyticsDelegator.processEvent(setuidEvent, tcfContext);
-    }
-
-    private UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String bidderName, String uid) {
-        if (StringUtils.isBlank(uid)) {
-            return UidsCookieUpdateResult.unaltered(uidsCookie.deleteUid(bidderName));
-        } else if (UidsCookie.isFacebookSentinel(bidderName, uid)) {
-            // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
-            // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
-            return UidsCookieUpdateResult.unaltered(uidsCookie);
-        } else {
-            final UidsCookie updatedCookie = uidsCookie.updateUid(bidderName, uid);
-            metrics.updateUserSyncSetsMetric(bidderName);
-            return UidsCookieUpdateResult.updated(updatedCookie);
-        }
     }
 
     private Consumer<HttpServerResponse> buildCookieResponseConsumer(SetuidContext setuidContext,
@@ -330,21 +318,5 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
         routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
-    }
-
-    @Value(staticConstructor = "of")
-    private static class UidsCookieUpdateResult {
-
-        private static UidsCookieUpdateResult updated(UidsCookie uidsCookie) {
-            return of(true, uidsCookie);
-        }
-
-        private static UidsCookieUpdateResult unaltered(UidsCookie uidsCookie) {
-            return of(false, uidsCookie);
-        }
-
-        boolean successfullyUpdated;
-
-        UidsCookie uidsCookie;
     }
 }

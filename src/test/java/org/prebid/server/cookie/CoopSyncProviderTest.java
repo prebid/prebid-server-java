@@ -14,17 +14,15 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountCoopSyncConfig;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 public class CoopSyncProviderTest {
@@ -34,32 +32,14 @@ public class CoopSyncProviderTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+    @Mock
+    private PrioritizedCoopSyncProvider prioritizedCoopSyncProvider;
 
     private CoopSyncProvider target;
 
     @Before
     public void setUp() {
-        target = new CoopSyncProvider(bidderCatalog, Collections.emptySet(), false);
-    }
-
-    @Test
-    public void creationShouldFilterInvalidPrioritizedBidders() {
-        // given
-        given(bidderCatalog.usersyncReadyBidders()).willReturn(Collections.emptySet());
-        given(bidderCatalog.isValidName("invalid1")).willReturn(false);
-        given(bidderCatalog.isValidName("invalid2")).willReturn(false);
-        givenValidBidderWithCookieSync("valid");
-
-        target = new CoopSyncProvider(bidderCatalog, Set.of("invalid1", "invalid2", "valid"), false);
-
-        // when
-        Set<String> result = target.coopSyncBidders(
-                CookieSyncContext.builder()
-                        .cookieSyncRequest(CookieSyncRequest.builder().coopSync(true).build())
-                        .build());
-
-        // then
-        assertThat(result).containsExactly("valid");
+        target = new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, false);
     }
 
     @Test
@@ -157,17 +137,18 @@ public class CoopSyncProviderTest {
     }
 
     @Test
-    public void coopSyncBiddersShouldReturnSetWithPrioritizedBiddersFirstIfCoopSyncEnabled() {
+    public void coopSyncBiddersShouldReturnSetWithConfigPrioritizedBiddersFirstIfCoopSyncEnabled() {
         // given
         givenValidBidderWithCookieSync("bidder1");
         givenValidBidderWithCookieSync("bidder2");
         givenValidBidderWithCookieSync("bidder3");
 
-        // linked hash set used to preserve bidder1 to bidder2 order in final result
         given(bidderCatalog.usersyncReadyBidders())
-                .willReturn(new LinkedHashSet<>(List.of("bidder1", "bidder2", "bidder3")));
+                .willReturn(Set.of("bidder1", "bidder2", "bidder3"));
+        given(prioritizedCoopSyncProvider.prioritizedBidders(any()))
+                .willReturn(singleton("bidder3"));
 
-        target = new CoopSyncProvider(bidderCatalog, Collections.singleton("bidder3"), false);
+        target = new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, false);
 
         // when
         final Set<String> result = target.coopSyncBidders(
@@ -176,7 +157,8 @@ public class CoopSyncProviderTest {
                         .build());
 
         // then
-        assertThat(result).containsExactly("bidder3", "bidder1", "bidder2");
+        assertThat(result).first().isEqualTo("bidder3");
+        assertThat(result).containsExactlyInAnyOrder("bidder1", "bidder2", "bidder3");
     }
 
     private void givenCoopSyncProviderWithCoopSyncBidders(String... bidders) {
@@ -185,8 +167,8 @@ public class CoopSyncProviderTest {
 
     private void givenCoopSyncProviderWithCoopSyncBidders(boolean defaultCoopSync, String... bidders) {
         Arrays.stream(bidders).forEach(this::givenValidBidderWithCookieSync);
-        target = new CoopSyncProvider(
-                bidderCatalog, Arrays.stream(bidders).collect(Collectors.toSet()), defaultCoopSync);
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Arrays.stream(bidders).collect(Collectors.toSet()));
+        target = new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, defaultCoopSync);
     }
 
     private void givenValidBidderWithCookieSync(String bidder) {
@@ -195,7 +177,6 @@ public class CoopSyncProviderTest {
         given(bidderCatalog.usersyncerByName(bidder)).willReturn(
                 Optional.of(Usersyncer.of(
                         "cookie-family-name",
-                        CookieFamilySource.ROOT,
                         UsersyncMethod.builder().build(),
                         null)));
     }

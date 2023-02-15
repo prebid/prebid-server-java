@@ -11,6 +11,8 @@ class Regs {
     Integer coppa
     Integer gdpr
     String usPrivacy
+    String gpp
+    List<Integer> gppSid
     RegsExt ext
 
     static Regs getDefaultRegs() {

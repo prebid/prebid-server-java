@@ -427,7 +427,12 @@ public class PrematureReturnTest extends VertxTest {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
-        arrayValueMatchers.add(new Customization("**.requestheaders.x-prebid", (o1, o2) -> true));
+        arrayValueMatchers.add(new Customization("ext.debug.httpcalls.rubicon", new ArrayValueMatcher<>(
+                new CustomComparator(
+                        JSONCompareMode.NON_EXTENSIBLE,
+                        new Customization("**.requestheaders", (o1, o2) -> true),
+                        new Customization("**.requestbody", (o1, o2) -> true),
+                        new Customization("**.responsebody", (o1, o2) -> true)))));
 
         return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
                 arrayValueMatchers.toArray(new Customization[0]));

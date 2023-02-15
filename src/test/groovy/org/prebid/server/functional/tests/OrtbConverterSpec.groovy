@@ -1022,4 +1022,38 @@ class OrtbConverterSpec extends BaseSpec {
             seatbid.first().bid.first().cattax == cattaxRandomNumber
         }
     }
+
+    def "PBS should remove gpp and gppSid when PBS don't support ortb 2.6"() {
+        given: "Default bid request with device.sua"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = new Regs(gpp: PBSUtils.randomString, gppSid: [PBSUtils.getRandomNumber(),
+                                                                 PBSUtils.getRandomNumber()])
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest shouldn't contain the regs.gpp and regs.gppSid as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !regs.gpp
+            !regs.gppSid
+        }
+    }
+
+    def "PBS shouldn't remove gpp and gppSid when PBS support ortb 2.6"() {
+        given: "Default bid request with device.sua"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = new Regs(gpp: PBSUtils.randomString, gppSid: [PBSUtils.getRandomNumber(),
+                                                                 PBSUtils.getRandomNumber()])
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain the regs.gpp and regs.gppSid as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            regs.gpp == bidRequest.regs.gpp
+            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value}
+        }
+    }
 }

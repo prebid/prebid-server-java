@@ -1,7 +1,6 @@
 package org.prebid.server.cookie.model;
 
 import lombok.Builder;
-import lombok.NonNull;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.SetUtils;
@@ -19,8 +18,8 @@ import java.util.Set;
 @Value(staticConstructor = "of")
 public class BiddersContext {
 
-    @NonNull
-    Set<String> requestedBidders;
+    @Builder.Default
+    Set<String> requestedBidders = new HashSet<>();
 
     @Builder.Default
     Set<String> coopSyncBidders = new HashSet<>();

@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -104,6 +105,7 @@ public class CookieSyncService {
                 .map(this::filterInvalidBidders)
                 .map(this::filterDisabledBidders)
                 .map(this::filterBiddersWithoutUsersync)
+                .map(this::filterBiddersWithDisabledUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
                 .map(this::filterInSyncBidders);
@@ -154,11 +156,12 @@ public class CookieSyncService {
     private CookieSyncContext resolveBiddersToSync(CookieSyncContext cookieSyncContext) {
         // TODO: Add multisync bidders from 1.a)
         // TODO: filter that are done with multisync
-        final Set<String> requestedBidders = SetUtils.emptyIfNull(
-                cookieSyncContext.getCookieSyncRequest().getBidders());
+        final List<String> requestedBiddersAsList = new ArrayList<>(
+                SetUtils.emptyIfNull(cookieSyncContext.getCookieSyncRequest().getBidders()));
+        Collections.shuffle(requestedBiddersAsList);
 
         final BiddersContext updatedContext = cookieSyncContext.getBiddersContext().toBuilder()
-                .requestedBidders(requestedBidders)
+                .requestedBidders(new LinkedHashSet<>(requestedBiddersAsList))
                 .coopSyncBidders(coopSyncProvider.coopSyncBidders(cookieSyncContext))
                 .multiSyncBidders(Set.of())
                 .build();
@@ -185,6 +188,13 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> bidderCatalog.usersyncerByName(bidder).isEmpty(),
                 RejectionReason.UNCONFIGURED_USERSYNC);
+    }
+
+    private CookieSyncContext filterBiddersWithDisabledUsersync(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
+                RejectionReason.DISABLED_USERSYNC);
     }
 
     /**
@@ -316,34 +326,39 @@ public class CookieSyncService {
 
         final Set<String> biddersToSync = biddersToSync(cookieSyncContext);
 
-        final List<BidderUsersyncStatus> statuses = new ArrayList<>();
-        statuses.addAll(validStatuses(biddersToSync, cookieSyncContext));
-        statuses.addAll(errorStatuses(cookieSyncContext));
-        statuses.addAll(warningStatuses(biddersToSync, cookieSyncContext));
+        final List<BidderUsersyncStatus> statuses = ListUtils.union(
+                validStatuses(biddersToSync, cookieSyncContext),
+                debugStatuses(biddersToSync, cookieSyncContext));
 
         return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses));
     }
 
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
-        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final Set<String> cookieFamilesToSync = new HashSet<>(); // multiple bidders may have same cookie families
+        final Set<String> allowedBiddersByPriority = allowedBiddersByPriority(cookieSyncContext);
+
+        final Set<String> cookieFamiliesToSync = new HashSet<>(); // multiple bidders may have same cookie families
         final Set<String> biddersToSync = new LinkedHashSet<>();
+        final Iterator<String> biddersIterator = allowedBiddersByPriority.iterator();
 
-        final Set<String> allowedPrioritizedBidders = new LinkedHashSet<>();
-        allowedPrioritizedBidders.addAll(biddersContext.allowedRequestedBidders());
-        allowedPrioritizedBidders.addAll(biddersContext.allowedCoopSyncBidders());
-
-        final Iterator<String> biddersIterator = allowedPrioritizedBidders.iterator();
-
-        while (cookieFamilesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
+        while (cookieFamiliesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
             final String bidder = biddersIterator.next();
             final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
 
-            cookieFamilesToSync.add(cookieFamilyName);
+            cookieFamiliesToSync.add(cookieFamilyName);
             biddersToSync.add(bidder);
         }
 
         return biddersToSync;
+    }
+
+    private static Set<String> allowedBiddersByPriority(CookieSyncContext cookieSyncContext) {
+        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
+
+        final Set<String> allowedBiddersByPriority = new LinkedHashSet<>();
+        allowedBiddersByPriority.addAll(biddersContext.allowedRequestedBidders());
+        allowedBiddersByPriority.addAll(biddersContext.allowedCoopSyncBidders());
+
+        return allowedBiddersByPriority;
     }
 
     private List<BidderUsersyncStatus> validStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
@@ -353,7 +368,7 @@ public class CookieSyncService {
                 .toList();
     }
 
-    public static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
+    private static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
         Set<Object> seen = new HashSet<>();
         return value -> seen.add(keyExtractor.apply(value));
     }
@@ -376,68 +391,6 @@ public class CookieSyncService {
                 .build();
     }
 
-    private List<BidderUsersyncStatus> errorStatuses(CookieSyncContext cookieSyncContext) {
-        if (!cookieSyncContext.isDebug()) {
-            return Collections.emptyList();
-        }
-
-        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        return biddersContext.rejectedBidders().entrySet().stream()
-                .map(bidderWithReason ->
-                        errorStatus(bidderWithReason.getKey(), bidderWithReason.getValue(), biddersContext))
-                .filter(BidderUsersyncStatus::isError)
-                .toList();
-    }
-
-    private BidderUsersyncStatus errorStatus(String bidder, RejectionReason reason, BiddersContext biddersContext) {
-        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(bidder);
-        BidderUsersyncStatus.BidderUsersyncStatusBuilder builder = BidderUsersyncStatus.builder()
-                .bidder(cookieFamilyName);
-
-        final boolean requested = biddersContext.isRequested(bidder);
-        final boolean coopSync = biddersContext.isCoopSync(bidder);
-
-        builder = switch (reason) {
-            case INVALID_BIDDER -> builder.conditionalError(requested, "Unsupported bidder");
-            case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
-            case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
-            case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
-            case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
-            case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
-            case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
-        };
-
-        return builder.build();
-    }
-
-    private List<BidderUsersyncStatus> warningStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
-        if (!cookieSyncContext.isDebug()) {
-            return Collections.emptyList();
-        }
-
-        return biddersToSync.stream()
-                .filter(bidder -> cookieSyncContext.getBiddersContext().allowedRequestedBidders().contains(bidder))
-                .filter(this::isAliasSyncedAsRootFamily)
-                .map(this::warningForAliasSyncedAsRootFamily)
-                .toList();
-    }
-
-    private boolean isAliasSyncedAsRootFamily(String bidder) {
-        return bidderCatalog.isAlias(bidder)
-                && bidderCatalog.usersyncerByName(bidder)
-                .map(Usersyncer::getCookieFamilySource)
-                .filter(source -> source == CookieFamilySource.ROOT)
-                .isPresent();
-    }
-
-    private BidderUsersyncStatus warningForAliasSyncedAsRootFamily(String bidder) {
-        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
-        return BidderUsersyncStatus.builder()
-                .bidder(bidder)
-                .error("synced as " + cookieFamilyName)
-                .build();
-    }
-
     private UsersyncInfo toUsersyncInfo(UsersyncMethod usersyncMethod,
                                         String cookieFamilyName,
                                         String hostCookieUid,
@@ -456,6 +409,90 @@ public class CookieSyncService {
 
         return usersyncInfoBuilder
                 .privacy(privacy)
+                .build();
+    }
+
+    private List<BidderUsersyncStatus> debugStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
+        if (!cookieSyncContext.isDebug()) {
+            return Collections.emptyList();
+        }
+
+        final List<BidderUsersyncStatus> debugStatuses = new ArrayList<>();
+        debugStatuses.addAll(rejectionStatuses(cookieSyncContext));
+        debugStatuses.addAll(limitStatuses(biddersToSync, cookieSyncContext));
+        debugStatuses.addAll(aliasSyncedAsRootStatuses(biddersToSync, cookieSyncContext));
+
+        return debugStatuses;
+    }
+
+    private List<BidderUsersyncStatus> rejectionStatuses(CookieSyncContext cookieSyncContext) {
+        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
+        return biddersContext.rejectedBidders().entrySet().stream()
+                .map(bidderWithReason ->
+                        rejectionStatus(bidderWithReason.getKey(), bidderWithReason.getValue(), biddersContext))
+                .filter(BidderUsersyncStatus::isError)
+                .toList();
+    }
+
+    private BidderUsersyncStatus rejectionStatus(String bidder, RejectionReason reason, BiddersContext biddersContext) {
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(bidder);
+        BidderUsersyncStatus.BidderUsersyncStatusBuilder builder = BidderUsersyncStatus.builder()
+                .bidder(cookieFamilyName);
+
+        final boolean requested = biddersContext.isRequested(bidder);
+        final boolean coopSync = biddersContext.isCoopSync(bidder);
+
+        builder = switch (reason) {
+            case INVALID_BIDDER -> builder.conditionalError(requested, "Unsupported bidder");
+            case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
+            case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
+            case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
+            case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
+            case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
+            case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
+            case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
+        };
+
+        return builder.build();
+    }
+
+    private List<BidderUsersyncStatus> limitStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
+        final Set<String> droppedDueToLimitBidders = SetUtils.difference(
+                cookieSyncContext.getBiddersContext().allowedRequestedBidders(), biddersToSync);
+
+        return droppedDueToLimitBidders.stream()
+                .map(bidder -> BidderUsersyncStatus.builder()
+                        .bidder(bidderCatalog.cookieFamilyName(bidder).orElseThrow())
+                        .error("limit reached")
+                        .build())
+                .toList();
+    }
+
+    private List<BidderUsersyncStatus> aliasSyncedAsRootStatuses(Set<String> biddersToSync,
+                                                                 CookieSyncContext cookieSyncContext) {
+
+        final Set<String> allowedRequestedBidders = cookieSyncContext.getBiddersContext().allowedRequestedBidders();
+
+        return biddersToSync.stream()
+                .filter(bidder -> allowedRequestedBidders.contains(bidder))
+                .filter(this::isAliasSyncedAsRootFamily)
+                .map(this::warningForAliasSyncedAsRootFamily)
+                .toList();
+    }
+
+    private boolean isAliasSyncedAsRootFamily(String bidder) {
+        return bidderCatalog.isAlias(bidder)
+                && bidderCatalog.usersyncerByName(bidder)
+                .map(Usersyncer::getCookieFamilySource)
+                .filter(source -> source == CookieFamilySource.ROOT)
+                .isPresent();
+    }
+
+    private BidderUsersyncStatus warningForAliasSyncedAsRootFamily(String bidder) {
+        final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
+        return BidderUsersyncStatus.builder()
+                .bidder(bidder)
+                .error("synced as " + cookieFamilyName)
                 .build();
     }
 

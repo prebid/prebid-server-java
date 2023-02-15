@@ -351,6 +351,14 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
+    public void updateUserSyncSizeBlockedMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).incCounter(MetricName.sizeblocked);
+    }
+
+    public void updateUserSyncSizedOutMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).incCounter(MetricName.sizedout);
+    }
+
     public void updateUserSyncTcfInvalidMetric(String bidder) {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
     }

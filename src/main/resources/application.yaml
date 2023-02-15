@@ -7,6 +7,7 @@ vertx:
   init-timeout-ms: 5000
   enable-per-client-endpoint-metrics: false
 server:
+  max-initial-line-length: 8092
   max-headers-size: 16384
   ssl: false
   jks-path:
@@ -117,9 +118,11 @@ auction:
   ad-server-currency: USD
   blacklisted-accounts:
   blacklisted-apps:
-  default-timeout-ms: 900
-  max-timeout-ms: 5000
-  timeout-adjustment-ms: 30
+  biddertmax:
+    min: 50
+    max: 5000
+    percent: 100
+  tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 50
   timeout-notification:
     timeout-ms: 200

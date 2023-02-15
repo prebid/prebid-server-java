@@ -1,0 +1,168 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "21521324",
+        "impid": "impId1",
+        "price": 12.43,
+        "adm": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=b&int=]]></Impression></InLine>",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "prebid": {
+            "type": "video",
+            "events": {
+              "win": "http://localhost:8080/event?t=win&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int=",
+              "imp": "http://localhost:8080/event?t=imp&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
+            }
+          },
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          },
+          "origbidcpm": 12.43
+        },
+        "wurl": "http://localhost:8080/event?t=win&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
+      },
+      "aid": "tid"
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "7706636740145184841",
+        "impid": "impId1",
+        "price": 5.5,
+        "adm": "some-test-ad2",
+        "adid": "29681110",
+        "adomain": [
+          "genericAlias.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+        "cid": "958",
+        "crid": "29681110",
+        "ext": {
+          "prebid": {
+            "type": "video",
+            "events": {
+              "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int=",
+              "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
+            }
+          },
+          "genericAlias": {
+            "brand_id": 1,
+            "auction_id": 8189378542222915032,
+            "bidder_id": 2,
+            "bid_ad_type": 1,
+            "ranking_price": 0.0
+          },
+          "origbidcpm": 5.5,
+          "origbidcur": "USD"
+        },
+        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
+      },
+      "aid": "tid"
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=b&int=]]></Impression></InLine>",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "prebid": {
+            "type": "video",
+            "events": {
+              "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int=",
+              "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
+            }
+          },
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          },
+          "origbidcpm": 8.43
+        },
+        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
+      },
+      "aid": "tid"
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "222214214214",
+        "impid": "impId1",
+        "price": 2,
+        "adm": "some-test-ad1",
+        "adid": "69595837",
+        "adomain": [
+          "genericAlias.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
+        "cid": "958",
+        "crid": "69595837",
+        "ext": {
+          "prebid": {
+            "type": "video",
+            "events": {
+              "win": "http://localhost:8080/event?t=win&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int=",
+              "imp": "http://localhost:8080/event?t=imp&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
+            }
+          },
+          "genericAlias": {
+            "brand_id": 1,
+            "brand_category_id": 1,
+            "auction_id": 5607483846416358664,
+            "bidder_id": 2,
+            "bid_ad_type": 1
+          },
+          "origbidcpm": 2,
+          "origbidcur": "USD"
+        },
+        "wurl": "http://localhost:8080/event?t=win&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
+      },
+      "aid": "tid"
+    },
+    {
+      "type": "xml",
+      "value": "some-test-ad1",
+      "ttlseconds": 120,
+      "aid": "tid"
+    },
+    {
+      "type": "xml",
+      "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=b&int=]]></Impression></InLine>",
+      "ttlseconds": 120,
+      "aid": "tid"
+    },
+    {
+      "type": "xml",
+      "value": "some-test-ad2",
+      "ttlseconds": 120,
+      "aid": "tid"
+    },
+    {
+      "type": "xml",
+      "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=b&int=]]></Impression></InLine>",
+      "ttlseconds": 120,
+      "aid": "tid"
+    }
+  ]
+}

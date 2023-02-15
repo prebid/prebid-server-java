@@ -24,6 +24,7 @@ public class UsersyncerCreatorTest {
         methodConfig.setUidMacro("uid-macro");
         methodConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setCookieFamilyName("rubicon");
         config.setRedirect(methodConfig);
 
@@ -31,8 +32,14 @@ public class UsersyncerCreatorTest {
         assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config, CookieFamilySource.ROOT))
                 .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
                 .isEqualTo("""
-                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro\
+                        http://localhost:8000/setuid\
+                        ?bidder=rubicon\
+                        &gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}\
+                        &us_privacy={{us_privacy}}\
+                        &gpp={{gpp}}\
+                        &gpp_sid={{gpp_sid}}\
+                        &uid=uid-macro\
                         """);
     }
 
@@ -44,6 +51,8 @@ public class UsersyncerCreatorTest {
         methodConfig.setUrl("//usersync-url");
         methodConfig.setUidMacro("not-valid-macro");
         methodConfig.setSupportCors(true);
+
+        config.setEnabled(true);
         config.setRedirect(methodConfig);
 
         // given, when and then
@@ -68,6 +77,7 @@ public class UsersyncerCreatorTest {
         redirectConfig.setUidMacro("uid-macro-redirect");
         redirectConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setIframe(iframeConfig);
         config.setRedirect(redirectConfig);
 
@@ -79,8 +89,14 @@ public class UsersyncerCreatorTest {
                 .type(UsersyncMethodType.IFRAME)
                 .usersyncUrl("//usersync-url-iframe?uid=")
                 .redirectUrl("""
-                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=uid-macro-iframe\
+                        http://localhost:8000/setuid\
+                        ?bidder=rubicon\
+                        &gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}\
+                        &us_privacy={{us_privacy}}\
+                        &gpp={{gpp}}\
+                        &gpp_sid={{gpp_sid}}\
+                        &uid=uid-macro-iframe\
                         """)
                 .supportCORS(true)
                 .build();
@@ -89,15 +105,19 @@ public class UsersyncerCreatorTest {
                 .type(UsersyncMethodType.REDIRECT)
                 .usersyncUrl("//usersync-url-redirect?u=")
                 .redirectUrl("""
-                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}\
+                        http://localhost:8000/setuid\
+                        ?bidder=rubicon&gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}\
+                        &us_privacy={{us_privacy}}\
+                        &gpp={{gpp}}\
+                        &gpp_sid={{gpp_sid}}\
                         &uid=uid-macro-redirect\
                         """)
                 .supportCORS(false)
                 .build();
 
         assertThat(result).isEqualTo(
-                Usersyncer.of("rubicon", CookieFamilySource.ROOT, expectedIframeMethod, expectedRedirectMethod));
+                Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
     }
 
     @Test
@@ -108,6 +128,7 @@ public class UsersyncerCreatorTest {
         methodConfig.setUrl("//redirect-url?uid=");
         methodConfig.setSupportCors(false);
 
+        config.setEnabled(true);
         config.setCookieFamilyName("rubicon");
         config.setRedirect(methodConfig);
 
@@ -115,8 +136,14 @@ public class UsersyncerCreatorTest {
         assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config, CookieFamilySource.ROOT))
                 .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
                 .isEqualTo("""
-                        http://localhost:8000/setuid?bidder=rubicon&gdpr={{gdpr}}\
-                        &gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=\
+                        http://localhost:8000/setuid\
+                        ?bidder=rubicon\
+                        &gdpr={{gdpr}}\
+                        &gdpr_consent={{gdpr_consent}}\
+                        &us_privacy={{us_privacy}}\
+                        &gpp={{gpp}}\
+                        &gpp_sid={{gpp_sid}}\
+                        &uid=\
                         """);
     }
 }

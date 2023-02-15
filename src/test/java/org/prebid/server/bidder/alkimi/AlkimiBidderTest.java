@@ -113,6 +113,7 @@ public class AlkimiBidderTest extends VertxTest {
                         .width(300)
                         .height(250)
                         .impMediaType(TYPE_BANNER)
+                        .adUnitCode(DIV_BANNER_ID)
                         .build()));
     }
 
@@ -136,6 +137,7 @@ public class AlkimiBidderTest extends VertxTest {
                         .width(1024)
                         .height(768)
                         .impMediaType(TYPE_VIDEO)
+                        .adUnitCode(DIV_VIDEO_ID)
                         .build()));
     }
 

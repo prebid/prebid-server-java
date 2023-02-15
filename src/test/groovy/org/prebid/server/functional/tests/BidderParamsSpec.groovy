@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
@@ -615,7 +616,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "PBS with adapter configuration"
         def compressionType = GZIP.value
         def pbsService = pbsServiceFactory.getService(
-                ["adapters.generic.endpoint-compression"                            : compressionType])
+                ["adapters.generic.endpoint-compression": compressionType])
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -629,5 +630,53 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
                        ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+    }
+
+    def "PBS auction should populate imp[0].secure depend which value in imp stored request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression.tap {
+                it.secure = secureStoredRequest
+            }
+        }
+        storedImpDao.save(storedImp)
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain imp[0].secure same value as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].secure == secureBidderRequest
+
+        where:
+        secureStoredRequest | secureBidderRequest
+        null                | 1
+        1                   | 1
+        0                   | 0
+    }
+
+    def "PBS auction should populate imp[0].secure depend which value in imp request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].secure = secureRequest
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain imp[0].secure same value as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].secure == secureBidderRequest
+
+        where:
+        secureRequest | secureBidderRequest
+        null          | 1
+        1             | 1
+        0             | 0
     }
 }

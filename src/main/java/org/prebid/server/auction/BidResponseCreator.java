@@ -31,9 +31,9 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -62,6 +62,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
@@ -76,6 +77,7 @@ import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
@@ -84,6 +86,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -91,7 +96,6 @@ import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.LineItemUtil;
-import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -177,11 +181,11 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    Future<BidResponse> create(List<AuctionParticipation> auctionParticipations,
-                               AuctionContext auctionContext,
+    Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {
 
+        final List<AuctionParticipation> auctionParticipations = auctionContext.getAuctionParticipations();
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
         final EventsContext eventsContext = createEventsContext(auctionContext);
 
@@ -207,7 +211,9 @@ public class BidResponseCreator {
                                 cacheInfo,
                                 bidderToMultiBids,
                                 videoStoredDataResult,
-                                eventsContext)));
+                                eventsContext))
+
+                        .map(bidResponse -> populateSeatNonBid(auctionContext, bidResponse)));
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -396,7 +402,8 @@ public class BidResponseCreator {
                     bidInfos,
                     seatBid.getHttpCalls(),
                     seatBid.getErrors(),
-                    seatBid.getWarnings());
+                    seatBid.getWarnings(),
+                    seatBid.getFledgeAuctionConfigs());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -427,12 +434,16 @@ public class BidResponseCreator {
 
     private static Imp correspondingImp(Bid bid, List<Imp> imps) {
         final String impId = bid.getImpid();
-        return imps.stream()
-                .filter(imp -> Objects.equals(impId, imp.getId()))
-                .findFirst()
+        return correspondingImp(impId, imps)
                 // Should never occur. See ResponseBidValidator
                 .orElseThrow(
                         () -> new PreBidException("Bid with impId %s doesn't have matched imp".formatted(impId)));
+    }
+
+    private static Optional<Imp> correspondingImp(String impId, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> Objects.equals(impId, imp.getId()))
+                .findFirst();
     }
 
     private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
@@ -758,7 +769,10 @@ public class BidResponseCreator {
         final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(bidderResponseInfos, auctionContext);
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
-        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(auctionTimestamp, auctionContext.getBidRequest());
+
+        final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
+        final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(
+                auctionTimestamp, auctionContext.getBidRequest(), extBidResponseFledge);
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -770,14 +784,55 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private static ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp, BidRequest bidRequest) {
+    private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp,
+                                                        BidRequest bidRequest,
+                                                        ExtBidResponseFledge extBidResponseFledge) {
+
         final JsonNode passThrough = Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getPassthrough)
                 .orElse(null);
 
-        return ExtBidResponsePrebid.of(auctionTimestamp, null, passThrough, null);
+        return ExtBidResponsePrebid.builder()
+                .auctiontimestamp(auctionTimestamp)
+                .passthrough(passThrough)
+                .fledge(extBidResponseFledge)
+                .build();
+    }
+
+    private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
+                                                        AuctionContext auctionContext) {
+
+        final List<Imp> imps = auctionContext.getBidRequest().getImp();
+        final List<FledgeAuctionConfig> fledgeConfigs = bidderResponseInfos.stream()
+                .flatMap(bidderResponseInfo -> fledgeConfigsForBidder(bidderResponseInfo, imps))
+                .toList();
+        return !fledgeConfigs.isEmpty() ? ExtBidResponseFledge.of(fledgeConfigs) : null;
+    }
+
+    private Stream<FledgeAuctionConfig> fledgeConfigsForBidder(BidderResponseInfo bidderResponseInfo, List<Imp> imps) {
+        return Optional.ofNullable(bidderResponseInfo.getSeatBid().getFledgeAuctionConfigs())
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(fledgeConfig -> validateFledgeConfig(fledgeConfig, imps))
+                .map(fledgeConfig -> fledgeConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder()));
+    }
+
+    private boolean validateFledgeConfig(FledgeAuctionConfig fledgeAuctionConfig, List<Imp> imps) {
+        final ExtImpAuctionEnvironment fledgeEnabled = correspondingImp(fledgeAuctionConfig.getImpId(), imps)
+                .map(Imp::getExt)
+                .map(ext -> convertValue(ext, "ae", ExtImpAuctionEnvironment.class))
+                .orElse(ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION);
+
+        return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;
+    }
+
+    private static FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig, String bidderName) {
+        return fledgeConfig.toBuilder()
+                .bidder(bidderName)
+                .adapter(bidderName)
+                .build();
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,
@@ -1432,17 +1487,14 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalytics();
-        final AccountAuctionEventConfig accountAuctionEventConfig =
-                ObjectUtil.getIfNotNull(analyticsConfig, AccountAnalyticsConfig::getAuctionEvents);
-        final Map<String, Boolean> accountAuctionEvents =
-                ObjectUtil.getIfNotNull(accountAuctionEventConfig, AccountAuctionEventConfig::getEvents);
-        final Map<String, Boolean> channelConfig =
-                ObjectUtils.defaultIfNull(accountAuctionEvents, AccountAnalyticsConfig.fallbackAuctionEvents());
+        final Map<String, Boolean> channelConfig = Optional.ofNullable(auctionContext.getAccount().getAnalytics())
+                .map(AccountAnalyticsConfig::getAuctionEvents)
+                .map(AccountAuctionEventConfig::getEvents)
+                .orElseGet(AccountAnalyticsConfig::fallbackAuctionEvents);
 
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
-        return MapUtils.emptyIfNull(channelConfig).entrySet().stream()
+        return channelConfig.entrySet().stream()
                 .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
                 .findFirst()
                 .map(entry -> BooleanUtils.isTrue(entry.getValue()))
@@ -1631,6 +1683,35 @@ public class BidResponseCreator {
         }
     }
 
+    private static BidResponse populateSeatNonBid(AuctionContext auctionContext, BidResponse bidResponse) {
+        if (!auctionContext.getDebugContext().isShouldReturnAllBidStatuses()) {
+            return bidResponse;
+        }
+
+        final List<AuctionParticipation> auctionParticipations = auctionContext.getAuctionParticipations();
+        final List<SeatNonBid> seatNonBids = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(BidResponseCreator::toSeatNonBid)
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .toList();
+
+        final ExtBidResponse updatedExtBidResponse = Optional.ofNullable(bidResponse.getExt())
+                .map(ExtBidResponse::toBuilder)
+                .orElseGet(ExtBidResponse::builder)
+                .seatnonbid(seatNonBids)
+                .build();
+
+        return bidResponse.toBuilder().ext(updatedExtBidResponse).build();
+    }
+
+    private static SeatNonBid toSeatNonBid(AuctionParticipation auctionParticipation) {
+        final List<NonBid> nonBid = auctionParticipation.getRejectedImpIds().entrySet().stream()
+                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+                .toList();
+
+        return SeatNonBid.of(auctionParticipation.getBidder(), nonBid);
+    }
+
     /**
      * Creates {@link CacheAsset} for the given cache ID.
      */
@@ -1661,12 +1742,16 @@ public class BidResponseCreator {
     }
 
     private <T> Optional<T> getExtPrebid(ObjectNode extNode, Class<T> extClass) {
+        return Optional.ofNullable(extNode)
+                .filter(ext -> ext.hasNonNull(PREBID_EXT))
+                .map(ext -> convertValue(extNode, PREBID_EXT, extClass));
+    }
+
+    private <T> T convertValue(JsonNode jsonNode, String key, Class<T> typeClass) {
         try {
-            return Optional.ofNullable(extNode)
-                    .filter(ext -> ext.hasNonNull(PREBID_EXT))
-                    .map(ext -> mapper.mapper().convertValue(extNode.get(PREBID_EXT), extClass));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
+            return mapper.mapper().convertValue(jsonNode.get(key), typeClass);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 }

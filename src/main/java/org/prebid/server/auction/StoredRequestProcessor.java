@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.InvalidStoredImpException;
 import org.prebid.server.exception.InvalidStoredRequestException;
@@ -78,13 +79,13 @@ public class StoredRequestProcessor {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Future<BidRequest> processAuctionRequest(String accountId, BidRequest bidRequest) {
+    public Future<AuctionStoredResult> processAuctionRequest(String accountId, BidRequest bidRequest) {
         return processAuctionStoredRequest(accountId, bidRequest)
                 .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
                 .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
-    private Future<BidRequest> processAuctionStoredRequest(String accountId, BidRequest bidRequest) {
+    private Future<AuctionStoredResult> processAuctionStoredRequest(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
@@ -100,7 +101,7 @@ public class StoredRequestProcessor {
         final Set<String> requestIds = new HashSet<>(bidRequestToStoredRequestId.values());
         final Set<String> impIds = new HashSet<>(impToStoredRequestId.values());
         if (requestIds.isEmpty() && impIds.isEmpty()) {
-            return Future.succeededFuture(bidRequest);
+            return Future.succeededFuture(AuctionStoredResult.of(false, bidRequest));
         }
 
         final Future<StoredDataResult> storedDataFuture =
@@ -109,7 +110,8 @@ public class StoredRequestProcessor {
 
         return storedRequestsToBidRequest(
                 storedDataFuture, bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId)
-                .map(this::generateBidRequestIdForApp);
+                .map(this::generateBidRequestIdForApp)
+                .map(resolvedRequest -> AuctionStoredResult.of(true, resolvedRequest));
     }
 
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
