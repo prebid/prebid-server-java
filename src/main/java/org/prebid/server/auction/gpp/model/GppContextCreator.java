@@ -1,7 +1,6 @@
 package org.prebid.server.auction.gpp.model;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.error.DecodingException;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -42,7 +41,7 @@ public class GppContextCreator {
 
         try {
             return new GppModel(gpp);
-        } catch (DecodingException e) {
+        } catch (Exception e) {
             throw new PreBidException("GPP string invalid: " + e.getMessage());
         }
     }

@@ -49,6 +49,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final String REQUEST_BODY_CANNOT_BE_PARSED = "Request body cannot be parsed";
     private static final String GPP_SID = "gpp_sid";
+    private static final String INVALID_GPP_SID = REQUEST_BODY_CANNOT_BE_PARSED + ": invalid " + GPP_SID + " string";
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
@@ -105,9 +106,14 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Future<CookieSyncContext> cookieSyncContext(RoutingContext routingContext) {
+        final Buffer body = routingContext.getBody();
+        if (body == null) {
+            throw new InvalidCookieSyncRequestException("Request has no body");
+        }
+
         final CookieSyncRequest cookieSyncRequest;
         try {
-            final ObjectNode bodyAsObjectNode = prepareBody(routingContext.getBody());
+            final ObjectNode bodyAsObjectNode = normalizeRequest(body);
             cookieSyncRequest = parseRequest(bodyAsObjectNode);
         } catch (Exception e) {
             return Future.failedFuture(e);
@@ -131,11 +137,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return Future.succeededFuture(cookieSyncContext);
     }
 
-    private ObjectNode prepareBody(Buffer body) {
-        if (body == null) {
-            throw new InvalidCookieSyncRequestException("Request has no body");
-        }
-
+    private ObjectNode normalizeRequest(Buffer body) {
         final ObjectNode bodyAsObjectNode;
         try {
             bodyAsObjectNode = mapper.decodeValue(body, ObjectNode.class);
@@ -144,17 +146,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
         }
 
-        return prepareGppSid(bodyAsObjectNode);
+        return normalizeGppSid(bodyAsObjectNode);
     }
 
-    private static ObjectNode prepareGppSid(ObjectNode requestNode) {
+    private static ObjectNode normalizeGppSid(ObjectNode requestNode) {
         final JsonNode gppSidNode = requestNode.get(GPP_SID);
         if (gppSidNode == null) {
             return requestNode;
         }
 
         if (!gppSidNode.isTextual()) {
-            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+            logger.info(INVALID_GPP_SID);
+            throw new InvalidCookieSyncRequestException(INVALID_GPP_SID);
         }
 
         final List<Integer> gppSid = parseGppSid(gppSidNode.textValue());
@@ -173,7 +176,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .map(Integer::parseInt)
                     .toList();
         } catch (NumberFormatException e) {
-            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+            logger.info(INVALID_GPP_SID, e);
+            throw new InvalidCookieSyncRequestException(INVALID_GPP_SID);
         }
     }
 
