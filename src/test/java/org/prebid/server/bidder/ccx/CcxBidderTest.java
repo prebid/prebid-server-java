@@ -13,7 +13,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.GenericBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -46,7 +45,7 @@ public class CcxBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new GenericBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new CcxBidder("invalid_url", jacksonMapper));
     }
 
     @Test
