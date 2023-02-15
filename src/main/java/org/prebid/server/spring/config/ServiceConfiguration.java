@@ -37,6 +37,9 @@ import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.GppService;
+import org.prebid.server.auction.gpp.processor.GppContextProcessor;
+import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
+import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
@@ -294,8 +297,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    GppService gppService() {
-        return new GppService();
+    GppContextProcessor tcfEuV2ContextProcessor() {
+        return new TcfEuV2ContextProcessor();
+    }
+
+    @Bean
+    GppContextProcessor uspV1ContextProcessor() {
+        return new UspV1ContextProcessor();
+    }
+
+    @Bean
+    GppService gppService(List<GppContextProcessor> processors) {
+        return new GppService(processors);
     }
 
     @Bean

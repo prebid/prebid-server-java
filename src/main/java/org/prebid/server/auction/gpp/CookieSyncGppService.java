@@ -7,13 +7,14 @@ import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
 import java.util.List;
+import java.util.Objects;
 
 public class CookieSyncGppService {
 
     private final GppService gppService;
 
     public CookieSyncGppService(GppService gppService) {
-        this.gppService = gppService;
+        this.gppService = Objects.requireNonNull(gppService);
     }
 
     public CookieSyncRequest apply(CookieSyncRequest cookieSyncRequest, CookieSyncContext cookieSyncContext) {

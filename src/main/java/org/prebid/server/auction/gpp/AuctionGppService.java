@@ -10,6 +10,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class AuctionGppService {
@@ -17,7 +18,7 @@ public class AuctionGppService {
     private final GppService gppService;
 
     public AuctionGppService(GppService gppService) {
-        this.gppService = gppService;
+        this.gppService = Objects.requireNonNull(gppService);
     }
 
     public BidRequest apply(BidRequest bidRequest, AuctionContext auctionContext) {
