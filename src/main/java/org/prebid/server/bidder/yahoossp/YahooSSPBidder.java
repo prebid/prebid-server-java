@@ -52,9 +52,8 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
-    private final JacksonMapper mapper;
-
     private final BidRequestOrtbVersionConversionManager conversionManager;
+    private final JacksonMapper mapper;
 
     public YahooSSPBidder(String endpointUrl, JacksonMapper mapper,
                           BidRequestOrtbVersionConversionManager conversionManager) {
@@ -69,7 +68,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final Regs regs = bidRequest.getRegs();
-        BidRequest bidRequestOpenRtb25 = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
+        final BidRequest bidRequestOpenRtb25 = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
                 OrtbVersion.ORTB_2_5);
 
         final List<Imp> impList = bidRequestOpenRtb25.getImp();
@@ -172,16 +171,6 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         return Regs.builder().ext(extRegs).build();
     }
 
-    private Integer resolveGdpr(Regs regs) {
-        return regs.getGdpr() != null ? regs.getGdpr()
-                : (regs.getExt() != null ? regs.getExt().getGdpr() : null);
-    }
-
-    private String resolveUsPrivacy(Regs regs) {
-        return regs.getUsPrivacy() != null ? regs.getUsPrivacy()
-                : (regs.getExt() != null ? regs.getExt().getUsPrivacy() : null);
-    }
-
     private ExtRegs resolveExtRegs(Regs regs) {
         final Integer gdpr = resolveGdpr(regs);
         final String usPrivacy = resolveUsPrivacy(regs);
@@ -204,6 +193,16 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 .ifPresent(extRegs::addProperties);
 
         return extRegs;
+    }
+
+    private static Integer resolveGdpr(Regs regs) {
+        return regs.getGdpr() != null ? regs.getGdpr()
+                : (regs.getExt() != null ? regs.getExt().getGdpr() : null);
+    }
+
+    private static String resolveUsPrivacy(Regs regs) {
+        return regs.getUsPrivacy() != null ? regs.getUsPrivacy()
+                : (regs.getExt() != null ? regs.getExt().getUsPrivacy() : null);
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {

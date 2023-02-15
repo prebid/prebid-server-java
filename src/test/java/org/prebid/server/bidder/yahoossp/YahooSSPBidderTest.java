@@ -22,7 +22,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
-import org.prebid.server.auction.versionconverter.down.BidRequestOrtb26To25Converter;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -64,10 +63,8 @@ public class YahooSSPBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        BidRequestOrtb26To25Converter innerConverter = new BidRequestOrtb26To25Converter(jacksonMapper);
         when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
-                .thenAnswer(answer ->
-                        innerConverter.convert(answer.getArgument(0)));
+                .thenAnswer(answer -> answer.getArgument(0));
         yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper, conversionManager);
     }
 
