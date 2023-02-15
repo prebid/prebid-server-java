@@ -22,4 +22,8 @@ public class BidderRequest {
     Map<String, List<Deal>> impIdToDeals;
 
     BidRequest bidRequest;
+
+    public BidderRequest with(BidRequest bidRequest) {
+        return toBuilder().bidRequest(bidRequest).build();
+    }
 }

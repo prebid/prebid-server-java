@@ -304,7 +304,7 @@ public class ExchangeService {
                                         .collect(Collectors.toCollection(ArrayList::new)))
                         // send all the requests to the bidders and gathers results
                         .map(CompositeFuture::<AuctionParticipation>list)
-.map(ExchangeService::populateMissingBids)
+                        .map(ExchangeService::populateMissingBids)
                         .map(storedResponseProcessor::updateStoredBidResponse)
                         .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                                 auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
