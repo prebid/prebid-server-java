@@ -30,6 +30,7 @@ import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -334,7 +335,7 @@ public class BasicPriceFloorEnforcerTest {
                         singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
                         singletonList(BidderError.of("Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf)));
+                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf, singleton("impId"))));
     }
 
     @Test
