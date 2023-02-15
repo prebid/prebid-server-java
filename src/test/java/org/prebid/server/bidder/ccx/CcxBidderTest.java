@@ -64,6 +64,25 @@ public class CcxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldHaveTheSameIncomingAndOutGoingBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpCcx.of(123456789)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ccxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpCcx.of(123456789))));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
