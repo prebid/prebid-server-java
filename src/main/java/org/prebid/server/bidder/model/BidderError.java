@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.Collections;
