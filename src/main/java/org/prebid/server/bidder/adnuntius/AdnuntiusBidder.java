@@ -1,8 +1,11 @@
 package org.prebid.server.bidder.adnuntius;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -11,6 +14,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -31,6 +35,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
@@ -48,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
@@ -58,6 +64,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static final int SECONDS_IN_MINUTE = 60;
     private static final String TARGET_ID_DELIMITER = "-";
     private static final String DEFAULT_PAGE = "unknown";
+    private static final String URL_NO_COOKIES_PARAMETER = "noCookies";
     private static final BigDecimal PRICE_MULTIPLIER = BigDecimal.valueOf(1000);
 
     private final String endpointUrl;
@@ -73,6 +80,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     @Override
     public Result<List<HttpRequest<AdnuntiusRequest>>> makeHttpRequests(BidRequest request) {
         final Map<String, List<AdnuntiusAdUnit>> networkToAdUnits = new HashMap<>();
+        boolean noCookies = false;
 
         for (Imp imp : request.getImp()) {
             final ExtImpAdnuntius extImpAdnuntius;
@@ -83,13 +91,34 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
+            noCookies = resolveIsNoCookies(extImpAdnuntius);
             final String key = StringUtils.stripToEmpty(extImpAdnuntius.getNetwork());
             final String auId = extImpAdnuntius.getAuId();
             networkToAdUnits.computeIfAbsent(key, k -> new ArrayList<>())
-                    .add(AdnuntiusAdUnit.of(auId, auId + TARGET_ID_DELIMITER + imp.getId()));
+                    .add(AdnuntiusAdUnit.of(auId, auId + TARGET_ID_DELIMITER + imp.getId(), createDimensions(imp)));
         }
 
-        return Result.withValues(createHttpRequests(networkToAdUnits, request));
+        return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
+    }
+
+    private static List<List<Integer>> createDimensions(Imp imp) {
+        final Banner banner = imp.getBanner();
+
+        if (banner.getFormat() != null && banner.getFormat().size() > 0) {
+            final List<List<Integer>> formats = new ArrayList<>();
+            for (Format format : banner.getFormat()) {
+                if (format.getW() != null && format.getH() != null) {
+                    formats.add(List.of(format.getW(), format.getH()));
+                }
+            }
+            return formats;
+        }
+
+        if (banner.getW() != null && banner.getH() != null) {
+            return Collections.singletonList(List.of(banner.getW(), banner.getH()));
+        }
+
+        return null;
     }
 
     private static void validateImp(Imp imp) {
@@ -106,14 +135,21 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
     }
 
+    private static boolean resolveIsNoCookies(ExtImpAdnuntius extImpAdnuntius) {
+        return Optional.of(extImpAdnuntius)
+                .map(ExtImpAdnuntius::getNoCookies)
+                .filter(BooleanUtils::isTrue)
+                .isPresent();
+    }
+
     private List<HttpRequest<AdnuntiusRequest>> createHttpRequests(Map<String, List<AdnuntiusAdUnit>> networkToAdUnits,
-                                                                   BidRequest request) {
+                                                                   BidRequest request, Boolean noCookies) {
 
         final List<HttpRequest<AdnuntiusRequest>> adnuntiusRequests = new ArrayList<>();
 
         final AdnuntiusMetaData metaData = createMetaData(request.getUser());
         final String page = extractPage(request.getSite());
-        final String uri = createUri(request);
+        final String uri = createUri(request, noCookies);
         final Device device = request.getDevice();
 
         for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
@@ -133,7 +169,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return StringUtils.defaultIfBlank(ObjectUtil.getIfNotNull(site, Site::getPage), DEFAULT_PAGE);
     }
 
-    private String createUri(BidRequest bidRequest) {
+    private String createUri(BidRequest bidRequest, Boolean noCookies) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
                     .addParameter("format", "json")
@@ -144,6 +180,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             if (StringUtils.isNoneEmpty(gdpr, consent)) {
                 uriBuilder.addParameter("gdpr", gdpr);
                 uriBuilder.addParameter("consentString", consent);
+            }
+
+            if (noCookies || extractNoCookies(bidRequest.getDevice())) {
+                uriBuilder.addParameter(URL_NO_COOKIES_PARAMETER, "true");
             }
 
             return uriBuilder.build().toString();
@@ -163,6 +203,16 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static String extractConsent(User user) {
         return ObjectUtil.getIfNotNull(ObjectUtil.getIfNotNull(user, User::getExt), ExtUser::getConsent);
+    }
+
+    private static Boolean extractNoCookies(Device device) {
+        return Optional.ofNullable(device)
+                .map(Device::getExt)
+                .map(FlexibleExtension::getProperties)
+                .map(properties -> properties.get(URL_NO_COOKIES_PARAMETER))
+                .filter(JsonNode::isBoolean)
+                .map(JsonNode::asBoolean)
+                .orElse(false);
     }
 
     private HttpRequest<AdnuntiusRequest> createHttpRequest(AdnuntiusRequest adnuntiusRequest, String uri,

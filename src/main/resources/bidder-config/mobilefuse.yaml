@@ -10,9 +10,3 @@ adapters:
       site-media-types:
       supported-vendors:
       vendor-id: 909
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: mobilefuse
-      type: redirect
-      support-cors: false

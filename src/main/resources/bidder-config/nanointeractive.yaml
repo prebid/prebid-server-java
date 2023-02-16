@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 72
     usersync:
-      url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-      redirect-url: /setuid?bidder=nanointeractive&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: nanointeractive
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

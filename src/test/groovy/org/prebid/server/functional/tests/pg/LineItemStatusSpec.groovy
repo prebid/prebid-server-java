@@ -96,9 +96,12 @@ class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
             it.lineItemId == lineItemId
             it.deliverySchedule?.planId == deliverySchedule.planId
 
-            it.deliverySchedule.planStartTimeStamp == timeToReportFormat(deliverySchedule.startTimeStamp, reportTimeZone)
-            it.deliverySchedule?.planExpirationTimeStamp == timeToReportFormat(deliverySchedule.endTimeStamp, reportTimeZone)
-            it.deliverySchedule?.planUpdatedTimeStamp == timeToReportFormat(deliverySchedule.updatedTimeStamp, reportTimeZone)
+            it.deliverySchedule.planStartTimeStamp ==
+                    timeToReportFormat(deliverySchedule.startTimeStamp, reportTimeZone)
+            it.deliverySchedule?.planExpirationTimeStamp ==
+                    timeToReportFormat(deliverySchedule.endTimeStamp, reportTimeZone)
+            it.deliverySchedule?.planUpdatedTimeStamp ==
+                    timeToReportFormat(deliverySchedule.updatedTimeStamp, reportTimeZone)
 
             it.deliverySchedule?.tokens?.size() == deliverySchedule.tokens.size()
             it.deliverySchedule?.tokens?.first()?.priorityClass == deliverySchedule.tokens[0].priorityClass
@@ -116,20 +119,21 @@ class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
 
     def "PBS should return line item status report with an active scheduled delivery"() {
         given: "Line item with an active and expired scheduled deliveries"
+        def inactiveDeliverySchedule = DeliverySchedule.defaultDeliverySchedule.tap {
+            startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(12)
+            updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(12)
+            endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(6)
+        }
+        def activeDeliverySchedule = DeliverySchedule.defaultDeliverySchedule.tap {
+            startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC))
+            updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC))
+            endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).plusHours(12)
+        }
         def plansResponse = new PlansResponse(lineItems: [LineItem.getDefaultLineItem(PBSUtils.randomString).tap {
-            deliverySchedules = [DeliverySchedule.defaultDeliverySchedule.tap {
-                startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(12)
-                updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(12)
-                endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusHours(6)
-            }, DeliverySchedule.defaultDeliverySchedule.tap {
-                startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC))
-                updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC))
-                endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).plusHours(12)
-            }]
+            deliverySchedules = [inactiveDeliverySchedule, activeDeliverySchedule]
         }])
         generalPlanner.initPlansResponse(plansResponse)
         def lineItemId = plansResponse.lineItems[0].lineItemId
-        def activeDeliverySchedule = plansResponse.lineItems[0].deliverySchedules[1]
 
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
@@ -144,7 +148,7 @@ class LineItemStatusSpec extends BasePgSpec implements ObjectMapperWrapper {
 
     def "PBS should return line item status report with increased spent token number when PG auction has happened"() {
         given: "Bid request"
-        def  bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Line item with a scheduled delivery"
         def plansResponse = new PlansResponse(lineItems: [LineItem.getDefaultLineItem(bidRequest.site.publisher.id).tap {

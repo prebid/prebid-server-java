@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId1",
+      "secure": 1,
       "banner": {
         "format": [
           {
@@ -38,6 +39,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -70,5 +74,5 @@
     }
   },
   "at": 1,
-  "tmax": 5000
+  "tmax": "${json-unit.any-number}"
 }

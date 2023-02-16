@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://rtb.ninthdecimal.com/xp/user-sync?acctid={aid}&&redirect=
-      redirect-url: /setuid?bidder=ninthdecimal&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: ninthdecimal
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://rtb.ninthdecimal.com/xp/user-sync?acctid={aid}&&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

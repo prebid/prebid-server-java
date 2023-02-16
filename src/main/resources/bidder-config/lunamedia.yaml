@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://api.lunamedia.io/xp/user-sync?redirect=
-      redirect-url: /setuid?bidder=lunamedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: lunamedia
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://api.lunamedia.io/xp/user-sync?redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

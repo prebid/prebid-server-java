@@ -133,24 +133,24 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = "%s//%s:%d/%s?%s".formatted(
-                    storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
-                    storedRequestsDatabaseProperties.getHost(),
-                    storedRequestsDatabaseProperties.getPort(),
-                    storedRequestsDatabaseProperties.getDbname(),
-                    storedRequestsDatabaseProperties.getType().jdbcUrlSuffix
-                            + storedRequestsDatabaseProperties.getProviderClass().jdbcUrlSuffix);
+        JDBCClient vertxJdbcClient(Vertx vertx, DatabaseSourceProperties databaseSourceProperties) {
+            final String jdbcUrl = "%s//%s:%d/%s?%s%s".formatted(
+                    databaseSourceProperties.getType().jdbcUrlPrefix,
+                    databaseSourceProperties.getHost(),
+                    databaseSourceProperties.getPort(),
+                    databaseSourceProperties.getDbname(),
+                    databaseSourceProperties.getType().jdbcUrlSuffix,
+                    databaseSourceProperties.getProviderClass().jdbcUrlSuffix);
 
             return JDBCClient.createShared(vertx, new JsonObject()
-                    .put(storedRequestsDatabaseProperties.getProviderClass().url, jdbcUrl)
-                    .put("user", storedRequestsDatabaseProperties.getUser())
-                    .put("password", storedRequestsDatabaseProperties.getPassword())
-                    .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
-                    .put("initial_pool_size", storedRequestsDatabaseProperties.getPoolSize())
-                    .put("min_pool_size", storedRequestsDatabaseProperties.getPoolSize())
-                    .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize())
-                    .put("provider_class", storedRequestsDatabaseProperties.getProviderClass().jdbcCP));
+                    .put(databaseSourceProperties.getProviderClass().url, jdbcUrl)
+                    .put(databaseSourceProperties.getProviderClass().user, databaseSourceProperties.getUser())
+                    .put("password", databaseSourceProperties.getPassword())
+                    .put("driver_class", databaseSourceProperties.getType().jdbcDriver)
+                    .put("initial_pool_size", databaseSourceProperties.getPoolSize())
+                    .put("min_pool_size", databaseSourceProperties.getPoolSize())
+                    .put("max_pool_size", databaseSourceProperties.getPoolSize())
+                    .put("provider_class", databaseSourceProperties.getProviderClass().jdbcCP));
         }
 
         @Component
@@ -159,7 +159,7 @@ public class SettingsConfiguration {
         @Validated
         @Data
         @NoArgsConstructor
-        private static class StoredRequestsDatabaseProperties {
+        private static class DatabaseSourceProperties {
 
             @NotNull
             private DbType type;
@@ -192,11 +192,13 @@ public class SettingsConfiguration {
 
         @AllArgsConstructor
         private enum DbPoolType {
-            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "&allowPublicKeyRetrieval=true"),
-            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "");
+            hikari("io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider", "jdbcUrl", "username",
+                    "&allowPublicKeyRetrieval=true"),
+            c3p0("io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider", "url", "user", "");
 
             private final String jdbcCP;
             private final String url;
+            private final String user;
             private final String jdbcUrlSuffix;
         }
     }

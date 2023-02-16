@@ -351,6 +351,14 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
+    public void updateUserSyncSizeBlockedMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).incCounter(MetricName.sizeblocked);
+    }
+
+    public void updateUserSyncSizedOutMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).incCounter(MetricName.sizedout);
+    }
+
     public void updateUserSyncTcfInvalidMetric(String bidder) {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
     }
@@ -359,16 +367,12 @@ public class Metrics extends UpdatableMetrics {
         updateUserSyncTcfInvalidMetric(ALL_REQUEST_BIDDERS);
     }
 
+    public void updateCookieSyncFilteredMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.filtered);
+    }
+
     public void updateCookieSyncRequestMetric() {
         incCounter(MetricName.cookie_sync_requests);
-    }
-
-    public void updateCookieSyncGenMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.gen);
-    }
-
-    public void updateCookieSyncMatchesMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.matches);
     }
 
     public void updateCookieSyncTcfBlockedMetric(String bidder) {

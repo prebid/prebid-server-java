@@ -13,9 +13,3 @@ adapters:
         - audio
       supported-vendors:
       vendor-id: 196
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adelement
-      type: redirect
-      support-cors: false

@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 720
     usersync:
-      url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect=
-      redirect-url: /setuid?bidder=aax&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=<vsid>
       cookie-family-name: aax
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<vsid>'

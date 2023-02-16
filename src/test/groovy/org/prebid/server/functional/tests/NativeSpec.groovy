@@ -34,7 +34,8 @@ class NativeSpec extends BaseSpec {
             bid[0].ext = new BidExt(prebid: new Prebid(type: NATIVE))
             bid[0].adm = new Adm(assets: [asset])
         }
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
@@ -61,7 +62,8 @@ class NativeSpec extends BaseSpec {
             bid[0].ext = new BidExt(prebid: new Prebid(type: NATIVE))
             bid[0].adm = new Adm(assets: [asset])
         }
-        def storedResponse = new StoredResponse(resid: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"

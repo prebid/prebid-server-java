@@ -16,13 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RequestUpdaterTest {
 
     @Test
-    public void shouldReplaceBadv() {
+    public void shouldReplaceBadvWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder().badv(asList("domain1.com", "domain2.com")).build());
-        final BidRequest request = BidRequest.builder()
-                .badv(singletonList("overriddendomain1.com"))
-                .build();
+        final BidRequest request = BidRequest.builder().build();
 
         // when and then
         assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
@@ -46,13 +44,11 @@ public class RequestUpdaterTest {
     }
 
     @Test
-    public void shouldReplaceBcat() {
+    public void shouldReplaceBcatWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder().bcat(asList("cat1", "cat2")).build());
-        final BidRequest request = BidRequest.builder()
-                .bcat(singletonList("overriddencat1"))
-                .build();
+        final BidRequest request = BidRequest.builder().build();
 
         // when and then
         assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
@@ -91,26 +87,11 @@ public class RequestUpdaterTest {
     }
 
     @Test
-    public void shouldReplaceBcatIfAbsent() {
-        // given
-        final RequestUpdater updater = RequestUpdater.create(
-                BlockedAttributes.builder().cattaxComplement(2).build());
-        final BidRequest request = BidRequest.builder().build();
-
-        // when and then
-        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
-                .cattax(2)
-                .build());
-    }
-
-    @Test
-    public void shouldReplaceBapp() {
+    public void shouldReplaceBappWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder().bapp(asList("app1", "app2")).build());
-        final BidRequest request = BidRequest.builder()
-                .bapp(singletonList("overriddenapp1"))
-                .build();
+        final BidRequest request = BidRequest.builder().build();
 
         // when and then
         assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
@@ -134,16 +115,14 @@ public class RequestUpdaterTest {
     }
 
     @Test
-    public void shouldReplaceImpBtype() {
+    public void shouldReplaceImpBtypeWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder().btype(singletonMap("impId1", asList(1, 2))).build());
         final BidRequest request = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId1")
-                        .banner(Banner.builder()
-                                .btype(singletonList(123))
-                                .build())
+                        .banner(Banner.builder().build())
                         .build()))
                 .build();
 
@@ -159,16 +138,14 @@ public class RequestUpdaterTest {
     }
 
     @Test
-    public void shouldReplaceImpBattr() {
+    public void shouldReplaceImpBattrWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder().battr(singletonMap("impId1", asList(1, 2))).build());
         final BidRequest request = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId1")
-                        .banner(Banner.builder()
-                                .battr(singletonList(123))
-                                .build())
+                        .banner(Banner.builder().build())
                         .build()))
                 .build();
 

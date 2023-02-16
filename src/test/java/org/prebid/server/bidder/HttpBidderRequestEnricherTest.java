@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
@@ -28,11 +29,16 @@ public class HttpBidderRequestEnricherTest {
 
     private static final String BIDDER_NAME = "bidderName";
 
+    private static final String BIDDER_ALIAS_NAME = "bidderAliasName";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
+
+    @Mock
+    private BidderAliases bidderAliases;
 
     @Mock
     private BidderCatalog bidderCatalog;
@@ -56,7 +62,7 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(
-                BIDDER_NAME, headers, CaseInsensitiveMultiMap.empty(), BidRequest.builder().build());
+                BIDDER_NAME, headers, CaseInsensitiveMultiMap.empty(), bidderAliases, BidRequest.builder().build());
 
         // then
         final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -75,7 +81,11 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(
-                BIDDER_NAME, MultiMap.caseInsensitiveMultiMap(), originalHeaders, BidRequest.builder().build());
+                BIDDER_NAME,
+                MultiMap.caseInsensitiveMultiMap(),
+                originalHeaders,
+                bidderAliases,
+                BidRequest.builder().build());
 
         // then
         assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
@@ -92,7 +102,7 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(
-                BIDDER_NAME, bidderRequestHeaders, originalHeaders, BidRequest.builder().build());
+                BIDDER_NAME, bidderRequestHeaders, originalHeaders, bidderAliases, BidRequest.builder().build());
 
         // then
         assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
@@ -114,7 +124,11 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(
-                BIDDER_NAME, MultiMap.caseInsensitiveMultiMap(), CaseInsensitiveMultiMap.empty(), bidRequest);
+                BIDDER_NAME,
+                MultiMap.caseInsensitiveMultiMap(),
+                CaseInsensitiveMultiMap.empty(),
+                bidderAliases,
+                bidRequest);
 
         // then
         final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -125,6 +139,7 @@ public class HttpBidderRequestEnricherTest {
     @Test
     public void shouldAddContentEncodingHeaderIfRequiredByBidderConfig() {
         // given
+        when(bidderAliases.resolveBidder(BIDDER_NAME)).thenReturn(BIDDER_NAME);
         when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
                 true,
                 null,
@@ -143,8 +158,48 @@ public class HttpBidderRequestEnricherTest {
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
-                BIDDER_NAME, MultiMap.caseInsensitiveMultiMap(), originalHeaders, BidRequest.builder().build());
+        final MultiMap resultHeaders = requestEnricher
+                .enrichHeaders(
+                        BIDDER_NAME,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        originalHeaders,
+                        bidderAliases,
+                        BidRequest.builder().build());
+
+        // then
+        assertThat(resultHeaders.contains("Content-Encoding")).isTrue();
+        assertThat(resultHeaders.get("Content-Encoding")).isEqualTo("gzip");
+    }
+
+    @Test
+    public void shouldAddContentEncodingHeaderIfRequiredByBidderAliasConfig() {
+        // given
+        when(bidderAliases.resolveBidder(BIDDER_ALIAS_NAME)).thenReturn(BIDDER_NAME);
+        when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false,
+                CompressionType.GZIP));
+
+        final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
+
+        // when
+        final MultiMap resultHeaders = requestEnricher
+                .enrichHeaders(
+                        BIDDER_ALIAS_NAME,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        originalHeaders,
+                        bidderAliases,
+                        BidRequest.builder().build());
 
         // then
         assertThat(resultHeaders.contains("Content-Encoding")).isTrue();

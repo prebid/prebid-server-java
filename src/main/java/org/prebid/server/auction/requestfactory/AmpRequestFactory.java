@@ -23,7 +23,6 @@ import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
@@ -91,7 +90,6 @@ public class AmpRequestFactory {
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final FpdResolver fpdResolver;
     private final AmpPrivacyContextFactory ampPrivacyContextFactory;
-    private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
@@ -103,7 +101,6 @@ public class AmpRequestFactory {
                              Ortb2ImplicitParametersResolver paramsResolver,
                              FpdResolver fpdResolver,
                              AmpPrivacyContextFactory ampPrivacyContextFactory,
-                             TimeoutResolver timeoutResolver,
                              DebugResolver debugResolver,
                              JacksonMapper mapper) {
 
@@ -114,7 +111,6 @@ public class AmpRequestFactory {
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.ampPrivacyContextFactory = Objects.requireNonNull(ampPrivacyContextFactory);
         this.mapper = Objects.requireNonNull(mapper);
@@ -155,6 +151,8 @@ public class AmpRequestFactory {
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
+
+                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -349,7 +347,11 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
-                .map(bidRequest -> paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
+                .map(bidRequest -> paramsResolver.resolve(
+                        bidRequest,
+                        httpRequest,
+                        ENDPOINT,
+                        true))
                 .compose(resolvedBidRequest ->
                         ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()));
     }

@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "video": {
         "mimes": [
           "mimes"
@@ -27,6 +28,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -38,31 +42,7 @@
       }
     },
     "content": {
-      "data": [
-        {
-          "segment": [
-            {
-              "id": "segmentId1"
-            },
-            {
-              "id": "segmentId2"
-            }
-          ],
-          "ext": {
-            "segtax": 1
-          }
-        },
-        {
-          "segment": [
-            {
-              "id": "segmentId3"
-            }
-          ],
-          "ext": {
-            "segtax": 2
-          }
-        }
-      ]
+      "language": "en"
     },
     "ext": {
       "amp": 0,
@@ -87,18 +67,6 @@
     }
   },
   "user": {
-    "data": [
-      {
-        "segment": [
-          {
-            "id": "segmentId4"
-          }
-        ],
-        "ext": {
-          "segtax": 4
-        }
-      }
-    ],
     "ext": {
       "rp": {
         "target": {
@@ -110,7 +78,7 @@
     }
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "regs": {
     "ext": {
       "gdpr": 0

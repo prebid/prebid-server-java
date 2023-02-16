@@ -72,10 +72,13 @@ public class OrtbTypesResolver {
         COMMA_SEPARATED_ELEMENT_FIELDS.put(SITE, Collections.singleton("keywords"));
     }
 
+    private final double logSamplingRate;
+
     private final JacksonMapper jacksonMapper;
     private final JsonMerger jsonMerger;
 
-    public OrtbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
+    public OrtbTypesResolver(double logSamplingRate, JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
+        this.logSamplingRate = logSamplingRate;
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
@@ -368,7 +371,7 @@ public class OrtbTypesResolver {
                             StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
                             containerName,
                             containerValue),
-                    0.01);
+                    logSamplingRate);
         }
     }
 

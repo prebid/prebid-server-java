@@ -7,9 +7,19 @@
     "siteId": {
       "type": "integer",
       "description": "ID for publisher site"
+    },
+    "siteid": {
+      "type": "integer",
+      "description": "ID for publisher site"
     }
   },
-  "required": [
-    "siteId"
+
+  "oneOf": [
+    {
+      "required": ["siteId"]
+    },
+    {
+      "required": ["siteid"]
+    }
   ]
 }

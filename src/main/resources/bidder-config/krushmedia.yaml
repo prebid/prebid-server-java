@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://cs.krushmedia.com/4e4abdd5ecc661643458a730b1aa927d.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=krushmedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[uid]
       cookie-family-name: krushmedia
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cs.krushmedia.com/4e4abdd5ecc661643458a730b1aa927d.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[uid]'

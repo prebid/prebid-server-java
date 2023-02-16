@@ -23,4 +23,7 @@ public class ExtImpAlkimi {
 
     @JsonProperty("impMediaType")
     String impMediaType;
+
+    @JsonProperty("adUnitCode")
+    String adUnitCode;
 }

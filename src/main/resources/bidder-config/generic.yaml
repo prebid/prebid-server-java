@@ -1,6 +1,9 @@
 adapters:
   generic:
     endpoint: https://
+    aliases:
+      genericAlias:
+        enabled: false
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:
@@ -15,9 +18,3 @@ adapters:
         - audio
       supported-vendors:
       vendor-id: 0
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: generic
-      type: redirect
-      support-cors: false

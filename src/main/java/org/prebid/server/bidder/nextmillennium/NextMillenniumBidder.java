@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -50,14 +51,19 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-        return BidRequest.builder()
-                .id(bidRequest.getId())
-                .test(bidRequest.getTest())
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
-                        .build()))
-                .build();
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
+
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
+                .build());
+
+        final ObjectNode impExt = mapper.mapper().valueToTree(extRequest);
+
+        final List<Imp> imps = bidRequest.getImp().stream()
+                .map(imp -> imp.toBuilder().ext(impExt).build())
+                .toList();
+
+        return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
     }
 
     private static String resolveStoredRequestId(BidRequest bidRequest, ExtImpNextMillennium extImpNextMillennium) {
@@ -86,18 +92,21 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private List<ExtImpNextMillennium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
-        final List<ExtImpNextMillennium> impExts = new ArrayList<>();
+        return bidRequest.getImp().stream()
+                .map(imp -> convertExt(imp, errors))
+                .filter(Objects::nonNull)
+                .toList();
+    }
 
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                impExts.add(mapper.mapper()
-                        .convertValue(imp.getExt(), NEXTMILLENNIUM_EXT_TYPE_REFERENCE)
-                        .getBidder());
-            } catch (IllegalArgumentException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
+    private ExtImpNextMillennium convertExt(Imp imp, List<BidderError> errors) {
+        try {
+            return mapper.mapper()
+                    .convertValue(imp.getExt(), NEXTMILLENNIUM_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
         }
-        return impExts;
+        return null;
     }
 
     private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillennium> extImps) {

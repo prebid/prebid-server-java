@@ -149,11 +149,10 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError
-                        .badInput("Cannot deserialize value of type `int` from String \"a\": not a valid `int` value\n"
-                                + " at [Source: UNKNOWN; byte offset: #UNKNOWN] (through reference chain: "
-                                + "java.lang.Object[][0])"));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+        });
     }
 
     @Test

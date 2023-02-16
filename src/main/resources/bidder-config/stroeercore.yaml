@@ -10,14 +10,10 @@ adapters:
       supported-vendors:
       vendor-id: 136
     usersync:
-      redirect-url: /setuid?bidder=stroeerCore&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: stroeerCore
-      support-cors: false
-      type: iframe
-      url: https://js.adscale.de/pbsync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect=
-      secondary:
-        redirect-url: /setuid?bidder=stroeerCore&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
-        cookie-family-name: stroeerCore
+      iframe:
+        url: https://js.adscale.de/pbsync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect={{redirect_url}}
         support-cors: false
-        type: redirect
-        url: https://ih.adscale.de/uu?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&cburl=
+      redirect:
+        url: https://ih.adscale.de/uu?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&cburl={{redirect_url}}
+        support-cors: false

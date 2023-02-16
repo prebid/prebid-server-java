@@ -24,21 +24,44 @@ class StoredRequest {
     Integer id
     @Column(name = "accountId")
     String accountId
-    @Column(name = "reqid")
-    String reqid
+    @Column(name = "reqId")
+    String requestId
     @Column(name = "requestData")
     @Convert(converter = StoredRequestConfigTypeConverter)
     BidRequest requestData
 
-    static StoredRequest getDbStoredRequest(AmpRequest ampRequest, BidRequest bidRequest) {
-        new StoredRequest(reqid: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
+    static StoredRequest getStoredRequest(AmpRequest ampRequest, BidRequest storedRequest) {
+        getStoredRequest(ampRequest.account, ampRequest.tagId, storedRequest)
     }
 
-    static StoredRequest getDbStoredRequest(BidRequest bidRequest,
-                                            BidRequest storedRequest,
-                                            String accountId = bidRequest?.site?.publisher?.id) {
-        new StoredRequest(reqid: bidRequest?.ext?.prebid?.storedRequest?.id,
-                accountId: accountId,
-                requestData: storedRequest)
+    static StoredRequest getStoredRequest(BidRequest bidRequest) {
+        getStoredRequest(getStoredRequestId(bidRequest), bidRequest)
+    }
+
+    static StoredRequest getStoredRequest(String storedRequestId, BidRequest bidRequest) {
+        getStoredRequest(bidRequest.accountId, storedRequestId, bidRequest)
+    }
+
+    @Deprecated
+    static StoredRequest getStoredRequest(BidRequest bidRequest, BidRequest storedRequest) {
+        getStoredRequest(bidRequest.accountId, getStoredRequestId(bidRequest), storedRequest)
+    }
+
+    static StoredRequest getStoredRequest(String accountId, String storedRequestId, BidRequest bidRequest) {
+        new StoredRequest().tap {
+            it.accountId = accountId
+            it.requestId = storedRequestId
+            it.requestData = bidRequest
+        }
+    }
+
+    private static String getStoredRequestId(BidRequest bidRequest) {
+        def storedRequestId = bidRequest?.ext?.prebid?.storedRequest?.id
+
+        if (!storedRequestId) {
+            throw new IllegalStateException("Stored request id is missing")
+        }
+
+        storedRequestId
     }
 }

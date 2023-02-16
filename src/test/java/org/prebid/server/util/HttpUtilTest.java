@@ -163,20 +163,6 @@ public class HttpUtilTest {
                 .containsOnly(entry("name", "value"));
     }
 
-    @Test
-    public void toSetCookieHeaderValueShouldReturnExpectedString() {
-        // given
-        final Cookie cookie = Cookie.cookie("cookie", "value")
-                .setPath("/")
-                .setDomain("domain.com");
-
-        // when
-        final String setCookieHeaderValue = HttpUtil.toSetCookieHeaderValue(cookie);
-
-        // then
-        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=domain.com; SameSite=None; Secure");
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void executeSafelyShouldSkipResponseIfClientClosedConnection() {

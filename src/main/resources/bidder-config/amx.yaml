@@ -14,8 +14,7 @@ adapters:
       supported-vendors:
       vendor-id: 737
     usersync:
-      url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-      redirect-url: /setuid?bidder=amx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: amx
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false

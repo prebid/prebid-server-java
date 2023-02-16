@@ -23,7 +23,8 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -141,8 +142,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
+        given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -167,6 +167,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         target = new Ortb2RequestFactory(
                 false,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -188,6 +189,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -228,6 +230,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -244,7 +247,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 clock);
 
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidRequest(identity())));
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, givenBidRequest(identity()))));
 
         // when
         final Future<?> future = target.fetchAccount(
@@ -267,6 +270,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -526,7 +530,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(bidRequest));
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, bidRequest)));
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException("error")));
@@ -556,7 +560,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build()));
 
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(mergedBidRequest));
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, mergedBidRequest)));
 
         final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
         given(applicationSettings.getAccountById(any(), any()))
@@ -586,7 +590,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .publisher(Publisher.builder().id("bad_acc").build()).build()));
 
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(mergedBidRequest));
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, mergedBidRequest)));
 
         // when
         final Future<Account> result = target.fetchAccount(
@@ -611,6 +615,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
+                0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -710,9 +715,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         final long resolvedTimeout = 200L;
-        final long adjustedTimeout = 250L;
-        given(timeoutResolver.resolve(anyLong())).willReturn(resolvedTimeout);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(adjustedTimeout);
+        given(timeoutResolver.limitToMax(anyLong())).willReturn(resolvedTimeout);
         given(timeoutFactory.create(anyLong(), anyLong())).willReturn(timeout);
 
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
@@ -733,9 +736,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 100);
 
         // then
-        verify(timeoutResolver).resolve(1000L);
-        verify(timeoutResolver).adjustTimeout(resolvedTimeout);
-        verify(timeoutFactory).create(100, adjustedTimeout);
+        verify(timeoutResolver).limitToMax(1000L);
+        verify(timeoutFactory).create(100, resolvedTimeout);
 
         verify(uidsCookieService).parseFromRequest(httpRequest);
 
@@ -744,6 +746,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
+                .startTime(100L)
                 .timeout(timeout)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
@@ -848,7 +851,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
 
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty(),
                 "ip");
 
@@ -883,7 +891,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder()
                         .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
                         .build(),
@@ -915,7 +928,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().build(),
                 "ipv4");
 
@@ -943,7 +961,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("", "", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().build(),
                 "ipv6");
 
@@ -1147,6 +1170,91 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isFailed().isSameAs(exception);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnSameContextIfNoNeedUpdates() {
+        // given
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
+        given(timeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(500L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result).isSameAs(auctionContext);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedTimeout() {
+        // given
+        final Timeout updatedTimeout = mock(Timeout.class);
+
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
+        given(timeout.getDeadline()).willReturn(400L);
+        given(updatedTimeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(500L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isSameAs(auctionContext.getBidRequest());
+        assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedBidRequestTmax() {
+        // given
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(timeout);
+        given(timeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(600L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
+        assertThat(result.getTimeout()).isSameAs(timeout);
+    }
+
+    @Test
+    public void updateTimeoutShouldReturnContextWithUpdatedTimeoutAndBidRequestTmax() {
+        // given
+        final Timeout updatedTimeout = mock(Timeout.class);
+
+        given(timeoutResolver.limitToMax(any())).willReturn(500L);
+        given(timeoutFactory.create(eq(0L), eq(500L))).willReturn(updatedTimeout);
+        given(timeout.getDeadline()).willReturn(400L);
+        given(updatedTimeout.getDeadline()).willReturn(500L);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(request -> request.tmax(600L)))
+                .timeout(timeout)
+                .build();
+
+        // when
+        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+
+        // then
+        assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
+        assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {

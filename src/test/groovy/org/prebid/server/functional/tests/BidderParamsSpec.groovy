@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
@@ -24,11 +25,13 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -320,7 +323,7 @@ class BidderParamsSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -350,7 +353,7 @@ class BidderParamsSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -477,7 +480,7 @@ class BidderParamsSpec extends BaseSpec {
                  "adapters.generic.meta-info.site-media-types": "native,video"])
 
         and: "Default basic BidRequest with banner, native"
-        def nativeImp = Imp.nativeImpression
+        def nativeImp = Imp.getDefaultImpression(NATIVE)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite
             imp = [Imp.defaultImpression, nativeImp]
@@ -607,5 +610,73 @@ class BidderParamsSpec extends BaseSpec {
         then: "imp[].ext.tid object should be passed to a bidder"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp?.first()?.ext?.tid == tid
+    }
+
+    def "PBS should apply compression type for bidder alias when adapters.BIDDER.endpoint-compression = gzip"() {
+        given: "PBS with adapter configuration"
+        def compressionType = GZIP.value
+        def pbsService = pbsServiceFactory.getService(
+                ["adapters.generic.endpoint-compression": compressionType])
+
+        and: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [("alias"): GENERIC]
+            imp[0].ext.prebid.bidder.alias = new Generic()
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain header Content-Encoding = gzip"
+        assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
+                       ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+    }
+
+    def "PBS auction should populate imp[0].secure depend which value in imp stored request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression.tap {
+                it.secure = secureStoredRequest
+            }
+        }
+        storedImpDao.save(storedImp)
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain imp[0].secure same value as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].secure == secureBidderRequest
+
+        where:
+        secureStoredRequest | secureBidderRequest
+        null                | 1
+        1                   | 1
+        0                   | 0
+    }
+
+    def "PBS auction should populate imp[0].secure depend which value in imp request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].secure = secureRequest
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain imp[0].secure same value as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].secure == secureBidderRequest
+
+        where:
+        secureRequest | secureBidderRequest
+        null          | 1
+        1             | 1
+        0             | 0
     }
 }

@@ -44,6 +44,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
+    private final double logSamplingRate;
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -53,7 +54,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
-    public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
+    public AuctionHandler(double logSamplingRate,
+                          AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
@@ -62,6 +64,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           PrebidVersionProvider prebidVersionProvider,
                           JacksonMapper mapper) {
 
+        this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
@@ -155,14 +158,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .toList();
                 final String message = String.join("\n", errorMessages);
                 final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
-                conditionalLogger.info("%s, Referer: %s".formatted(message, referer), 0.01);
+                conditionalLogger.info("%s, Referer: %s".formatted(message, referer), logSamplingRate);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 0.01);
+                conditionalLogger.info(message, logSamplingRate);
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
@@ -181,7 +184,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             } else if (exception instanceof InvalidAccountConfigException) {
                 metricRequestStatus = MetricName.bad_requests;
                 final String message = exception.getMessage();
-                conditionalLogger.error(exception.getMessage(), 0.01d);
+                conditionalLogger.error(exception.getMessage(), logSamplingRate);
 
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.BAD_REQUEST;

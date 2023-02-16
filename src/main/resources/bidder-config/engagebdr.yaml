@@ -11,8 +11,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://match.bnmla.com/usersync?sspid=1000363&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=engagebdr&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UUID}
       cookie-family-name: engagebdr
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://match.bnmla.com/usersync?sspid=1000363&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '{UUID}'

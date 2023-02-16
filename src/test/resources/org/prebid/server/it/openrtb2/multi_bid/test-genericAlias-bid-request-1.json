@@ -1,0 +1,133 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "secure": 1,
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "startdelay": 5,
+        "protocols": [
+          1
+        ],
+        "w": 300,
+        "h": 250,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          1
+        ]
+      },
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "genericAliasProperty": 2
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "5001",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "80.215.195.0",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId",
+    "ext": {
+      "prebid": {
+        "interstitial": {
+          "minwidthperc": 50,
+          "minheightperc": 60
+        }
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+    }
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0,
+      "us_privacy": "1YNN"
+    }
+  },
+  "ext": {
+    "prebid": {
+      "debug": 0,
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.811
+          }
+        },
+        "usepbsrates": false
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {
+        },
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "events": {},
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      },
+      "multibid": [
+        {
+          "bidder": "genericAlias",
+          "maxbids": 2
+        }
+      ],
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}

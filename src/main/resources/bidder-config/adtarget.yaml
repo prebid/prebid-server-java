@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 779
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adtarget
-      type: iframe
-      support-cors: false

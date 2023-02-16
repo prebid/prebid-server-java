@@ -55,7 +55,6 @@ public class ResponseBidValidator {
             logger);
     private static final ConditionalLogger CREATIVE_SIZE_LOGGER = new ConditionalLogger("creative_size_validation",
             logger);
-    private static final double LOG_SAMPLING_RATE = 0.01;
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
@@ -71,12 +70,14 @@ public class ResponseBidValidator {
 
     private final JacksonMapper mapper;
     private final boolean dealsEnabled;
+    private final double logSamplingRate;
 
     public ResponseBidValidator(BidValidationEnforcement bannerMaxSizeEnforcement,
                                 BidValidationEnforcement secureMarkupEnforcement,
                                 Metrics metrics,
                                 JacksonMapper mapper,
-                                boolean dealsEnabled) {
+                                boolean dealsEnabled,
+                                double logSamplingRate) {
 
         this.bannerMaxSizeEnforcement = Objects.requireNonNull(bannerMaxSizeEnforcement);
         this.secureMarkupEnforcement = Objects.requireNonNull(secureMarkupEnforcement);
@@ -84,6 +85,7 @@ public class ResponseBidValidator {
 
         this.mapper = Objects.requireNonNull(mapper);
         this.dealsEnabled = dealsEnabled;
+        this.logSamplingRate = logSamplingRate;
     }
 
     public ValidationResult validate(BidderBid bidderBid,
@@ -156,7 +158,7 @@ public class ResponseBidValidator {
         }
     }
 
-    private static Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {
+    private Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {
         return bidRequest.getImp().stream()
                 .filter(imp -> Objects.equals(imp.getId(), bid.getImpid()))
                 .findFirst()
@@ -164,8 +166,8 @@ public class ResponseBidValidator {
                         "Bid \"%s\" has no corresponding imp in request".formatted(bid.getId())));
     }
 
-    private static ValidationException exceptionAndLogOnePercent(String message) {
-        UNRELATED_BID_LOGGER.warn(message, 0.01);
+    private ValidationException exceptionAndLogOnePercent(String message) {
+        UNRELATED_BID_LOGGER.warn(message, logSamplingRate);
         return new ValidationException(message);
     }
 
@@ -279,19 +281,19 @@ public class ResponseBidValidator {
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
-    private static List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
+    private List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
                                                                    Consumer<MetricName> metricsRecorder,
                                                                    ConditionalLogger conditionalLogger,
                                                                    String message) throws ValidationException {
         return switch (enforcement) {
             case enforce -> {
                 metricsRecorder.accept(MetricName.err);
-                conditionalLogger.warn(message, LOG_SAMPLING_RATE);
+                conditionalLogger.warn(message, logSamplingRate);
                 throw new ValidationException(message);
             }
             case warn -> {
                 metricsRecorder.accept(MetricName.warn);
-                conditionalLogger.warn(message, LOG_SAMPLING_RATE);
+                conditionalLogger.warn(message, logSamplingRate);
                 yield Collections.singletonList(message);
             }
             case skip -> throw new IllegalStateException("Unexpected enforcement: " + enforcement);

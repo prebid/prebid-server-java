@@ -17,8 +17,7 @@ adapters:
       supported-vendors:
       vendor-id: 25
     usersync:
-      url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
-      redirect-url:
       cookie-family-name: yahoossp
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+        support-cors: false

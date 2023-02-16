@@ -63,5 +63,5 @@ public class RubiconBid {
 
     ObjectNode ext;
 
-    ObjectNode admobject;
+    ObjectNode admNative;
 }

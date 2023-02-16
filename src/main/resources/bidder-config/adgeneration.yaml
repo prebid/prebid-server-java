@@ -9,9 +9,3 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 0
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adgeneration
-      type: redirect
-      support-cors: false

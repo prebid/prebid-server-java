@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.cookie.model.CookieSyncStatus;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ import java.util.List;
 @Value
 public class CookieSyncResponse {
 
-    String status;
+    CookieSyncStatus status;
 
     List<BidderUsersyncStatus> bidderStatus;
 }

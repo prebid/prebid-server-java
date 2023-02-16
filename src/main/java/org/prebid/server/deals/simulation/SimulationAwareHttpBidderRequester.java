@@ -10,6 +10,7 @@ import io.vertx.core.Future;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -77,6 +78,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
+                                                 BidderAliases aliases,
                                                  boolean debugEnabled) {
 
         final List<Imp> imps = bidderRequest.getBidRequest().getImp();
@@ -89,12 +91,10 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .collect(Collectors.toSet())));
 
         if (impsToDealInfo.values().stream().noneMatch(CollectionUtils::isNotEmpty)) {
-            return Future.succeededFuture(BidderSeatBid.of(
-                    Collections.emptyList(),
-                    Collections.emptyList(),
-                    Collections.singletonList(BidderError.failedToRequestBids(
-                            "Matched or ready to serve line items were not found, but required in simulation mode")),
-                    Collections.emptyList()));
+            return Future.succeededFuture(BidderSeatBid.builder()
+                    .errors(Collections.singletonList(BidderError.failedToRequestBids(
+                            "Matched or ready to serve line items were not found, but required in simulation mode")))
+                    .build());
         }
 
         final List<BidderBid> bidderBids = impsToDealInfo.entrySet().stream()

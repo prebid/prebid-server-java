@@ -15,7 +15,9 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -186,7 +188,15 @@ public class PrivacyExtractorTest extends VertxTest {
                 .validPrivacyFrom(BidRequest.builder().regs(regs).user(user).build(), new ArrayList<>());
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
+        assertThat(privacy).isEqualTo(
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString("consent")
+                        .ccpa(Ccpa.of("1Yn-"))
+                        .coppa(0)
+                        .gpp("")
+                        .gppSid(emptyList())
+                        .build());
     }
 
     @Test
@@ -200,7 +210,15 @@ public class PrivacyExtractorTest extends VertxTest {
         final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(request);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.EMPTY, 0));
+        assertThat(privacy).isEqualTo(
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString("consent")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .gpp("")
+                        .gppSid(emptyList())
+                        .build());
     }
 
     @Test
@@ -210,12 +228,22 @@ public class PrivacyExtractorTest extends VertxTest {
                 .gdpr(0)
                 .gdprConsent("consent")
                 .usPrivacy("1Yn-")
+                .gpp("gpp")
+                .gppSid("1, 2, 3")
                 .build();
 
         // when
         final Privacy privacy = privacyExtractor.validPrivacyFrom(request);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
+        assertThat(privacy).isEqualTo(
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString("consent")
+                        .ccpa(Ccpa.of("1Yn-"))
+                        .coppa(0)
+                        .gpp("gpp")
+                        .gppSid(List.of(1, 2, 3))
+                        .build());
     }
 }

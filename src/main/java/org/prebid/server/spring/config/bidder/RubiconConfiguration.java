@@ -44,7 +44,7 @@ public class RubiconConfiguration {
 
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(rubiconConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(null))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new RubiconBidder(
                                 config.getEndpoint(),

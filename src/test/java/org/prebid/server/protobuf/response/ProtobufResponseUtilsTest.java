@@ -407,8 +407,9 @@ public class ProtobufResponseUtilsTest extends VertxTest {
     }
 
     private static BidResponse givenBidResponse() {
-        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(
-                null, null, TextNode.valueOf("fieldValue"), null);
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .passthrough(TextNode.valueOf("fieldValue"))
+                .build();
         final ExtBidResponse extBidResponse = ExtBidResponse.builder().prebid(extBidResponsePrebid).build();
 
         return BidResponse.builder()
@@ -738,7 +739,7 @@ public class ProtobufResponseUtilsTest extends VertxTest {
             public ExtBidResponse map(OpenRtbTest.TestExt ext) {
                 final TextNode passThrough = TextNode.valueOf(ext.getField());
                 return ExtBidResponse.builder()
-                        .prebid(ExtBidResponsePrebid.of(null, null, passThrough, null))
+                        .prebid(ExtBidResponsePrebid.builder().passthrough(passThrough).build())
                         .build();
             }
 

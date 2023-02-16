@@ -10,5 +10,6 @@ class Prebid {
     Map<String, String> targeting
     String targetBidderCode
     Cache cache
+    Events events
     Map passThrough
 }

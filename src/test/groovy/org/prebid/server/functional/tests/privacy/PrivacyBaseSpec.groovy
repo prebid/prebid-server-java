@@ -1,5 +1,10 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.config.AccountCcpaConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -89,5 +94,17 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             pbsService.sendCollectedMetricsRequest()["privacy.tcf.v2.vendorlist.missing"] == 0
         }
         PBSUtils.waitUntil(isVendorListCachedClosure, 10000, 1000)
+    }
+
+    protected static Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {
+        getAccountWithPrivacy(accountId, new AccountPrivacyConfig(gdpr: gdprConfig))
+    }
+
+    protected static Account getAccountWithCcpa(String accountId, AccountCcpaConfig ccpaConfig) {
+        getAccountWithPrivacy(accountId, new AccountPrivacyConfig(ccpa: ccpaConfig))
+    }
+
+    private static Account getAccountWithPrivacy(String accountId, AccountPrivacyConfig privacy) {
+        new Account(uuid: accountId, config: new AccountConfig(privacy: privacy))
     }
 }

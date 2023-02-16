@@ -1,6 +1,6 @@
 package org.prebid.server.bidder.unruly;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -17,6 +17,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -27,6 +29,10 @@ import java.util.List;
 import java.util.Objects;
 
 public class UnrulyBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -47,10 +53,18 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp) {
-        final ObjectNode modifiedExt = mapper.mapper().createObjectNode()
-                .set("bidder", imp.getExt().get("bidder"));
 
-        return imp.toBuilder().ext(modifiedExt).build();
+        return imp.toBuilder()
+                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseImpExt(imp))))
+                .build();
+    }
+
+    private ExtImpUnruly parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {

@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
@@ -61,6 +62,7 @@ public class HookStageExecutor {
     private static final String ENTITY_AUCTION_REQUEST = "auction-request";
     private static final String ENTITY_AUCTION_RESPONSE = "auction-response";
     private static final String ENTITY_ALL_PROCESSED_BID_RESPONSES = "all-processed-bid-responses";
+    private static final Account EMPTY_ACCOUNT = Account.empty(StringUtils.EMPTY);
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
@@ -235,7 +237,7 @@ public class HookStageExecutor {
             BidResponse bidResponse,
             AuctionContext auctionContext) {
 
-        final Account account = auctionContext.getAccount();
+        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
@@ -363,26 +365,16 @@ public class HookStageExecutor {
         return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout);
     }
 
+    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout) {
+        return InvocationContextImpl.of(createTimeout(timeout), endpoint);
+    }
+
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
             Endpoint endpoint,
             AuctionContext auctionContext) {
 
         return (timeout, hookId, moduleContext) -> auctionInvocationContext(
                 endpoint, timeout, auctionContext, hookId, moduleContext);
-    }
-
-    private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
-            Endpoint endpoint,
-            AuctionContext auctionContext,
-            String bidder) {
-
-        return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
-                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
-                bidder);
-    }
-
-    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout) {
-        return InvocationContextImpl.of(createTimeout(timeout), endpoint);
     }
 
     private AuctionInvocationContextImpl auctionInvocationContext(Endpoint endpoint,
@@ -396,6 +388,16 @@ public class HookStageExecutor {
                 auctionContext.getDebugContext().isDebugEnabled(),
                 accountConfigFor(auctionContext.getAccount(), hookId),
                 moduleContext);
+    }
+
+    private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
+            Endpoint endpoint,
+            AuctionContext auctionContext,
+            String bidder) {
+
+        return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
+                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
+                bidder);
     }
 
     private Timeout createTimeout(Long timeout) {

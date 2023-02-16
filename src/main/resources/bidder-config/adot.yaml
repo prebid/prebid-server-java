@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 272
     usersync:
-      url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-      redirect-url: /setuid?bidder=adot&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={amob_user_id}
       cookie-family-name: adot
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '{amob_user_id}'

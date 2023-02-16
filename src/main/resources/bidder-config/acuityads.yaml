@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 231
     usersync:
-      url: https://cs.admanmedia.com/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=acuityads&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
       cookie-family-name: acuityads
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cs.admanmedia.com/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

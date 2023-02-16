@@ -5,7 +5,8 @@
   "type": "object",
   "properties": {
     "uid": {
-      "type": "integer",
+      "type": ["integer", "string"],
+      "pattern": "^\\d+$",
       "description": "An ID which identifies this placement of the impression"
     },
     "size": {
@@ -18,7 +19,5 @@
       "description": "An array of two integer containing the dimension"
     }
   },
-  "required": [
-    "uid"
-  ]
+  "required": ["uid"]
 }

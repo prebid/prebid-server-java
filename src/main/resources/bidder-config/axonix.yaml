@@ -13,9 +13,3 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 678
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: axonix
-      type: redirect
-      support-cors: false

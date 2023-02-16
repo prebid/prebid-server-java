@@ -1,0 +1,15 @@
+adapters:
+  boldwin:
+    endpoint: http://ssp.videowalldirect.com/pserver
+    meta-info:
+      maintainer-email: wls_demo_box@smartyads.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

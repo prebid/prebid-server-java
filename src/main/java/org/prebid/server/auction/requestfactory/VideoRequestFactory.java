@@ -17,7 +17,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -58,7 +57,6 @@ public class VideoRequestFactory {
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final PrivacyEnforcementService privacyEnforcementService;
-    private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
@@ -70,7 +68,6 @@ public class VideoRequestFactory {
                                BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                Ortb2ImplicitParametersResolver paramsResolver,
                                PrivacyEnforcementService privacyEnforcementService,
-                               TimeoutResolver timeoutResolver,
                                DebugResolver debugResolver,
                                JacksonMapper mapper) {
 
@@ -81,7 +78,6 @@ public class VideoRequestFactory {
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
@@ -136,6 +132,8 @@ public class VideoRequestFactory {
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
+
+                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 
@@ -292,7 +290,11 @@ public class VideoRequestFactory {
                                                              boolean debugEnabled) {
 
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest updatedBidRequest = paramsResolver.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled
                 ? updatedBidRequest.toBuilder().test(1).build()
                 : updatedBidRequest;
