@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.GppConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
@@ -50,9 +51,8 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain error"
-        // TODO replace with error message
         def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert bidderStatus.error == "Invalid GPP value"
+        assert bidderStatus.error == "Invalid GPP value" // TODO replace with error message
 
         and: "Metric should contain cookie_sync.FAMILY.tcf.blocked"
         def metric = this.prebidServerService.sendCollectedMetricsRequest()
@@ -90,14 +90,13 @@ class GppCookieSyncSpec extends BaseSpec {
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-        def properties = response.properties
         then: "Response should contain gdpr as 0"
         assert response.gdpr == 0
     }
 
-    def "PBS cookie sync request should reflect warning when GPP is specified as 2 values and gdpr is not 1"() {
+    def "PBS cookie sync request should reflect warning when GPP is contains 2  and gdpr is not 1"() {
         given: "Request without GDPR and invalid GPP"
-        def gppSid = "${PBSUtils.randomNumber},${PBSUtils.randomNumber}"
+        def gppSid = "2,3,9"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
             it.gppSid = gppSid
@@ -108,17 +107,15 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain warning"
-        // TODO replace with error message
         assert response.ext.warnings == "GPP scope does not match TCF2 scope"
 
         and: "Metric should not contain cookie_sync.FAMILY.tcf.blocked"
-        def metric = this.prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 0
+        assert prebidServerService.sendCollectedMetricsRequest() == [ "cookie_sync.generic.tcf.blocked": 0 ]
     }
 
-    def "PBS cookie sync request should reflect warning when GPP does not contains 2 values and gdpr is not 0"() {
+    def "PBS cookie sync request should reflect warning when GPP does not contains 2 and gdpr is not 0"() {
         given: "Request without GDPR and invalid GPP"
-        def gppSid = "${PBSUtils.randomNumber}"
+        def gppSid = "3,9"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
             it.gppSid = gppSid
@@ -129,7 +126,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain warning"
-        assert response.ext.warnings == "GPP scope does not match TCF2 scope" // TODO replace with error message
+        assert response.ext.warnings == "GPP scope does not match TCF2 scope"
 
         and: "Metric should not contain cookie_sync.FAMILY.tcf.blocked"
         assert prebidServerService.sendCollectedMetricsRequest() == [ "cookie_sync.generic.tcf.blocked": 0 ]
@@ -155,7 +152,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should copy regs.gpp to user.consent when gppSid contains 2, gpp is TCF2-EU and user.consent isn't specified without any warning from cookie sync request"() {
         given: "Standard cookie sync, bit and uids requests"
-        def gppConsent = new GppConsent().setModelToDefaultTcfEuV2()
+        def gppConsent = new GppConsent().setFieldValue(TcfEuV2.NAME)
         def gppSid = [2]
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = gppSid
