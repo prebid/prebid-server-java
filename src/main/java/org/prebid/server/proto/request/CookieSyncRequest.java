@@ -2,8 +2,10 @@ package org.prebid.server.proto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.json.deserializer.CommaSeparatedStringToListOfIntegersDeserializer;
 
 import java.util.List;
 import java.util.Set;
@@ -22,6 +24,7 @@ public class CookieSyncRequest {
 
     String gpp;
 
+    @JsonDeserialize(using = CommaSeparatedStringToListOfIntegersDeserializer.class)
     List<Integer> gppSid;
 
     @JsonProperty("coopSync")

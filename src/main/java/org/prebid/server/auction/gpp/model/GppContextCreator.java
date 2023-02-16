@@ -28,10 +28,7 @@ public class GppContextCreator {
                 ? Set.copyOf(gppSid)
                 : null;
 
-        return GppContextBuilder.of(
-                GppContext.Scope.of(gppModel, sectionIds),
-                GppContext.Regions.builder(),
-                errors);
+        return GppContextBuilder.of(GppContext.Scope.of(gppModel, sectionIds), errors);
     }
 
     private static GppModel gppModel(String gpp) {
@@ -50,9 +47,13 @@ public class GppContextCreator {
     @AllArgsConstructor(access = AccessLevel.PRIVATE, staticName = "of")
     public static class GppContextBuilder {
 
+        private static final GppContext.Regions.RegionsBuilder DEFAULT_BUILDER = GppContext.Regions.builder()
+                .tcfEuV2Privacy(GppContext.Regions.TcfEuV2Privacy.of(null, null))
+                .uspV1Privacy(GppContext.Regions.UspV1Privacy.of(null));
+
         GppContext.Scope scope;
 
-        GppContext.Regions.RegionsBuilder regionsBuilder;
+        GppContext.Regions.RegionsBuilder regionsBuilder = DEFAULT_BUILDER;
 
         List<String> errors;
 

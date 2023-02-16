@@ -1,9 +1,5 @@
 package org.prebid.server.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
@@ -41,15 +37,9 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
-
-    private static final String REQUEST_BODY_CANNOT_BE_PARSED = "Request body cannot be parsed";
-    private static final String GPP_SID = "gpp_sid";
-    private static final String INVALID_GPP_SID = REQUEST_BODY_CANNOT_BE_PARSED + ": invalid " + GPP_SID + " string";
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
@@ -106,15 +96,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Future<CookieSyncContext> cookieSyncContext(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
-        if (body == null) {
-            throw new InvalidCookieSyncRequestException("Request has no body");
-        }
-
         final CookieSyncRequest cookieSyncRequest;
         try {
-            final ObjectNode bodyAsObjectNode = normalizeRequest(body);
-            cookieSyncRequest = parseRequest(bodyAsObjectNode);
+            cookieSyncRequest = parseRequest(routingContext);
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
@@ -137,56 +121,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return Future.succeededFuture(cookieSyncContext);
     }
 
-    private ObjectNode normalizeRequest(Buffer body) {
-        final ObjectNode bodyAsObjectNode;
+    private CookieSyncRequest parseRequest(RoutingContext routingContext) {
+        final Buffer body = routingContext.getBody();
+        if (body == null) {
+            throw new InvalidCookieSyncRequestException("Request has no body");
+        }
+
         try {
-            bodyAsObjectNode = mapper.decodeValue(body, ObjectNode.class);
+            return mapper.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
-            logger.info(REQUEST_BODY_CANNOT_BE_PARSED, e);
-            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
-        }
-
-        return normalizeGppSid(bodyAsObjectNode);
-    }
-
-    private static ObjectNode normalizeGppSid(ObjectNode requestNode) {
-        final JsonNode gppSidNode = requestNode.get(GPP_SID);
-        if (gppSidNode == null) {
-            return requestNode;
-        }
-
-        if (!gppSidNode.isTextual()) {
-            logger.info(INVALID_GPP_SID);
-            throw new InvalidCookieSyncRequestException(INVALID_GPP_SID);
-        }
-
-        final List<Integer> gppSid = parseGppSid(gppSidNode.textValue());
-
-        final ArrayNode gppSidArrayNode = requestNode.putArray(GPP_SID);
-        gppSid.forEach(gppSidArrayNode::add);
-
-        return requestNode;
-    }
-
-    private static List<Integer> parseGppSid(String gppSid) {
-        try {
-            return Arrays.stream(gppSid.split(","))
-                    .map(StringUtils::strip)
-                    .filter(StringUtils::isNotBlank)
-                    .map(Integer::parseInt)
-                    .toList();
-        } catch (NumberFormatException e) {
-            logger.info(INVALID_GPP_SID, e);
-            throw new InvalidCookieSyncRequestException(INVALID_GPP_SID);
-        }
-    }
-
-    private CookieSyncRequest parseRequest(ObjectNode bodyAsObjectNode) {
-        try {
-            return mapper.mapper().treeToValue(bodyAsObjectNode, CookieSyncRequest.class);
-        } catch (JsonProcessingException e) {
-            logger.info(REQUEST_BODY_CANNOT_BE_PARSED, e);
-            throw new InvalidCookieSyncRequestException(REQUEST_BODY_CANNOT_BE_PARSED);
+            final String message = "Request body cannot be parsed";
+            logger.info(message, e);
+            throw new InvalidCookieSyncRequestException(message);
         }
     }
 
