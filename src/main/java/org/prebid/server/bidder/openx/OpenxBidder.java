@@ -124,11 +124,11 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static OpenxImpType resolveImpType(Imp imp) {
         if (imp.getBanner() != null) {
             return OpenxImpType.banner;
-        } else if (imp.getVideo() != null) {
-            return OpenxImpType.video;
-        } else {
-            return OpenxImpType.other;
         }
+        if (imp.getVideo() != null) {
+            return OpenxImpType.video;
+        }
+        return OpenxImpType.other;
     }
 
     private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
