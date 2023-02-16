@@ -25,6 +25,11 @@ public class ExtRequestPrebid {
     Integer debug;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.returnallbidstatus
+     */
+    Boolean returnallbidstatus;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.trace
      */
     TraceLevel trace;
@@ -133,11 +138,6 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.analytics
      */
     JsonNode analytics;
-
-    /**
-     * Defines the contract for bidrequest.ext.prebid.pbs
-     */
-    ExtRequestPrebidPbs pbs;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.server

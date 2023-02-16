@@ -19,6 +19,10 @@ public class CookieSyncRequest {
 
     String usPrivacy;
 
+    String gpp;
+
+    String gppSid;
+
     @JsonProperty("coopSync")
     Boolean coopSync;
 

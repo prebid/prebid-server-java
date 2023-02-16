@@ -47,6 +47,7 @@
         "imp": [
           {
             "id": "impId1",
+            "secure": 1,
             "banner": {
               "format": [
                 {
@@ -134,7 +135,7 @@
           }
         },
         "at": 1,
-        "tmax": 2000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
@@ -145,7 +146,8 @@
             "server": {
               "externalurl": "http://localhost:8080",
               "gvlid": 1,
-              "datacenter": "local"
+              "datacenter": "local",
+              "endpoint": "/openrtb2/auction"
             },
             "targeting": {
               "pricegranularity": {
@@ -163,9 +165,6 @@
             "auctiontimestamp": 1000,
             "channel": {
               "name": "web"
-            },
-            "pbs": {
-              "endpoint": "/openrtb2/auction"
             }
           }
         }
@@ -256,7 +255,7 @@
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 1000
     }

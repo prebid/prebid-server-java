@@ -23,6 +23,7 @@
         }
       },
       "id": "imp_id",
+      "secure": 1,
       "tagid": "N4zTDq3PPEHBIODv7cXK"
     }
   ],
@@ -44,16 +45,14 @@
       "domain": "example.com"
     }
   },
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "ext": {
     "prebid": {
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

@@ -47,7 +47,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -121,7 +120,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(idGenerator.generateId()).willReturn(null);
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
+        given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         target = target(false);
     }
@@ -975,7 +974,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").build());
+        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(1).build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
@@ -1059,6 +1058,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final Imp expectedImp = Imp.builder()
                 .id("someImpId")
+                .secure(1)
                 .ext(mapper.createObjectNode()
                         .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
                         .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
@@ -1092,7 +1092,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("tidValue")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1118,7 +1118,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("tidValue")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1144,7 +1144,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         when(idGenerator.generateId()).thenReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", MissingNode.getInstance()))
+                        .ext(mapper.createObjectNode().set("tid", MissingNode.getInstance()))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1170,7 +1170,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         when(idGenerator.generateId()).thenReturn("generatedID");
         final List<Imp> imps = singletonList(
                 Imp.builder()
-                        .ext(mapper.createObjectNode().<ObjectNode>set("tid", new TextNode("prefix_{{UUID}}_suffix")))
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("prefix_{{UUID}}_suffix")))
                         .build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1327,6 +1327,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final Imp expectedImp = Imp.builder()
                 .id("someImpId")
+                .secure(1)
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode()
@@ -1357,6 +1358,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final Imp expectedImp = Imp.builder()
                 .id("someImpId")
+                .secure(1)
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1389,6 +1391,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final Imp expectedImp = Imp.builder()
                 .id("someImpId")
+                .secure(1)
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1406,6 +1409,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final List<Imp> imps = singletonList(
                 Imp.builder()
                         .id("someImpId")
+                        .secure(1)
                         .ext(mapper.createObjectNode()
                                 .set("prebid", mapper.createObjectNode()
                                         .set("bidder", mapper.createObjectNode()
@@ -2193,8 +2197,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getPbs)
-                .extracting(ExtRequestPrebidPbs::getEndpoint)
+                .extracting(ExtRequestPrebid::getServer)
+                .extracting(ExtRequestPrebidServer::getEndpoint)
                 .isEqualTo(Endpoint.openrtb2_auction.value());
     }
 
@@ -2375,7 +2379,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getServer)
-                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
+                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region", ENDPOINT));
     }
 
     @Test

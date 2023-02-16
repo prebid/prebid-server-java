@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "video": {
         "mimes": [
           "mimes"
@@ -77,7 +78,7 @@
     }
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "regs": {
     "ext": {
       "gdpr": 0

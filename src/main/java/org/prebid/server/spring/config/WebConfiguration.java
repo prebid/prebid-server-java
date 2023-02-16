@@ -77,12 +77,14 @@ public class WebConfiguration {
     @Bean // TODO: remove support for properties with http prefix after transition period
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
+            @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
             @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
             @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
             @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
+                .setMaxInitialLineLength(maxInitialLineLength)
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)

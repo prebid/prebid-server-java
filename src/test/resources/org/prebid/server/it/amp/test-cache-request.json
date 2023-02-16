@@ -38,7 +38,7 @@
         "adm": "some-test-ad",
         "adid": "29681110",
         "adomain": [
-          "appnexus.com"
+          "genericAlias.com"
         ],
         "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
         "cid": "958",
@@ -49,7 +49,7 @@
           "prebid": {
             "type": "banner"
           },
-          "appnexus": {
+          "genericAlias": {
             "brand_id": 1,
             "auction_id": 8189378542222915032,
             "bidder_id": 2,

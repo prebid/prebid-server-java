@@ -28,8 +28,8 @@ import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -107,7 +107,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(debugResolver.debugContextFrom(any()))
-                .willReturn(DebugContext.of(true, null));
+                .willReturn(DebugContext.of(true, true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -115,7 +115,12 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
@@ -271,7 +276,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getData().getDebugContext())
-                .isEqualTo(DebugContext.of(true, null));
+                .isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test

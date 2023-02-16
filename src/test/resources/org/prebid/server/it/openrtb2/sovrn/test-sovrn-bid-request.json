@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "video": {
         "mimes": [
           "video/mp4"
@@ -43,7 +44,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -54,13 +55,11 @@
   },
   "ext": {
     "prebid": {
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

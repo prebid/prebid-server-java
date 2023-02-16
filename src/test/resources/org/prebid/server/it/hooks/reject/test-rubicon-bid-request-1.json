@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId1",
+      "secure": 1,
       "banner": {
         "format": [
           {
@@ -71,5 +72,5 @@
     }
   },
   "at": 1,
-  "tmax": 5000
+  "tmax": "${json-unit.any-number}"
 }
