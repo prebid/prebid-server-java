@@ -3,10 +3,10 @@ package org.prebid.server.auction.gpp;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
@@ -50,57 +50,70 @@ public class AuctionGppService {
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, GppContext gppContext) {
-        final User user = bidRequest.getUser();
-        final User updatedUser = updateUser(user, gppContext);
+        final UpdateResult<User> updatedUser = updateUser(bidRequest.getUser(), gppContext);
+        final UpdateResult<Regs> updatedRegs = updateRegs(bidRequest.getRegs(), gppContext);
 
-        final Regs regs = bidRequest.getRegs();
-        final Regs updatedRegs = updateRegs(regs, gppContext);
-
-        return ObjectUtils.anyNotNull(updatedUser, updatedRegs)
+        return updatedUser.isUpdated() || updatedRegs.isUpdated()
                 ? bidRequest.toBuilder()
-                .user(ObjectUtils.defaultIfNull(updatedUser, user))
-                .regs(ObjectUtils.defaultIfNull(updatedRegs, regs))
+                .user(updatedUser.getValue())
+                .regs(updatedRegs.getValue())
                 .build()
                 : bidRequest;
     }
 
-    private static User updateUser(User user, GppContext gppContext) {
-        final String consent = user != null ? user.getConsent() : null;
-        final String gppConsent = gppContext.getRegions().getTcfEuV2Privacy().getConsent();
+    private static UpdateResult<User> updateUser(User user, GppContext gppContext) {
+        final UpdateResult<String> updatedConsent = updateConsent(user, gppContext);
 
-        return needUpdates(consent, gppConsent)
+        return updatedConsent.isUpdated()
 
-                ? Optional.ofNullable(user)
-                .map(User::toBuilder)
-                .orElseGet(User::builder)
-                .consent(gppConsent)
-                .build()
+                ? UpdateResult.updated(
+                Optional.ofNullable(user)
+                        .map(User::toBuilder)
+                        .orElseGet(User::builder)
+                        .consent(updatedConsent.getValue())
+                        .build())
 
-                : null;
+                : UpdateResult.unaltered(user);
     }
 
-    private static <T> boolean needUpdates(T original, T gpp) {
-        return original == null && gpp != null;
+    private static UpdateResult<String> updateConsent(User user, GppContext gppContext) {
+        return updateResult(
+                user != null ? user.getConsent() : null,
+                gppContext.getRegions().getTcfEuV2Privacy().getConsent());
     }
 
-    private static Regs updateRegs(Regs regs, GppContext gppContext) {
-        final GppContext.Regions regions = gppContext.getRegions();
+    private static <T> UpdateResult<T> updateResult(T original, T gpp) {
+        return original == null && gpp != null
+                ? UpdateResult.updated(gpp)
+                : UpdateResult.unaltered(original);
+    }
 
-        final Integer gdpr = regs != null ? regs.getGdpr() : null;
-        final Integer gppGdpr = regions.getTcfEuV2Privacy().getGdpr();
+    private static UpdateResult<Regs> updateRegs(Regs regs, GppContext gppContext) {
+        final UpdateResult<Integer> updatedGdpr = updateGdpr(regs, gppContext);
+        final UpdateResult<String> updatedUsPrivacy = updateUsPrivacy(regs, gppContext);
 
-        final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
-        final String gppUsPrivacy = regions.getUspV1Privacy().getUsPrivacy();
+        return updatedGdpr.isUpdated() || updatedUsPrivacy.isUpdated()
 
-        return needUpdates(gdpr, gppGdpr) || needUpdates(usPrivacy, gppUsPrivacy)
+                ? UpdateResult.updated(
+                Optional.ofNullable(regs)
+                        .map(Regs::toBuilder)
+                        .orElseGet(Regs::builder)
+                        .gdpr(updatedGdpr.getValue())
+                        .usPrivacy(updatedUsPrivacy.getValue())
+                        .build())
 
-                ? Optional.ofNullable(regs)
-                .map(Regs::toBuilder)
-                .orElseGet(Regs::builder)
-                .gdpr(ObjectUtils.defaultIfNull(gdpr, gppGdpr))
-                .usPrivacy(ObjectUtils.defaultIfNull(usPrivacy, gppUsPrivacy))
-                .build()
+                : UpdateResult.unaltered(regs);
+    }
 
-                : null;
+    private static UpdateResult<Integer> updateGdpr(Regs regs, GppContext gppContext) {
+        return updateResult(
+                regs != null ? regs.getGdpr() : null,
+                gppContext.getRegions().getTcfEuV2Privacy().getGdpr());
+    }
+
+    private static UpdateResult<String> updateUsPrivacy(Regs regs, GppContext gppContext) {
+        return updateResult(
+                regs != null ? regs.getUsPrivacy() : null,
+                gppContext.getRegions().getUspV1Privacy().getUsPrivacy());
     }
 }

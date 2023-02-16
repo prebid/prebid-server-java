@@ -1,9 +1,9 @@
 package org.prebid.server.auction.gpp;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
 import java.util.List;
@@ -47,27 +47,30 @@ public class CookieSyncGppService {
         final GppContext.Regions regions = gppContext.getRegions();
         final GppContext.Regions.TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
 
-        final Integer gdpr = cookieSyncRequest.getGdpr();
-        final Integer gppGdpr = tcfEuV2Privacy.getGdpr();
+        final UpdateResult<Integer> updatedGdpr = updateResult(
+                cookieSyncRequest.getGdpr(),
+                tcfEuV2Privacy.getGdpr());
+        final UpdateResult<String> updatedConsent = updateResult(
+                cookieSyncRequest.getGdprConsent(),
+                tcfEuV2Privacy.getConsent());
+        final UpdateResult<String> updatedUsPrivacy = updateResult(
+                cookieSyncRequest.getUsPrivacy(),
+                regions.getUspV1Privacy().getUsPrivacy());
 
-        final String consent = cookieSyncRequest.getGdprConsent();
-        final String gppConsent = tcfEuV2Privacy.getConsent();
-
-        final String usPrivacy = cookieSyncRequest.getUsPrivacy();
-        final String gppUsPrivacy = regions.getUspV1Privacy().getUsPrivacy();
-
-        return needUpdates(gdpr, gppGdpr) || needUpdates(consent, gppConsent) || needUpdates(usPrivacy, gppUsPrivacy)
+        return updatedGdpr.isUpdated() || updatedConsent.isUpdated() || updatedUsPrivacy.isUpdated()
 
                 ? cookieSyncRequest.toBuilder()
-                .gdpr(ObjectUtils.defaultIfNull(gdpr, gppGdpr))
-                .gdprConsent(ObjectUtils.defaultIfNull(consent, gppConsent))
-                .usPrivacy(ObjectUtils.defaultIfNull(usPrivacy, gppUsPrivacy))
+                .gdpr(updatedGdpr.getValue())
+                .gdprConsent(updatedConsent.getValue())
+                .usPrivacy(updatedUsPrivacy.getValue())
                 .build()
 
                 : cookieSyncRequest;
     }
 
-    private static <T> boolean needUpdates(T original, T gpp) {
-        return original == null && gpp != null;
+    private static <T> UpdateResult<T> updateResult(T original, T gpp) {
+        return original == null && gpp != null
+                ? UpdateResult.updated(gpp)
+                : UpdateResult.unaltered(original);
     }
 }

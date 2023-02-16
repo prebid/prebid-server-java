@@ -2,6 +2,7 @@ package org.prebid.server.auction.gpp.processor.uspv1;
 
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
+import org.prebid.server.model.UpdateResult;
 
 public class UspV1ContextProcessor implements GppContextProcessor {
 
@@ -14,14 +15,14 @@ public class UspV1ContextProcessor implements GppContextProcessor {
         final UspV1Context uspV1Context = UspV1Context.of(scope.getGppModel(), scope.getSectionsIds());
 
         final String usPrivacy = uspV1Privacy.getUsPrivacy();
-        final String resolvedUsPrivacy = uspV1Context.resolveUsPrivacy(usPrivacy);
+        final UpdateResult<String> resolvedUsPrivacy = uspV1Context.resolveUsPrivacy(usPrivacy);
 
         gppContext.getErrors().addAll(uspV1Context.getErrors());
 
-        return resolvedUsPrivacy != null
+        return resolvedUsPrivacy.isUpdated()
 
                 ? gppContext.with(regions.toBuilder()
-                .uspV1Privacy(GppContext.Regions.UspV1Privacy.of(resolvedUsPrivacy))
+                .uspV1Privacy(GppContext.Regions.UspV1Privacy.of(resolvedUsPrivacy.getValue()))
                 .build())
 
                 : gppContext;

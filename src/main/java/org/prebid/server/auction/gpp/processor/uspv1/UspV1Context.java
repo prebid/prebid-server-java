@@ -3,29 +3,41 @@ package org.prebid.server.auction.gpp.processor.uspv1;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.UspV1;
-import lombok.Value;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.model.UpdateResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@Value(staticConstructor = "of")
-class UspV1Context {
+final class UspV1Context {
 
-    GppModel gppModel;
+    private final GppModel gppModel;
 
-    Set<Integer> sectionsIds;
+    private final Set<Integer> sectionsIds;
 
-    List<String> errors = new ArrayList<>();
+    private final List<String> errors = new ArrayList<>();
 
-    public String resolveUsPrivacy(String usPrivacy) {
+    private UspV1Context(GppModel gppModel, Set<Integer> sectionsIds) {
+        this.gppModel = gppModel;
+        this.sectionsIds = sectionsIds;
+    }
+
+    public static UspV1Context of(GppModel gppModel, Set<Integer> sectionsIds) {
+        return new UspV1Context(gppModel, sectionsIds);
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+
+    public UpdateResult<String> resolveUsPrivacy(String usPrivacy) {
         if (!isValidScope()) {
-            return null;
+            return UpdateResult.unaltered(usPrivacy);
         }
 
         if (usPrivacy == null) {
-            return usPrivacyFromGpp();
+            return UpdateResult.updated(usPrivacyFromGpp());
         }
 
         try {
@@ -34,7 +46,7 @@ class UspV1Context {
             errors.add(e.getMessage());
         }
 
-        return null;
+        return UpdateResult.unaltered(usPrivacy);
     }
 
     private boolean isValidScope() {

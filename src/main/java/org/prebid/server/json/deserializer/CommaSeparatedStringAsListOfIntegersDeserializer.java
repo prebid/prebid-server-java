@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class CommaSeparatedStringToListOfIntegersDeserializer extends StdDeserializer<List<Integer>> {
+public class CommaSeparatedStringAsListOfIntegersDeserializer extends StdDeserializer<List<Integer>> {
 
-    public CommaSeparatedStringToListOfIntegersDeserializer() {
+    public CommaSeparatedStringAsListOfIntegersDeserializer() {
         super(List.class);
     }
 

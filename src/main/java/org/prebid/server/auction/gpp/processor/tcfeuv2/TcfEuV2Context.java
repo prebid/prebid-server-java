@@ -3,29 +3,41 @@ package org.prebid.server.auction.gpp.processor.tcfeuv2;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.TcfEuV2;
-import lombok.Value;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.model.UpdateResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@Value(staticConstructor = "of")
-class TcfEuV2Context {
+final class TcfEuV2Context {
 
-    GppModel gppModel;
+    private final GppModel gppModel;
 
-    Set<Integer> sectionsIds;
+    private final Set<Integer> sectionsIds;
 
-    List<String> errors = new ArrayList<>();
+    private final List<String> errors = new ArrayList<>();
 
-    public Integer resolveGdpr(Integer gdpr) {
+    private TcfEuV2Context(GppModel gppModel, Set<Integer> sectionsIds) {
+        this.gppModel = gppModel;
+        this.sectionsIds = sectionsIds;
+    }
+
+    public static TcfEuV2Context of(GppModel gppModel, Set<Integer> sectionsIds) {
+        return new TcfEuV2Context(gppModel, sectionsIds);
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+
+    public UpdateResult<Integer> resolveGdpr(Integer gdpr) {
         if (sectionsIds == null) {
-            return null;
+            return UpdateResult.unaltered(gdpr);
         }
 
         if (gdpr == null) {
-            return gdprFromGppSid();
+            return UpdateResult.updated(gdprFromGppSid());
         }
 
         try {
@@ -34,7 +46,7 @@ class TcfEuV2Context {
             errors.add(e.getMessage());
         }
 
-        return null;
+        return UpdateResult.unaltered(gdpr);
     }
 
     private Integer gdprFromGppSid() {
@@ -52,13 +64,13 @@ class TcfEuV2Context {
         return (containsTcfEuV2Section && gdpr != 1) || (!containsTcfEuV2Section && gdpr != 0);
     }
 
-    public String resolveConsent(String consent) {
+    public UpdateResult<String> resolveConsent(String consent) {
         if (!isValidScope()) {
-            return null;
+            return UpdateResult.unaltered(consent);
         }
 
         if (consent == null) {
-            return consentFromGpp();
+            return UpdateResult.updated(consentFromGpp());
         }
 
         try {
@@ -67,7 +79,7 @@ class TcfEuV2Context {
             errors.add(e.getMessage());
         }
 
-        return null;
+        return UpdateResult.unaltered(consent);
     }
 
     private boolean isValidScope() {
