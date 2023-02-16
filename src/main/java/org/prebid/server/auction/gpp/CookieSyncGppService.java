@@ -43,7 +43,9 @@ public class CookieSyncGppService {
         // TODO: We need to return any error related to GPP as warning in the response
     }
 
-    private static CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest, GppContext gppContext) {
+    private static CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest,
+                                                             GppContext gppContext) {
+
         final GppContext.Regions regions = gppContext.getRegions();
         final GppContext.Regions.TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
 

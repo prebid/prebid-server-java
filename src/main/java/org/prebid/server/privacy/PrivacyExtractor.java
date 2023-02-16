@@ -59,7 +59,6 @@ public class PrivacyExtractor {
         return toValidPrivacy(gdpr, gdprConsent, usPrivacy, null, gpp, gppSid, null);
     }
 
-
     public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
         final String gdpr = request.getParam(SETUID_GDPR_PARAM);
         final String gdprConsent = request.getParam(SETUID_GDPR_CONSENT_PARAM);

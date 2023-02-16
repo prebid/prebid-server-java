@@ -13,6 +13,9 @@ import java.util.Set;
 
 public class GppContextCreator {
 
+    private GppContextCreator() {
+    }
+
     public static GppContextBuilder from(String gpp, List<Integer> gppSid) {
         final List<String> errors = new ArrayList<>();
 
