@@ -37,7 +37,7 @@ public class YahooSSPConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yahoosspConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), mapper, conversionManager))
+                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), conversionManager, mapper))
                 .assemble();
     }
 }

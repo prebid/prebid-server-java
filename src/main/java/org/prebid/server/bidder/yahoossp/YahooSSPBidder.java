@@ -55,8 +55,9 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
     private final BidRequestOrtbVersionConversionManager conversionManager;
     private final JacksonMapper mapper;
 
-    public YahooSSPBidder(String endpointUrl, JacksonMapper mapper,
-                          BidRequestOrtbVersionConversionManager conversionManager) {
+    public YahooSSPBidder(String endpointUrl,
+                          BidRequestOrtbVersionConversionManager conversionManager,
+                          JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.conversionManager = Objects.requireNonNull(conversionManager);

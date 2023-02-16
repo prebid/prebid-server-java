@@ -53,25 +53,25 @@ public class YahooSSPBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private YahooSSPBidder yahooSSPBidder;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidRequestOrtbVersionConversionManager conversionManager;
 
+    private YahooSSPBidder yahooSSPBidder;
+
     @Before
     public void setUp() {
         when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
                 .thenAnswer(answer -> answer.getArgument(0));
-        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper, conversionManager);
+        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, conversionManager, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url",
-                jacksonMapper, conversionManager));
+                conversionManager, jacksonMapper));
     }
 
     @Test
