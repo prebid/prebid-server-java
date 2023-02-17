@@ -237,7 +237,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final ObjectNode openxImpExt = impExt.deepCopy();
         openxImpExt.remove(IMP_EXT_SKIP_FIELDS);
         if (addCustomParams) {
-            openxImpExt.set(CUSTOM_PARAMS_KEY, impExt.get(BIDDER_EXT).get(CUSTOM_PARAMS_KEY));
+            openxImpExt.set(CUSTOM_PARAMS_KEY, impExt.get(BIDDER_EXT).get(CUSTOM_PARAMS_KEY).deepCopy());
         }
         return openxImpExt;
     }
