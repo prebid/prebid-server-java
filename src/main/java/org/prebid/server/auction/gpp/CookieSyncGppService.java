@@ -40,7 +40,9 @@ public class CookieSyncGppService {
     }
 
     private static void updateCookieSyncContext(CookieSyncContext cookieSyncContext, GppContext gppContext) {
-        // TODO: We need to return any error related to GPP as warning in the response
+        if (cookieSyncContext.isDebug()) {
+            cookieSyncContext.getWarnings().addAll(gppContext.getErrors());
+        }
     }
 
     private static CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest,

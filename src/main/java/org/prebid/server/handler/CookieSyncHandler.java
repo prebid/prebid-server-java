@@ -37,6 +37,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
@@ -116,6 +117,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .biddersContext(biddersContext)
                 .timeout(timeout)
                 .debug(debug)
+                .warnings(new ArrayList<>())
                 .build();
 
         return Future.succeededFuture(cookieSyncContext);

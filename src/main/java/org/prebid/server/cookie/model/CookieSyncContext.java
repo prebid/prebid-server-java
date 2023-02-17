@@ -11,6 +11,8 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
 
+import java.util.List;
+
 @Builder(toBuilder = true)
 @Value
 public class CookieSyncContext {
@@ -41,6 +43,9 @@ public class CookieSyncContext {
 
     @JsonIgnore
     boolean debug;
+
+    @JsonIgnore
+    List<String> warnings;
 
     public CookieSyncContext with(CookieSyncRequest cookieSyncRequest) {
         return toBuilder().cookieSyncRequest(cookieSyncRequest).build();

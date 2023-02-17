@@ -254,7 +254,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList(), null));
 
         // when
         target.handle(routingContext);
@@ -352,7 +352,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, bidderStatuses));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, bidderStatuses, null));
 
         // when
         target.handle(routingContext);
@@ -389,7 +389,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList(), null));
     }
 
     private CookieSyncEvent captureCookieSyncTcfEvent() {
