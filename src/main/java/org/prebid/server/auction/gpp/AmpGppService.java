@@ -5,6 +5,8 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
+import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.util.ObjectUtil;
@@ -40,13 +42,15 @@ public class AmpGppService {
         final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
 
         return GppContextCreator.from(gpp, gppSid)
-                .withTcfEuV2(gdpr, consent)
-                .withUspV1(usPrivacy)
+                .with(TcfEuV2Privacy.of(gdpr, consent))
+                .with(UspV1Privacy.of(usPrivacy))
                 .build();
     }
 
     private static void updateAuctionContext(AuctionContext auctionContext, GppContext gppContext) {
-        auctionContext.getDebugWarnings().addAll(gppContext.getErrors());
+        if (auctionContext.getDebugContext().isDebugEnabled()) {
+            auctionContext.getDebugWarnings().addAll(gppContext.getErrors());
+        }
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, GppContext gppContext) {

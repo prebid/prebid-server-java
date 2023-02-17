@@ -4,7 +4,7 @@ import com.iab.gpp.encoder.GppModel;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.gpp.model.privacy.Privacy;
 import org.prebid.server.exception.PreBidException;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class GppContextCreator {
 
         GppModel gppModel;
         try {
-            gppModel = gppModel(gpp);
+            gppModel = GppContextUtils.gppModel(gpp);
         } catch (PreBidException e) {
             gppModel = null;
             errors.add(e.getMessage());
@@ -34,44 +34,23 @@ public class GppContextCreator {
         return GppContextBuilder.of(GppContext.Scope.of(gppModel, sectionIds), errors);
     }
 
-    private static GppModel gppModel(String gpp) {
-        if (StringUtils.isEmpty(gpp)) {
-            return null;
-        }
-
-        try {
-            return new GppModel(gpp);
-        } catch (Exception e) {
-            throw new PreBidException("GPP string invalid: " + e.getMessage());
-        }
-    }
-
     @Value
     @AllArgsConstructor(access = AccessLevel.PRIVATE, staticName = "of")
     public static class GppContextBuilder {
 
-        private static final GppContext.Regions.RegionsBuilder DEFAULT_BUILDER = GppContext.Regions.builder()
-                .tcfEuV2Privacy(GppContext.Regions.TcfEuV2Privacy.of(null, null))
-                .uspV1Privacy(GppContext.Regions.UspV1Privacy.of(null));
-
         GppContext.Scope scope;
 
-        GppContext.Regions.RegionsBuilder regionsBuilder = DEFAULT_BUILDER;
+        GppContext.Regions.RegionsBuilder regionsBuilder = GppContextUtils.DEFAULT_REGIONS_BUILDER;
 
         List<String> errors;
 
-        public GppContextBuilder withTcfEuV2(Integer gdpr, String consent) {
-            regionsBuilder.tcfEuV2Privacy(GppContext.Regions.TcfEuV2Privacy.of(gdpr, consent));
-            return this;
-        }
-
-        public GppContextBuilder withUspV1(String usPrivacy) {
-            regionsBuilder.uspV1Privacy(GppContext.Regions.UspV1Privacy.of(usPrivacy));
+        public GppContextBuilder with(Privacy privacy) {
+            GppContextUtils.withPrivacy(regionsBuilder, privacy);
             return this;
         }
 
         public GppContext build() {
-            return GppContext.of(scope, regionsBuilder.build(), errors);
+            return new GppContext(scope, regionsBuilder.build(), errors);
         }
     }
 }

@@ -2,6 +2,8 @@ package org.prebid.server.auction.gpp;
 
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
+import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -34,8 +36,8 @@ public class CookieSyncGppService {
         final String usPrivacy = cookieSyncRequest.getUsPrivacy();
 
         return GppContextCreator.from(gpp, gppSid)
-                .withTcfEuV2(gdpr, consent)
-                .withUspV1(usPrivacy)
+                .with(TcfEuV2Privacy.of(gdpr, consent))
+                .with(UspV1Privacy.of(usPrivacy))
                 .build();
     }
 
@@ -49,7 +51,7 @@ public class CookieSyncGppService {
                                                              GppContext gppContext) {
 
         final GppContext.Regions regions = gppContext.getRegions();
-        final GppContext.Regions.TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
+        final TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
 
         final UpdateResult<Integer> updatedGdpr = updateResult(
                 cookieSyncRequest.getGdpr(),
