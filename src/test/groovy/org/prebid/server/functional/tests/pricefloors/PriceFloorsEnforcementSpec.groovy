@@ -140,7 +140,6 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC]*.impIds[0].first() == impId
         assert response.ext?.warnings[ErrorType.GENERIC]*.impIds[1].first() == impId
 
-
         where:
         enforcePbs << [true, null]
     }
