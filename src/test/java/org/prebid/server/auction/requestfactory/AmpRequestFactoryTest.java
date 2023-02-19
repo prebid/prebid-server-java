@@ -1427,6 +1427,76 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithRegsGppWhenConsentStringIsPresentAndConsentTypeIsGpp() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gpp("someGppString").build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsGppSidWhenGppSidParameterPresentAndCanBeParsed() {
+        // given
+        routingContext.queryParams().add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gppSid(List.of(1, 2, 3)).build());
+    }
+
+    @Test
+    public void shouldPopulateRegsObjectWithGppDataIfGppSidCouldBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder()
+                        .gpp("someGppString")
+                        .gppSid(List.of(1, 2, 3))
+                        .build());
+    }
+
+    @Test
+    public void shouldNotPopulateRegsObjectWithGppDataIfGppSidCouldNotBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,ab");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithCreatedExtPrebidAmpData() {
         // given
         routingContext.queryParams()
