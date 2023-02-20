@@ -18,7 +18,7 @@ final class TcfEuV2Context {
 
     private final List<String> errors = new ArrayList<>();
 
-    private TcfEuV2Context(GppModel gppModel, Set<Integer> sectionsIds) {
+    TcfEuV2Context(GppModel gppModel, Set<Integer> sectionsIds) {
         this.gppModel = gppModel;
         this.sectionsIds = sectionsIds;
     }
