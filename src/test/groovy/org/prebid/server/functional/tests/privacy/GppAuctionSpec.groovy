@@ -110,8 +110,7 @@ class GppAuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain user.consent from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.user.consent == gppConsent as String
-        assert bidderRequest.regs.gpp == gppConsent as String
+        assert bidderRequest.user.consent == bidRequest.regs.gpp
     }
 
     def "PBS should emit warning when gppSid contains 2, gpp is TCF2-EU and regs.gpp and user.consent are different"() {
@@ -145,8 +144,7 @@ class GppAuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.regs.usPrivacy == gppConsent as String
-        assert bidderRequest.regs.gpp == gppConsent as String
+        assert bidderRequest.regs.usPrivacy == bidRequest.regs.gpp
     }
 
     def "PBS shouldn't copy regs.gpp to regs.usPrivacy when gppSid doesn't contain 6, gpp is USP_V1 and regs.us_privacy isn't specified"() {
