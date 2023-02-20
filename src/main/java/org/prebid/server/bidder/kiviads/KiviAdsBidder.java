@@ -83,14 +83,14 @@ public class KiviAdsBidder implements Bidder<BidRequest> {
     private KiviAdsImpExtBidder getImpExtKiviAdsWithType(ExtImpKiviAds extImpKiviAds) {
         final KiviAdsImpExtBidder.KiviAdsImpExtBidderBuilder impExtKiviAds = KiviAdsImpExtBidder.builder();
 
-        if (StringUtils.isNotEmpty(extImpKiviAds.getEndpointId())) {
-            impExtKiviAds
-                    .type("network")
-                    .endpointId(extImpKiviAds.getEndpointId());
-        } else if (StringUtils.isNotEmpty(extImpKiviAds.getPlacementId())) {
+        if (StringUtils.isNotEmpty(extImpKiviAds.getPlacementId())) {
             impExtKiviAds
                     .type("publisher")
                     .placementId(extImpKiviAds.getPlacementId());
+        } else if (StringUtils.isNotEmpty(extImpKiviAds.getEndpointId())) {
+            impExtKiviAds
+                    .type("network")
+                    .endpointId(extImpKiviAds.getEndpointId());
         }
 
         return impExtKiviAds.build();

@@ -11,11 +11,11 @@ public class KiviAdsImpExtBidder {
 
     String type;
 
-    @JsonProperty(value = "placementId")
+    @JsonProperty("placementId")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String placementId;
 
-    @JsonProperty(value = "endpointId")
+    @JsonProperty("endpointId")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String endpointId;
 }

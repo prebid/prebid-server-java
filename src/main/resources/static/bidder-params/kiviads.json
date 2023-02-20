@@ -16,7 +16,15 @@
     }
   },
   "oneOf": [
-    { "required": ["placementId"] },
-    { "required": ["endpointId"] }
+    {
+      "required": [
+        "placementId"
+      ]
+    },
+    {
+      "required": [
+        "endpointId"
+      ]
+    }
   ]
 }
