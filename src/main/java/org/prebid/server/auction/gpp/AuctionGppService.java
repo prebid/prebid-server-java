@@ -49,7 +49,7 @@ public class AuctionGppService {
 
     private static void updateAuctionContext(AuctionContext auctionContext, GppContext gppContext) {
         if (auctionContext.getDebugContext().isDebugEnabled()) {
-            auctionContext.getDebugWarnings().addAll(gppContext.getErrors());
+            auctionContext.getDebugWarnings().addAll(gppContext.errors());
         }
     }
 
@@ -83,7 +83,7 @@ public class AuctionGppService {
     private static UpdateResult<String> updateConsent(User user, GppContext gppContext) {
         return updateResult(
                 user != null ? user.getConsent() : null,
-                gppContext.getRegions().getTcfEuV2Privacy().getConsent());
+                gppContext.regions().getTcfEuV2Privacy().getConsent());
     }
 
     private static <T> UpdateResult<T> updateResult(T original, T gpp) {
@@ -112,12 +112,12 @@ public class AuctionGppService {
     private static UpdateResult<Integer> updateGdpr(Regs regs, GppContext gppContext) {
         return updateResult(
                 regs != null ? regs.getGdpr() : null,
-                gppContext.getRegions().getTcfEuV2Privacy().getGdpr());
+                gppContext.regions().getTcfEuV2Privacy().getGdpr());
     }
 
     private static UpdateResult<String> updateUsPrivacy(Regs regs, GppContext gppContext) {
         return updateResult(
                 regs != null ? regs.getUsPrivacy() : null,
-                gppContext.getRegions().getUspV1Privacy().getUsPrivacy());
+                gppContext.regions().getUspV1Privacy().getUsPrivacy());
     }
 }

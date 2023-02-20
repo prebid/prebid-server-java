@@ -1,8 +1,6 @@
 package org.prebid.server.auction.gpp.model;
 
 import com.iab.gpp.encoder.GppModel;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.gpp.model.privacy.Privacy;
@@ -12,15 +10,7 @@ import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import java.util.List;
 import java.util.Set;
 
-@Value
-@AllArgsConstructor(access = AccessLevel.PACKAGE)
-public class GppContext {
-
-    Scope scope;
-
-    Regions regions;
-
-    List<String> errors;
+public record GppContext(Scope scope, Regions regions, List<String> errors) {
 
     public GppContext with(Privacy privacy) {
         return new GppContext(scope, GppContextUtils.withPrivacy(regions, privacy), errors);

@@ -9,16 +9,15 @@ public class UspV1ContextProcessor implements GppContextProcessor {
 
     @Override
     public GppContext process(GppContext gppContext) {
-        final GppContext.Scope scope = gppContext.getScope();
-        final GppContext.Regions regions = gppContext.getRegions();
+        final GppContext.Scope scope = gppContext.scope();
+        final GppContext.Regions regions = gppContext.regions();
         final UspV1Privacy uspV1Privacy = regions.getUspV1Privacy();
 
         final UspV1Context uspV1Context = UspV1Context.of(scope.getGppModel(), scope.getSectionsIds());
 
-        final String usPrivacy = uspV1Privacy.getUsPrivacy();
-        final UpdateResult<String> resolvedUsPrivacy = uspV1Context.resolveUsPrivacy(usPrivacy);
+        final UpdateResult<String> resolvedUsPrivacy = uspV1Context.resolveUsPrivacy(uspV1Privacy.getUsPrivacy());
 
-        gppContext.getErrors().addAll(uspV1Context.getErrors());
+        gppContext.errors().addAll(uspV1Context.getErrors());
 
         return resolvedUsPrivacy.isUpdated()
                 ? gppContext.with(UspV1Privacy.of(resolvedUsPrivacy.getValue()))

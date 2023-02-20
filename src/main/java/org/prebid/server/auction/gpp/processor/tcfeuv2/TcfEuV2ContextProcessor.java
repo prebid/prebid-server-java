@@ -9,8 +9,8 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
 
     @Override
     public GppContext process(GppContext gppContext) {
-        final GppContext.Scope scope = gppContext.getScope();
-        final GppContext.Regions regions = gppContext.getRegions();
+        final GppContext.Scope scope = gppContext.scope();
+        final GppContext.Regions regions = gppContext.regions();
         final TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
 
         final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(scope.getGppModel(), scope.getSectionsIds());
@@ -18,7 +18,7 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
         final UpdateResult<Integer> resolvedGdpr = tcfEuV2Context.resolveGdpr(tcfEuV2Privacy.getGdpr());
         final UpdateResult<String> resolvedConsent = tcfEuV2Context.resolveConsent(tcfEuV2Privacy.getConsent());
 
-        gppContext.getErrors().addAll(tcfEuV2Context.getErrors());
+        gppContext.errors().addAll(tcfEuV2Context.getErrors());
 
         return resolvedGdpr.isUpdated() || resolvedConsent.isUpdated()
                 ? gppContext.with(TcfEuV2Privacy.of(resolvedGdpr.getValue(), resolvedConsent.getValue()))

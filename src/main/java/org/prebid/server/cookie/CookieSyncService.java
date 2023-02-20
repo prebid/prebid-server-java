@@ -332,9 +332,9 @@ public class CookieSyncService {
                 debugStatuses(biddersToSync, cookieSyncContext));
 
         final List<String> warnings = cookieSyncContext.getWarnings();
-        final List<String> resolvedWarnings = cookieSyncContext.isDebug() && CollectionUtils.isNotEmpty(warnings)
-                        ? warnings
-                        : null;
+        final List<String> resolvedWarnings = CollectionUtils.isNotEmpty(warnings)
+                ? warnings
+                : null;
 
         return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses), resolvedWarnings);
     }

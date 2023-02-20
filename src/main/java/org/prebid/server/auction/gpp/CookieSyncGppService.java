@@ -43,14 +43,14 @@ public class CookieSyncGppService {
 
     private static void updateCookieSyncContext(CookieSyncContext cookieSyncContext, GppContext gppContext) {
         if (cookieSyncContext.isDebug()) {
-            cookieSyncContext.getWarnings().addAll(gppContext.getErrors());
+            cookieSyncContext.getWarnings().addAll(gppContext.errors());
         }
     }
 
     private static CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest,
                                                              GppContext gppContext) {
 
-        final GppContext.Regions regions = gppContext.getRegions();
+        final GppContext.Regions regions = gppContext.regions();
         final TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
 
         final UpdateResult<Integer> updatedGdpr = updateResult(
