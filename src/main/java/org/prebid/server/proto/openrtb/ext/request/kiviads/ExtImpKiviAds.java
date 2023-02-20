@@ -6,9 +6,9 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpKiviAds {
 
-    @JsonProperty(value = "placementId")
+    @JsonProperty("placementId")
     String placementId;
 
-    @JsonProperty(value = "endpointId")
+    @JsonProperty("endpointId")
     String endpointId;
 }
