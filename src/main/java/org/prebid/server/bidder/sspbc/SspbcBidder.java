@@ -15,7 +15,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.*;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -31,14 +35,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static org.prebid.server.util.HttpUtil.validateUrl;
-
 public class SspbcBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSspbc>> SSPBC_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-
     private static final String ADAPTER_VERSION = "5.8";
     private static final String IMP_FALLBACK_SIZE = "1x1";
     private static final Integer REQUEST_TYPE_STANDARD = 1;
@@ -56,12 +57,11 @@ public class SspbcBidder implements Bidder<BidRequest> {
              id="wpjslib"></script><script async crossorigin type="module"\
              src="//std.wpcdn.pl/wpjslib6/wpjslib-inline.js" id="wpjslib6"></script></body></html>""";
 
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
     public SspbcBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 

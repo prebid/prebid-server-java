@@ -416,18 +416,18 @@ public class SspbcBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .containsExactly("<html><head><title></title><meta charset=\"UTF-8\"><meta name=\"viewport\" " +
-                        "content=\"width=device-width, initial-scale=1.0\"><style> body { background-color: " +
-                        "transparent; margin: 0; padding: 0; }</style><script> window.rekid = anySiteId; window.slot " +
-                        "= anySlotId; window.adlabel = 'anyAdLabel'; window.pubid = 'anyPubId'; window.wp_sn = " +
-                        "'sspbc_go'; window.page = 'AnyPage'; window.ref = 'anyRef'; window.mcad = " +
-                        "{\"id\":\"bidRequestId\",\"seat\":\"anySeat\",\"seatbid\":{\"bid\":[{\"impid\":\"id\"" +
-                        ",\"adm\":\"anyAdm\",\"ext\":{\"adlabel\":\"anyAdLabel\",\"pubid\":\"anyPubId\",\"siteid\"" +
-                        ":\"anySiteId\",\"slotid\":\"anySlotId\"}}]}}; window.inver = '4'; </script></head><body>" +
-                        "<div id=\"c\"></div><script async crossorigin nomodule " +
-                        "src=\"//std.wpcdn.pl/wpjslib/wpjslib-inline.js\" id=\"wpjslib\"></script><script async " +
-                        "crossorigin type=\"module\" src=\"//std.wpcdn.pl/wpjslib6/wpjslib-inline.js\" " +
-                        "id=\"wpjslib6\"></script></body></html>");
+                .containsExactly("<html><head><title></title><meta charset=\"UTF-8\"><meta name=\"viewport\" "
+                        + "content=\"width=device-width, initial-scale=1.0\"><style> body { background-color: "
+                        + "transparent; margin: 0; padding: 0; }</style><script> window.rekid = anySiteId; window.slot "
+                        + "= anySlotId; window.adlabel = 'anyAdLabel'; window.pubid = 'anyPubId'; window.wp_sn = "
+                        + "'sspbc_go'; window.page = 'AnyPage'; window.ref = 'anyRef'; window.mcad = "
+                        + "{\"id\":\"bidRequestId\",\"seat\":\"anySeat\",\"seatbid\":{\"bid\":[{\"impid\":\"id\""
+                        + ",\"adm\":\"anyAdm\",\"ext\":{\"adlabel\":\"anyAdLabel\",\"pubid\":\"anyPubId\",\"siteid\""
+                        + ":\"anySiteId\",\"slotid\":\"anySlotId\"}}]}}; window.inver = '4'; </script></head><body>"
+                        + "<div id=\"c\"></div><script async crossorigin nomodule "
+                        + "src=\"//std.wpcdn.pl/wpjslib/wpjslib-inline.js\" id=\"wpjslib\"></script><script async "
+                        + "crossorigin type=\"module\" src=\"//std.wpcdn.pl/wpjslib6/wpjslib-inline.js\" "
+                        + "id=\"wpjslib6\"></script></body></html>");
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -449,7 +449,8 @@ public class SspbcBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().seat("anySeat").bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder().seat("anySeat")
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }
