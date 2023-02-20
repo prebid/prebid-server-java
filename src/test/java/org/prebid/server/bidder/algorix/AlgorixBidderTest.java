@@ -122,6 +122,22 @@ public class AlgorixBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateCorrectURLEUC() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), null, "EUC");
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://euc.xyz.svr-algorix.com/rtb/sa?sid=testSid&token=testToken");
+    }
+
+    @Test
     public void shouldSetBannerFormatWAndHValuesToBannerIfTheyAreNotPresentInBanner() {
         // given
         final Format bannerFormat = Format.builder().w(320).h(50).build();
