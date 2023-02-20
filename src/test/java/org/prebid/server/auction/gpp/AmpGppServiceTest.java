@@ -91,13 +91,10 @@ public class AmpGppServiceTest {
         final BidRequest result = ampGppService.apply(bidRequest, auctionContext);
 
         // then
-        assertThat(result).satisfies(updatedBidRequest -> {
-            assertThat(updatedBidRequest.getUser()).isSameAs(bidRequest.getUser());
-
-            assertThat(updatedBidRequest.getRegs()).satisfies(regs -> {
-                assertThat(regs.getGdpr()).isEqualTo(2);
-                assertThat(regs.getUsPrivacy()).isSameAs(bidRequest.getRegs().getUsPrivacy());
-            });
+        assertThat(result.getUser()).isSameAs(bidRequest.getUser());
+        assertThat(result.getRegs()).satisfies(regs -> {
+            assertThat(regs.getGdpr()).isEqualTo(2);
+            assertThat(regs.getUsPrivacy()).isSameAs(bidRequest.getRegs().getUsPrivacy());
         });
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
@@ -120,10 +117,8 @@ public class AmpGppServiceTest {
         final BidRequest result = ampGppService.apply(bidRequest, auctionContext);
 
         // then
-        assertThat(result).satisfies(updatedBidRequest -> {
-            assertThat(updatedBidRequest.getUser()).isEqualTo(User.builder().consent("gppConsent").build());
-            assertThat(updatedBidRequest.getRegs()).isSameAs(bidRequest.getRegs());
-        });
+        assertThat(result.getUser()).isEqualTo(User.builder().consent("gppConsent").build());
+        assertThat(result.getRegs()).isSameAs(bidRequest.getRegs());
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
@@ -145,13 +140,10 @@ public class AmpGppServiceTest {
         final BidRequest result = ampGppService.apply(bidRequest, auctionContext);
 
         // then
-        assertThat(result).satisfies(updatedBidRequest -> {
-            assertThat(updatedBidRequest.getUser()).isSameAs(bidRequest.getUser());
-
-            assertThat(updatedBidRequest.getRegs()).satisfies(regs -> {
-                assertThat(regs.getGdpr()).isSameAs(bidRequest.getRegs().getGdpr());
-                assertThat(regs.getUsPrivacy()).isEqualTo("gppUsPrivacy");
-            });
+        assertThat(result.getUser()).isSameAs(bidRequest.getUser());
+        assertThat(result.getRegs()).satisfies(regs -> {
+            assertThat(regs.getGdpr()).isSameAs(bidRequest.getRegs().getGdpr());
+            assertThat(regs.getUsPrivacy()).isEqualTo("gppUsPrivacy");
         });
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
@@ -174,13 +166,10 @@ public class AmpGppServiceTest {
         final BidRequest result = ampGppService.apply(bidRequest, auctionContext);
 
         // then
-        assertThat(result).satisfies(updatedBidRequest -> {
-            assertThat(updatedBidRequest.getUser()).isEqualTo(User.builder().consent("gppConsent").build());
-
-            assertThat(updatedBidRequest.getRegs()).satisfies(regs -> {
-                assertThat(regs.getGdpr()).isEqualTo(2);
-                assertThat(regs.getUsPrivacy()).isEqualTo("gppUsPrivacy");
-            });
+        assertThat(result.getUser()).isEqualTo(User.builder().consent("gppConsent").build());
+        assertThat(result.getRegs()).satisfies(regs -> {
+            assertThat(regs.getGdpr()).isEqualTo(2);
+            assertThat(regs.getUsPrivacy()).isEqualTo("gppUsPrivacy");
         });
         assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }

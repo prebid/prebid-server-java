@@ -87,11 +87,9 @@ public class CookieSyncGppServiceTest {
         final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
 
         // then
-        assertThat(result).satisfies(updatedCookieSyncRequest -> {
-            assertThat(updatedCookieSyncRequest.getGdpr()).isEqualTo(2);
-            assertThat(updatedCookieSyncRequest.getGdprConsent()).isSameAs(cookieSyncRequest.getGdprConsent());
-            assertThat(updatedCookieSyncRequest.getUsPrivacy()).isSameAs(cookieSyncRequest.getUsPrivacy());
-        });
+        assertThat(result.getGdpr()).isEqualTo(2);
+        assertThat(result.getGdprConsent()).isSameAs(cookieSyncRequest.getGdprConsent());
+        assertThat(result.getUsPrivacy()).isSameAs(cookieSyncRequest.getUsPrivacy());
         assertThat(cookieSyncContext.getWarnings()).isEmpty();
     }
 
@@ -113,11 +111,9 @@ public class CookieSyncGppServiceTest {
         final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
 
         // then
-        assertThat(result).satisfies(updatedCookieSyncRequest -> {
-            assertThat(updatedCookieSyncRequest.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
-            assertThat(updatedCookieSyncRequest.getGdprConsent()).isEqualTo("gppConsent");
-            assertThat(updatedCookieSyncRequest.getUsPrivacy()).isSameAs(cookieSyncRequest.getUsPrivacy());
-        });
+        assertThat(result.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
+        assertThat(result.getGdprConsent()).isEqualTo("gppConsent");
+        assertThat(result.getUsPrivacy()).isSameAs(cookieSyncRequest.getUsPrivacy());
         assertThat(cookieSyncContext.getWarnings()).isEmpty();
     }
 
@@ -139,11 +135,9 @@ public class CookieSyncGppServiceTest {
         final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
 
         // then
-        assertThat(result).satisfies(updatedCookieSyncRequest -> {
-            assertThat(updatedCookieSyncRequest.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
-            assertThat(updatedCookieSyncRequest.getGdprConsent()).isSameAs(cookieSyncRequest.getGdprConsent());
-            assertThat(updatedCookieSyncRequest.getUsPrivacy()).isEqualTo("gppUsPrivacy");
-        });
+        assertThat(result.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
+        assertThat(result.getGdprConsent()).isSameAs(cookieSyncRequest.getGdprConsent());
+        assertThat(result.getUsPrivacy()).isEqualTo("gppUsPrivacy");
         assertThat(cookieSyncContext.getWarnings()).isEmpty();
     }
 
@@ -165,11 +159,9 @@ public class CookieSyncGppServiceTest {
         final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
 
         // then
-        assertThat(result).satisfies(updatedCookieSyncRequest -> {
-            assertThat(updatedCookieSyncRequest.getGdpr()).isEqualTo(2);
-            assertThat(updatedCookieSyncRequest.getGdprConsent()).isEqualTo("gppConsent");
-            assertThat(updatedCookieSyncRequest.getUsPrivacy()).isEqualTo("gppUsPrivacy");
-        });
+        assertThat(result.getGdpr()).isEqualTo(2);
+        assertThat(result.getGdprConsent()).isEqualTo("gppConsent");
+        assertThat(result.getUsPrivacy()).isEqualTo("gppUsPrivacy");
         assertThat(cookieSyncContext.getWarnings()).isEmpty();
     }
 
