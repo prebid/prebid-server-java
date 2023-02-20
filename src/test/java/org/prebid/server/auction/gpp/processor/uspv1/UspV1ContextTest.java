@@ -28,7 +28,7 @@ public class UspV1ContextTest {
     @Test
     public void resolveUsPrivacyShouldReturnUnalteredResultIfSectionsIdsIsNull() {
         // given
-        final UspV1Context uspV1Context = new UspV1Context(gppModel, null);
+        final UspV1Context uspV1Context = UspV1Context.of(gppModel, null);
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy(null);
@@ -40,7 +40,7 @@ public class UspV1ContextTest {
     @Test
     public void resolveUsPrivacyShouldReturnUnalteredResultIfSectionsIdsDoesNotContainsUspV1Scope() {
         // given
-        final UspV1Context uspV1Context = new UspV1Context(gppModel, emptySet());
+        final UspV1Context uspV1Context = UspV1Context.of(gppModel, emptySet());
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy("usPrivacy");
@@ -52,7 +52,7 @@ public class UspV1ContextTest {
     @Test
     public void resolveUsPrivacyShouldReturnUnalteredResultIfGppModelIsNull() {
         // given
-        final UspV1Context uspV1Context = new UspV1Context(null, Set.of(UspV1.ID));
+        final UspV1Context uspV1Context = UspV1Context.of(null, Set.of(UspV1.ID));
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy("usPrivacy");
@@ -65,7 +65,7 @@ public class UspV1ContextTest {
     public void resolveUsPrivacyShouldReturnUnalteredResultIfGppModelDoesNotContainsUspV1Scope() {
         // given
         given(gppModel.hasSection(eq(UspV1.ID))).willReturn(false);
-        final UspV1Context uspV1Context = new UspV1Context(gppModel, Set.of(UspV1.ID));
+        final UspV1Context uspV1Context = UspV1Context.of(gppModel, Set.of(UspV1.ID));
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy("usPrivacy");
@@ -79,7 +79,7 @@ public class UspV1ContextTest {
         // given
         given(gppModel.hasSection(eq(UspV1.ID))).willReturn(true);
         given(gppModel.encodeSection(eq(UspV1.ID))).willReturn("usPrivacy");
-        final UspV1Context uspV1Context = new UspV1Context(gppModel, Set.of(UspV1.ID));
+        final UspV1Context uspV1Context = UspV1Context.of(gppModel, Set.of(UspV1.ID));
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy(null);
@@ -93,7 +93,7 @@ public class UspV1ContextTest {
         // given
         given(gppModel.hasSection(eq(UspV1.ID))).willReturn(true);
         given(gppModel.encodeSection(eq(UspV1.ID))).willReturn("another");
-        final UspV1Context uspV1Context = new UspV1Context(gppModel, Set.of(UspV1.ID));
+        final UspV1Context uspV1Context = UspV1Context.of(gppModel, Set.of(UspV1.ID));
 
         // when
         final UpdateResult<String> result = uspV1Context.resolveUsPrivacy("usPrivacy");

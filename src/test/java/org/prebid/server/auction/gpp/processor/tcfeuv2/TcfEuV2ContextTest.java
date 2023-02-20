@@ -28,7 +28,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveGdprShouldReturnUnalteredResultIfSectionsIdsIsNull() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, null);
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, null);
 
         // when
         final UpdateResult<Integer> result = tcfEuV2Context.resolveGdpr(1);
@@ -40,7 +40,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveGdprShouldReturn0IfOriginalGdprIsNullAndNotInTcfEuV2Scope() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, emptySet());
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, emptySet());
 
         // when
         final UpdateResult<Integer> result = tcfEuV2Context.resolveGdpr(null);
@@ -52,7 +52,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveGdprShouldReturn1IfOriginalGdprIsNullAndInTcfEuV2Scope() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<Integer> result = tcfEuV2Context.resolveGdpr(null);
@@ -64,7 +64,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveGdprShouldLogErrorIfOriginalGdpr1DoesNotMatchGppSid() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, emptySet());
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, emptySet());
 
         // when
         final UpdateResult<Integer> result = tcfEuV2Context.resolveGdpr(1);
@@ -77,7 +77,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveGdprShouldLogErrorIfOriginalGdpr0DoesNotMatchGppSid() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<Integer> result = tcfEuV2Context.resolveGdpr(0);
@@ -90,7 +90,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveConsentShouldReturnUnalteredResultIfSectionsIdsIsNull() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, null);
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, null);
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent(null);
@@ -102,7 +102,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveConsentShouldReturnUnalteredResultIfSectionsIdsDoesNotContainsTcfEuV2Scope() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, emptySet());
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, emptySet());
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent("consent");
@@ -114,7 +114,7 @@ public class TcfEuV2ContextTest {
     @Test
     public void resolveConsentShouldReturnUnalteredResultIfGppModelIsNull() {
         // given
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(null, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(null, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent("consent");
@@ -127,7 +127,7 @@ public class TcfEuV2ContextTest {
     public void resolveConsentShouldReturnUnalteredResultIfGppModelDoesNotContainsTcfEuV2Scope() {
         // given
         given(gppModel.hasSection(eq(TcfEuV2.ID))).willReturn(false);
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent("consent");
@@ -141,7 +141,7 @@ public class TcfEuV2ContextTest {
         // given
         given(gppModel.hasSection(eq(TcfEuV2.ID))).willReturn(true);
         given(gppModel.encodeSection(eq(TcfEuV2.ID))).willReturn("consent");
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent(null);
@@ -155,7 +155,7 @@ public class TcfEuV2ContextTest {
         // given
         given(gppModel.hasSection(eq(TcfEuV2.ID))).willReturn(true);
         given(gppModel.encodeSection(eq(TcfEuV2.ID))).willReturn("another");
-        final TcfEuV2Context tcfEuV2Context = new TcfEuV2Context(gppModel, Set.of(TcfEuV2.ID));
+        final TcfEuV2Context tcfEuV2Context = TcfEuV2Context.of(gppModel, Set.of(TcfEuV2.ID));
 
         // when
         final UpdateResult<String> result = tcfEuV2Context.resolveConsent("consent");

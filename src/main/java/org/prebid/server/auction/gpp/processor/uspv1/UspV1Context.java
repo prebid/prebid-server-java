@@ -18,7 +18,7 @@ final class UspV1Context {
 
     private final List<String> errors = new ArrayList<>();
 
-    UspV1Context(GppModel gppModel, Set<Integer> sectionsIds) {
+    private UspV1Context(GppModel gppModel, Set<Integer> sectionsIds) {
         this.gppModel = gppModel;
         this.sectionsIds = sectionsIds;
     }
