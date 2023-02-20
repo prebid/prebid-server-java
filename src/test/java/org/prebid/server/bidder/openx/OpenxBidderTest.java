@@ -2,6 +2,7 @@ package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -345,6 +346,54 @@ public class OpenxBidderTest extends VertxTest {
                                         .build())
                                 .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                                 .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassThroughImpExt() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .bidfloor(BigDecimal.ZERO)
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(
+                                Map.of(
+                                        "ae", 1,
+                                        "bidder", Map.of(
+                                                "customParams", Map.of("param1", "value1")
+                                        ),
+                                        "data", Map.of("pbadslot", "adslotvalue"),
+                                        "gpid", "gpidvalue",
+                                        "prebid", Map.of("foo", "bar"),
+                                        "otherfield", "othervalue",
+                                        "skadn", Map.of("version", "2.0")
+                                        )))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+
+        final ObjectNode expectedImpExt = mapper.valueToTree(
+                Map.of(
+                        "ae", 1,
+                        "customParams", Map.of("param1", "value1"),
+                        "data", Map.of("pbadslot", "adslotvalue"),
+                        "gpid", "gpidvalue",
+                        "otherfield", "othervalue",
+                        "skadn", Map.of("version", "2.0")
+                ));
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .isNotNull();
+        final ObjectNode ext = result.getValue().get(0).getPayload().getImp().get(0).getExt();
+        assertThat(ext)
+                .isInstanceOf(JsonNode.class)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedImpExt);
     }
 
     @Test
