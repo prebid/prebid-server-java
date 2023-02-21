@@ -1,11 +1,12 @@
 adapters:
   adrino:
-    endpoint: https://prd-prebid-bidder.adrino.io/openrtb/bid
+    endpoint: https://
     meta-info:
       maintainer-email: dev@adrino.pl
       app-media-types:
-        - native
       site-media-types:
         - native
       supported-vendors:
-      vendor-id: 1072
+      vendor-id: 724
+    usersync:
+      cookie-family-name: between
