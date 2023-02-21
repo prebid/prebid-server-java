@@ -15,7 +15,7 @@ import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.US_PV_V1
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
-class GppAuctionSpec extends BaseSpec {
+class AuctionGppSpec extends BaseSpec {
 
     def "PBS should populate gdpr to 1 when regs.gdpr is not specified and gppSid contains 2"() {
         given: "Default bid request with gppSid and without gdpr"
