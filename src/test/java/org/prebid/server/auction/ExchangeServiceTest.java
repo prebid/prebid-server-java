@@ -51,7 +51,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.ImpRejectionReason;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -2998,7 +2998,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(context.result().getAuctionParticipations())
                 .extracting(AuctionParticipation::getRejectedImpIds)
                 .flatExtracting(Map::entrySet)
-                .containsExactly(Map.entry("impId2", ImpRejectionReason.NO_BID));
+                .containsExactly(Map.entry("impId2", BidRejectionReason.NO_BID));
     }
 
     @SuppressWarnings("unchecked")

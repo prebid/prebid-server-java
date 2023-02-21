@@ -40,7 +40,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.ImpRejectionReason;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -3548,7 +3548,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         100));
 
         final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", ImpRejectionReason.NO_BID));
+                bidderResponses, singletonMap("impId2", BidRejectionReason.NO_BID));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),
@@ -3563,7 +3563,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "someBidder", singletonList(NonBid.of("impId2", ImpRejectionReason.NO_BID)));
+                "someBidder", singletonList(NonBid.of("impId2", BidRejectionReason.NO_BID)));
 
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getSeatnonbid)
@@ -3582,7 +3582,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         100));
 
         final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", ImpRejectionReason.NO_BID));
+                bidderResponses, singletonMap("impId2", BidRejectionReason.NO_BID));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),
@@ -3766,7 +3766,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private static List<AuctionParticipation> toAuctionParticipantWithRejectedImps(
             List<BidderResponse> bidderResponses,
-            Map<String, ImpRejectionReason> rejectedImpIds) {
+            Map<String, BidRejectionReason> rejectedImpIds) {
 
         return bidderResponses.stream()
                 .map(bidderResponse -> AuctionParticipation.builder()

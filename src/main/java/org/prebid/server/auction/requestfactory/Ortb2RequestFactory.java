@@ -134,6 +134,7 @@ public class Ortb2RequestFactory {
                 .requestRejected(false)
                 .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
+                .bidRejectionTrackers(new HashMap<>())
                 .build();
     }
 
