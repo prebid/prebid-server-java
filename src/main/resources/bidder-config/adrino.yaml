@@ -7,6 +7,6 @@ adapters:
       site-media-types:
         - native
       supported-vendors:
-      vendor-id: 724
+      vendor-id: 1072
     usersync:
       cookie-family-name: between
