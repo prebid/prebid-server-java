@@ -5,6 +5,8 @@ import io.vertx.core.http.HttpMethod;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.Set;
+
 /**
  * Packages together the fields needed to make an http request.
  */
@@ -17,6 +19,8 @@ public class HttpRequest<T> {
     String uri;
 
     MultiMap headers;
+
+    Set<String> impIds;
 
     byte[] body;
 

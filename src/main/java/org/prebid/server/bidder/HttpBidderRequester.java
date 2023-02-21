@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.Bid;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -363,6 +365,10 @@ public class HttpBidderRequester {
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
+                bids.stream()
+                        .map(BidderBid::getBid)
+                        .map(Bid::getImpid)
+                        .forEach(bidRejectionTracker::succeed);
             }
 
             final List<BidderError> bidderErrors = bidsResult != null ? bidsResult.getErrors() : null;
@@ -372,8 +378,9 @@ public class HttpBidderRequester {
             }
 
             final BidderError callError = bidderCall.getError();
-            if (callError != null) {
-                bidRejectionTracker.rejectAll(mapToRejectionReason(callError));
+            final Set<String> impIdsInvolvedInRequest = bidderCall.getRequest().getImpIds();
+            if (callError != null && CollectionUtils.isNotEmpty(impIdsInvolvedInRequest)) {
+                bidRejectionTracker.reject(impIdsInvolvedInRequest, mapToRejectionReason(callError));
             }
 
             final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null

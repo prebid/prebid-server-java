@@ -34,6 +34,7 @@ public class BidRejectionTracker {
     }
 
     public BidRejectionTracker reject(Collection<String> impIds, BidRejectionReason reason) {
+        succeededImpIds.removeAll(impIds);
         impIds.forEach(impId -> rejectedImpIds.put(impId, reason));
         return this;
     }
@@ -44,6 +45,7 @@ public class BidRejectionTracker {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         rejectedImpIds.putAll(rejectionReasons);
+        succeededImpIds.clear();
         return this;
     }
 
