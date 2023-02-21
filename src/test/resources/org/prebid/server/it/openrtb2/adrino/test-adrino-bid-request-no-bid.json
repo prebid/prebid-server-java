@@ -1,0 +1,27 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "ext": {
+        "bidder": {
+          "hash": "123456"
+        }
+      },
+      "native": {
+        "request": "{json string}",
+        "ver": "1.2"
+      }
+    }
+  ],
+  "site": {
+    "publisher": {
+      "id": "1"
+    },
+    "page": "some-page-url"
+  },
+  "device": {
+    "w": 1920,
+    "h": 800
+  }
+}
