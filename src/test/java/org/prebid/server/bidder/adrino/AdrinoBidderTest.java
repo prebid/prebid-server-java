@@ -28,7 +28,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -128,7 +127,6 @@ public class AdrinoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-
     @Test
     public void makeHttpRequestShouldReturnSingleHttpRequestsWhenTwoImpsHasDifferentSourceId() {
         // given
@@ -181,18 +179,19 @@ public class AdrinoBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnErrorWhenExtHashIsEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdrino.of(null))))
-                                .build()))
+                .imp(singletonList(Imp.builder()
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpAdrino.of(null))))
+                        .build()))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput("Hash field required for bidder"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Hash field required for bidder"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -241,8 +240,14 @@ public class AdrinoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().id("impId").impid("test-imp-id").price(BigDecimal.TEN).adm("{json response string}").ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().type(BidType.xNative).build(), null))).crid("test-creative-id").mtype(4).build(), BidType.xNative, "PLN"));
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .id("impId")
+                        .impid("test-imp-id")
+                        .price(BigDecimal.TEN)
+                        .adm("{json response string}")
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.builder().type(BidType.xNative).build(), null)))
+                        .crid("test-creative-id").mtype(4).build(), BidType.xNative, "PLN"));
     }
 
     @Test
