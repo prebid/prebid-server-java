@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class BidRejectionTracker {
 
@@ -28,24 +27,20 @@ public class BidRejectionTracker {
     }
 
     public BidRejectionTracker reject(String impId, BidRejectionReason reason) {
-        rejectedImpIds.put(impId, reason);
-        succeededImpIds.remove(impId);
+        if (involvedImpIds.contains(impId) && !rejectedImpIds.containsKey(impId)) {
+            rejectedImpIds.put(impId, reason);
+            succeededImpIds.remove(impId);
+        }
         return this;
     }
 
     public BidRejectionTracker reject(Collection<String> impIds, BidRejectionReason reason) {
-        succeededImpIds.removeAll(impIds);
-        impIds.forEach(impId -> rejectedImpIds.put(impId, reason));
+        impIds.forEach(impId -> reject(impId, reason));
         return this;
     }
 
     public BidRejectionTracker rejectAll(BidRejectionReason reason) {
-        final Map<String, BidRejectionReason> rejectionReasons = involvedImpIds.stream()
-                .map(impId -> Map.entry(impId, reason))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        rejectedImpIds.putAll(rejectionReasons);
-        succeededImpIds.clear();
+        involvedImpIds.forEach(impId -> reject(impId, reason));
         return this;
     }
 
