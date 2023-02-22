@@ -690,7 +690,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
     }
 
-    @RepeatUntilFailure
+    @RepeatUntilFailure(maxAttempts = 100)
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when Floors Provider's response size is more than fetch.max-file-size-kb"() {
         given: "Test start time"
         def startTime = Instant.now()
