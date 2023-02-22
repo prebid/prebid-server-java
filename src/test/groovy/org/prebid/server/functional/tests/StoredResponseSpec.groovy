@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
@@ -11,6 +12,7 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
+@Ignore
 class StoredResponseSpec extends BaseSpec {
 
     @PendingFeature

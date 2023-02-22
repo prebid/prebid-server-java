@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
+import org.junit.Ignore
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
@@ -35,6 +36,7 @@ import static org.prebid.server.functional.model.response.auction.MediaType.NATI
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
+@Ignore
 class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {

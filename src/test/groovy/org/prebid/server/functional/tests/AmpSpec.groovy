@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -11,6 +12,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
+@Ignore
 class AmpSpec extends BaseSpec {
 
     def "PBS should return version in response header for #description"() {

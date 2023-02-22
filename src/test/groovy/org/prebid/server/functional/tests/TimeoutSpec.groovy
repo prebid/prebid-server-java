@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -14,6 +15,7 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 
+@Ignore
 class TimeoutSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()

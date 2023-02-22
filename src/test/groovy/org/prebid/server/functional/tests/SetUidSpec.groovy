@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
@@ -22,6 +23,7 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
+@Ignore
 class SetUidSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT

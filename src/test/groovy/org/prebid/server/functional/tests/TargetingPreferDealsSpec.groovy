@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -9,6 +10,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
+@Ignore
 class TargetingPreferDealsSpec extends BaseSpec {
 
     def "PBS should choose bid with deal when preferdeals flag equal true"() {

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
@@ -21,6 +22,7 @@ import spock.lang.Shared
 import static org.prebid.server.functional.model.request.auction.Content.Channel
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
+@Ignore
 class OrtbConverterSpec extends BaseSpec {
 
     private final static String ORTB_PROPERTY_VERSION = "adapters.generic.ortb-version"

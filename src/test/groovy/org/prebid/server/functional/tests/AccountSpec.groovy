@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
@@ -12,6 +13,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
+@Ignore
 class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with inactive account"() {

@@ -574,7 +574,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>false</launchContainers>
+                            <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                     </configuration>
@@ -781,8 +781,8 @@
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <tests.max-container-count>2</tests.max-container-count>
-                        <tests.fixed-container-ports>false</tests.fixed-container-ports>
+                        <tests.max-container-count>10</tests.max-container-count>
+                        <tests.fixed-container-ports>true</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

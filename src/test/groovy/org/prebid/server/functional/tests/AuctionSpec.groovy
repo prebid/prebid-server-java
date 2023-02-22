@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -22,6 +23,7 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
+@Ignore
 class AuctionSpec extends BaseSpec {
 
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"

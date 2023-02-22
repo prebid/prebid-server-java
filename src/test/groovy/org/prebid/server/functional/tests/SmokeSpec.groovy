@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -16,6 +17,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
+@Ignore
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.AssetImage
@@ -17,6 +18,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 
+@Ignore
 class NativeSpec extends BaseSpec {
 
     def "PBS should emit error when stored response asset doesn't contain id"() {

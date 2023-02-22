@@ -11,6 +11,9 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
+import spock.lang.IgnoreRest
+import spock.lang.RepeatUntilFailure
 
 import java.time.Instant
 
@@ -687,6 +690,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
     }
 
+    @RepeatUntilFailure
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when Floors Provider's response size is more than fetch.max-file-size-kb"() {
         given: "Test start time"
         def startTime = Instant.now()

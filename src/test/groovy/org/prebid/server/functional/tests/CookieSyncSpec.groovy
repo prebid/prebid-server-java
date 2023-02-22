@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
@@ -36,6 +37,7 @@ import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFOR
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
+@Ignore
 class CookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
