@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -13,7 +12,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class UUIDSpec extends BaseSpec {
 
     def "PBS auction should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {

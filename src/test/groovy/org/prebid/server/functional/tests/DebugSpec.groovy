@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
-import org.junit.Ignore
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -21,7 +20,6 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.NO_BID
 
-@Ignore
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString

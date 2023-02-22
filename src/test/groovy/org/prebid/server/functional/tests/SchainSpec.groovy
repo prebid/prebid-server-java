@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidSchain
 import org.prebid.server.functional.model.request.auction.Source
@@ -13,7 +12,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
 
-@Ignore
 class SchainSpec extends BaseSpec {
 
     private static final GLOBAL_SUPPLY_SCHAIN_NODE = new SupplyChainNode().tap {

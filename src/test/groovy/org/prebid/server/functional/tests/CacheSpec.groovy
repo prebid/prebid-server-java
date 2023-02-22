@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -10,7 +9,6 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-@Ignore
 class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {

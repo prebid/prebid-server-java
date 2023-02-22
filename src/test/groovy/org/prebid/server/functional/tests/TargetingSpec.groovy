@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -13,7 +12,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@Ignore
 class TargetingSpec extends BaseSpec {
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -14,7 +13,6 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@Ignore
 class BidValidationSpec extends BaseSpec {
 
     @PendingFeature

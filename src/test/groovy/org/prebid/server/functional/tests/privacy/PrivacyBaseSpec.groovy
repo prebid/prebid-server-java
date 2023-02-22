@@ -19,7 +19,6 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
@@ -29,7 +28,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@Ignore(inherited = true)
 abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2

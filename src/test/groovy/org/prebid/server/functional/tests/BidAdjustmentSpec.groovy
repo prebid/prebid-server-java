@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
@@ -16,7 +15,6 @@ import static org.prebid.server.functional.model.request.auction.BidAdjustmentMe
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -15,7 +14,6 @@ import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-@Ignore
 class CurrencySpec extends BaseSpec {
 
     private static final Currency DEFAULT_CURRENCY = USD

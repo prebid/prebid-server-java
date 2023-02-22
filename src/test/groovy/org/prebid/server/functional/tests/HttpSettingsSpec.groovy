@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
@@ -21,7 +20,6 @@ import spock.lang.Shared
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
-@Ignore
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
 

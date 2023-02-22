@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -10,7 +9,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class AccountResolutionSpec extends BaseSpec {
 
     def "PBS should prefer account from AMP request parameter during account resolution"() {

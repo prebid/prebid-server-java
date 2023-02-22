@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
@@ -10,7 +9,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class LmtSpec extends BaseSpec {
 
     private static final BUGGED_IFA_VALUES = [null, "", "00000000-0000-0000-0000-000000000000"]

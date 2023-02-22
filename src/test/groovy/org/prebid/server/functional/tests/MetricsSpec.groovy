@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountMetricsConfig
 import org.prebid.server.functional.model.db.Account
@@ -11,7 +10,6 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
 
-@Ignore
 class MetricsSpec extends BaseSpec {
 
     def setup() {

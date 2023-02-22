@@ -10,7 +10,6 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
 import spock.lang.Shared
 
-@org.junit.Ignore
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()

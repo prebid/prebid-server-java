@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Rubicon
@@ -14,7 +13,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 
-@Ignore
 class HttpInteractionSpec extends BaseSpec {
 
     @Retry
