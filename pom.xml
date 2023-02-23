@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.111.0-SNAPSHOT</version>
+        <version>1.112.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -89,6 +89,7 @@
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
+        <iabgpp-encoder.version>3.0.10</iabgpp-encoder.version>
     </properties>
 
     <dependencyManagement>
