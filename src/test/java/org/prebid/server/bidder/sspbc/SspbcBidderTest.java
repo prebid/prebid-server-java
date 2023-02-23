@@ -321,7 +321,7 @@ public class SspbcBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenImpIdNotEqualsBidImpId() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(identity())));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.adm("Any adm"))));
 
         // when
         final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);

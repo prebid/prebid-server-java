@@ -3,6 +3,7 @@ package org.prebid.server.bidder.sspbc;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
@@ -27,13 +28,25 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.sspbc.ExtImpSspbc;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_ONE_CODE;
+import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_STANDARD;
+import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_TEST;
 
 public class SspbcBidder implements Bidder<BidRequest> {
 
@@ -42,9 +55,6 @@ public class SspbcBidder implements Bidder<BidRequest> {
             };
     private static final String ADAPTER_VERSION = "5.8";
     private static final String IMP_FALLBACK_SIZE = "1x1";
-    private static final Integer REQUEST_TYPE_STANDARD = 1;
-    private static final Integer REQUEST_TYPE_ONE_CODE = 2;
-    private static final Integer REQUEST_TYPE_TEST = 3;
     private static final String PREBID_SERVER_INTEGRATION_TYPE = "4";
     private static final String BANNER_TEMPLATE = """
             <html><head><title></title><meta charset="UTF-8"><meta name="viewport"\
@@ -56,6 +66,8 @@ public class SspbcBidder implements Bidder<BidRequest> {
              async crossorigin nomodule src="//std.wpcdn.pl/wpjslib/wpjslib-inline.js"\
              id="wpjslib"></script><script async crossorigin type="module"\
              src="//std.wpcdn.pl/wpjslib6/wpjslib-inline.js" id="wpjslib6"></script></body></html>""";
+
+    private final Map<Imp, ExtImpSspbc> impToExt = new HashMap<>();
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -71,10 +83,11 @@ public class SspbcBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("BidRequest.site not provided"));
         }
 
-        final Integer requestType;
+        final int requestType;
 
         try {
-            requestType = getRequestType(request);
+            populateImpToExt(request);
+            requestType = getRequestType();
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -82,9 +95,9 @@ public class SspbcBidder implements Bidder<BidRequest> {
         final List<Imp> imps = new ArrayList<>();
         String siteId = "";
 
-        for (Imp imp : request.getImp()) {
-            final ExtImpSspbc extImpSspbc = parseImpExt(imp);
-            if (StringUtils.isNoneEmpty(extImpSspbc.getSiteId())) {
+        for (Imp imp : impToExt.keySet()) {
+            final ExtImpSspbc extImpSspbc = impToExt.get(imp);
+            if (StringUtils.isNotEmpty(extImpSspbc.getSiteId())) {
                 siteId = extImpSspbc.getSiteId();
             }
 
@@ -102,22 +115,33 @@ public class SspbcBidder implements Bidder<BidRequest> {
         return Result.withValue(bidRequestHttpRequest);
     }
 
+    private void populateImpToExt(BidRequest request) {
+        impToExt.putAll(request.getImp()
+                .stream()
+                .collect(Collectors.toMap(Function.identity(), this::parseImpExt)));
+    }
+
     private Imp updateImp(Imp imp, Integer requestType, ExtImpSspbc extImpSspbc) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
+        final String originalImpId = imp.getId();
 
-        if (StringUtils.isNotEmpty(extImpSspbc.getId()) && !Objects.equals(requestType, REQUEST_TYPE_ONE_CODE)) {
-            impBuilder.id(extImpSspbc.getId());
-        }
+        return imp.toBuilder()
+                .id(resolveImpId(originalImpId, extImpSspbc.getId(), requestType))
+                .tagid(originalImpId)
+                .ext(createImpExt(imp))
+                .build();
+    }
 
-        final ObjectNode impExt = mapper.mapper().createObjectNode()
+    private String resolveImpId(String originalImpId, String extImpId, Integer requestType) {
+        return StringUtils.isNotEmpty(extImpId) && requestType != REQUEST_TYPE_ONE_CODE.getValue()
+                ? extImpId
+                : originalImpId;
+    }
+
+    private ObjectNode createImpExt(Imp imp) {
+        return mapper.mapper().createObjectNode()
                 .set("data", mapper.mapper().createObjectNode()
                         .put("pbslot", imp.getTagid())
                         .put("pbsize", getImpSize(imp)));
-
-        return impBuilder
-                .tagid(imp.getId())
-                .ext(impExt)
-                .build();
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest,
@@ -132,61 +156,55 @@ public class SspbcBidder implements Bidder<BidRequest> {
     }
 
     private Site updateSite(Site site, Integer requestType, String siteId) {
-        final Site.SiteBuilder siteBuilder = site.toBuilder();
-        if (Objects.equals(requestType, REQUEST_TYPE_ONE_CODE) || StringUtils.isBlank(siteId)) {
-            siteBuilder.id(StringUtils.EMPTY).build();
-        } else {
-            siteBuilder.id(siteId).build();
-        }
+        return site.toBuilder()
+                .id(resolveSiteId(requestType, siteId))
+                .domain(getUri(site.getPage()).getHost())
+                .build();
+    }
 
-        final URIBuilder uriBuilder = getUri(site.getPage());
-        siteBuilder.domain(uriBuilder.getHost());
-
-        return siteBuilder.build();
+    private static String resolveSiteId(Integer requestType, String siteId) {
+        return requestType == REQUEST_TYPE_ONE_CODE.getValue() || StringUtils.isBlank(siteId)
+                ? StringUtils.EMPTY
+                : siteId;
     }
 
     private static Integer updateTest(Integer requestType, Integer test) {
-        return Objects.equals(requestType, REQUEST_TYPE_TEST) ? 1 : test;
+        return requestType == REQUEST_TYPE_TEST.getValue() ? 1 : test;
     }
 
     private String getImpSize(Imp imp) {
-        if (imp.getBanner() == null || imp.getBanner().getFormat().size() == 0) {
+        final List<Format> formats = ObjectUtil.getIfNotNull(imp.getBanner(), Banner::getFormat);
+        if (CollectionUtils.isEmpty(formats)) {
             return IMP_FALLBACK_SIZE;
         }
 
-        long areaMax = 0L;
-        String impSize = IMP_FALLBACK_SIZE;
-
-        for (Format format : imp.getBanner().getFormat()) {
-            int area = format.getW() * format.getH();
-            if (area > areaMax) {
-                areaMax = area;
-                impSize = String.format("%dx%d", format.getW(), format.getH());
-            }
-        }
-
-        return impSize;
+        return formats.stream()
+                .max(Comparator.comparing(SspbcBidder::formatToArea))
+                .filter(format -> formatToArea(format) > 0)
+                .map(format -> String.format("%dx%d", format.getW(), format.getH()))
+                .orElse(IMP_FALLBACK_SIZE);
     }
 
-    private Integer getRequestType(BidRequest request) {
-        int incompleteImps = 0;
+    private static int formatToArea(Format format) {
+        final Integer w = ObjectUtil.getIfNotNull(format, Format::getW);
+        final Integer h = ObjectUtil.getIfNotNull(format, Format::getH);
 
-        for (Imp imp : request.getImp()) {
-            final ExtImpSspbc extImpSspbc = parseImpExt(imp);
+        return w != null && h != null ? w * h : 0;
+    }
+
+    private Integer getRequestType() {
+        for (Imp imp : impToExt.keySet()) {
+            final ExtImpSspbc extImpSspbc = impToExt.get(imp);
             if (extImpSspbc.getTest() != 0) {
-                return REQUEST_TYPE_TEST;
+                return REQUEST_TYPE_TEST.getValue();
             }
 
             if (StringUtils.isEmpty(extImpSspbc.getSiteId()) || StringUtils.isEmpty(extImpSspbc.getId())) {
-                incompleteImps += 1;
+                return REQUEST_TYPE_ONE_CODE.getValue();
             }
         }
 
-        if (incompleteImps > 0) {
-            return REQUEST_TYPE_ONE_CODE;
-        }
-
-        return REQUEST_TYPE_STANDARD;
+        return REQUEST_TYPE_STANDARD.getValue();
     }
 
     private ExtImpSspbc parseImpExt(Imp imp) {
@@ -226,15 +244,12 @@ public class SspbcBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderBid> bidderBids = extractBids(bidResponse, httpCall.getRequest().getPayload());
-            return Result.withValues(bidderBids);
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (PreBidException | DecodeException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-        return Result.withErrors(errors);
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
@@ -242,44 +257,47 @@ public class SspbcBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        return resolveBidderBid(bidResponse, bidRequest);
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid())
+                        .stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> toBidderBid(bid, seatBid.getSeat(), bidResponse.getCur(), bidRequest)))
+                .flatMap(UnaryOperator.identity())
+                .toList();
     }
 
-    private List<BidderBid> resolveBidderBid(BidResponse bidResponse, BidRequest bidRequest) {
-        final List<BidderBid> bidderBidList = new ArrayList<>();
-
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
-                BidType bidType = null;
-
-                if (StringUtils.isNotEmpty(bid.getAdm())) {
-                    bidType = BidType.banner;
-                }
-
-                final Bid.BidBuilder bidBuilder = bid.toBuilder();
-                bidBuilder.impid(getImpTagId(bidRequest.getImp(), bid));
-
-                final ObjectNode bidExt = bid.getExt();
-                final String adlabel = bidExt.get("adlabel").asText();
-                final String pubid = bidExt.get("pubid").asText();
-                final String siteid = bidExt.get("siteid").asText();
-                final String slotid = bidExt.get("slotid").asText();
-
-                if (bidType != BidType.banner) {
-                    throw new PreBidException("Bid format is not supported");
-                }
-
-                bidBuilder.adm(createBannerAd(bid, adlabel, pubid, siteid, slotid, seatBid.getSeat(), bidRequest));
-
-                bidderBidList.add(BidderBid.of(bidBuilder.build(), bidType, bidResponse.getCur()));
-            }
+    private BidderBid toBidderBid(Bid bid, String seat, String currency, BidRequest bidRequest) {
+        if (StringUtils.isEmpty(bid.getAdm())) {
+            throw new PreBidException("Bid format is not supported");
         }
-        return bidderBidList;
+
+        final ObjectNode bidExt = bid.getExt();
+        final Bid updatedBid = bid.toBuilder()
+                .impid(getImpTagId(bidRequest.getImp(), bid))
+                .adm(createBannerAd(
+                        bid,
+                        stringOrNull(bidExt, "adlabel"),
+                        stringOrNull(bidExt, "pubid"),
+                        stringOrNull(bidExt, "siteid"),
+                        stringOrNull(bidExt, "slotid"),
+                        seat,
+                        bidRequest))
+                .build();
+
+        return BidderBid.of(updatedBid, BidType.banner, currency);
+    }
+
+    private static String stringOrNull(ObjectNode bidExt, String property) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get(property))
+                .map(JsonNode::asText)
+                .orElse(StringUtils.EMPTY);
     }
 
     private static String getImpTagId(List<Imp> imps, Bid bid) {
         return imps.stream()
-                .filter(imp -> imp.getId().equals(bid.getImpid()))
+                .filter(imp -> Objects.equals(imp.getId(), bid.getImpid()))
                 .map(Imp::getTagid)
                 .findAny()
                 .orElseThrow(() -> new PreBidException("imp not found"));
