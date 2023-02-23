@@ -3,10 +3,21 @@
   "imp": [
     {
       "id": "anyId",
+      "banner": {
+        "format": [
+          {
+            "w": 120,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
       "tagid": "imp_id",
+      "secure" : 1,
       "ext": {
         "data": {
-          "pbslot": null,
+          "pbslot": "imp_id",
           "pbsize": "120x600"
         }
       }
@@ -30,7 +41,7 @@
   "source": {
     "tid": "${json-unit.any-string}"
   },
-  "test" : 1,
+  "test": 1,
   "at": 1,
   "tmax": "${json-unit.any-number}",
   "cur": [
