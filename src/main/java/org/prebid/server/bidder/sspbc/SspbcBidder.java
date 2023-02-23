@@ -21,6 +21,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.sspbc.request.RequestType;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -43,10 +44,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
-import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_ONE_CODE;
-import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_STANDARD;
-import static org.prebid.server.bidder.sspbc.request.RequestType.REQUEST_TYPE_TEST;
 
 public class SspbcBidder implements Bidder<BidRequest> {
 
@@ -132,7 +129,7 @@ public class SspbcBidder implements Bidder<BidRequest> {
     }
 
     private String resolveImpId(String originalImpId, String extImpId, Integer requestType) {
-        return StringUtils.isNotEmpty(extImpId) && requestType != REQUEST_TYPE_ONE_CODE.getValue()
+        return StringUtils.isNotEmpty(extImpId) && requestType != RequestType.REQUEST_TYPE_ONE_CODE.getValue()
                 ? extImpId
                 : originalImpId;
     }
@@ -163,13 +160,13 @@ public class SspbcBidder implements Bidder<BidRequest> {
     }
 
     private static String resolveSiteId(Integer requestType, String siteId) {
-        return requestType == REQUEST_TYPE_ONE_CODE.getValue() || StringUtils.isBlank(siteId)
+        return requestType == RequestType.REQUEST_TYPE_ONE_CODE.getValue() || StringUtils.isBlank(siteId)
                 ? StringUtils.EMPTY
                 : siteId;
     }
 
     private static Integer updateTest(Integer requestType, Integer test) {
-        return requestType == REQUEST_TYPE_TEST.getValue() ? 1 : test;
+        return requestType == RequestType.REQUEST_TYPE_TEST.getValue() ? 1 : test;
     }
 
     private String getImpSize(Imp imp) {
@@ -196,15 +193,15 @@ public class SspbcBidder implements Bidder<BidRequest> {
         for (Imp imp : impToExt.keySet()) {
             final ExtImpSspbc extImpSspbc = impToExt.get(imp);
             if (extImpSspbc.getTest() != 0) {
-                return REQUEST_TYPE_TEST.getValue();
+                return RequestType.REQUEST_TYPE_TEST.getValue();
             }
 
             if (StringUtils.isEmpty(extImpSspbc.getSiteId()) || StringUtils.isEmpty(extImpSspbc.getId())) {
-                return REQUEST_TYPE_ONE_CODE.getValue();
+                return RequestType.REQUEST_TYPE_ONE_CODE.getValue();
             }
         }
 
-        return REQUEST_TYPE_STANDARD.getValue();
+        return RequestType.REQUEST_TYPE_STANDARD.getValue();
     }
 
     private ExtImpSspbc parseImpExt(Imp imp) {
