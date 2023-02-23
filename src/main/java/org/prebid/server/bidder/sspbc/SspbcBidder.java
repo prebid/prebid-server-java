@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.sspbc.request.RequestType;
+import org.prebid.server.bidder.sspbc.request.SspbcRequestType;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -31,7 +31,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,8 +63,6 @@ public class SspbcBidder implements Bidder<BidRequest> {
              id="wpjslib"></script><script async crossorigin type="module"\
              src="//std.wpcdn.pl/wpjslib6/wpjslib-inline.js" id="wpjslib6"></script></body></html>""";
 
-    private final Map<Imp, ExtImpSspbc> impToExt = new HashMap<>();
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -80,11 +77,12 @@ public class SspbcBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("BidRequest.site not provided"));
         }
 
-        final int requestType;
+        final Map<Imp, ExtImpSspbc> impToExt;
+        final SspbcRequestType requestType;
 
         try {
-            populateImpToExt(request);
-            requestType = getRequestType();
+            impToExt = new HashMap<>(createImpToExt(request));
+            requestType = getRequestType(impToExt);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -112,13 +110,13 @@ public class SspbcBidder implements Bidder<BidRequest> {
         return Result.withValue(bidRequestHttpRequest);
     }
 
-    private void populateImpToExt(BidRequest request) {
-        impToExt.putAll(request.getImp()
+    private Map<Imp, ExtImpSspbc> createImpToExt(BidRequest request) {
+        return request.getImp()
                 .stream()
-                .collect(Collectors.toMap(Function.identity(), this::parseImpExt)));
+                .collect(Collectors.toMap(Function.identity(), this::parseImpExt));
     }
 
-    private Imp updateImp(Imp imp, Integer requestType, ExtImpSspbc extImpSspbc) {
+    private Imp updateImp(Imp imp, SspbcRequestType requestType, ExtImpSspbc extImpSspbc) {
         final String originalImpId = imp.getId();
 
         return imp.toBuilder()
@@ -128,8 +126,8 @@ public class SspbcBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String resolveImpId(String originalImpId, String extImpId, Integer requestType) {
-        return StringUtils.isNotEmpty(extImpId) && requestType != RequestType.REQUEST_TYPE_ONE_CODE.getValue()
+    private String resolveImpId(String originalImpId, String extImpId, SspbcRequestType requestType) {
+        return StringUtils.isNotEmpty(extImpId) && requestType != SspbcRequestType.REQUEST_TYPE_ONE_CODE
                 ? extImpId
                 : originalImpId;
     }
@@ -143,7 +141,7 @@ public class SspbcBidder implements Bidder<BidRequest> {
 
     private BidRequest updateBidRequest(BidRequest bidRequest,
                                         List<Imp> imps,
-                                        Integer requestType,
+                                        SspbcRequestType requestType,
                                         String siteId) {
         return bidRequest.toBuilder()
                 .imp(imps)
@@ -152,21 +150,21 @@ public class SspbcBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Site updateSite(Site site, Integer requestType, String siteId) {
+    private Site updateSite(Site site, SspbcRequestType requestType, String siteId) {
         return site.toBuilder()
                 .id(resolveSiteId(requestType, siteId))
                 .domain(getUri(site.getPage()).getHost())
                 .build();
     }
 
-    private static String resolveSiteId(Integer requestType, String siteId) {
-        return requestType == RequestType.REQUEST_TYPE_ONE_CODE.getValue() || StringUtils.isBlank(siteId)
+    private static String resolveSiteId(SspbcRequestType requestType, String siteId) {
+        return requestType == SspbcRequestType.REQUEST_TYPE_ONE_CODE || StringUtils.isBlank(siteId)
                 ? StringUtils.EMPTY
                 : siteId;
     }
 
-    private static Integer updateTest(Integer requestType, Integer test) {
-        return requestType == RequestType.REQUEST_TYPE_TEST.getValue() ? 1 : test;
+    private static Integer updateTest(SspbcRequestType requestType, Integer test) {
+        return requestType == SspbcRequestType.REQUEST_TYPE_TEST ? 1 : test;
     }
 
     private String getImpSize(Imp imp) {
@@ -189,19 +187,18 @@ public class SspbcBidder implements Bidder<BidRequest> {
         return w != null && h != null ? w * h : 0;
     }
 
-    private Integer getRequestType() {
-        for (Imp imp : impToExt.keySet()) {
-            final ExtImpSspbc extImpSspbc = impToExt.get(imp);
+    private SspbcRequestType getRequestType(Map<Imp, ExtImpSspbc> impToExt) {
+        for (ExtImpSspbc extImpSspbc : impToExt.values()) {
             if (extImpSspbc.getTest() != 0) {
-                return RequestType.REQUEST_TYPE_TEST.getValue();
+                return SspbcRequestType.REQUEST_TYPE_TEST;
             }
 
-            if (StringUtils.isEmpty(extImpSspbc.getSiteId()) || StringUtils.isEmpty(extImpSspbc.getId())) {
-                return RequestType.REQUEST_TYPE_ONE_CODE.getValue();
+            if (StringUtils.isAnyEmpty(extImpSspbc.getSiteId(), extImpSspbc.getId())) {
+                return SspbcRequestType.REQUEST_TYPE_ONE_CODE;
             }
         }
 
-        return RequestType.REQUEST_TYPE_STANDARD.getValue();
+        return SspbcRequestType.REQUEST_TYPE_STANDARD;
     }
 
     private ExtImpSspbc parseImpExt(Imp imp) {
@@ -223,13 +220,13 @@ public class SspbcBidder implements Bidder<BidRequest> {
     }
 
     private URIBuilder getUri(String endpointUrl) {
-        final URI uri;
+        final URIBuilder uri;
         try {
-            uri = new URI(endpointUrl);
+            uri = new URIBuilder(endpointUrl);
         } catch (URISyntaxException e) {
             throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
         }
-        return new URIBuilder(uri);
+        return uri;
     }
 
     private String updateUrl(URIBuilder uriBuilder) {
