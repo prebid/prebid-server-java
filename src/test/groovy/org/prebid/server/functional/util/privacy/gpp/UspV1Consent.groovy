@@ -4,14 +4,14 @@ import com.iab.gpp.encoder.field.UspV1Field
 
 class UspV1Consent extends GppConsent {
 
-    protected UspV1Consent(Section regions, def fieldValues) {
-        super(regions, fieldValues)
+    protected UspV1Consent(Section section, def fieldValues) {
+        super(section, fieldValues)
     }
 
     static class Builder extends GppConsent.Builder {
 
         Builder() {
-            super(GppConsent.Section.USPV1)
+            super(GppConsent.Section.US_PV_V1)
         }
 
         Builder setLspaCovered(String version) {

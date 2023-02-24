@@ -6,16 +6,14 @@ import com.iab.gpp.encoder.field.TcfEuV2Field
 
 class TcfEuV2Consent extends GppConsent {
 
-    public static List<Boolean> EMPTY_CONSENT = Collections.nCopies(24, false)
-
-    protected TcfEuV2Consent(Section regions, def fieldValues) {
-        super(regions, fieldValues)
+    protected TcfEuV2Consent(Section section, def fieldValues) {
+        super(section, fieldValues)
     }
 
     static class Builder extends GppConsent.Builder {
 
         Builder() {
-            super(GppConsent.Section.TCFEUV2)
+            super(GppConsent.Section.TCF_EU_V2)
         }
 
         Builder setPolicyVersion(int version) {
