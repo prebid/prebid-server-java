@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adrino;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -25,8 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class AdrinoBidder implements Bidder<BidRequest> {
 
@@ -38,11 +35,6 @@ public class AdrinoBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private static final String IMP_NOT_PROVIDED_MSG = "BidRequest.imp not provided";
-    private static final String IMP_EXT_EMPTY_MSG = "Ignoring imp id=%s, extImpBidder is empty";
-    private static final String HASH_REQUIRED_MSG = "Hash field required for bidder";
-    private static final String NATIVE_ONLY_MSG = "Ignoring imp id=%s, Adrino supports only Native";
-
     public AdrinoBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
@@ -50,11 +42,6 @@ public class AdrinoBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        List<BidderError> errors = validateRequest(request);
-        if (!errors.isEmpty()) {
-            return Result.withErrors(errors);
-        }
-
         return Result.withValue(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -63,33 +50,6 @@ public class AdrinoBidder implements Bidder<BidRequest> {
                         .body(mapper.encodeToBytes(request))
                         .payload(request)
                         .build());
-    }
-
-    private List<BidderError> validateRequest(BidRequest request) {
-        if (request.getImp() == null) {
-            return Collections.singletonList(BidderError.badInput(IMP_NOT_PROVIDED_MSG));
-        }
-        return request.getImp().stream()
-                .map(this::validateImpression)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-    }
-
-    private Optional<BidderError> validateImpression(Imp impression) {
-        final String impId = impression.getId();
-        final ObjectNode impExt = impression.getExt();
-        if (impExt == null || impExt.isEmpty()) {
-            return Optional.of(BidderError.badInput(String.format(IMP_EXT_EMPTY_MSG, impId)));
-        }
-        final ExtImpAdrino ext = getAdrinoExt(impExt);
-        if (ext.getHash() == null) {
-            return Optional.of(BidderError.badInput(HASH_REQUIRED_MSG));
-        }
-        if (impression.getXNative() == null) {
-            return Optional.of(BidderError.badInput(String.format(NATIVE_ONLY_MSG, impId)));
-        }
-        return Optional.empty();
     }
 
     private ExtImpAdrino getAdrinoExt(ObjectNode impExt) {

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adrino;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -91,43 +90,6 @@ public class AdrinoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenNativeTypeWasNotDefined() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdrino.of("123456")))).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput(
-                        "Ignoring imp id=impId, Adrino supports only Native"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenImpExtIsEmpty() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, null))).build()))
-                .build();
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Ignoring imp id=impId, extImpBidder is empty"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestShouldReturnSingleHttpRequestsWhenTwoImpsHasDifferentSourceId() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -173,26 +135,6 @@ public class AdrinoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorWhenExtHashIsEmpty() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .xNative(Native.builder().build())
-                        .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpAdrino.of(null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Hash field required for bidder"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
