@@ -1018,7 +1018,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 null)))))));
 
         // when
-        final Future<AuctionStoredResult> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture = storedRequestProcessor
+                .processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
