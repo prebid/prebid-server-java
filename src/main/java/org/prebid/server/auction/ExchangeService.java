@@ -24,7 +24,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
@@ -32,12 +31,12 @@ import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -157,6 +156,7 @@ public class ExchangeService {
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
+    private final double logSamplingRate;
     private final int timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
@@ -186,7 +186,8 @@ public class ExchangeService {
     private final JacksonMapper mapper;
     private final CriteriaLogManager criteriaLogManager;
 
-    public ExchangeService(int timeoutAdjustmentFactor,
+    public ExchangeService(double logSamplingRate,
+                           int timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsService dealsService,
@@ -218,6 +219,7 @@ public class ExchangeService {
         if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
             throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
         }
+        this.logSamplingRate = logSamplingRate;
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
@@ -283,7 +285,7 @@ public class ExchangeService {
         final BidderAliases aliases = aliases(bidRequest);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
-        receivedContext.getBidRejectionTrackers().putAll(bidRejectionTrackers(bidRequest, aliases));
+        receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
@@ -455,7 +457,7 @@ public class ExchangeService {
         return MultiBidConfig.of(bidder, bidLimit, codePrefix);
     }
 
-    private Map<String, BidRejectionTracker> bidRejectionTrackers(BidRequest bidRequest, BidderAliases aliases) {
+    private Map<String, BidRejectionTracker> makeBidRejectionTrackers(BidRequest bidRequest, BidderAliases aliases) {
         final Map<String, Set<String>> impIdToBidders = bidRequest.getImp().stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Imp::getId, imp -> bidderNamesFromImpExt(imp, aliases)));
@@ -470,7 +472,9 @@ public class ExchangeService {
         }
 
         return bidderToImpIds.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> new BidRejectionTracker(entry.getValue())));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
 
     /**

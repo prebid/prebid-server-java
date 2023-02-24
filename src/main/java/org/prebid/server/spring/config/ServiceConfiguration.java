@@ -727,6 +727,7 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
@@ -757,6 +758,7 @@ public class ServiceConfiguration {
             CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
+                logSamplingRate,
                 timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,

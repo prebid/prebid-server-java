@@ -1,5 +1,8 @@
 package org.prebid.server.auction.model;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.util.MapUtil;
 
 import java.util.Collection;
@@ -10,12 +13,25 @@ import java.util.Set;
 
 public class BidRejectionTracker {
 
+    private static final Logger logger = LoggerFactory.getLogger(BidRejectionTracker.class);
+
+    private static final ConditionalLogger MULTIPLE_BID_REJECTIONS_LOGGER =
+            new ConditionalLogger("multiple-bid-rejections", logger);
+
+    private static final String WARNING_TEMPLATE =
+            "Bid with imp id: %s for bidder: %s rejected due to: %s, but has been already rejected";
+
+    private final double logSamplingRate;
+    private final String bidder;
     private final Set<String> involvedImpIds;
     private final Set<String> succeededImpIds;
     private final Map<String, BidRejectionReason> rejectedImpIds;
 
-    public BidRejectionTracker(Set<String> involvedImpIds) {
+    public BidRejectionTracker(String bidder, Set<String> involvedImpIds, double logSamplingRate) {
+        this.bidder = bidder;
         this.involvedImpIds = new HashSet<>(involvedImpIds);
+        this.logSamplingRate = logSamplingRate;
+
         succeededImpIds = new HashSet<>();
         rejectedImpIds = new HashMap<>();
     }
@@ -30,6 +46,9 @@ public class BidRejectionTracker {
         if (involvedImpIds.contains(impId) && !rejectedImpIds.containsKey(impId)) {
             rejectedImpIds.put(impId, reason);
             succeededImpIds.remove(impId);
+        } else if (rejectedImpIds.containsKey(impId)) {
+            MULTIPLE_BID_REJECTIONS_LOGGER.warn(
+                    WARNING_TEMPLATE.formatted(impId, bidder, reason), logSamplingRate);
         }
         return this;
     }
