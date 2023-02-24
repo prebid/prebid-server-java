@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -981,6 +983,51 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(result.result().getErrors()).containsOnly(
                 "No stored Imp for stored id st2",
                 "No stored video found for Imp with id id1");
+    }
+
+    @Test
+    public void shouldProperlyCompareBigDecimalsAsKeysInHashMap() throws IOException {
+        // given
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("{}"));
+
+        storedRequestProcessor = new StoredRequestProcessor(
+                DEFAULT_TIMEOUT,
+                "path/to/default/request.json",
+                false,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        final Video storedImpVideo = Video.builder().mimes(singletonList("video/mp4")).w(640).h(480).build();
+        final String storedImpJson = mapper.writeValueAsString(givenImp(builder -> builder.video(storedImpVideo)));
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("storedImpId", storedImpJson), emptyList())));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .bidfloor(BigDecimal.TEN)
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("storedImpId")).build(),
+                                null)))))));
+
+        // when
+        final Future<AuctionStoredResult> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result())
+                .extracting(AuctionStoredResult::bidRequest)
+                .extracting(BidRequest::getImp)
+                .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
+                .extracting(Imp::getVideo)
+                .containsExactly(storedImpVideo);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
