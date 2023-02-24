@@ -2,9 +2,6 @@ package org.prebid.server.auction.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.util.MapUtil;
-
-import java.util.Map;
 
 /**
  * Representation of a single auction interaction

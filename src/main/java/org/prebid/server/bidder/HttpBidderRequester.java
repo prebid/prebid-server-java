@@ -148,7 +148,9 @@ public class HttpBidderRequester {
     private static void recordSucceededBids(List<BidderBid> bids, BidRejectionTracker rejectionTracker) {
         bids.stream()
                 .map(BidderBid::getBid)
+                .filter(Objects::nonNull)
                 .map(Bid::getImpid)
+                .filter(Objects::nonNull)
                 .forEach(rejectionTracker::succeed);
     }
 

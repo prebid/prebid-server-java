@@ -36,11 +36,12 @@ import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -142,6 +143,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -3540,6 +3542,9 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
+        final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
+        given(bidRejectionTracker.getRejectionReasons()).willReturn(singletonMap("impId2", BidRejectionReason.NO_BID));
+
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of(
@@ -3547,13 +3552,13 @@ public class BidResponseCreatorTest extends VertxTest {
                         givenSeatBid(BidderBid.of(bid, banner, null)),
                         100));
 
-        final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", BidRejectionReason.NO_BID));
+        final List<AuctionParticipation> auctionParticipations = toAuctionParticipant(bidderResponses);
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),
                 contextBuilder -> contextBuilder
                         .auctionParticipations(auctionParticipations)
+                        .bidRejectionTrackers(singletonMap("someBidder", bidRejectionTracker))
                         .debugContext(DebugContext.of(false, true, null)));
 
         // when
@@ -3574,20 +3579,22 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsFalse() {
         // given
+        final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
+        given(bidRejectionTracker.getRejectionReasons()).willReturn(singletonMap("impId2", BidRejectionReason.NO_BID));
+
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of(
                         "someBidder",
                         givenSeatBid(BidderBid.of(bid, banner, null)),
                         100));
-
-        final List<AuctionParticipation> auctionParticipations = toAuctionParticipantWithRejectedImps(
-                bidderResponses, singletonMap("impId2", BidRejectionReason.NO_BID));
+        final List<AuctionParticipation> auctionParticipations = toAuctionParticipant(bidderResponses);
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp("impId")),
                 contextBuilder -> contextBuilder
                         .auctionParticipations(auctionParticipations)
+                        .bidRejectionTrackers(singletonMap("someBidder", bidRejectionTracker))
                         .debugContext(DebugContext.of(false, false, null)));
 
         // when
@@ -3751,6 +3758,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .debugHttpCalls(new HashMap<>())
                 .debugWarnings(emptyList())
                 .auctionParticipations(emptyList())
+                .bidRejectionTrackers(new HashMap<>())
                 .prebidErrors(new ArrayList<>());
 
         return contextCustomizer.apply(auctionContextBuilder).build();
@@ -3761,18 +3769,10 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static List<AuctionParticipation> toAuctionParticipant(List<BidderResponse> bidderResponses) {
-        return toAuctionParticipantWithRejectedImps(bidderResponses, emptyMap());
-    }
-
-    private static List<AuctionParticipation> toAuctionParticipantWithRejectedImps(
-            List<BidderResponse> bidderResponses,
-            Map<String, BidRejectionReason> rejectedImpIds) {
-
         return bidderResponses.stream()
                 .map(bidderResponse -> AuctionParticipation.builder()
                         .bidder(bidderResponse.getBidder())
                         .bidderResponse(bidderResponse)
-                        .rejectedImpIds(rejectedImpIds)
                         .build())
                 .toList();
     }

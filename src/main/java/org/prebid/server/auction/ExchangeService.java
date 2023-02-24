@@ -539,7 +539,8 @@ public class ExchangeService {
     }
 
     private Set<String> bidderNamesFromImpExt(Imp imp, BidderAliases aliases) {
-        return StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
+        return Optional.ofNullable(bidderParamsFromImpExt(imp.getExt())).stream()
+                .flatMap(paramsNode -> StreamUtil.asStream(paramsNode.fieldNames()))
                 .filter(bidder -> isValidBidder(bidder, aliases))
                 .collect(Collectors.toSet());
     }

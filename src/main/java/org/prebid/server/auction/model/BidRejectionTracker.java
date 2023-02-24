@@ -36,13 +36,12 @@ public class BidRejectionTracker {
         rejectedImpIds = new HashMap<>();
     }
 
-    public BidRejectionTracker succeed(String impId) {
+    public void succeed(String impId) {
         succeededImpIds.add(impId);
         rejectedImpIds.remove(impId);
-        return this;
     }
 
-    public BidRejectionTracker reject(String impId, BidRejectionReason reason) {
+    public void reject(String impId, BidRejectionReason reason) {
         if (involvedImpIds.contains(impId) && !rejectedImpIds.containsKey(impId)) {
             rejectedImpIds.put(impId, reason);
             succeededImpIds.remove(impId);
@@ -50,17 +49,14 @@ public class BidRejectionTracker {
             MULTIPLE_BID_REJECTIONS_LOGGER.warn(
                     WARNING_TEMPLATE.formatted(impId, bidder, reason), logSamplingRate);
         }
-        return this;
     }
 
-    public BidRejectionTracker reject(Collection<String> impIds, BidRejectionReason reason) {
+    public void reject(Collection<String> impIds, BidRejectionReason reason) {
         impIds.forEach(impId -> reject(impId, reason));
-        return this;
     }
 
-    public BidRejectionTracker rejectAll(BidRejectionReason reason) {
+    public void rejectAll(BidRejectionReason reason) {
         involvedImpIds.forEach(impId -> reject(impId, reason));
-        return this;
     }
 
     public Map<String, BidRejectionReason> getRejectionReasons() {
