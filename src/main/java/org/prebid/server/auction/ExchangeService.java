@@ -819,6 +819,10 @@ public class ExchangeService {
         final boolean blockedAnalyticsByTcf = bidderPrivacyResult.isBlockedAnalyticsByTcf();
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (blockedRequestByTcf) {
+            context.getBidRejectionTrackers()
+                    .get(bidder)
+                    .rejectAll(BidRejectionReason.REJECTED_BY_PRIVACY);
+
             return AuctionParticipation.builder()
                     .bidder(bidder)
                     .requestBlocked(true)
