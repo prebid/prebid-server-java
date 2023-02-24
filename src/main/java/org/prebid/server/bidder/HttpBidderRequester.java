@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -360,35 +361,44 @@ public class HttpBidderRequester {
             this.mapper = mapper;
         }
 
-        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidsResult) {
+        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidderResponse) {
             bidderCallsRecorded.put(bidderCall.getRequest(), bidderCall);
+            handleBids(bidderResponse);
+            handleBidderErrors(bidderResponse);
+            handleBidderCallError(bidderCall);
+            handleFledgeAuctionConfigs(bidderResponse);
+        }
 
-            final List<BidderBid> bids = bidsResult != null ? bidsResult.getBids() : null;
+        private void handleBids(CompositeBidderResponse bidderResponse) {
+            final List<BidderBid> bids = bidderResponse != null ? bidderResponse.getBids() : null;
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
                 recordSucceededBids(bids, bidRejectionTracker);
             }
+        }
 
-            final List<BidderError> bidderErrors = bidsResult != null ? bidsResult.getErrors() : null;
+        private void handleBidderErrors(CompositeBidderResponse bidderResponse) {
+            final List<BidderError> bidderErrors = bidderResponse != null ? bidderResponse.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
                 recordBidderProvidedErrors(bidRejectionTracker, bidderErrors);
             }
+        }
 
+        private void handleBidderCallError(BidderCall<T> bidderCall) {
             final BidderError callError = bidderCall.getError();
             final BidderError.Type callErrorType = callError != null ? callError.getType() : null;
-            final Set<String> impIdsInvolvedInRequest = bidderCall.getRequest().getImpIds();
-            if (callErrorType != null && CollectionUtils.isNotEmpty(impIdsInvolvedInRequest)) {
-                bidRejectionTracker.reject(impIdsInvolvedInRequest, BidRejectionReason.fromBidderError(callError));
+            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
+            if (callErrorType != null && CollectionUtils.isNotEmpty(requestedImpIds)) {
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.fromBidderError(callError));
             }
+        }
 
-            final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null
-                    ? bidsResult.getFledgeAuctionConfigs()
-                    : null;
-            if (fledgeAuctionConfigs != null) {
-                fledgeRecorded.addAll(fledgeAuctionConfigs);
-            }
+        private void handleFledgeAuctionConfigs(CompositeBidderResponse bidderResponse) {
+            Optional.ofNullable(bidderResponse)
+                    .map(CompositeBidderResponse::getFledgeAuctionConfigs)
+                    .ifPresent(fledgeRecorded::addAll);
         }
 
         BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
