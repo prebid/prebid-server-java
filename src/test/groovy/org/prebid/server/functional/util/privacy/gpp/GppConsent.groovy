@@ -41,7 +41,7 @@ abstract class GppConsent implements ConsentString {
         }
 
         Builder fieldValues(Map<String, Object> fieldValues) {
-            this.fieldValues = [*this.fieldValues, *fieldValues]
+            this.fieldValues.putAll(fieldValues)
             this
         }
 
