@@ -20,9 +20,9 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -100,7 +100,7 @@ public class HttpBidderRequester {
         final List<BidderError> errors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests = enrichRequests(
                 bidderName, httpRequestsWithErrors.getValue(), requestHeaders, aliases, bidRequest);
-        storeBidderProvidedErrors(bidRejectionTracker, errors);
+        recordBidderProvidedErrors(bidRejectionTracker, errors);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(errors);
@@ -127,7 +127,8 @@ public class HttpBidderRequester {
         return CompositeFuture.any(
                         CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
                         completionTracker.future())
-                .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
+                .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled))
+                .onSuccess(seatBid -> recordSucceededBids(seatBid.getBids(), bidRejectionTracker));
     }
 
     private <T> List<HttpRequest<T>> enrichRequests(String bidderName,
@@ -143,10 +144,18 @@ public class HttpBidderRequester {
                 .toList();
     }
 
-    private static void storeBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
+    private static void recordSucceededBids(List<BidderBid> bids, BidRejectionTracker rejectionTracker) {
+        bids.stream()
+                .map(BidderBid::getBid)
+                .map(Bid::getImpid)
+                .forEach(rejectionTracker::succeed);
+    }
+
+    private static void recordBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
         errors.stream()
                 .filter(error -> CollectionUtils.isNotEmpty(error.getImpIds()))
-                .forEach(error -> rejectionTracker.reject(error.getImpIds(), mapToRejectionReason(error)));
+                .forEach(error -> rejectionTracker.reject(
+                        error.getImpIds(), BidRejectionReason.fromBidderError(error)));
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -325,13 +334,6 @@ public class HttpBidderRequester {
         return httpCall;
     }
 
-    private static BidRejectionReason mapToRejectionReason(BidderError bidderError) {
-        return switch (bidderError.getType()) {
-            case timeout -> BidRejectionReason.TIMED_OUT;
-            default -> BidRejectionReason.OTHER_ERROR;
-        };
-    }
-
     private static class ResultBuilder<T> {
 
         private final List<HttpRequest<T>> httpRequests;
@@ -365,22 +367,20 @@ public class HttpBidderRequester {
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
-                bids.stream()
-                        .map(BidderBid::getBid)
-                        .map(Bid::getImpid)
-                        .forEach(bidRejectionTracker::succeed);
+                recordSucceededBids(bids, bidRejectionTracker);
             }
 
             final List<BidderError> bidderErrors = bidsResult != null ? bidsResult.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
-                storeBidderProvidedErrors(bidRejectionTracker, bidderErrors);
+                recordBidderProvidedErrors(bidRejectionTracker, bidderErrors);
             }
 
             final BidderError callError = bidderCall.getError();
+            final BidderError.Type callErrorType = callError != null ? callError.getType() : null;
             final Set<String> impIdsInvolvedInRequest = bidderCall.getRequest().getImpIds();
-            if (callError != null && CollectionUtils.isNotEmpty(impIdsInvolvedInRequest)) {
-                bidRejectionTracker.reject(impIdsInvolvedInRequest, mapToRejectionReason(callError));
+            if (callErrorType != null && CollectionUtils.isNotEmpty(impIdsInvolvedInRequest)) {
+                bidRejectionTracker.reject(impIdsInvolvedInRequest, BidRejectionReason.fromBidderError(callError));
             }
 
             final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null
