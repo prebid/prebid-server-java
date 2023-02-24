@@ -6,10 +6,10 @@ import org.prebid.server.bidder.model.BidderError;
 public enum BidRejectionReason {
 
     NO_BID(0),
-    REJECTED_BY_HOOK(200),
-    REJECTED_BY_MEDIA_TYPE(204),
     TIMED_OUT(101),
-    REJECTED_BY_PRIVACY(204),
+    REJECTED_BY_HOOK(200),
+    REJECTED_BY_PRIVACY(202),
+    REJECTED_BY_MEDIA_TYPE(204),
     REJECTED_DUE_TO_PRICE_FLOOR(301),
     FAILED_TO_REQUEST_BIDS(100),
     OTHER_ERROR(100);
