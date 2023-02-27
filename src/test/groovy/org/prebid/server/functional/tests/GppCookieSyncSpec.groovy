@@ -11,8 +11,9 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.GppConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
+import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -152,7 +153,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should copy regs.gpp to user.consent when gppSid contains 2, gpp is TCF2-EU and user.consent isn't specified without any warning from cookie sync request"() {
         given: "Standard cookie sync, bit and uids requests"
-        def gppConsent = new GppConsent().setFieldValue(TcfEuV2.NAME)
+        def gppConsent = new TcfEuV2Consent.Builder().build()
         def gppSid = [2]
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = gppSid
@@ -189,12 +190,12 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should copy regs.gpp to user.consent when gppSid contains 2, gpp is TCF2-EU and user.consent are different with warning from cookie sync request"() {
         given: "Standard cookie sync, bit and uids requests"
-        def gppConsent = new GppConsent().setFieldValue(TcfEuV2.NAME)
+        def gppConsent = new TcfEuV2Consent.Builder().build()
         def gppSid = [2]
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = gppSid
             regs.gpp = gppConsent
-            user = new User(consent: new GppConsent().setFieldValue(TcfCaV1.NAME))
+            user = new User(consent: new UspV1Consent.Builder().build())
         }
 
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -219,7 +220,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should copy gpp to usPrivacy when gppSid contains 6, gpp is TCF2-EU and us_privacy isn't specified without warnings"() {
         given: "Standard cookie sync without usPrivacy, gpp_sid that include 6 and GPP as USP"
-        def gppConsent = new GppConsent().setFieldValue(UspV1.NAME)
+        def gppConsent = new UspV1Consent.Builder().build()
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = gppConsent
             it.usPrivacy = null
@@ -239,7 +240,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should copy gpp to usPrivacy when gppSid contains 6, gpp is TCF2-EU and us_privacy is specified with warnings"() {
         given: "Standard cookie sync with: usPrivacy, gpp_sid that include 6 and GPP as USP"
-        def gppConsent = new GppConsent().setFieldValue(UspV1.NAME)
+        def gppConsent = new UspV1Consent.Builder().build()
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = gppConsent
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
