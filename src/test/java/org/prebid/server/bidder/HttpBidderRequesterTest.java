@@ -67,6 +67,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.never;
@@ -642,6 +643,71 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200)
                         .build());
+    }
+
+    @Test
+    public void shouldReturnRecordBidRejections() throws JsonProcessingException {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
+
+        final Imp imp2 = Imp.builder().id("2").build();
+        final Imp imp3 = Imp.builder().id("3").build();
+
+        final BidRequest firstBidRequest = givenBidRequest(builder -> builder.id("firstId").imp(singletonList(imp2)));
+        final BidRequest secondBidRequest = givenBidRequest(builder -> builder.id("secondId").imp(singletonList(imp3)));
+        final byte[] firstRequestBody = mapper.writeValueAsBytes(firstBidRequest);
+        final byte[] secondRequestBody = mapper.writeValueAsBytes(secondBidRequest);
+        final HttpRequest<BidRequest> firstRequest = givenSimpleHttpRequest(
+                httpRequestBuilder -> httpRequestBuilder
+                        .uri("uri1")
+                        .body(firstRequestBody)
+                        .payload(firstBidRequest)
+                        .impIds(singleton("2"))
+                        .headers(headers));
+        final HttpRequest<BidRequest> secondRequest = givenSimpleHttpRequest(
+                httpRequestBuilder -> httpRequestBuilder
+                        .uri("uri2")
+                        .body(secondRequestBody)
+                        .payload(secondBidRequest)
+                        .impIds(singleton("3"))
+                        .headers(headers));
+        given(bidder.makeHttpRequests(any())).willReturn(
+                Result.of(
+                        List.of(firstRequest, secondRequest),
+                        singletonList(BidderError.rejectedIpf("error", "1"))));
+
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
+
+        givenHttpClientReturnsResponses(
+                HttpClientResponse.of(200, null, "responseBody1"),
+                HttpClientResponse.of(400, null, null));
+
+        final List<BidderBid> secondRequestBids = singletonList(BidderBid.builder()
+                .bid(Bid.builder().impid("2").build())
+                .build());
+        given(bidder.makeBidderResponse(any(), any()))
+                .willReturn(CompositeBidderResponse.withBids(secondRequestBids, null));
+
+        final BidderRequest bidderRequest = BidderRequest.builder()
+                .bidder("bidder")
+                .bidRequest(BidRequest.builder().build())
+                .build();
+
+        // when
+        httpBidderRequester.requestBids(
+                        bidder,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        timeout,
+                        CaseInsensitiveMultiMap.empty(),
+                        bidderAliases,
+                        true)
+                .result();
+
+        // then
+        verify(bidRejectionTracker, atLeast(1)).succeed("2");
+        verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
+        verify(bidRejectionTracker).reject(singleton("3"), BidRejectionReason.OTHER_ERROR);
     }
 
     @Test
