@@ -37,8 +37,10 @@ public class BidRejectionTracker {
     }
 
     public void succeed(String impId) {
-        succeededImpIds.add(impId);
-        rejectedImpIds.remove(impId);
+        if (involvedImpIds.contains(impId)) {
+            succeededImpIds.add(impId);
+            rejectedImpIds.remove(impId);
+        }
     }
 
     public void reject(String impId, BidRejectionReason reason) {
