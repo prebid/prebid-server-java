@@ -11,7 +11,7 @@ class UspV1Consent extends GppConsent {
     static class Builder extends GppConsent.Builder {
 
         Builder() {
-            super(GppConsent.Section.US_PV_V1)
+            super(GppConsent.Section.USP_V1)
         }
 
         Builder setLspaCovered(String version) {

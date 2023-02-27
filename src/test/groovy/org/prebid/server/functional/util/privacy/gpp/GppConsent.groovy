@@ -55,7 +55,7 @@ abstract class GppConsent implements ConsentString {
     enum Section {
 
         TCF_EU_V2(TcfEuV2.NAME, TcfEuV2.VERSION),
-        US_PV_V1(UspV1.NAME, UspV1.VERSION)
+        USP_V1(UspV1.NAME, UspV1.VERSION)
 
         final String name
         final int version
