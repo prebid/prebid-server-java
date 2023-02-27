@@ -1,4 +1,4 @@
-adapter:
+adapters:
   bidstack:
     endpoint: https://server.bidstack.com/openrtb
     modifying-vast-xml-allowed: true

@@ -76,7 +76,13 @@ public class BidstackBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpBidstack parseExtImp(Imp imp) {
-        return mapper.mapper().convertValue(imp.getExt(), BIDDER_EXT_TYPE_REFERENCE).getBidder();
+        try {
+            return mapper.mapper()
+                    .convertValue(imp.getExt(), BIDDER_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Unable to decode the impression ext for id: " + imp.getId());
+        }
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
@@ -89,8 +95,9 @@ public class BidstackBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
-                .ext(mapper.mapper().createObjectNode()
-                        .set("bidstack", mapper.mapper().valueToTree(parseExtImp(imp))))
+                .ext(mapper.mapper().valueToTree(
+                        ExtPrebid.of("bidstack",
+                                mapper.mapper().valueToTree(parseExtImp(imp)))))
                 .build();
     }
 
@@ -121,7 +128,6 @@ public class BidstackBidder implements Bidder<BidRequest> {
     private  MultiMap constructHeaders(BidRequest bidRequest) {
         String publishedId = parseExtImp(bidRequest.getImp().get(0)).getPublisherId();
         return HttpUtil.headers()
-                .add(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
                 .add(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer " + publishedId);
     }
 

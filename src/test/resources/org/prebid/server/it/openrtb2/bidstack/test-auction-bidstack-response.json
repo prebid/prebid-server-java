@@ -7,12 +7,16 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "crid": "creativeId",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
           "ext": {
-            "origbidcpm": 3.33,
             "prebid": {
               "type": "video"
-            }
+            },
+            "origbidcpm": 3.33
           }
         }
       ],

@@ -3,14 +3,16 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
       },
       "ext": {
-        "tid": "${json-unit.any-string}",
-        "bidder": {
-          "publisherId": "abs123"
+        "bidstack": {
+          "publisherId": "3ce75cd4-b6d2-11ed-afa1-0242ac120002"
         }
       }
     }

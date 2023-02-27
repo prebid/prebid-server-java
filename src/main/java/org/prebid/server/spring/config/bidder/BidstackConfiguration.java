@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.bidscube.BidscubeBidder;
 import org.prebid.server.bidder.bidstack.BidstackBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;

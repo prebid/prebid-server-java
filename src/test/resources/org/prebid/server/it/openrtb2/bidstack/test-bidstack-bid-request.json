@@ -3,15 +3,18 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
       },
+      "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "exampleProperty": "exampleProperty"
+          "publisherId": "3ce75cd4-b6d2-11ed-afa1-0242ac120002"
         }
       }
     }
