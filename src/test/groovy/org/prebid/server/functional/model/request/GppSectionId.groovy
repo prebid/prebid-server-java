@@ -3,7 +3,7 @@ package org.prebid.server.functional.model.request
 enum GppSectionId {
 
     TCF_EU_V2("2"),
-    US_PV_V1("6")
+    USP_V1("6")
 
     final String value
 
