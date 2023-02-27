@@ -35,7 +35,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -78,42 +77,46 @@ public class SspbcBidder implements Bidder<BidRequest> {
         }
 
         final Map<Imp, ExtImpSspbc> impToExt;
-        final SspbcRequestType requestType;
 
         try {
-            impToExt = new HashMap<>(createImpToExt(request));
-            requestType = getRequestType(impToExt);
+            impToExt = createImpToExt(request);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
+        final SspbcRequestType requestType = getRequestType(impToExt);
         final List<Imp> imps = new ArrayList<>();
         String siteId = "";
 
-        for (Imp imp : impToExt.keySet()) {
+        for (Imp imp : request.getImp()) {
             final ExtImpSspbc extImpSspbc = impToExt.get(imp);
-            if (StringUtils.isNotEmpty(extImpSspbc.getSiteId())) {
-                siteId = extImpSspbc.getSiteId();
+            final String extImpSspbcSiteId = extImpSspbc.getSiteId();
+            if (StringUtils.isNotEmpty(extImpSspbcSiteId)) {
+                siteId = extImpSspbcSiteId;
             }
 
             imps.add(updateImp(imp, requestType, extImpSspbc));
         }
 
-        final HttpRequest<BidRequest> bidRequestHttpRequest;
-
         try {
-            bidRequestHttpRequest = createRequest(updateBidRequest(request, imps, requestType, siteId));
+            return Result.withValue(createRequest(updateBidRequest(request, imps, requestType, siteId)));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        return Result.withValue(bidRequestHttpRequest);
     }
 
     private Map<Imp, ExtImpSspbc> createImpToExt(BidRequest request) {
         return request.getImp()
                 .stream()
                 .collect(Collectors.toMap(Function.identity(), this::parseImpExt));
+    }
+
+    private ExtImpSspbc parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), SSPBC_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private Imp updateImp(Imp imp, SspbcRequestType requestType, ExtImpSspbc extImpSspbc) {
@@ -143,6 +146,7 @@ public class SspbcBidder implements Bidder<BidRequest> {
                                         List<Imp> imps,
                                         SspbcRequestType requestType,
                                         String siteId) {
+
         return bidRequest.toBuilder()
                 .imp(imps)
                 .site(updateSite(bidRequest.getSite(), requestType, siteId))
@@ -201,14 +205,6 @@ public class SspbcBidder implements Bidder<BidRequest> {
         return SspbcRequestType.REQUEST_TYPE_STANDARD;
     }
 
-    private ExtImpSspbc parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), SSPBC_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
     private HttpRequest<BidRequest> createRequest(BidRequest request) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -219,7 +215,7 @@ public class SspbcBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private URIBuilder getUri(String endpointUrl) {
+    private static URIBuilder getUri(String endpointUrl) {
         final URIBuilder uri;
         try {
             uri = new URIBuilder(endpointUrl);
