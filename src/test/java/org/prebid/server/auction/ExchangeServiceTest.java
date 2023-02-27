@@ -1088,7 +1088,9 @@ public class ExchangeServiceTest extends VertxTest {
                         .bidRequest(givenBidRequest(
                                 singletonList(givenImp(
                                         null,
-                                        builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null, 1))))),
+                                        builder -> builder
+                                                .id("1")
+                                                .ext(mapper.valueToTree(ExtPrebid.of(null, 1))))),
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
@@ -1099,7 +1101,7 @@ public class ExchangeServiceTest extends VertxTest {
                 any(),
                 anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
-                        givenBidderBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
+                        givenBidderBid(Bid.builder().impid("1").price(BigDecimal.ONE).build())))));
 
         given(httpBidderRequester.requestBids(
                 any(),
@@ -1108,7 +1110,9 @@ public class ExchangeServiceTest extends VertxTest {
                         .bidRequest(givenBidRequest(
                                 singletonList(givenImp(
                                         null,
-                                        builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null, 2))))),
+                                        builder -> builder
+                                                .id("1")
+                                                .ext(mapper.valueToTree(ExtPrebid.of(null, 2))))),
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
@@ -1119,9 +1123,10 @@ public class ExchangeServiceTest extends VertxTest {
                 any(),
                 anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
-                        givenBidderBid(Bid.builder().impid("impId2").price(BigDecimal.ONE).build())))));
+                        givenBidderBid(Bid.builder().impid("1").price(BigDecimal.ONE).build())))));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(doubleMap("bidder", 1, "bidderAlias", 2)),
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp("1", doubleMap("bidder", 1, "bidderAlias", 2)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -4521,6 +4526,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(mapper.valueToTree(singletonMap(
                                 "prebid", ext != null ? singletonMap("bidder", ext) : emptyMap()))))
                 .build();
+    }
+
+    private static <T> List<Imp> givenSingleImp(String impId, T ext) {
+        return singletonList(givenImp(ext, builder -> builder.id(impId)));
     }
 
     private static <T> List<Imp> givenSingleImp(T ext) {

@@ -460,6 +460,7 @@ public class ExchangeService {
     private Map<String, BidRejectionTracker> makeBidRejectionTrackers(BidRequest bidRequest, BidderAliases aliases) {
         final Map<String, Set<String>> impIdToBidders = bidRequest.getImp().stream()
                 .filter(Objects::nonNull)
+                .filter(imp -> StringUtils.isNotEmpty(imp.getId()))
                 .collect(Collectors.toMap(Imp::getId, imp -> bidderNamesFromImpExt(imp, aliases)));
 
         final Map<String, Set<String>> bidderToImpIds = new HashMap<>();
