@@ -1,7 +1,5 @@
 package org.prebid.server.bidder.adrino;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -15,8 +13,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -26,11 +22,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class AdrinoBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpAdrino>> ADRINO_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,10 +41,6 @@ public class AdrinoBidder implements Bidder<BidRequest> {
                         .body(mapper.encodeToBytes(request))
                         .payload(request)
                         .build());
-    }
-
-    private ExtImpAdrino getAdrinoExt(ObjectNode impExt) {
-        return mapper.mapper().convertValue(impExt, ADRINO_EXT_TYPE_REFERENCE).getBidder();
     }
 
     @Override

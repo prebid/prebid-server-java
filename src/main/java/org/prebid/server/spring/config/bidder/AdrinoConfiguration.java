@@ -31,6 +31,7 @@ public class AdrinoConfiguration {
     BidderDeps adrinoBidderDeps(BidderConfigurationProperties adrinoConfigurationProperties,
                                 @NotBlank @Value("${external-url}") String externalUrl,
                                 JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(adrinoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
