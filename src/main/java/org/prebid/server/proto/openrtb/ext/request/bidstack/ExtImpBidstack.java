@@ -5,6 +5,7 @@ import lombok.Value;
 
 @Value(staticConstructor = "of")
 public class ExtImpBidstack {
+
     @JsonProperty("publisherId")
     String publisherId;
 }

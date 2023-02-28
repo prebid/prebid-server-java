@@ -77,7 +77,7 @@ public class BidstackBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE)
-                        .ext( mapper.valueToTree(ExtPrebid.of(null, ExtImpBidstack.of("token"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidstack.of("token"))))
                         .bidfloorcur("EUR"));
 
         // when
@@ -91,7 +91,6 @@ public class BidstackBidderTest extends VertxTest {
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsExactly(tuple(BigDecimal.TEN, "USD"));
     }
-
 
     @Test
     public void makeHttpRequestsShouldReturnErrorMessageOnFailedCurrencyConversion() {
@@ -127,8 +126,8 @@ public class BidstackBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedExtNode = mapper.valueToTree(ExtPrebid.of("bidstack",
-                        ExtImpBidstack.of("token")));
+        final ObjectNode expectedExtNode = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpBidstack.of("token")));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -278,15 +277,6 @@ public class BidstackBidderTest extends VertxTest {
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }
-    
-    private static BidRequest givenBidRequest(
-            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(List.of(givenImp(impCustomizer))))
-                .build();
-    }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
@@ -296,20 +286,29 @@ public class BidstackBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
-
-    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
-        return deviceCustomizer.apply(Device.builder()).build();
-    }
-
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder()
                         .bid(List.of(bidCustomizer.apply(Bid.builder().impid("123")).build()))
                         .build()))
                 .build();
+    }
+
+    private static BidRequest givenBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(List.of(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        return deviceCustomizer.apply(Device.builder()).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

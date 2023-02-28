@@ -19,6 +19,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/bidstack.yaml", factory = YamlPropertySourceFactory.class)
 public class BidstackConfiguration {
+
     private static final String BIDDER_NAME = "bidstack";
 
     @Bean("bidstackConfigurationProperties")

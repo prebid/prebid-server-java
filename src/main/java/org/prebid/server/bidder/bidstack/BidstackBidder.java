@@ -95,9 +95,8 @@ public class BidstackBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
-                .ext(mapper.mapper().valueToTree(
-                        ExtPrebid.of("bidstack",
-                                mapper.mapper().valueToTree(parseExtImp(imp)))))
+                .ext(mapper.mapper().createObjectNode()
+                        .set("bidder", mapper.mapper().valueToTree(parseExtImp(imp))))
                 .build();
     }
 
@@ -125,7 +124,7 @@ public class BidstackBidder implements Bidder<BidRequest> {
         }
     }
 
-    private  MultiMap constructHeaders(BidRequest bidRequest) {
+    private MultiMap constructHeaders(BidRequest bidRequest) {
         String publishedId = parseExtImp(bidRequest.getImp().get(0)).getPublisherId();
         return HttpUtil.headers()
                 .add(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer " + publishedId);
