@@ -82,7 +82,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         assert resolvedRequest.regs.gppSid == gppSidIds
     }
 
-    def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy string"() {
+    def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy and gppSid contains 6"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
         def gppConsent = new UspV1Consent.Builder().build()
         def ampRequest = getGppAmpRequest(gppConsent)
@@ -98,8 +98,9 @@ class GppAmpSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain regs.usPrivacy from consent_string"
+        then: "Bidder request should contain regs.usPrivacy from consent_string and regs.gppSid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.regs.usPrivacy == gppConsent.encodeSection()
+        assert bidderRequest.regs.gppSid == gppSidIds
     }
 }
