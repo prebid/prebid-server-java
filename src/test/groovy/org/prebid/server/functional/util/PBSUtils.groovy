@@ -23,6 +23,11 @@ class PBSUtils implements ObjectMapperWrapper {
         new Random().nextInt(upperBound - min) + min
     }
 
+    static int getRandomNumberWithExclusion(int exceptValue, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        value == exceptValue ? getRandomNumberWithExclusion(exceptValue, min, max) : value
+    }
+
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
         getRandomNumber(max, min * -1) * - 1
     }
@@ -95,10 +100,5 @@ class PBSUtils implements ObjectMapperWrapper {
 
     static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
-    }
-
-    static int getRandomNumberWithExcept(int exceptValue, int min = 0, int max = MAX_VALUE) {
-        def value = getRandomNumber(min, max)
-        value == exceptValue ? getRandomNumberWithExcept(exceptValue, min, max) : value
     }
 }
