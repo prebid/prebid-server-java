@@ -7,10 +7,10 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 676
     usersync:
       cookie-family-name: sspbc
-      redirect:
+      iframe:
         url: https://ssp.wp.pl/bidder/usersync?tcf=2&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
