@@ -200,9 +200,10 @@ class GppAuctionSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request shouldn't contain regs.usPrivacy from regs.gpp"
+        then: "Bidder request shouldn't contain user and regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.regs.usPrivacy
+        assert !bidderRequest.user
 
         and: "Should contain in bidder request regs from bid request regs"
         assert bidderRequest.regs.gppSid == gppSidIds
