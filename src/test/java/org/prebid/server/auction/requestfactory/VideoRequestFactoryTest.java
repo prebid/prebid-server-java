@@ -125,7 +125,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
-        given(ortb2RequestFactory.populateDealsInfo(any()))
+        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
         target = new VideoRequestFactory(

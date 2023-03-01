@@ -25,6 +25,7 @@ class AmpRequest {
     ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
+    String gppSid
 
     static AmpRequest getDefaultAmpRequest() {
         def request = new AmpRequest()

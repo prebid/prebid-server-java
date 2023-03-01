@@ -65,11 +65,6 @@
   },
   "ext": {
     "prebid": {
-      "server": {
-        "externalurl": "http://localhost:8080",
-        "gvlid": 1,
-        "datacenter": "local"
-      },
       "currency": {
         "rates": {
           "EUR": {
@@ -134,7 +129,10 @@
       "channel": {
         "name": "amp"
       },
-      "pbs": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
         "endpoint": "/openrtb2/amp"
       }
     }
