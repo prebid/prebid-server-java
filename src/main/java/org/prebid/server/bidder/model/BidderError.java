@@ -1,18 +1,25 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Represents any kind of error produced by bidder.
  */
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class BidderError {
 
     String message;
 
     Type type;
+
+    Set<String> impIds;
+
+    public static BidderError of(String message, Type type) {
+        return of(message, type, Collections.emptySet());
+    }
 
     public static BidderError create(String message, Type type) {
         return BidderError.of(message, type);
@@ -34,8 +41,8 @@ public class BidderError {
         return BidderError.of(message, Type.bad_server_response);
     }
 
-    public static BidderError rejectedIpf(String message) {
-        return BidderError.of(message, Type.rejected_ipf);
+    public static BidderError rejectedIpf(String message, String impId) {
+        return BidderError.of(message, Type.rejected_ipf, Collections.singleton(impId));
     }
 
     public static BidderError failedToRequestBids(String message) {

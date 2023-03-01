@@ -43,7 +43,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
@@ -166,8 +166,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private static boolean isVideoRequest(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final ExtRequestPrebidPbs pbs = getIfNotNull(prebid, ExtRequestPrebid::getPbs);
-        final String endpointName = getIfNotNull(pbs, ExtRequestPrebidPbs::getEndpoint);
+        final ExtRequestPrebidServer server = getIfNotNull(prebid, ExtRequestPrebid::getServer);
+        final String endpointName = getIfNotNull(server, ExtRequestPrebidServer::getEndpoint);
 
         return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
     }

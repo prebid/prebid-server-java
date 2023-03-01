@@ -5,7 +5,6 @@ import io.vertx.core.eventbus.EventBus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.DealsBidderRequestCompletionTrackerFactory;
@@ -14,8 +13,7 @@ import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.AdminCentralService;
 import org.prebid.server.deals.AlertHttpService;
-import org.prebid.server.deals.DealsPopulator;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.DeliveryProgressReportFactory;
 import org.prebid.server.deals.DeliveryProgressService;
 import org.prebid.server.deals.DeliveryStatsService;
@@ -24,6 +22,7 @@ import org.prebid.server.deals.PlannerService;
 import org.prebid.server.deals.RegisterService;
 import org.prebid.server.deals.Suspendable;
 import org.prebid.server.deals.TargetingService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.deviceinfo.DeviceInfoService;
 import org.prebid.server.deals.events.AdminEventProcessor;
@@ -73,11 +72,6 @@ import java.util.Map;
 
 @Configuration
 public class DealsConfiguration {
-
-    @Bean
-    DealsProcessor dealsProcessor(JacksonMapper mapper) {
-        return new DealsProcessor(mapper);
-    }
 
     @Configuration
     @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == false")
@@ -159,7 +153,6 @@ public class DealsConfiguration {
         LineItemService lineItemService(
                 @Value("${deals.max-deals-per-bidder}") int maxDealsPerBidder,
                 TargetingService targetingService,
-                BidderCatalog bidderCatalog,
                 CurrencyConversionService conversionService,
                 ApplicationEventService applicationEventService,
                 @Value("${auction.ad-server-currency}") String adServerCurrency,
@@ -168,7 +161,6 @@ public class DealsConfiguration {
 
             return new LineItemService(maxDealsPerBidder,
                     targetingService,
-                    bidderCatalog,
                     conversionService,
                     applicationEventService,
                     adServerCurrency,
@@ -455,7 +447,6 @@ public class DealsConfiguration {
         SimulationAwareLineItemService lineItemService(
                 @Value("${deals.max-deals-per-bidder}") int maxDealsPerBidder,
                 TargetingService targetingService,
-                BidderCatalog bidderCatalog,
                 CurrencyConversionService conversionService,
                 ApplicationEventService applicationEventService,
                 @Value("${auction.ad-server-currency}") String adServerCurrency,
@@ -465,7 +456,6 @@ public class DealsConfiguration {
             return new SimulationAwareLineItemService(
                     maxDealsPerBidder,
                     targetingService,
-                    bidderCatalog,
                     conversionService,
                     applicationEventService,
                     adServerCurrency,
@@ -607,15 +597,16 @@ public class DealsConfiguration {
         }
 
         @Bean
-        DealsPopulator dealsPopulator(LineItemService lineItemService,
-                                      @Autowired(required = false) DeviceInfoService deviceInfoService,
-                                      @Autowired(required = false) GeoLocationService geoLocationService,
-                                      UserService userService,
-                                      Clock clock,
-                                      JacksonMapper mapper,
-                                      CriteriaLogManager criteriaLogManager) {
+        UserAdditionalInfoService userAdditionalInfoService(
+                LineItemService lineItemService,
+                @Autowired(required = false) DeviceInfoService deviceInfoService,
+                @Autowired(required = false) GeoLocationService geoLocationService,
+                UserService userService,
+                Clock clock,
+                JacksonMapper mapper,
+                CriteriaLogManager criteriaLogManager) {
 
-            return new DealsPopulator(
+            return new UserAdditionalInfoService(
                     lineItemService,
                     deviceInfoService,
                     geoLocationService,
@@ -623,6 +614,14 @@ public class DealsConfiguration {
                     clock,
                     mapper,
                     criteriaLogManager);
+        }
+
+        @Bean
+        DealsService dealsService(LineItemService lineItemService,
+                                  JacksonMapper mapper,
+                                  CriteriaLogManager criteriaLogManager) {
+
+            return new DealsService(lineItemService, mapper, criteriaLogManager);
         }
 
         @Bean

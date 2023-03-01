@@ -1039,7 +1039,10 @@ public class BidResponseCreator {
      */
     private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
         return errors.stream()
-                .map(bidderError -> ExtBidderError.of(bidderError.getType().getCode(), bidderError.getMessage()))
+                .map(bidderError -> ExtBidderError.of(
+                        bidderError.getType().getCode(),
+                        bidderError.getMessage(),
+                        nullIfEmpty(bidderError.getImpIds())))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 

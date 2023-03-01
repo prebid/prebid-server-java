@@ -1,8 +1,9 @@
 package org.prebid.server.deals.simulation;
 
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.LineItemService;
 import org.prebid.server.deals.TargetingService;
@@ -20,26 +21,42 @@ public class SimulationAwareLineItemService extends LineItemService {
 
     public SimulationAwareLineItemService(int maxDealsPerBidder,
                                           TargetingService targetingService,
-                                          BidderCatalog bidderCatalog,
                                           CurrencyConversionService conversionService,
                                           ApplicationEventService applicationEventService,
                                           @Value("${auction.ad-server-currency}}") String adServerCurrency,
                                           Clock clock,
                                           CriteriaLogManager criteriaLogManager) {
 
-        super(maxDealsPerBidder, targetingService, bidderCatalog, conversionService, applicationEventService,
-                adServerCurrency, clock, criteriaLogManager);
+        super(
+                maxDealsPerBidder,
+                targetingService,
+                conversionService,
+                applicationEventService,
+                adServerCurrency,
+                clock,
+                criteriaLogManager);
     }
 
     @Override
     public boolean accountHasDeals(AuctionContext auctionContext) {
-        return accountHasDeals(auctionContext.getAccount().getId(),
+        return accountHasDeals(
+                auctionContext.getAccount().getId(),
                 HttpUtil.getDateFromHeader(auctionContext.getHttpRequest().getHeaders(), PG_SIM_TIMESTAMP));
     }
 
     @Override
-    public MatchLineItemsResult findMatchingLineItems(AuctionContext auctionContext, Imp imp) {
-        return findMatchingLineItems(auctionContext, imp,
+    public MatchLineItemsResult findMatchingLineItems(BidRequest bidRequest,
+                                                      Imp imp,
+                                                      String bidder,
+                                                      BidderAliases aliases,
+                                                      AuctionContext auctionContext) {
+
+        return findMatchingLineItems(
+                bidRequest,
+                imp,
+                bidder,
+                aliases,
+                auctionContext,
                 HttpUtil.getDateFromHeader(auctionContext.getHttpRequest().getHeaders(), PG_SIM_TIMESTAMP));
     }
 }
