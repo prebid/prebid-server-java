@@ -11,8 +11,10 @@
         "h": 480
       },
       "secure": 1,
-      "bidfloorcur" : "USD",
+      "bidfloor": 4.20,
+      "bidfloorcur": "USD",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "publisherId": "3ce75cd4-b6d2-11ed-afa1-0242ac120002"
         }

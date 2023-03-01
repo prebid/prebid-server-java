@@ -19,6 +19,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidstack.ExtImpBidstack;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -57,21 +58,21 @@ public class BidstackBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> updatedImps = new ArrayList<>();
 
-        for (Imp imp : request.getImp()) {
-            try {
-                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp);
-                updatedImps.add(updateImp(imp, resolvedBidFloor));
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
+        MultiMap headers;
+        try {
+            headers = constructHeaders(request);
+            for (Imp imp : request.getImp()) {
+                updatedImps.add(updateImp(imp, request));
             }
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
         final BidRequest updatedBidRequest = updateBidRequest(request, updatedImps);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(constructHeaders(updatedBidRequest))
+                .headers(headers)
                 .body(mapper.encodeToBytes(updatedBidRequest))
                 .payload(updatedBidRequest)
                 .build());
@@ -87,25 +88,27 @@ public class BidstackBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
-        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
-                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
-                : imp.getBidfloor();
+    private Imp updateImp(Imp imp, BidRequest request) {
+        final UpdateResult<BigDecimal> resolvedBidFloor = resolveBidFloor(request, imp);
+
+        return resolvedBidFloor.isUpdated()
+                ? imp.toBuilder()
+                .bidfloorcur(BIDDER_CURRENCY)
+                .bidfloor(resolvedBidFloor.getValue())
+                .build()
+                : imp;
     }
 
-    private Imp updateImp(Imp imp, BigDecimal bidFloor) {
-        return imp.toBuilder()
-                .bidfloorcur(BIDDER_CURRENCY)
-                .bidfloor(bidFloor)
-                .ext(mapper.mapper().createObjectNode()
-                        .set("bidder", mapper.mapper().valueToTree(parseExtImp(imp))))
-                .build();
+    private UpdateResult<BigDecimal> resolveBidFloor(BidRequest request, Imp imp) {
+        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
+                ? UpdateResult.updated(convertBidFloorCurrency(
+                imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur()))
+                : UpdateResult.unaltered(imp.getBidfloor());
     }
 
     private static BidRequest updateBidRequest(BidRequest request, List<Imp> updatedImps) {
         return request.toBuilder()
                 .imp(updatedImps)
-                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 

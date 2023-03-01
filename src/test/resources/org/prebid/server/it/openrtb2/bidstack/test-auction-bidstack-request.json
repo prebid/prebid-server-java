@@ -10,6 +10,8 @@
         "w": 640,
         "h": 480
       },
+      "bidfloor": 4.20,
+      "bidfloorcur": "USD",
       "ext": {
         "bidstack": {
           "publisherId": "3ce75cd4-b6d2-11ed-afa1-0242ac120002"
