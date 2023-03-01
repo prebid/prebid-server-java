@@ -1,0 +1,22 @@
+adapters:
+  taboola:
+    endpoint: "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}"
+    meta-info:
+      maintainer-email: ps-team@taboola.com
+      app-media-types:
+            - banner
+            - native
+      site-media-types:
+          mediaTypes:
+            - banner
+            - native
+      supported-vendors:
+      vendor-id: 42
+    userSync:
+      redirect:
+        url: https://trc.taboola.com/sg/ps/1/cm?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}
+        uid-macro: '{TUID}'
+      iframe:
+        url: https://cdn.taboola.com/scripts/ps-sync.html?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}
+        uid-macro: '{TUID}'
+
