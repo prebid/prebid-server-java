@@ -8,6 +8,11 @@ class UspV1Consent extends GppConsent {
         super(section, fieldValues)
     }
 
+    @Override
+    String encodeSection() {
+       gppModel.encodeSection(Section.USP_V1.name)
+    }
+
     static class Builder extends GppConsent.Builder {
 
         Builder() {
