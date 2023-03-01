@@ -70,14 +70,14 @@ public class BidstackBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldConvertCurrencyIfNotDefault() {
+    public void makeHttpRequestsShouldConvertCurrencyIfNotDefaultAndAdditionalParametersEmpty() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willReturn(BigDecimal.TEN);
 
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidstack.of("token"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidstack.of("token", null, null))))
                         .bidfloorcur("EUR"));
 
         // when
@@ -127,7 +127,7 @@ public class BidstackBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExtNode = mapper.valueToTree(ExtPrebid.of(null,
-                ExtImpBidstack.of("token")));
+                ExtImpBidstack.of("token", "test-placement", true)));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -282,7 +282,7 @@ public class BidstackBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpBidstack.of("token")))))
+                                ExtImpBidstack.of("token", "test-placement", true)))))
                 .build();
     }
 

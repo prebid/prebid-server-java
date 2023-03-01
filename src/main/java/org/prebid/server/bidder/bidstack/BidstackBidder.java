@@ -35,6 +35,7 @@ import java.util.Objects;
 public class BidstackBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "USD";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
@@ -46,6 +47,7 @@ public class BidstackBidder implements Bidder<BidRequest> {
     public BidstackBidder(String endpointUrl,
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -54,11 +56,9 @@ public class BidstackBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> updatedImps = new ArrayList<>();
-
         for (Imp imp : request.getImp()) {
             try {
-                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp);
-                updatedImps.add(updateImp(imp, resolvedBidFloor));
+                updatedImps.add(updateImp(request, imp));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -75,7 +75,7 @@ public class BidstackBidder implements Bidder<BidRequest> {
                 .build());
     }
 
-    private ExtImpBidstack parseExtImp(Imp imp) {
+    private ExtImpBidstack parseExtImp(Imp imp) throws PreBidException {
         try {
             return mapper.mapper()
                     .convertValue(imp.getExt(), BIDDER_EXT_TYPE_REFERENCE)
@@ -86,15 +86,17 @@ public class BidstackBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
-        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
-                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
-                : imp.getBidfloor();
+        return convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur());
     }
 
-    private Imp updateImp(Imp imp, BigDecimal bidFloor) {
+    private Imp updateImp(BidRequest request, Imp imp) {
+        if (!shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())) {
+            parseExtImp(imp);
+            return imp;
+        }
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
-                .bidfloor(bidFloor)
+                .bidfloor(resolveBidFloor(request, imp))
                 .ext(mapper.mapper().createObjectNode()
                         .set("bidder", mapper.mapper().valueToTree(parseExtImp(imp))))
                 .build();
@@ -125,7 +127,7 @@ public class BidstackBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap constructHeaders(BidRequest bidRequest) {
-        String publishedId = parseExtImp(bidRequest.getImp().get(0)).getPublisherId();
+        final String publishedId = StringUtils.defaultString(parseExtImp(bidRequest.getImp().get(0)).getPublisherId());
         return HttpUtil.headers()
                 .add(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer " + publishedId);
     }
