@@ -56,9 +56,11 @@ public class BidstackBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> updatedImps = new ArrayList<>();
+
         for (Imp imp : request.getImp()) {
             try {
-                updatedImps.add(updateImp(request, imp));
+                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp);
+                updatedImps.add(updateImp(imp, resolvedBidFloor));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -86,17 +88,15 @@ public class BidstackBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
-        return convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur());
+        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
+                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
+                : imp.getBidfloor();
     }
 
-    private Imp updateImp(BidRequest request, Imp imp) {
-        if (!shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())) {
-            parseExtImp(imp);
-            return imp;
-        }
+    private Imp updateImp(Imp imp, BigDecimal bidFloor) {
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
-                .bidfloor(resolveBidFloor(request, imp))
+                .bidfloor(bidFloor)
                 .ext(mapper.mapper().createObjectNode()
                         .set("bidder", mapper.mapper().valueToTree(parseExtImp(imp))))
                 .build();
