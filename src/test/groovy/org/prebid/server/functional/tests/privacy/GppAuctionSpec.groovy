@@ -35,6 +35,10 @@ class GppAuctionSpec extends BaseSpec {
         def regs = bidResponse.ext.debug.resolvedRequest.regs
         assert regs.gdpr == 1
         assert regs.gppSid == gppSidIds
+
+        and: "Bidder wasn't be call due to lack the consent string"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 0
     }
 
     def "PBS should populate gdpr to 0 when regs.gdpr is not specified and gppSid not contains 2"() {
@@ -98,7 +102,7 @@ class GppAuctionSpec extends BaseSpec {
         assert resolvedRequest.regs.gdpr == gdpr
         assert resolvedRequest.regs.gppSid == gppSidIds
 
-        and: "Bidder shouldn't be call due to lack the consent string"
+        and: "Bidder wasn't be call due to lack the consent string"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequests.size() == 0
     }
