@@ -3,13 +3,15 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.CcpaConsent
-import org.prebid.server.functional.util.privacy.GppConsent
+import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
+import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
 
+import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
+import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
-import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 class GppAmpSpec extends PrivacyBaseSpec {
 
@@ -27,14 +29,13 @@ class GppAmpSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
+        then: "Response should contain warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == ["Invalid GPP consent_string."]
+        assert response.ext?.warnings[PREBID]*.message.every { it.contains("GPP string invalid:") }
     }
 
     def "PBS should copy consent_string to regs.gpp when consent_string is valid"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
-        def gppConsent = new GppConsent().setFieldValue()
         def ampRequest = getGppAmpRequest(gppConsent)
 
         and: "Save storedRequest into DB"
@@ -48,37 +49,49 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain regs.gpp from consent_string"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.regs.gpp == gppConsent as String
+
+        where:
+        gppConsent << [new TcfEuV2Consent.Builder().build(),
+                       new UspV1Consent.Builder().build()]
     }
 
-    def "PBS should copy consent_string to user.consent and set gdrp=1 when consent_string is valid and gppSid contains 2"() {
+    def "PBS should copy consent_string to user.consent and set gdpr=1 when consent_string is valid and gppSid contains 2"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
-        def gppConsent = new GppConsent().setFieldValue()
+        def gppConsent = new TcfEuV2Consent.Builder().build()
         def ampRequest = getGppAmpRequest(gppConsent)
 
         and: "Save storedRequest into DB"
+        def gppSidIds = [TCF_EU_V2.valueAsInt]
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            regs.gppSid = [2]
-            regs.gdpr = 0
+            regs = new Regs(gppSid: gppSidIds, gdpr: null)
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain regs.gdpr and user.consent from regs.gpp"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.user.consent == gppConsent as String
-        assert bidderRequest.regs.gdpr == 1
+        then: "PBS shouldn't be perform bidder call"
+        def bidderRequest = bidder.getBidderRequests(ampStoredRequest.id)
+        assert bidderRequest.size() == 0
+
+        and: "Resolved request should contain user.consent, gdpr=1 and gpp form amp stored request"
+        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
+        assert resolvedRequest.user.consent == gppConsent.encodeSection()
+        assert resolvedRequest.regs.gdpr == 1
+        assert resolvedRequest.regs.gppSid == gppSidIds
     }
 
     def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy string"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
-        def ccpaConsent = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        def ampRequest = getGppAmpRequest(ccpaConsent)
+        def gppConsent = new UspV1Consent.Builder().build()
+        def ampRequest = getGppAmpRequest(gppConsent)
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = BidRequest.defaultStoredRequest
+        def gppSidIds = [USP_V1.valueAsInt]
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            regs = new Regs(gppSid: gppSidIds)
+        }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -87,6 +100,6 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should contain regs.usPrivacy from consent_string"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.regs.usPrivacy == ccpaConsent as String
+        assert bidderRequest.regs.usPrivacy == gppConsent.encodeSection()
     }
 }
