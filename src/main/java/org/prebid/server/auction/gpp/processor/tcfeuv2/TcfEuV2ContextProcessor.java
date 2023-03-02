@@ -18,9 +18,7 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
     public GppContext process(GppContext gppContext) {
         final GppContext.Scope scope = gppContext.scope();
         final Set<Integer> sectionsIds = scope.getSectionsIds();
-
-        final GppContext.Regions regions = gppContext.regions();
-        final TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
+        final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
 
         final List<String> errors = gppContext.errors();
 
@@ -67,9 +65,9 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
     }
 
     private static UpdateResult<String> resolveConsent(String consent,
-                                                GppModel gppModel,
-                                                Set<Integer> sectionsIds,
-                                                List<String> errors) {
+                                                       GppModel gppModel,
+                                                       Set<Integer> sectionsIds,
+                                                       List<String> errors) {
 
         if (!isValidScope(gppModel, sectionsIds)) {
             return UpdateResult.unaltered(consent);

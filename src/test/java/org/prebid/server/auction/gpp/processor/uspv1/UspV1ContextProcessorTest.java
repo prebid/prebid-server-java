@@ -15,7 +15,9 @@ import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import java.util.ArrayList;
 import java.util.Set;
 
+import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class UspV1ContextProcessorTest {
@@ -49,14 +51,28 @@ public class UspV1ContextProcessorTest {
     }
 
     @Test
-    public void processShouldReturnSameGppContextIfPrivacyAlreadyExists() throws EncodingException {
+    public void processShouldReturnGppContextWithSameUsPrivacyIfUspV1NotInScope() throws EncodingException {
         // given
-        given(gppModel.hasSection(UspV1.ID)).willReturn(true);
-        given(gppModel.encodeSection(UspV1.ID)).willReturn("usPrivacy");
+        given(gppModel.hasSection(eq(UspV1.ID))).willReturn(true);
+        given(gppModel.encodeSection(eq(UspV1.ID))).willReturn("usPrivacy");
 
-        final GppContext gppContext = givenGppContext(
-                Set.of(UspV1.ID),
-                UspV1Privacy.of("usPrivacy"));
+        final GppContext gppContext = givenGppContext(emptySet(), UspV1Privacy.of(null));
+
+        // when
+        final GppContext result = uspV1ContextProcessor.process(gppContext);
+
+        // then
+        assertThat(result).isSameAs(gppContext);
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    public void processShouldReturnGppContextWithSameUsPrivacyIfGppDoesNotContainsUspV1() throws EncodingException {
+        // given
+        given(gppModel.hasSection(eq(UspV1.ID))).willReturn(false);
+        given(gppModel.encodeSection(eq(UspV1.ID))).willReturn("usPrivacy");
+
+        final GppContext gppContext = givenGppContext(Set.of(UspV1.ID), UspV1Privacy.of(null));
 
         // when
         final GppContext result = uspV1ContextProcessor.process(gppContext);
@@ -86,7 +102,25 @@ public class UspV1ContextProcessorTest {
     }
 
     @Test
-    public void processShouldAddErrors() throws EncodingException {
+    public void processShouldReturnSameGppContextIfPrivacyAlreadyExists() throws EncodingException {
+        // given
+        given(gppModel.hasSection(UspV1.ID)).willReturn(true);
+        given(gppModel.encodeSection(UspV1.ID)).willReturn("usPrivacy");
+
+        final GppContext gppContext = givenGppContext(
+                Set.of(UspV1.ID),
+                UspV1Privacy.of("usPrivacy"));
+
+        // when
+        final GppContext result = uspV1ContextProcessor.process(gppContext);
+
+        // then
+        assertThat(result).isSameAs(gppContext);
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    public void processShouldReturnErrorIfUsPrivacyDoesNotMatchGppUsPrivacy() throws EncodingException {
         // given
         given(gppModel.hasSection(UspV1.ID)).willReturn(true);
         given(gppModel.encodeSection(UspV1.ID)).willReturn("another");
@@ -100,7 +134,7 @@ public class UspV1ContextProcessorTest {
 
         // then
         assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).isNotEmpty();
+        assertThat(result.errors()).containsExactly("USP string does not match regs.us_privacy");
     }
 
     private GppContext givenGppContext(Set<Integer> sectionsIds, UspV1Privacy uspV1Privacy) {
