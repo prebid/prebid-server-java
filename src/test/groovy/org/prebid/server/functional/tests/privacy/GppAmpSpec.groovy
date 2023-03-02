@@ -17,13 +17,15 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should emit warning when consent_string is invalid"() {
         given: "Default amp request with invalid consent_string"
+        def consentString = PBSUtils.randomString
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            consentString = PBSUtils.randomString
+            it.consentString = consentString
             consentType = GPP
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, BidRequest.defaultStoredRequest)
+        def bidRequest = BidRequest.defaultStoredRequest
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, bidRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -32,6 +34,10 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Response should contain warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message.every { it.contains("GPP string invalid:") }
+
+        and: "Bidder request should contain gpp from consent string"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.regs.gpp == consentString
     }
 
     def "PBS should copy consent_string to regs.gpp when consent_string is valid"() {
