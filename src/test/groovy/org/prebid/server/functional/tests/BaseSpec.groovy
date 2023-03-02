@@ -1,14 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.config.AccountAuctionConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
-import org.prebid.server.functional.model.config.PriceFloorsFetch
-import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.pricefloors.MediaType
-import org.prebid.server.functional.model.pricefloors.Rule
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
@@ -18,7 +9,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
-import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils

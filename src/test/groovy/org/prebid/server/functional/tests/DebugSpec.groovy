@@ -1,20 +1,14 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
-import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
-import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
-import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
-import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
-import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils

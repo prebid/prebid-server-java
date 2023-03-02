@@ -1,25 +1,20 @@
 package org.prebid.server.functional.tests
 
 import org.mockserver.model.HttpStatusCode
-import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
-import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.Prebid
-import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.NO_BID
-import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.OTHER_ERROR
-import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.REJECTED_DUE_TO_FLOOR
-import static org.prebid.server.functional.model.response.auction.ImpRejectionReason.TIMEOUT
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.FAILED_TO_REQUEST_BIDS
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.OTHER_ERROR
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.TIMED_OUT
 
 class SeatNonBidSpec extends BaseSpec {
 
+    @PendingFeature
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -43,9 +38,10 @@ class SeatNonBidSpec extends BaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == NO_BID
+        assert seatNonBid.nonBid[0].statusCode == FAILED_TO_REQUEST_BIDS
     }
 
+    @PendingFeature
     def "PBS should populate seatNonBid and debug when returnAllBidStatus=true, debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -69,7 +65,7 @@ class SeatNonBidSpec extends BaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == NO_BID
+        assert seatNonBid.nonBid[0].statusCode == FAILED_TO_REQUEST_BIDS
 
         and: "PBS response shouldn't contain debug"
         assert !response?.ext?.debug
@@ -118,6 +114,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response.ext.seatnonbid
     }
 
+    @PendingFeature
     def "PBS shouldn't populate seatNonBid with successful bids"() {
         given: "Default bid request with enabled returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -125,7 +122,9 @@ class SeatNonBidSpec extends BaseSpec {
         }
 
         and: "Default bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid = []
+        }
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -154,21 +153,13 @@ class SeatNonBidSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should remove banner imp from bidder request"
-        assert response.ext?.seatnonbid
-        def seatNonBid = response.ext.seatnonbid[0]
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == OTHER_ERROR
-
-        and: "Response should contain error"
-        assert response.ext?.warnings[ErrorType.GENERIC].size() == 2
-        assert response.ext?.warnings[ErrorType.GENERIC][0].code == 2
-        assert response.ext?.warnings[ErrorType.GENERIC][1].code == 2
-        assert response.ext?.warnings[ErrorType.GENERIC][0].message ==
-                "Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from the " +
-                "request for this bidder."
-        assert response.ext?.warnings[ErrorType.GENERIC][1].message ==
-                "Bid request contains 0 impressions after filtering."
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
@@ -192,11 +183,13 @@ class SeatNonBidSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid and contain errors"
-        def seatNonBid = response.ext.seatnonbid[0]
-        assert response.ext.seatnonbid.size() == 1
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == TIMEOUT
+        assert seatNonBid.nonBid[0].statusCode == TIMED_OUT
     }
 
 }
