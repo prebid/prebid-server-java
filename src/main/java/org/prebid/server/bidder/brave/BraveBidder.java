@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.brave.ExtImpBrave;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -49,7 +50,7 @@ public class BraveBidder implements Bidder<BidRequest> {
         final String url;
 
         try {
-            ExtImpBrave extImpBrave = parseImpExt(request.getImp().get(0));
+            final ExtImpBrave extImpBrave = parseImpExt(request.getImp().get(0));
             url = resolveEndpoint(extImpBrave.getPlacementId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -110,9 +111,12 @@ public class BraveBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
-
-        return firstSeatBid.getBid().stream()
+        return bidResponse.getSeatbid().stream()
+                .limit(1)
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), BIDDER_CURRENCY))
                 .toList();
