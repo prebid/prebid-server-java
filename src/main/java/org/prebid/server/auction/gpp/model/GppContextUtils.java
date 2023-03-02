@@ -9,10 +9,6 @@ import org.prebid.server.exception.PreBidException;
 
 class GppContextUtils {
 
-    static final GppContext.Regions.RegionsBuilder DEFAULT_REGIONS_BUILDER = GppContext.Regions.builder()
-            .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
-            .uspV1Privacy(UspV1Privacy.of(null));
-
     private GppContextUtils() {
     }
 
