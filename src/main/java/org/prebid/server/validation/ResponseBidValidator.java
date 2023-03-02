@@ -30,7 +30,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
-import org.prebid.server.util.DealUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.ArrayList;
@@ -387,7 +386,7 @@ public class ResponseBidValidator {
     private Set<String> getDealIdsFromImp(Imp imp, String bidder, BidderAliases aliases) {
         return getDeals(imp)
                 .filter(Objects::nonNull)
-                .filter(deal -> DealUtil.isBidderHasDeal(bidder, dealExt(deal.getExt()), aliases))
+                .filter(deal -> isBidderHasDeal(bidder, dealExt(deal.getExt()), aliases))
                 .map(Deal::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -396,6 +395,12 @@ public class ResponseBidValidator {
     private static Stream<Deal> getDeals(Imp imp) {
         final Pmp pmp = imp.getPmp();
         return pmp != null ? pmp.getDeals().stream() : Stream.empty();
+    }
+
+    private static boolean isBidderHasDeal(String bidder, ExtDeal extDeal, BidderAliases aliases) {
+        final ExtDealLine extDealLine = extDeal != null ? extDeal.getLine() : null;
+        final String dealLineBidder = extDealLine != null ? extDealLine.getBidder() : null;
+        return dealLineBidder == null || aliases.isSame(bidder, dealLineBidder);
     }
 
     private static boolean bidSizeNotInFormats(Bid bid, List<Format> formats) {

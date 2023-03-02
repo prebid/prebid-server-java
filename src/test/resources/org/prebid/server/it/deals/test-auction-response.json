@@ -720,7 +720,7 @@
       "prebid": [
         {
           "code": 999,
-          "message": "Not calling rubicon bidders for impression impId3 due to pgdealsonly flag and no available PG line items."
+          "message": "Not calling rubicon bidder for impressions impId3 due to pgdealsonly flag and no available PG line items."
         }
       ]
     },

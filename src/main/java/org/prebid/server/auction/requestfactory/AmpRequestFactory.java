@@ -53,6 +53,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -74,10 +75,11 @@ public class AmpRequestFactory {
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
-    private static final String CONSENT_PARAM = "consent_string";
+    private static final String CONSENT_STRING_PARAM = "consent_string";
     private static final String GDPR_APPLIES_PARAM = "gdpr_applies";
     private static final String CONSENT_TYPE_PARAM = "consent_type";
     private static final String ADDTL_CONSENT_PARAM = "addtl_consent";
+    private static final String GPP_SID_PARAM = "gpp_sid";
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
@@ -148,7 +150,7 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateDealsInfo)
+                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 
@@ -173,13 +175,14 @@ public class AmpRequestFactory {
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
+        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
                 .user(createUser(consentParam, addtlConsent))
-                .regs(createRegs(consentParam, gdpr))
+                .regs(createRegs(consentParam, gppSidExtraction, gdpr))
                 .test(debug)
                 .tmax(timeout)
                 .ext(createExt(httpRequest, tagId, debug))
@@ -192,11 +195,11 @@ public class AmpRequestFactory {
         final ConsentType specifiedConsentType = ConsentType.from(httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM));
         final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
 
-        final String consentParam = queryParams.get(CONSENT_PARAM);
+        final String consentStringParam = queryParams.get(CONSENT_STRING_PARAM);
         final String gdprConsentParam = queryParams.get(GDPR_CONSENT_PARAM);
 
-        return StringUtils.isNotBlank(consentParam)
-                ? toConsentParam(consentParam, CONSENT_PARAM, specifiedConsentType)
+        return StringUtils.isNotBlank(consentStringParam)
+                ? toConsentParam(consentStringParam, CONSENT_STRING_PARAM, specifiedConsentType)
                 : toConsentParam(gdprConsentParam, GDPR_CONSENT_PARAM, specifiedConsentType);
     }
 
@@ -256,11 +259,24 @@ public class AmpRequestFactory {
         return User.builder().consent(consent).ext(extUser).build();
     }
 
-    private static Regs createRegs(ConsentParam consentParam, Integer gdpr) {
+    private static Regs createRegs(ConsentParam consentParam,
+                                   GppSidExtraction gppSidExtraction,
+                                   Integer gdpr) {
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
-        return gdpr != null || usPrivacy != null
-                ? Regs.builder().gdpr(gdpr).usPrivacy(usPrivacy).build()
+        final boolean isSuccessGppSidExtraction = gppSidExtraction.isSuccessExtraction();
+        final List<Integer> gppSid = isSuccessGppSidExtraction ? gppSidExtraction.getGppSid() : null;
+        final String gpp = isSuccessGppSidExtraction && consentParam.isGppCompatible()
+                ? consentParam.getConsentString()
+                : null;
+
+        return gdpr != null || usPrivacy != null || gppSid != null || gpp != null
+                ? Regs.builder()
+                .gdpr(gdpr)
+                .usPrivacy(usPrivacy)
+                .gppSid(gppSid)
+                .gpp(gpp)
+                .build()
                 : null;
     }
 
@@ -302,6 +318,22 @@ public class AmpRequestFactory {
         }
 
         return null;
+    }
+
+    private static GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest) {
+        final String gppSidParam = httpRequest.getQueryParams().get(GPP_SID_PARAM);
+
+        try {
+            final List<Integer> gppSid = StringUtils.isNotBlank(gppSidParam)
+                    ? Arrays.stream(gppSidParam.split(","))
+                    .map(Integer::valueOf)
+                    .toList()
+                    : null;
+
+            return GppSidExtraction.success(gppSid);
+        } catch (IllegalArgumentException e) {
+            return GppSidExtraction.failed();
+        }
     }
 
     private static Long timeoutFromQueryString(HttpRequestContext httpRequest) {
@@ -715,6 +747,22 @@ public class AmpRequestFactory {
     }
 
     @Value(staticConstructor = "of")
+    private static class GppSidExtraction {
+
+        List<Integer> gppSid;
+
+        boolean successExtraction;
+
+        static GppSidExtraction success(List<Integer> gppSid) {
+            return GppSidExtraction.of(gppSid, true);
+        }
+
+        static GppSidExtraction failed() {
+            return GppSidExtraction.of(null, false);
+        }
+    }
+
+    @Value(staticConstructor = "of")
     private static class ConsentParam {
 
         String consentString;
@@ -736,6 +784,10 @@ public class AmpRequestFactory {
 
         public boolean isCcpaCompatible() {
             return (isConsentStringPresent() && specifiedType == ConsentType.CCPA) || isCcpa;
+        }
+
+        public boolean isGppCompatible() {
+            return isConsentStringPresent() && specifiedType == ConsentType.GPP;
         }
 
         public boolean isValid() {
