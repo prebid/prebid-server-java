@@ -23,7 +23,6 @@ import org.prebid.server.proto.openrtb.ext.request.brave.ExtImpBrave;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
