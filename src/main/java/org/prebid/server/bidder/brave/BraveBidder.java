@@ -30,6 +30,9 @@ import java.util.stream.IntStream;
 public class BraveBidder implements Bidder<BidRequest> {
 
     private static final String PUBLISHER_MACRO = "{{.PublisherID}}";
+
+    private static final String BIDDER_CURRENCY = "USD";
+
     private static final TypeReference<ExtPrebid<?, ExtImpBrave>> BRAVE_TYPE_REFERENCE = new TypeReference<>() {
     };
 
@@ -111,7 +114,7 @@ public class BraveBidder implements Bidder<BidRequest> {
 
         return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), BIDDER_CURRENCY))
                 .toList();
     }
 

@@ -156,7 +156,7 @@ public class BraveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), banner, "USD"));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class BraveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), video, null));
+                .containsExactly(BidderBid.of(givenBid(), video, "USD"));
     }
 
     @Test
@@ -188,7 +188,7 @@ public class BraveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), xNative, null));
+                .containsExactly(BidderBid.of(givenBid(), xNative, "USD"));
     }
 
     @Test
@@ -204,7 +204,7 @@ public class BraveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), banner, "USD"));
     }
 
     @Test
@@ -221,7 +221,7 @@ public class BraveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(
