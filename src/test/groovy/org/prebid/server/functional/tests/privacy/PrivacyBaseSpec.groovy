@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel
@@ -79,6 +80,14 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             consentType = TCF_2
             gdprApplies = true
             timeout = 5000
+        }
+    }
+
+    protected static AmpRequest getGppAmpRequest(String consentString, String gppSid = null, ConsentType consentType = GPP) {
+        AmpRequest.defaultAmpRequest.tap {
+            it.consentString = consentString
+            it.gppSid = gppSid
+            it.consentType = consentType
         }
     }
 

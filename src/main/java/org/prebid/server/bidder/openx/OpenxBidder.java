@@ -1,11 +1,11 @@
 package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -20,14 +20,12 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
-import org.prebid.server.bidder.openx.proto.OpenxImpExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -44,12 +42,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String CUSTOM_PARAMS_KEY = "customParams";
+    private static final String BIDDER_EXT = "bidder";
+    private static final String PREBID_EXT = "prebid";
+    private static final Set<String> IMP_EXT_SKIP_FIELDS = Set.of(BIDDER_EXT, PREBID_EXT);
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -119,9 +122,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static OpenxImpType resolveImpType(Imp imp) {
-        return imp.getBanner() != null
-                ? OpenxImpType.banner
-                : imp.getVideo() != null ? OpenxImpType.video : OpenxImpType.other;
+        if (imp.getBanner() != null) {
+            return OpenxImpType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return OpenxImpType.video;
+        }
+        return OpenxImpType.other;
     }
 
     private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
@@ -181,7 +188,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
-                .ext(makeImpExt(openxImpExt.getCustomParams(), impExt.getAuctionEnvironment()));
+                .ext(makeImpExt(imp.getExt(), MapUtils.isNotEmpty(openxImpExt.getCustomParams())));
 
         if (resolveImpType(imp) == OpenxImpType.video
                 && prebidImpExt != null
@@ -226,10 +233,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impExt;
     }
 
-    private ObjectNode makeImpExt(Map<String, JsonNode> customParams, ExtImpAuctionEnvironment auctionEnvironment) {
-        return customParams != null || auctionEnvironment != ExtImpAuctionEnvironment.SERVER_SIDE_AUCTION
-                ? mapper.mapper().valueToTree(OpenxImpExt.of(customParams, auctionEnvironment))
-                : null;
+    private ObjectNode makeImpExt(ObjectNode impExt, boolean addCustomParams) {
+        final ObjectNode openxImpExt = impExt.deepCopy();
+        openxImpExt.remove(IMP_EXT_SKIP_FIELDS);
+        if (addCustomParams) {
+            openxImpExt.set(CUSTOM_PARAMS_KEY, impExt.get(BIDDER_EXT).get(CUSTOM_PARAMS_KEY).deepCopy());
+        }
+        return openxImpExt;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, OpenxBidResponse bidResponse) {

@@ -1,0 +1,9 @@
+adapters:
+  ccx:
+    endpoint: https://delivery.clickonometrics.pl/ortb/prebid/bid
+    meta-info:
+      maintainer-email: it@clickonometrics.pl
+      site-media-types:
+        - banner
+        - video
+      vendor-id: 773

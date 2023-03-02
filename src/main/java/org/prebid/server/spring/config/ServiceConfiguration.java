@@ -64,8 +64,8 @@ import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsPopulator;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
@@ -338,7 +338,7 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
-            @Autowired(required = false) DealsPopulator dealsPopulator,
+            @Autowired(required = false) UserAdditionalInfoService userAdditionalInfoService,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
             Metrics metrics,
@@ -358,7 +358,7 @@ public class ServiceConfiguration {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsPopulator,
+                userAdditionalInfoService,
                 priceFloorProcessor,
                 countryCodeMapper,
                 metrics,
@@ -771,7 +771,7 @@ public class ServiceConfiguration {
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
-            DealsProcessor dealsProcessor,
+            @Autowired(required = false) DealsService dealsService,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
@@ -801,7 +801,7 @@ public class ServiceConfiguration {
                 timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
                 supplyChainResolver,
