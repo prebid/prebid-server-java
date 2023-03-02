@@ -98,8 +98,11 @@ public class BraveBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
+        if (bidResponse == null) {
+            throw new PreBidException("Bad Server Response");
+        }
+        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            throw new PreBidException("Empty SeatBid array");
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }

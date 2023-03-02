@@ -112,7 +112,7 @@ public class BraveBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
@@ -120,12 +120,12 @@ public class BraveBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = braveBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Bad Server Response"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
@@ -134,7 +134,7 @@ public class BraveBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = braveBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Empty SeatBid array"));
         assertThat(result.getValue()).isEmpty();
     }
 
