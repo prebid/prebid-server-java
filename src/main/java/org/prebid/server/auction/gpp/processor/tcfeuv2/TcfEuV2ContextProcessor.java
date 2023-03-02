@@ -33,7 +33,7 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
                 : gppContext;
     }
 
-    public UpdateResult<Integer> resolveGdpr(Integer gdpr, Set<Integer> sectionsIds, List<String> errors) {
+    private static UpdateResult<Integer> resolveGdpr(Integer gdpr, Set<Integer> sectionsIds, List<String> errors) {
         if (sectionsIds == null) {
             return UpdateResult.unaltered(gdpr);
         }
@@ -51,25 +51,25 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
         return UpdateResult.unaltered(gdpr);
     }
 
-    private Integer gdprFromGppSid(Set<Integer> sectionsIds) {
+    private static Integer gdprFromGppSid(Set<Integer> sectionsIds) {
         return sectionsIds.contains(TcfEuV2.ID) ? 1 : 0;
     }
 
-    private void validateExistingGdpr(Integer gdpr, Set<Integer> sectionsIds) {
+    private static void validateExistingGdpr(Integer gdpr, Set<Integer> sectionsIds) {
         if (isNotInTcfEuV2Scope(gdpr, sectionsIds)) {
             throw new PreBidException("GPP scope does not match TCF2 scope");
         }
     }
 
-    private boolean isNotInTcfEuV2Scope(Integer gdpr, Set<Integer> sectionsIds) {
+    private static boolean isNotInTcfEuV2Scope(Integer gdpr, Set<Integer> sectionsIds) {
         final boolean containsTcfEuV2Section = sectionsIds.contains(TcfEuV2.ID);
         return (containsTcfEuV2Section && gdpr != 1) || (!containsTcfEuV2Section && gdpr != 0);
     }
 
-    public UpdateResult<String> resolveConsent(String consent,
-                                               GppModel gppModel,
-                                               Set<Integer> sectionsIds,
-                                               List<String> errors) {
+    private static UpdateResult<String> resolveConsent(String consent,
+                                                GppModel gppModel,
+                                                Set<Integer> sectionsIds,
+                                                List<String> errors) {
 
         if (!isValidScope(gppModel, sectionsIds)) {
             return UpdateResult.unaltered(consent);
@@ -88,12 +88,12 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
         return UpdateResult.unaltered(consent);
     }
 
-    private boolean isValidScope(GppModel gppModel, Set<Integer> sectionsIds) {
+    private static boolean isValidScope(GppModel gppModel, Set<Integer> sectionsIds) {
         return sectionsIds != null && sectionsIds.contains(TcfEuV2.ID)
                 && gppModel != null && gppModel.hasSection(TcfEuV2.ID);
     }
 
-    private String consentFromGpp(GppModel gppModel) {
+    private static String consentFromGpp(GppModel gppModel) {
         try {
             return gppModel.encodeSection(TcfEuV2.ID);
         } catch (EncodingException e) {
@@ -101,7 +101,7 @@ public class TcfEuV2ContextProcessor implements GppContextProcessor {
         }
     }
 
-    private void validateExistingConsent(String consent, GppModel gppModel) {
+    private static void validateExistingConsent(String consent, GppModel gppModel) {
         if (!consent.equals(consentFromGpp(gppModel))) {
             throw new PreBidException("GPP TCF2 string does not match user.consent");
         }
