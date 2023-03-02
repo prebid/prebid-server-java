@@ -80,18 +80,23 @@ public class BraveBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldRemoveFirstImpExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.imp(List.of(
+                        givenImp(impBuilder -> impBuilder.id("first")),
+                        givenImp(impBuilder -> impBuilder.id("second")))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = braveBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsNull();
+                .hasSize(2)
+                .containsExactly(givenImp(impBuilder -> impBuilder.id("first").ext(null)),
+                        givenImp(impBuilder -> impBuilder.id("second")));
     }
 
     @Test
