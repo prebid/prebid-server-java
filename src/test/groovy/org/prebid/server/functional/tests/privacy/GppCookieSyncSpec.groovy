@@ -1,8 +1,5 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.privacy
 
-import com.iab.gpp.encoder.section.TcfCaV1
-import com.iab.gpp.encoder.section.TcfEuV2
-import com.iab.gpp.encoder.section.UspV1
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
@@ -10,6 +7,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
@@ -18,14 +17,14 @@ import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class GppCookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
-    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
@@ -39,7 +38,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     private PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
-    def "PBS cookie sync request should reflect error when GPP is specified, but not comma-separate and gdpr is empty"() {
+    def "PBS cookie sync request should respond with an error when GPP is specified and not comma-separated and gdpr is empty"() {
         given: "Request without GDPR and invalid GPP"
         def gppSid = "${PBSUtils.randomNumber}${PBSUtils.randomNumber}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -60,12 +59,10 @@ class GppCookieSyncSpec extends BaseSpec {
         assert metric["cookie_sync.generic.tcf.blocked"] == 1
     }
 
-    def "PBS cookie sync request should set GBPR to 1 when GPP contains 2"() {
+    def "PBS cookie sync request should set GDPR to 1 when GPP SID contains 2"() {
         given: "Request without GDPR and invalid GPP"
-
-        def gppSid = "${PBSUtils.randomNumber},${PBSUtils.randomNumber}, 2"
+        def gppSid = "${PBSUtils.randomNumber},${PBSUtils.randomNumber}, ${TCF_EU_V2.value}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.bidders = []
             it.gpp = null
             it.gppSid = gppSid
             it.gdpr = null
@@ -78,12 +75,11 @@ class GppCookieSyncSpec extends BaseSpec {
         assert response.gdpr == 1
     }
 
-    def "PBS cookie sync request should set GBPR to 0 when GPP contains not 2"() {
+    def "PBS cookie sync request should set GDPR to 0 when GPP SID doesn't contain 2"() {
         given: "Request without GDPR and invalid GPP"
 
         def gppSid = "0, 1"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.bidders = []
             it.gpp = null
             it.gppSid = gppSid
             it.gdpr = null
@@ -91,11 +87,12 @@ class GppCookieSyncSpec extends BaseSpec {
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
         then: "Response should contain gdpr as 0"
         assert response.gdpr == 0
     }
 
-    def "PBS cookie sync request should reflect warning when GPP is contains 2  and gdpr is not 1"() {
+    def "PBS cookie sync request should respond with a warning when GPP SID contains 2 and gdpr is not 1"() {
         given: "Request without GDPR and invalid GPP"
         def gppSid = "2,3,9"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -114,7 +111,7 @@ class GppCookieSyncSpec extends BaseSpec {
         assert prebidServerService.sendCollectedMetricsRequest() == [ "cookie_sync.generic.tcf.blocked": 0 ]
     }
 
-    def "PBS cookie sync request should reflect warning when GPP does not contains 2 and gdpr is not 0"() {
+    def "PBS cookie sync request should respond with warning when GPP does not contains 2 and gdpr is not 0"() {
         given: "Request without GDPR and invalid GPP"
         def gppSid = "3,9"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -133,7 +130,7 @@ class GppCookieSyncSpec extends BaseSpec {
         assert prebidServerService.sendCollectedMetricsRequest() == [ "cookie_sync.generic.tcf.blocked": 0 ]
     }
 
-    def "PBS cookie sync request should reflect warning when GPP string is invalid"() {
+    def "PBS cookie sync request should respond with warning when GPP string is invalid"() {
         given: "Request with invalid GPP"
         def invalidGpp = PBSUtils.getRandomString(20)
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
