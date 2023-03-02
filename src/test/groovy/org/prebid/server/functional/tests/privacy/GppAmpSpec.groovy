@@ -109,7 +109,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should copy consent_string to regs.gpp when consent_string is valid"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
-        def ampRequest = getGppAmpRequest(gppConsent)
+        def ampRequest = getGppAmpRequest(gppConsent.toString())
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = BidRequest.defaultStoredRequest
@@ -131,12 +131,12 @@ class GppAmpSpec extends PrivacyBaseSpec {
     def "PBS should copy consent_string to user.consent and set gdpr=1 when consent_string is valid and gppSid contains 2"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
         def gppConsent = new TcfEuV2Consent.Builder().build()
-        def ampRequest = getGppAmpRequest(gppConsent)
+        def gppSidIds = TCF_EU_V2.value
+        def ampRequest = getGppAmpRequest(gppConsent.toString(), gppSidIds)
 
         and: "Save storedRequest into DB"
-        def gppSidIds = [TCF_EU_V2.valueAsInt]
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            regs = new Regs(gppSid: gppSidIds, gdpr: null)
+            regs = new Regs(gdpr: null)
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
@@ -150,21 +150,19 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         and: "Resolved request should contain user.consent, gdpr=1 and gpp form amp stored request"
         def resolvedRequest = ampResponse.ext.debug.resolvedRequest
-        assert resolvedRequest.user.consent == gppConsent.encodeSection()
         assert resolvedRequest.regs.gdpr == 1
-        assert resolvedRequest.regs.gppSid == gppSidIds
+        assert resolvedRequest.user.consent == gppConsent.encodeSection()
+        assert resolvedRequest.regs.gppSid == [TCF_EU_V2.valueAsInt]
     }
 
     def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy and gppSid contains 6"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
         def gppConsent = new UspV1Consent.Builder().build()
-        def ampRequest = getGppAmpRequest(gppConsent)
+        def gppSidIds = USP_V1.value
+        def ampRequest = getGppAmpRequest(gppConsent.consentString, gppSidIds)
 
         and: "Save storedRequest into DB"
-        def gppSidIds = [USP_V1.valueAsInt]
-        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            regs = new Regs(gppSid: gppSidIds)
-        }
+        def ampStoredRequest = BidRequest.defaultStoredRequest
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -174,6 +172,6 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain regs.usPrivacy from consent_string and regs.gppSid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.regs.usPrivacy == gppConsent.encodeSection()
-        assert bidderRequest.regs.gppSid == gppSidIds
+        assert bidderRequest.regs.gppSid == [USP_V1.valueAsInt]
     }
 }

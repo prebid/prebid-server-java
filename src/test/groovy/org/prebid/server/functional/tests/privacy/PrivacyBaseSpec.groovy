@@ -60,13 +60,6 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static AmpRequest getGppAmpRequest(ConsentString consentStringVal) {
-        AmpRequest.defaultAmpRequest.tap {
-            consentString = consentStringVal
-            consentType = GPP
-        }
-    }
-
     protected static BidRequest getGdprBidRequest(DistributionChannel channel = SITE, ConsentString consentString) {
         getBidRequestWithGeo(channel).tap {
             regs.ext = new RegsExt(gdpr: 1)
@@ -83,7 +76,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static AmpRequest getGppAmpRequest(String consentString, String gppSid = null, ConsentType consentType = GPP) {
+    protected static AmpRequest getGppAmpRequest(String consentString,
+                                                 String gppSid = null,
+                                                 ConsentType consentType = GPP) {
         AmpRequest.defaultAmpRequest.tap {
             it.consentString = consentString
             it.gppSid = gppSid
