@@ -44,11 +44,10 @@ public class BraveBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final ExtImpBrave extImpBrave;
         final String url;
 
         try {
-            extImpBrave = parseImpExt(request.getImp().get(0));
+            ExtImpBrave extImpBrave = parseImpExt(request.getImp().get(0));
             url = resolveEndpoint(extImpBrave.getPlacementId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
