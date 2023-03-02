@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.synacormedia.SynacormediaBidder;
+import org.prebid.server.bidder.taboola.TaboolaBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -28,14 +28,14 @@ public class TaboolaConfiguration {
     }
 
     @Bean
-    BidderDeps synacormediaBidderDeps(BidderConfigurationProperties taboolaConfigurationProperties,
-                                      @NotBlank @Value("${external-url}") String externalUrl,
-                                      JacksonMapper mapper) {
+    BidderDeps taboolaBidderDeps(BidderConfigurationProperties taboolaConfigurationProperties,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(taboolaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SynacormediaBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

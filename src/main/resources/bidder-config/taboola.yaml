@@ -13,10 +13,13 @@ adapters:
       supported-vendors:
       vendor-id: 42
     userSync:
+      cookie-family-name: taboola
       redirect:
         url: https://trc.taboola.com/sg/ps/1/cm?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}
+        support-cors: false
         uid-macro: '{TUID}'
       iframe:
         url: https://cdn.taboola.com/scripts/ps-sync.html?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}
+        support-cors: false
         uid-macro: '{TUID}'
 

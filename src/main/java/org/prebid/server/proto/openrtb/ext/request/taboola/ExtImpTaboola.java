@@ -8,11 +8,17 @@ import java.util.List;
 
 @Value(staticConstructor = "of")
 public class ExtImpTaboola {
+
+    @JsonProperty("publisherId")
     String publisherId;
+    @JsonProperty("publisherDomain")
     String publisherDomain;
     @JsonProperty("tagid")
     String tagId;
-    BigDecimal bidfloor;
-    List<String> bcat;
-    List<String> badv;
+    @JsonProperty("bidfloor")
+    BigDecimal bidFloor;
+    @JsonProperty("bcat")
+    List<String> bCat;
+    @JsonProperty("badv")
+    List<String> bAdv;
 }
