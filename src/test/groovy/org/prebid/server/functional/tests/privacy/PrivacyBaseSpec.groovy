@@ -76,7 +76,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static AmpRequest getGppAmpRequest(String consentString, String gppSid = null, ConsentType consentType = GPP) {
+    protected static AmpRequest getGppAmpRequest(String consentString,
+                                                 String gppSid = null,
+                                                 ConsentType consentType = GPP) {
         AmpRequest.defaultAmpRequest.tap {
             it.consentString = consentString
             it.gppSid = gppSid
