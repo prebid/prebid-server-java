@@ -31,11 +31,10 @@ class GppCookieSyncSpec extends BaseSpec {
 
     private PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
 
-    def "PBS cookie sync request should respond with an error when GPP is specified and not comma-separated and gdpr is empty"() {
+    def "PBS cookie sync request should respond with an error when gppSid is specified and not comma-separated"() {
         given: "Cookie sync request"
-        def gppSid = "${PBSUtils.randomString},${PBSUtils.randomString}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = gppSid
+            it.gppSid = PBSUtils.randomString
             it.gpp = null
             it.gdpr = null
         }
