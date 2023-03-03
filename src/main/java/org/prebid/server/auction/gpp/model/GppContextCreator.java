@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.auction.gpp.model.privacy.Privacy;
+import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
+import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.exception.PreBidException;
 
 import java.util.ArrayList;
@@ -40,7 +42,7 @@ public class GppContextCreator {
 
         GppContext.Scope scope;
 
-        GppContext.Regions.RegionsBuilder regionsBuilder = GppContextUtils.DEFAULT_REGIONS_BUILDER;
+        GppContext.Regions.RegionsBuilder regionsBuilder = defaultRegions();
 
         List<String> errors;
 
@@ -51,6 +53,12 @@ public class GppContextCreator {
 
         public GppContext build() {
             return new GppContext(scope, regionsBuilder.build(), errors);
+        }
+
+        private static GppContext.Regions.RegionsBuilder defaultRegions() {
+            return GppContext.Regions.builder()
+                    .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
+                    .uspV1Privacy(UspV1Privacy.of(null));
         }
     }
 }
