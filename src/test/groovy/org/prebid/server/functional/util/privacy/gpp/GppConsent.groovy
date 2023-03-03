@@ -25,6 +25,8 @@ abstract class GppConsent implements ConsentString {
         consentString
     }
 
+    protected abstract String encodeSection()
+
     protected abstract static class Builder {
 
         protected Section section

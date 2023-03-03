@@ -20,7 +20,10 @@ public class GppContextCreatorTest {
 
         // then
         assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
-        assertThat(gppContext.regions()).isEqualTo(GppContextUtils.DEFAULT_REGIONS_BUILDER.build());
+        assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
+                .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
+                .uspV1Privacy(UspV1Privacy.of(null))
+                .build());
         assertThat(gppContext.errors()).isEmpty();
     }
 
@@ -31,7 +34,10 @@ public class GppContextCreatorTest {
 
         // then
         assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
-        assertThat(gppContext.regions()).isEqualTo(GppContextUtils.DEFAULT_REGIONS_BUILDER.build());
+        assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
+                .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
+                .uspV1Privacy(UspV1Privacy.of(null))
+                .build());
         assertThat(gppContext.errors())
                 .containsExactly("GPP string invalid: Undecodable FibonacciIntegerRange '101111011'");
     }
