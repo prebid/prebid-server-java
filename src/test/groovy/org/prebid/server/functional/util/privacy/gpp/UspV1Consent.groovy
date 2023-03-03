@@ -4,13 +4,13 @@ import com.iab.gpp.encoder.field.UspV1Field
 
 class UspV1Consent extends GppConsent {
 
-    protected UspV1Consent(Section section, def fieldValues) {
+    protected UspV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
     }
 
     @Override
     String encodeSection() {
-       gppModel.encodeSection(Section.USP_V1.name)
+        gppModel.encodeSection(Section.USP_V1.name)
     }
 
     static class Builder extends GppConsent.Builder {

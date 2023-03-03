@@ -30,7 +30,7 @@ abstract class GppConsent implements ConsentString {
     protected abstract static class Builder {
 
         protected Section section
-        protected def fieldValues = [:]
+        protected Map<String, Object> fieldValues = [:]
 
         Builder(Section section) {
             this.section = section

@@ -10,7 +10,7 @@ enum GppSectionId {
         this.value = value
     }
 
-    int getValueAsInt(){
+    Integer getIntValue(){
         value.toInteger()
     }
 }

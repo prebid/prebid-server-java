@@ -35,7 +35,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain consent string from amp request"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequests.regs.gpp == consentString
-        assert bidderRequests.regs.gppSid == [TCF_EU_V2.valueAsInt, USP_V1.valueAsInt]
+        assert bidderRequests.regs.gppSid == [TCF_EU_V2.intValue, USP_V1.intValue]
     }
 
     def "PBS should populate bid request with regs.gppSid when consent type isn't GPP and gppSid is present"() {
@@ -57,7 +57,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Bidder request shouldn't contain regs.gpp"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequests.regs.gpp
-        assert bidderRequests.regs.gppSid == [TCF_EU_V2.valueAsInt, USP_V1.valueAsInt]
+        assert bidderRequests.regs.gppSid == [TCF_EU_V2.intValue, USP_V1.intValue]
     }
 
     def "PBS shouldn't populate bid request with regs when consent type is GPP and gppSid contain invalid value"() {
@@ -152,7 +152,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         def resolvedRequest = ampResponse.ext.debug.resolvedRequest
         assert resolvedRequest.regs.gdpr == 1
         assert resolvedRequest.user.consent == gppConsent.encodeSection()
-        assert resolvedRequest.regs.gppSid == [TCF_EU_V2.valueAsInt]
+        assert resolvedRequest.regs.gppSid == [TCF_EU_V2.intValue]
     }
 
     def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy and gppSid contains 6"() {
@@ -172,6 +172,6 @@ class GppAmpSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain regs.usPrivacy from consent_string and regs.gppSid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.regs.usPrivacy == gppConsent.encodeSection()
-        assert bidderRequest.regs.gppSid == [USP_V1.valueAsInt]
+        assert bidderRequest.regs.gppSid == [USP_V1.intValue]
     }
 }

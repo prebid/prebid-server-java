@@ -23,13 +23,13 @@ class PBSUtils implements ObjectMapperWrapper {
         new Random().nextInt(upperBound - min) + min
     }
 
-    static int getRandomNumberWithExclusion(int exceptValue, int min = 0, int max = MAX_VALUE) {
+    static int getRandomNumberWithExclusion(int excludedValue, int min = 0, int max = MAX_VALUE) {
         def value = getRandomNumber(min, max)
-        value == exceptValue ? getRandomNumberWithExclusion(exceptValue, min, max) : value
+        value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
     }
 
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
-        getRandomNumber(max, min * -1) * - 1
+        getRandomNumber(max, min * -1) * -1
     }
 
     static BigDecimal getRandomDecimal(float min = 0, float max = MAX_VALUE) {
