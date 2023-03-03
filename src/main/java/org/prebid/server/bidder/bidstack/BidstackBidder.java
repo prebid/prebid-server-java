@@ -58,7 +58,7 @@ public class BidstackBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> updatedImps = new ArrayList<>();
 
-        MultiMap headers;
+        final MultiMap headers;
         try {
             headers = constructHeaders(request);
             for (Imp imp : request.getImp()) {

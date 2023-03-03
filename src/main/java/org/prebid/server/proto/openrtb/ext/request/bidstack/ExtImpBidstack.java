@@ -9,6 +9,7 @@ public class ExtImpBidstack {
     @JsonProperty("publisherId")
     String publisherId;
 
+    @JsonProperty("placementId")
     String placementId;
 
     Boolean consent;

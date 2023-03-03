@@ -2,7 +2,6 @@ package org.prebid.server.bidder.bidstack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -81,7 +80,7 @@ public class BidstackBidderTest extends VertxTest {
                         .bidfloorcur("EUR"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -102,7 +101,7 @@ public class BidstackBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -137,7 +136,7 @@ public class BidstackBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersExceptToken() {
+    public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersIncludingBearerToken() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestCustomizer -> bidRequestCustomizer
@@ -160,8 +159,7 @@ public class BidstackBidderTest extends VertxTest {
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer token")
-                );
+                        tuple(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer token"));
     }
 
     @Test
@@ -171,7 +169,7 @@ public class BidstackBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("USD"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -189,38 +187,12 @@ public class BidstackBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unable to decode the impression ext for id: 123");
-    }
-
-    @Test
-    public void makeBidsShouldReturnValidBidResponseWithBanner() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.banner(Banner.builder().build()));
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(identity())));
-
-        // when
-        final Result<List<BidderBid>> result = bidstackBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .containsOnly(Bid.builder()
-                        .impid("123")
-                        .build());
-
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
     }
 
     @Test
