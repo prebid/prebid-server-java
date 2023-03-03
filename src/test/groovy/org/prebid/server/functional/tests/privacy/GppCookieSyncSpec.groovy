@@ -1,11 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.UidsCookie
-import org.prebid.server.functional.model.request.GppSectionId
-import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
-
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -13,13 +8,17 @@ import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.*
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
+import static org.prebid.server.functional.model.request.GppSectionId.US_PV_V1
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 class GppCookieSyncSpec extends BaseSpec {
 
@@ -34,10 +33,10 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request should respond with an error when GPP is specified and not comma-separated and gdpr is empty"() {
         given: "Request without GDPR and invalid GPP"
-        def gppSid = "${PBSUtils.randomNumber}${PBSUtils.randomNumber}"
+        def gppSid = "${PBSUtils.randomString},${PBSUtils.randomString}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gpp = null
             it.gppSid = gppSid
+            it.gpp = null
             it.gdpr = null
         }
 
@@ -47,84 +46,62 @@ class GppCookieSyncSpec extends BaseSpec {
         then: "Request fails with proper message"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid GPP value" // TODO replace with error message
-
-        and: "Metric should contain cookie_sync.FAMILY.tcf.blocked"
-        def metric = this.prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 1
-    }
-
-    def "PBS cookie sync request should set GDPR to 1 and respond with no errors or warning when GPP SID contains 2"() {
-        given: "Request without GDPR and invalid GPP"
-        def gppSid = "${PBSUtils.randomNumber},${PBSUtils.randomNumber}, ${TCF_EU_V2.value}"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gpp = null
-            it.gppSid = gppSid
-            it.gdpr = null
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain gdpr as 1"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert bidderStatus.error == null
-        assert response.warnings == null
-    }
-
-    def "PBS cookie sync request should set GDPR to 0 and respond with no errors or warning when GPP SID doesn't contain 2"() {
-        given: "Request without GDPR and invalid GPP"
-
-        def gppSid = "${PBSUtils.randomNumber},${US_PV_V1.value}"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gpp = null
-            it.gppSid = gppSid
-            it.gdpr = null
-        }
-
-        when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain gdpr as 0"
-        assert bidderStatus.error == null
-        assert response.warnings == null
+        assert exception.responseBody == "Invalid request format: Request body cannot be parsed"
     }
 
     def "PBS cookie sync request should respond with a warning when GPP SID contains 2 and gdpr is not 1"() {
         given: "Request without GDPR and invalid GPP"
-        def gppSid = "${TCF_EU_V2.value},${US_PV_V1.value}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
-            it.gppSid = gppSid
+            it.gppSid = TCF_EU_V2.value
             it.gdpr = 0
         }
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain warning"
-        assert response.warnings == "GPP scope does not match TCF2 scope"
+        then: "Response should contain warnings"
+        assert response.warnings.size() == 1
+        assert response.warnings[0] == "GPP scope does not match TCF2 scope"
+
+        and: "Response should contain sync information for configured bidder"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
+        assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
+        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
+        assert bidderStatus?.noCookie == true
     }
 
-    def "PBS cookie sync request should respond with warning when GPP does not contains 2 and gdpr is not 0"() {
-        given: "Request without GDPR and invalid GPP"
-        def gppSid = "${PBSUtils.randomNumber},${US_PV_V1.value}"
+    def "PBS cookie sync request should respond with a warning when GPP SID not contains 2 and gdpr is not 0"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Request without GDPR and invalid GPP"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
-            it.gppSid = gppSid
+            it.gppSid = US_PV_V1.value
             it.gdpr = 1
+            it.gdprConsent = validConsentString
         }
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain warning"
-        assert response.warnings == "GPP scope does not match TCF2 scope"
+        then: "Response should contain warnings"
+        assert response.warnings.size() == 1
+        assert response.warnings[0] == "GPP scope does not match TCF2 scope"
+
+        and: "Bidder status error should contain reject due to TCF"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "Rejected by TCF"
     }
 
     def "PBS cookie sync request should respond with warning when GPP string is invalid"() {
         given: "Request with invalid GPP"
-        def invalidGpp = PBSUtils.getRandomString()
+        def invalidGpp = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = invalidGpp
         }
@@ -132,24 +109,62 @@ class GppCookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain warning"
-        assert response.warnings == "GPP string invalid: ERROR MESSAGE FROM GPP LIBRARY"
+        then: "Cookie sync response should contain warning"
+        assert response.warnings.size() == 1
+        assert response.warnings[0].startsWith("GPP string invalid:")
+
+        and: "Response should contain sync information for configured bidder"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
+        assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
+        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
+        assert bidderStatus?.noCookie == true
     }
 
-    def "PBS should copy gpp to usPrivacy when gppSid contains 6, gpp is TCF2-EU and us_privacy is specified with warnings"() {
+    def "PBS should return warning when gppSid contains 6, gpp and usp are different"() {
         given: "Standard cookie sync with: usPrivacy, gpp_sid that include 6 and GPP as USP"
-        def gppConsent = new UspV1Consent.Builder().build()
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gpp = gppConsent
+            it.gpp = new UspV1Consent.Builder().build()
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-            it.gppSid = [US_PV_V1.value]
+            it.gppSid = US_PV_V1.value
         }
-        def uidsCookie = UidsCookie.defaultUidsCookie
 
         when: "PBS processes cookie sync request"
-        def cookieSyncResponse = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "CookieSync response should contain warning"
-        assert cookieSyncResponse.warnings == "GPP TCF2 string does not match gdpr_consent"
+        then: "Cookie sync response should contain warning"
+        assert response.warnings.size() == 1
+        assert response.warnings[0] == "USP string does not match regs.us_privacy"
+
+        and: "Bidder status error should contain reject due to CCPA"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "Rejected by CCPA"
+    }
+
+    def "PBS should return warning when gppSid contains 2, gpp and gdpr_consent are different"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Request without GDPR and invalid GPP"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gpp = new TcfEuV2Consent.Builder().build()
+            it.gppSid = TCF_EU_V2.value
+            it.gdpr = 1
+            it.gdprConsent = validConsentString
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain warning"
+        assert response.warnings.size() == 1
+        assert response.warnings[0] == "GPP TCF2 string does not match user.consent"
+
+        and: "Bidder status error should contain reject due to TCF"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.error == "Rejected by TCF"
     }
 }
