@@ -7,7 +7,8 @@ enum ConsentType {
     TCF_1("1"),
     TCF_2("2"),
     US_PRIVACY("3"),
-    BOGUS("4")
+    GPP("4"),
+    BOGUS("5")
 
     @JsonValue
     final String value

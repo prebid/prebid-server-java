@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.Bid;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -13,13 +14,15 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -41,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -83,22 +88,23 @@ public class HttpBidderRequester {
      */
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
+                                                 BidRejectionTracker bidRejectionTracker,
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
                                                  BidderAliases aliases,
                                                  boolean debugEnabled) {
 
+        final String bidderName = bidderRequest.getBidder();
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
-        final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-
-        final String bidderName = bidderRequest.getBidder();
+        final List<BidderError> errors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests = enrichRequests(
                 bidderName, httpRequestsWithErrors.getValue(), requestHeaders, aliases, bidRequest);
+        recordBidderProvidedErrors(bidRejectionTracker, errors);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
-            return emptyBidderSeatBidWithErrors(bidderErrors);
+            return emptyBidderSeatBidWithErrors(errors);
         }
 
         final String storedResponse = bidderRequest.getStoredResponse();
@@ -110,8 +116,8 @@ public class HttpBidderRequester {
 
         // httpCalls contains recovered and mapped to succeeded Future<BidderHttpCall> with error inside
         final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
-        final ResultBuilder<T> resultBuilder =
-                new ResultBuilder<>(httpRequests, bidderErrors, completionTracker, mapper);
+        final ResultBuilder<T> resultBuilder = new ResultBuilder<>(
+                httpRequests, errors, completionTracker, bidRejectionTracker, mapper);
 
         final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
@@ -122,7 +128,8 @@ public class HttpBidderRequester {
         return CompositeFuture.any(
                         CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
                         completionTracker.future())
-                .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
+                .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled))
+                .onSuccess(seatBid -> recordSucceededBids(seatBid.getBids(), bidRejectionTracker));
     }
 
     private <T> List<HttpRequest<T>> enrichRequests(String bidderName,
@@ -136,6 +143,22 @@ public class HttpBidderRequester {
                                 bidderName, httpRequest.getHeaders(), requestHeaders, aliases, bidRequest))
                         .build())
                 .toList();
+    }
+
+    private static void recordSucceededBids(List<BidderBid> bids, BidRejectionTracker rejectionTracker) {
+        bids.stream()
+                .map(BidderBid::getBid)
+                .filter(Objects::nonNull)
+                .map(Bid::getImpid)
+                .filter(Objects::nonNull)
+                .forEach(rejectionTracker::succeed);
+    }
+
+    private static void recordBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
+        errors.stream()
+                .filter(error -> CollectionUtils.isNotEmpty(error.getImpIds()))
+                .forEach(error -> rejectionTracker.reject(
+                        error.getImpIds(), BidRejectionReason.fromBidderError(error)));
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -319,6 +342,7 @@ public class HttpBidderRequester {
         private final List<HttpRequest<T>> httpRequests;
         private final List<BidderError> previousErrors;
         private final BidderRequestCompletionTracker completionTracker;
+        private final BidRejectionTracker bidRejectionTracker;
         private final JacksonMapper mapper;
 
         private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
@@ -329,34 +353,54 @@ public class HttpBidderRequester {
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
                       BidderRequestCompletionTracker completionTracker,
+                      BidRejectionTracker bidRejectionTracker,
                       JacksonMapper mapper) {
 
             this.httpRequests = httpRequests;
             this.previousErrors = previousErrors;
             this.completionTracker = completionTracker;
+            this.bidRejectionTracker = bidRejectionTracker;
             this.mapper = mapper;
         }
 
-        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidsResult) {
+        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidderResponse) {
             bidderCallsRecorded.put(bidderCall.getRequest(), bidderCall);
+            handleBids(bidderResponse);
+            handleBidderErrors(bidderResponse);
+            handleBidderCallError(bidderCall);
+            handleFledgeAuctionConfigs(bidderResponse);
+        }
 
-            final List<BidderBid> bids = bidsResult != null ? bidsResult.getBids() : null;
+        private void handleBids(CompositeBidderResponse bidderResponse) {
+            final List<BidderBid> bids = bidderResponse != null ? bidderResponse.getBids() : null;
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
+                recordSucceededBids(bids, bidRejectionTracker);
             }
+        }
 
-            final List<BidderError> bidderErrors = bidsResult != null ? bidsResult.getErrors() : null;
+        private void handleBidderErrors(CompositeBidderResponse bidderResponse) {
+            final List<BidderError> bidderErrors = bidderResponse != null ? bidderResponse.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
+                recordBidderProvidedErrors(bidRejectionTracker, bidderErrors);
             }
+        }
 
-            final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null
-                    ? bidsResult.getFledgeAuctionConfigs()
-                    : null;
-            if (fledgeAuctionConfigs != null) {
-                fledgeRecorded.addAll(fledgeAuctionConfigs);
+        private void handleBidderCallError(BidderCall<T> bidderCall) {
+            final BidderError callError = bidderCall.getError();
+            final BidderError.Type callErrorType = callError != null ? callError.getType() : null;
+            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
+            if (callErrorType != null && CollectionUtils.isNotEmpty(requestedImpIds)) {
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.fromBidderError(callError));
             }
+        }
+
+        private void handleFledgeAuctionConfigs(CompositeBidderResponse bidderResponse) {
+            Optional.ofNullable(bidderResponse)
+                    .map(CompositeBidderResponse::getFledgeAuctionConfigs)
+                    .ifPresent(fledgeRecorded::addAll);
         }
 
         BidderSeatBid toBidderSeatBid(boolean debugEnabled) {

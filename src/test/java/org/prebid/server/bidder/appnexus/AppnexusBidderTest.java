@@ -38,7 +38,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
@@ -649,7 +649,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 
@@ -679,7 +679,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 
@@ -711,7 +711,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 
@@ -743,7 +743,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 
@@ -775,7 +775,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 
@@ -806,7 +806,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .targeting(ExtRequestTargeting.builder()
                                 .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
                                 .build())
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
 

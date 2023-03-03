@@ -492,8 +492,8 @@ class TargetingSpec extends BasePgSpec {
         impTagId              | impExtGpid            | adSlot                | adServerAdSlot
         stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString
-        PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString
-        PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue
+        null                  | null                  | stringTargetingValue  | PBSUtils.randomString
+        null                  | null                  | PBSUtils.randomString | stringTargetingValue
     }
 
     def "PBS should be able to match Ad Slot targeting taken from different sources by IN matching function"() {

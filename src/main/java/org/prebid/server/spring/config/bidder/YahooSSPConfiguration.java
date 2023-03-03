@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.yahoossp.YahooSSPBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -30,12 +31,13 @@ public class YahooSSPConfiguration {
     @Bean
     BidderDeps yahoosspBidderDeps(BidderConfigurationProperties yahoosspConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                                  JacksonMapper mapper,
+                                  BidRequestOrtbVersionConversionManager conversionManager) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yahoosspConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), conversionManager, mapper))
                 .assemble();
     }
 }

@@ -12,10 +12,18 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class BidderUtil {
 
     private BidderUtil() {
+    }
+
+    public static Set<String> impIds(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .map(Imp::getId)
+                .collect(Collectors.toSet());
     }
 
     public static boolean isValidPrice(BigDecimal price) {

@@ -26,6 +26,7 @@ import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
@@ -1039,7 +1040,10 @@ public class BidResponseCreator {
      */
     private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
         return errors.stream()
-                .map(bidderError -> ExtBidderError.of(bidderError.getType().getCode(), bidderError.getMessage()))
+                .map(bidderError -> ExtBidderError.of(
+                        bidderError.getType().getCode(),
+                        bidderError.getMessage(),
+                        nullIfEmpty(bidderError.getImpIds())))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
@@ -1688,11 +1692,8 @@ public class BidResponseCreator {
             return bidResponse;
         }
 
-        final List<AuctionParticipation> auctionParticipations = auctionContext.getAuctionParticipations();
-        final List<SeatNonBid> seatNonBids = auctionParticipations.stream()
-                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .map(BidResponseCreator::toSeatNonBid)
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+        final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
+                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
                 .toList();
 
         final ExtBidResponse updatedExtBidResponse = Optional.ofNullable(bidResponse.getExt())
@@ -1704,12 +1705,12 @@ public class BidResponseCreator {
         return bidResponse.toBuilder().ext(updatedExtBidResponse).build();
     }
 
-    private static SeatNonBid toSeatNonBid(AuctionParticipation auctionParticipation) {
-        final List<NonBid> nonBid = auctionParticipation.getRejectedImpIds().entrySet().stream()
+    private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
+        final List<NonBid> nonBid = bidRejectionTracker.getRejectionReasons().entrySet().stream()
                 .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
                 .toList();
 
-        return SeatNonBid.of(auctionParticipation.getBidder(), nonBid);
+        return SeatNonBid.of(bidder, nonBid);
     }
 
     /**

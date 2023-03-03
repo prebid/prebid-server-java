@@ -47,7 +47,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -2198,8 +2197,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getPbs)
-                .extracting(ExtRequestPrebidPbs::getEndpoint)
+                .extracting(ExtRequestPrebid::getServer)
+                .extracting(ExtRequestPrebidServer::getEndpoint)
                 .isEqualTo(Endpoint.openrtb2_auction.value());
     }
 
@@ -2380,7 +2379,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getServer)
-                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
+                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region", ENDPOINT));
     }
 
     @Test

@@ -41,7 +41,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -107,7 +106,7 @@ public class Ortb2ImplicitParametersResolver {
         this.generateBidRequestId = generateBidRequestId;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
-        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion);
+        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion, null);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
@@ -552,7 +551,6 @@ public class Ortb2ImplicitParametersResolver {
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
         final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest, endpoint);
-        final ExtRequestPrebidPbs updatedPbs = pbsOrNull(prebid, endpoint);
 
         final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                 ? prebid.toBuilder()
@@ -565,9 +563,7 @@ public class Ortb2ImplicitParametersResolver {
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                 .channel(ObjectUtils.defaultIfNull(updatedChannel,
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
-                .pbs(ObjectUtils.defaultIfNull(updatedPbs,
-                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
-                .server(serverInfo)
+                .server(serverInfo.with(endpoint))
                 .build());
 
         final Map<String, JsonNode> extProperties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
@@ -596,21 +592,6 @@ public class Ortb2ImplicitParametersResolver {
             }
         }
         return impMediaTypes;
-    }
-
-    /**
-     * Returns populated {@link ExtRequestPrebidPbs} or null if no changes were applied.
-     */
-    private ExtRequestPrebidPbs pbsOrNull(ExtRequestPrebid prebid, String endpoint) {
-        final String existingEndpoint = ObjectUtil.getIfNotNull(
-                ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs),
-                ExtRequestPrebidPbs::getEndpoint);
-
-        if (StringUtils.isNotBlank(existingEndpoint)) {
-            return null;
-        }
-
-        return ExtRequestPrebidPbs.of(endpoint);
     }
 
     /**
