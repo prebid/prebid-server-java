@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum BidRejectionReason {
 
+    NO_BID(0),
     TIMED_OUT(101),
     REJECTED_BY_HOOK(200),
     REJECTED_BY_PRIVACY(202),

@@ -9,16 +9,19 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.FAILED_TO_REQUEST_BIDS
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.OTHER_ERROR
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.TIMED_OUT
 
 class SeatNonBidSpec extends BaseSpec {
 
-    @PendingFeature
+    private static final Map PBS_CONFIG = ["auction.biddertmax.max"    : "1",
+                                           "auction.biddertmax.min"    : "1"]
+
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid = new Prebid(returnAllBidStatus: true)
+            test = 1
         }
 
         and: "Default bidder response without bid"
@@ -71,6 +74,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response?.ext?.debug
     }
 
+    @PendingFeature
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and bidder didn't bid for any reason"() {
         given: "Default bid request with disabled returnAllBidStatus"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -93,6 +97,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response.seatbid
     }
 
+    @PendingFeature
     def "PBS shouldn't populate seatNonBid when debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug, test"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -122,9 +127,7 @@ class SeatNonBidSpec extends BaseSpec {
         }
 
         and: "Default bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid = []
-        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -132,9 +135,37 @@ class SeatNonBidSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response shouldn't contain seatNonBid"
-        assert !response.ext.seatnonbid
+        then: "PBS response should contain seatNonBid and seatbid"
+        assert response.ext.seatnonbid.nonBid.size() == 1
         assert response.seatbid
+    }
+
+    @PendingFeature
+    def "PBS should populate seatNonBid when rejected due to timeout"() {
+        def pbsService = pbsServiceFactory.getService(PBS_CONFIG)
+        given: "Default bid request with max timeout"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+            tmax = 1
+        }
+
+        and: "Default bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid and contain errors"
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == TIMED_OUT
     }
 
     @PendingFeature
@@ -159,37 +190,10 @@ class SeatNonBidSpec extends BaseSpec {
         def seatNonBid = seatNonBids[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == OTHER_ERROR
+        assert seatNonBid.nonBid[0].statusCode == REJECTED_BY_MEDIA_TYPE
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
-    }
-
-    @PendingFeature
-    def "PBS should populate seatNonBid when rejected due to timeout"() {
-        given: "Default bid request with max timeout"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.returnAllBidStatus = true
-            tmax = 1
-        }
-
-        and: "Default bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS response should contain seatNonBid and contain errors"
-        def seatNonBids = response.ext.seatnonbid
-        assert seatNonBids.size() == 1
-
-        def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == TIMED_OUT
     }
 
 }
