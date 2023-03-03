@@ -10,6 +10,11 @@ class TcfEuV2Consent extends GppConsent {
         super(section, fieldValues)
     }
 
+    @Override
+    String encodeSection() {
+       gppModel.encodeSection(Section.TCF_EU_V2.name)
+    }
+
     static class Builder extends GppConsent.Builder {
 
         Builder() {

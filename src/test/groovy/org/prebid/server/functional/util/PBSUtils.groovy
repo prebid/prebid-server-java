@@ -1,7 +1,6 @@
 package org.prebid.server.functional.util
 
 import org.apache.commons.lang3.RandomStringUtils
-import org.apache.commons.text.RandomStringGenerator
 import org.prebid.server.functional.model.request.auction.BidRequest
 
 import java.math.RoundingMode
@@ -22,6 +21,11 @@ class PBSUtils implements ObjectMapperWrapper {
     static int getRandomNumber(int min = 0, int max = MAX_VALUE) {
         int upperBound = max == MAX_VALUE ? max : max + 1
         new Random().nextInt(upperBound - min) + min
+    }
+
+    static int getRandomNumberWithExclusion(int exceptValue, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        value == exceptValue ? getRandomNumberWithExclusion(exceptValue, min, max) : value
     }
 
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
