@@ -32,7 +32,7 @@ class GppCookieSyncSpec extends BaseSpec {
     private PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
 
     def "PBS cookie sync request should respond with an error when GPP is specified and not comma-separated and gdpr is empty"() {
-        given: "Request without GDPR and invalid GPP"
+        given: "Cookie sync request"
         def gppSid = "${PBSUtils.randomString},${PBSUtils.randomString}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = gppSid
@@ -50,7 +50,7 @@ class GppCookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request should respond with a warning when GPP SID contains 2 and gdpr is not 1"() {
-        given: "Request without GDPR and invalid GPP"
+        given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
             it.gppSid = TCF_EU_V2.value
@@ -79,7 +79,7 @@ class GppCookieSyncSpec extends BaseSpec {
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
-        and: "Request without GDPR and invalid GPP"
+        and: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = null
             it.gppSid = US_PV_V1.value
@@ -122,7 +122,7 @@ class GppCookieSyncSpec extends BaseSpec {
     }
 
     def "PBS should return warning when gppSid contains 6, gpp and usp are different"() {
-        given: "Standard cookie sync with: usPrivacy, gpp_sid that include 6 and GPP as USP"
+        given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = new UspV1Consent.Builder().build()
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
@@ -148,7 +148,7 @@ class GppCookieSyncSpec extends BaseSpec {
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
-        and: "Request without GDPR and invalid GPP"
+        and: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gpp = new TcfEuV2Consent.Builder().build()
             it.gppSid = TCF_EU_V2.value
