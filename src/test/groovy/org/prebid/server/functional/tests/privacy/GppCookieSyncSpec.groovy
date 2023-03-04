@@ -124,7 +124,7 @@ class GppCookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should respond with a warning when GPP string is invalid"() {
         given: "Request with invalid GPP"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gpp = PBSUtils.randomString
+            it.gpp = "Invalid_GPP_Consent_String"
             it.gdpr = null
         }
 
@@ -161,8 +161,7 @@ class GppCookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request should return a warning when gpp_sid contains 2, gpp and gdpr_consent are different"() {
-        given: "Valid consent string"
-        and: "Cookie sync request"
+        given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.value
             it.gpp = new TcfEuV2Consent.Builder().build()

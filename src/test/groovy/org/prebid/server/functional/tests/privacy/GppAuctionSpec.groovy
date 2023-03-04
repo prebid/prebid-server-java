@@ -108,7 +108,7 @@ class GppAuctionSpec extends BaseSpec {
 
     def "PBS should emit warning when GPP string is invalid"() {
         given: "Default bid request with invalid gpp"
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = "Invalid_GPP_Consent_String"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gpp: invalidGpp)
         }
