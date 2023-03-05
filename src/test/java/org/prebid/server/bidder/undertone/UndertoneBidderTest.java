@@ -3,6 +3,7 @@ package org.prebid.server.bidder.undertone;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,7 +11,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.undertone.proto.UndertoneRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.undertone.ExtImpUndertone;
 
 import java.util.List;
@@ -96,20 +99,56 @@ public class UndertoneBidderTest extends VertxTest {
 
     @Test
     public void testValidBidRequest() {
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.site(Site.builder()
-                        .id("site-id")
-                        .build()),
-                impBuilder -> impBuilder
-                        .id("imp-id")
-                        .banner(Banner.builder()
-                                .id("banner-id")
-                                .w(300)
-                                .h(600)
-                                .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)))));
+        final Site site = Site.builder()
+                .id("site-id")
+                .build();
+
+        final String bidReqId = "req-id";
+        final int publisherId = 1234;
+        final int placementId = 12345;
+
+        final Imp.ImpBuilder impBuilderInstance = Imp.builder()
+                .id("imp-id")
+                .banner(Banner.builder()
+                        .id("banner-id")
+                        .w(300)
+                        .h(600)
+                        .build());
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                        .id(bidReqId)
+                        .site(site),
+                impBuilder -> impBuilderInstance.ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpUndertone.of(publisherId, placementId)))));
 
         final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).isEmpty();
+
+        final ExtRequest expectedExt = jacksonMapper.fillExtension(ExtRequest.empty(),
+                UndertoneRequestExt.of(3, "1.0.0"));
+
+        final Publisher expectedPublisher = Publisher.builder()
+                .id(String.valueOf(publisherId))
+                .build();
+
+        final Site expectedSite = site.toBuilder()
+                .publisher(expectedPublisher)
+                .build();
+
+        final BidRequest expectedBidRequest = BidRequest.builder()
+                .id(bidReqId)
+                .site(expectedSite)
+                .imp(List.of(impBuilderInstance
+                        .tagid(String.valueOf(placementId))
+                        .ext(null)
+                        .build()))
+                .ext(expectedExt)
+                .build();
+
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .containsExactly(expectedBidRequest);
     }
 
     private static BidRequest givenBidRequest(
