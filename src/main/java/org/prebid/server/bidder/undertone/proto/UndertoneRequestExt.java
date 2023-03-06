@@ -9,7 +9,7 @@ import lombok.Value;
 public class UndertoneRequestExt {
 
     @JsonProperty("id")
-    int adapterId;
+    Integer adapterId;
 
     @JsonProperty("version")
     String version;
