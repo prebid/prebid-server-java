@@ -9,7 +9,6 @@ public class UndertoneRequestExt {
     @JsonProperty("id")
     Integer adapterId;
 
-    @JsonProperty("version")
     String version;
 
 }
