@@ -5,6 +5,8 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -73,6 +75,40 @@ public class TaboolaBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsExactly(tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestWithEmptySiteShouldTakeDataForSiteFromImpValues() {
+        // given
+        final Imp impBanner = givenImp(impCustomizer ->
+                impCustomizer.banner(Banner.builder().build()).bidfloorcur("USD")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpTaboola.of("token",
+                                "test.com",
+                                "1",
+                                BigDecimal.TEN,
+                                List.of("test-cat"),
+                                List.of("test-badv"))))));
+
+        final BidRequest bidRequest = BidRequest
+                .builder().imp(List.of(impBanner)).site(null).build();
+
+        final Site expectedSite = Site.builder()
+                .id("token")
+                .name("token")
+                .domain("test.com")
+                .publisher(Publisher.builder().id("token").build())
+                .build();
+
+        // when
+        Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .containsExactly(expectedSite);
     }
 
     @Test
