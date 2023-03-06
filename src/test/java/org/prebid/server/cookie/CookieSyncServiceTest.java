@@ -40,6 +40,7 @@ import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -968,6 +969,84 @@ public class CookieSyncServiceTest extends VertxTest {
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);
+    }
+
+    @Test
+    public void prepareResponseShouldReturnResponseWithWarningsIfNotEmpty() {
+        // given
+        givenValidActiveBidder("host-bidder");
+        givenUsersyncersForBidders("host-bidder");
+
+        given(uidsCookieService.hostCookieUidToSync(routingContext, "host-bidder-cookie-family"))
+                .willReturn("bogus");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.warnings(List.of("Warning")),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("host-bidder"))
+                        .bidderUsersyncMethod(Map.of("host-bidder", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .noCookie(true)
+                .bidder("host-bidder-cookie-family")
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+        assertThat(result.getWarnings()).containsExactly("Warning");
+    }
+
+    @Test
+    public void prepareResponseShouldReturnResponseWithoutWarningsIfEmpty() {
+        // given
+        givenValidActiveBidder("host-bidder");
+        givenUsersyncersForBidders("host-bidder");
+
+        given(uidsCookieService.hostCookieUidToSync(routingContext, "host-bidder-cookie-family"))
+                .willReturn("bogus");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.warnings(Collections.emptyList()),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("host-bidder"))
+                        .bidderUsersyncMethod(Map.of("host-bidder", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .noCookie(true)
+                .bidder("host-bidder-cookie-family")
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+        assertThat(result.getWarnings()).isNull();
     }
 
     private PrivacyContext givenAllAllowedPrivacyContext() {

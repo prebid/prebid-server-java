@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
@@ -36,6 +37,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
@@ -46,6 +48,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
+    private final CookieSyncGppService gppProcessor;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -57,6 +60,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
+                             CookieSyncGppService gppProcessor,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -68,6 +72,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.gppProcessor = Objects.requireNonNull(gppProcessor);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -81,14 +86,17 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         metrics.updateCookieSyncRequestMetric();
 
-        toCookieSyncContext(routingContext)
+        cookieSyncContext(routingContext)
+                .compose(this::fillWithAccount)
+                .map(this::processGpp)
+                .compose(this::fillWithPrivacyContext)
                 .compose(cookieSyncService::processContext)
                 .onFailure(error -> respondWithError(error, routingContext))
                 .onSuccess(cookieSyncContext ->
                         respondWithResult(cookieSyncContext, cookieSyncService.prepareResponse(cookieSyncContext)));
     }
 
-    private Future<CookieSyncContext> toCookieSyncContext(RoutingContext routingContext) {
+    private Future<CookieSyncContext> cookieSyncContext(RoutingContext routingContext) {
         final CookieSyncRequest cookieSyncRequest;
         try {
             cookieSyncRequest = parseRequest(routingContext);
@@ -97,26 +105,22 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final boolean debug = BooleanUtils.toBoolean(cookieSyncRequest.getDebug());
-        final String requestAccount = cookieSyncRequest.getAccount();
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final BiddersContext biddersContext = BiddersContext.builder().build();
 
-        return accountById(requestAccount, timeout)
-                .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                                cookieSyncRequest, routingContext.request(), account, timeout)
-                        .map(privacyContext -> CookieSyncContext.builder()
-                                .routingContext(routingContext)
-                                .uidsCookie(uidsCookie)
-                                .cookieSyncRequest(cookieSyncRequest)
-                                .usersyncMethodChooser(
-                                        UsersyncMethodChooser.from(cookieSyncRequest.getFilterSettings()))
-                                .biddersContext(biddersContext)
-                                .timeout(timeout)
-                                .account(account)
-                                .privacyContext(privacyContext)
-                                .debug(debug)
-                                .build()));
+        final CookieSyncContext cookieSyncContext = CookieSyncContext.builder()
+                .routingContext(routingContext)
+                .uidsCookie(uidsCookie)
+                .cookieSyncRequest(cookieSyncRequest)
+                .usersyncMethodChooser(UsersyncMethodChooser.from(cookieSyncRequest.getFilterSettings()))
+                .biddersContext(biddersContext)
+                .timeout(timeout)
+                .debug(debug)
+                .warnings(new ArrayList<>())
+                .build();
+
+        return Future.succeededFuture(cookieSyncContext);
     }
 
     private CookieSyncRequest parseRequest(RoutingContext routingContext) {
@@ -134,11 +138,30 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
     }
 
+    private Future<CookieSyncContext> fillWithAccount(CookieSyncContext cookieSyncContext) {
+        return accountById(cookieSyncContext.getCookieSyncRequest().getAccount(), cookieSyncContext.getTimeout())
+                .map(cookieSyncContext::with);
+    }
+
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
                 .otherwise(Account.empty(accountId));
+    }
+
+    private CookieSyncContext processGpp(CookieSyncContext cookieSyncContext) {
+        return cookieSyncContext.with(
+                gppProcessor.apply(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
+    }
+
+    private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {
+        return privacyEnforcementService.contextFromCookieSyncRequest(
+                        cookieSyncContext.getCookieSyncRequest(),
+                        cookieSyncContext.getRoutingContext().request(),
+                        cookieSyncContext.getAccount(),
+                        cookieSyncContext.getTimeout())
+                .map(cookieSyncContext::with);
     }
 
     private void respondWithResult(CookieSyncContext cookieSyncContext, CookieSyncResponse cookieSyncResponse) {

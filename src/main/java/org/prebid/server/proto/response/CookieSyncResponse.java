@@ -13,4 +13,6 @@ public class CookieSyncResponse {
     CookieSyncStatus status;
 
     List<BidderUsersyncStatus> bidderStatus;
+
+    List<String> warnings;
 }
