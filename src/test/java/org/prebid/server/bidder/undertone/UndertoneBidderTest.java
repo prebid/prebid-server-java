@@ -99,23 +99,24 @@ public class UndertoneBidderTest extends VertxTest {
 
     @Test
     public void testValidBidRequest() {
-        final Site site = Site.builder()
+        final Site givenSite = Site.builder()
                 .id("site-id")
                 .build();
 
-        final Imp.ImpBuilder impBuilderInstance = Imp.builder()
+        final Imp.ImpBuilder givenImpBuilder = Imp.builder()
                 .id("imp-id")
                 .banner(Banner.builder()
                         .id("banner-id")
                         .w(300)
                         .h(600)
-                        .build());
+                        .build())
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345))));
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .id("req-id")
-                        .site(site),
-                impBuilder -> impBuilderInstance.ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)))));
+                        .site(givenSite),
+                impBuilder -> givenImpBuilder);
 
         final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).isEmpty();
@@ -127,17 +128,19 @@ public class UndertoneBidderTest extends VertxTest {
                 .id(String.valueOf(1234))
                 .build();
 
-        final Site expectedSite = site.toBuilder()
+        final Site expectedSite = givenSite.toBuilder()
                 .publisher(expectedPublisher)
+                .build();
+
+        final Imp expectedImp = givenImpBuilder
+                .tagid(String.valueOf(12345))
+                .ext(null)
                 .build();
 
         final BidRequest expectedBidRequest = BidRequest.builder()
                 .id("req-id")
                 .site(expectedSite)
-                .imp(List.of(impBuilderInstance
-                        .tagid(String.valueOf(12345))
-                        .ext(null)
-                        .build()))
+                .imp(List.of(expectedImp))
                 .ext(expectedExt)
                 .build();
 
