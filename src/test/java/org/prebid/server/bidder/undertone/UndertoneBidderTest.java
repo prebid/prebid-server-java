@@ -128,7 +128,8 @@ public class UndertoneBidderTest extends VertxTest {
                 .id(String.valueOf(1234))
                 .build();
 
-        final Site expectedSite = givenSite.toBuilder()
+        final Site expectedSite = Site.builder()
+                .id("site-id")
                 .publisher(expectedPublisher)
                 .build();
 
