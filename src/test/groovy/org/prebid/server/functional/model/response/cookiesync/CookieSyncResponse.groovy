@@ -12,6 +12,7 @@ class CookieSyncResponse {
     Status status
     @JsonProperty("bidder_status")
     List<BidderUserSyncStatus> bidderStatus
+    List<String> warnings
 
     @JsonIgnore
     BidderUserSyncStatus getBidderUserSync(BidderName bidderName) {
