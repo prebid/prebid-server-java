@@ -103,10 +103,6 @@ public class UndertoneBidderTest extends VertxTest {
                 .id("site-id")
                 .build();
 
-        final String bidReqId = "req-id";
-        final int publisherId = 1234;
-        final int placementId = 12345;
-
         final Imp.ImpBuilder impBuilderInstance = Imp.builder()
                 .id("imp-id")
                 .banner(Banner.builder()
@@ -116,10 +112,10 @@ public class UndertoneBidderTest extends VertxTest {
                         .build());
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .id(bidReqId)
+                        .id("req-id")
                         .site(site),
                 impBuilder -> impBuilderInstance.ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpUndertone.of(publisherId, placementId)))));
+                                ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)))));
 
         final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).isEmpty();
@@ -128,7 +124,7 @@ public class UndertoneBidderTest extends VertxTest {
                 UndertoneRequestExt.of(3, "1.0.0"));
 
         final Publisher expectedPublisher = Publisher.builder()
-                .id(String.valueOf(publisherId))
+                .id(String.valueOf(1234))
                 .build();
 
         final Site expectedSite = site.toBuilder()
@@ -136,10 +132,10 @@ public class UndertoneBidderTest extends VertxTest {
                 .build();
 
         final BidRequest expectedBidRequest = BidRequest.builder()
-                .id(bidReqId)
+                .id("req-id")
                 .site(expectedSite)
                 .imp(List.of(impBuilderInstance
-                        .tagid(String.valueOf(placementId))
+                        .tagid(String.valueOf(12345))
                         .ext(null)
                         .build()))
                 .ext(expectedExt)
