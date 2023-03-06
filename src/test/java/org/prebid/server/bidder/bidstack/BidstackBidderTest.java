@@ -136,7 +136,7 @@ public class BidstackBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersIncludingBearerToken() {
+    public void makeHttpRequestsShouldReturnValidBidRequestWithAllHeadersIncludingBearerToken() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestCustomizer -> bidRequestCustomizer
