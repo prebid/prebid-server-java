@@ -19,7 +19,7 @@ import static java.util.Collections.singletonList;
 public class BraveTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromAppush() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromBrave() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/brave-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/brave/test-brave-bid-request.json")))
