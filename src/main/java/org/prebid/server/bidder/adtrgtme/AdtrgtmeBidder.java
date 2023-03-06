@@ -9,7 +9,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -28,12 +27,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
+    private static final String X_OPENRTB_VERSION = "2.5";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
-    private static final String X_OPENRTB_VERSION = "2.5";
 
     public AdtrgtmeBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -42,45 +43,29 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        List<Imp> imps = request.getImp();
+        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
-        List<HttpRequest<BidRequest>> requestDataList = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
-        List<BidderError> errors = new ArrayList<>();
-
-        for (Imp imp : imps) {
-            BidRequest singleRequest = BidRequest.builder()
-                    .id(request.getId())
-                    .cur(request.getCur())
-                    .imp(List.of(imp))
-                    .app(request.getApp())
-                    .site(request.getSite())
-                    .device(request.getDevice())
-                    .user(request.getUser())
-                    .tmax(request.getTmax())
-                    .build();
+        for (Imp imp : request.getImp()) {
+            final BidRequest updatedRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
             try {
-                String requestUri = resolveRequestUri(errors, singleRequest);
+                String requestUri = resolveRequestUri(updatedRequest);
 
-                if (StringUtils.isBlank(requestUri)) {
-                    errors.add(BidderError.badInput("request.Site or request.App are not provided"));
-                    continue;
-                }
-
-                requestDataList.add(HttpRequest.<BidRequest>builder()
+                requests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(requestUri)
-                        .headers(makeRequestHeaders(singleRequest.getDevice()))
-                        .body(mapper.encodeToBytes(singleRequest))
-                        .payload(singleRequest)
+                        .headers(makeRequestHeaders(updatedRequest.getDevice()))
+                        .body(mapper.encodeToBytes(updatedRequest))
+                        .payload(updatedRequest)
                         .build());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(requestDataList, errors);
+        return Result.of(requests, errors);
     }
 
     @Override
@@ -96,7 +81,26 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         }
     }
 
-    public MultiMap makeRequestHeaders(Device device) {
+    private String resolveRequestUri(BidRequest singleRequest) {
+        return Optional.ofNullable(singleRequest.getSite())
+                .map(site -> {
+                    if (site.getId() == null || site.getId().isEmpty()) {
+                        throw new PreBidException("request.Site.ID is not provided");
+                    }
+                    return String.format("%s?s=%s&prebid", endpointUrl, site.getId());
+                })
+                .or(() -> Optional.ofNullable(singleRequest.getApp())
+                        .map(app -> {
+                            if (app.getId() == null || app.getId().isEmpty()) {
+                                throw new PreBidException("request.App.ID is not provided");
+                            }
+                            return String.format("%s?s=%s&prebid", endpointUrl, app.getId());
+                        })
+                )
+                .orElseThrow(() -> new PreBidException("request.Site or request.App are not provided"));
+    }
+
+    private MultiMap makeRequestHeaders(Device device) {
         MultiMap headers = HttpUtil.headers();
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
@@ -148,23 +152,6 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
-    }
-
-    private String resolveRequestUri(List<BidderError> errors, BidRequest singleRequest) {
-        if (singleRequest.getSite() != null) {
-            if (singleRequest.getSite().getId() != null && !singleRequest.getSite().getId().isEmpty()) {
-                return String.format("%s?s=%s&prebid", endpointUrl, singleRequest.getSite().getId());
-            } else {
-                errors.add(BidderError.badInput("request.Site.ID is not provided"));
-            }
-        } else if (singleRequest.getApp() != null) {
-            if (singleRequest.getApp().getId() != null && !singleRequest.getApp().getId().isEmpty()) {
-                return String.format("%s?s=%s&prebid", endpointUrl, singleRequest.getApp().getId());
-            } else {
-                errors.add(BidderError.badInput("request.App.ID is not provided"));
-            }
-        }
-        return "";
     }
 
 }
