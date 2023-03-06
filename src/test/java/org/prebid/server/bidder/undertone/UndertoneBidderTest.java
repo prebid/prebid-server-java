@@ -132,9 +132,14 @@ public class UndertoneBidderTest extends VertxTest {
                 .publisher(expectedPublisher)
                 .build();
 
-        final Imp expectedImp = givenImpBuilder
+        final Imp expectedImp = Imp.builder()
+                .id("imp-id")
+                .banner(Banner.builder()
+                        .id("banner-id")
+                        .w(300)
+                        .h(600)
+                        .build())
                 .tagid(String.valueOf(12345))
-                .ext(null)
                 .build();
 
         final BidRequest expectedBidRequest = BidRequest.builder()
