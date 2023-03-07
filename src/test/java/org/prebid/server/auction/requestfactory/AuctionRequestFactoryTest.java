@@ -29,6 +29,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -80,6 +81,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
+    private AuctionGppService auctionGppService;
+    @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
@@ -129,6 +132,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(auctionGppService.apply(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -171,6 +177,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -203,6 +210,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
