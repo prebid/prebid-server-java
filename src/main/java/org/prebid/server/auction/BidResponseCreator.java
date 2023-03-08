@@ -1694,6 +1694,7 @@ public class BidResponseCreator {
 
         final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
                 .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
                 .toList();
 
         final ExtBidResponse updatedExtBidResponse = Optional.ofNullable(bidResponse.getExt())
