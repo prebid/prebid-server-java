@@ -43,6 +43,10 @@ public class BidRejectionTracker {
         }
     }
 
+    public void restoreFromRejection(Collection<String> impIds) {
+        impIds.forEach(this::succeed);
+    }
+
     public void reject(String impId, BidRejectionReason reason) {
         if (involvedImpIds.contains(impId) && !rejectedImpIds.containsKey(impId)) {
             rejectedImpIds.put(impId, reason);

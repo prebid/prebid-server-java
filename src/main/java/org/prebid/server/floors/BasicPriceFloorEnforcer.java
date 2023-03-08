@@ -11,6 +11,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -57,10 +59,11 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     @Override
     public AuctionParticipation enforce(BidRequest bidRequest,
                                         AuctionParticipation auctionParticipation,
-                                        Account account) {
+                                        Account account,
+                                        BidRejectionTracker rejectionTracker) {
 
         return shouldApplyEnforcement(auctionParticipation, account)
-                ? applyEnforcement(bidRequest, auctionParticipation, account)
+                ? applyEnforcement(bidRequest, auctionParticipation, account, rejectionTracker)
                 : auctionParticipation;
     }
 
@@ -126,7 +129,8 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private AuctionParticipation applyEnforcement(BidRequest bidRequest,
                                                   AuctionParticipation auctionParticipation,
-                                                  Account account) {
+                                                  Account account,
+                                                  BidRejectionTracker rejectionTracker) {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
@@ -156,10 +160,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
+                final String impId = bid.getImpid();
                 warnings.add(BidderError.rejectedIpf(
                         "Bid with id '%s' was rejected by floor enforcement: price %s is below the floor %s"
-                                .formatted(bid.getId(), price, floor), bid.getImpid()));
+                                .formatted(bid.getId(), price, floor), impId));
 
+                rejectionTracker.reject(impId, BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
                 updatedBidderBids.remove(bidderBid);
             }
         }
@@ -171,6 +177,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
+        restoreBidsFromRejection(updatedBidderBids, rejectionTracker);
         final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
                 .bids(updatedBidderBids)
                 .errors(errors)
@@ -268,5 +275,14 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {
         return bidFloor != null && price.compareTo(bidFloor) < 0;
+    }
+
+    private static void restoreBidsFromRejection(List<BidderBid> survivedBids, BidRejectionTracker rejectionTracker) {
+        final List<String> survivedImpIds = survivedBids.stream()
+                .map(BidderBid::getBid)
+                .map(Bid::getImpid)
+                .toList();
+
+        rejectionTracker.restoreFromRejection(survivedImpIds);
     }
 }
