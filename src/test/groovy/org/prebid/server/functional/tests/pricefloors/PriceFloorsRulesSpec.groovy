@@ -295,10 +295,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
             modelGroups[0].values = [(new Rule(size: "*").rule)                           : floorsProviderFloorValue,
-                                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue +
-                                             0.1,
-                                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue +
-                                             0.2]
+                                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue + 0.1,
+                                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue + 0.2]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
