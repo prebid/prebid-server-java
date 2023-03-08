@@ -61,14 +61,12 @@ import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -111,8 +109,6 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any()))
                 .willReturn(MultiMap.caseInsensitiveMultiMap());
-        doNothing().when(bidRejectionTracker).succeed(any());
-        doNothing().when(bidRejectionTracker).reject(anyList(), any());
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -705,7 +701,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .result();
 
         // then
-        verify(bidRejectionTracker, atLeast(1)).succeed("2");
+        verify(bidRejectionTracker, atLeast(1)).succeed(secondRequestBids);
         verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
         verify(bidRejectionTracker).reject(singleton("3"), BidRejectionReason.OTHER_ERROR);
     }
