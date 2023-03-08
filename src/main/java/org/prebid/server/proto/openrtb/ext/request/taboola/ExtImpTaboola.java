@@ -21,4 +21,6 @@ public class ExtImpTaboola {
     List<String> bCat;
     @JsonProperty("badv")
     List<String> bAdv;
+    String pageType;
+    Integer position;
 }

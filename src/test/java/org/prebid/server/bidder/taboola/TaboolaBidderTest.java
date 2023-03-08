@@ -88,7 +88,9 @@ public class TaboolaBidderTest extends VertxTest {
                                 "1",
                                 BigDecimal.TEN,
                                 List.of("test-cat"),
-                                List.of("test-badv"))))));
+                                List.of("test-badv"),
+                                "test",
+                                1)))));
 
         final BidRequest bidRequest = BidRequest
                 .builder().imp(List.of(impBanner)).site(null).build();
@@ -229,6 +231,8 @@ public class TaboolaBidderTest extends VertxTest {
                                         "test.com",
                                         "1",
                                         BigDecimal.TEN,
+                                        null,
+                                        null,
                                         null,
                                         null)))))
                 .build();

@@ -25,10 +25,12 @@
     "tid": "${json-unit.any-string}"
   },
   "site": {
-    "domain": "www.example.com",
+    "id" : "publisher-id",
+    "name" : "publisher-id",
+    "domain": "http://domain.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain": "example.com"
+      "id" : "publisher-id"
     },
     "ext": {
       "amp": 0
