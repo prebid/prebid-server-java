@@ -1,7 +1,7 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.ModelGroup
@@ -21,7 +21,6 @@ import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdSer
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -270,10 +269,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         where:
         bidRequest                       | bothFloorValue            | bannerFloorValue          | videoFloorValue
-        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue |
-                PBSUtils.randomFloorValue
-        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       |
-                PBSUtils.randomFloorValue
+        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       | PBSUtils.randomFloorValue
         BidRequest.defaultVideoRequest   | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.6
     }
 
@@ -879,7 +876,6 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == 0.04
     }
 
-    @PendingFeature
     def "PBS should populate seatNonBid when rejected due to floor"() {
         def pbsService = pbsServiceFactory.getService(["price-floors.enabled"           : "true",
                                                        "settings.default-account-config": encode(defaultAccountConfigSettings)])
