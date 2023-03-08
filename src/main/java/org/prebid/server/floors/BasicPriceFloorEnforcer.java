@@ -177,7 +177,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
-        restoreBidsFromRejection(updatedBidderBids, rejectionTracker);
+        rejectionTracker.restoreFromRejection(updatedBidderBids);
         final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
                 .bids(updatedBidderBids)
                 .errors(errors)
@@ -275,14 +275,5 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {
         return bidFloor != null && price.compareTo(bidFloor) < 0;
-    }
-
-    private static void restoreBidsFromRejection(List<BidderBid> survivedBids, BidRejectionTracker rejectionTracker) {
-        final List<String> survivedImpIds = survivedBids.stream()
-                .map(BidderBid::getBid)
-                .map(Bid::getImpid)
-                .toList();
-
-        rejectionTracker.restoreFromRejection(survivedImpIds);
     }
 }

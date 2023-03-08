@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.Bid;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -129,7 +128,7 @@ public class HttpBidderRequester {
                         CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
                         completionTracker.future())
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled))
-                .onSuccess(seatBid -> recordSucceededBids(seatBid.getBids(), bidRejectionTracker));
+                .onSuccess(seatBid -> bidRejectionTracker.restoreFromRejection(seatBid.getBids()));
     }
 
     private <T> List<HttpRequest<T>> enrichRequests(String bidderName,
@@ -143,15 +142,6 @@ public class HttpBidderRequester {
                                 bidderName, httpRequest.getHeaders(), requestHeaders, aliases, bidRequest))
                         .build())
                 .toList();
-    }
-
-    private static void recordSucceededBids(List<BidderBid> bids, BidRejectionTracker rejectionTracker) {
-        bids.stream()
-                .map(BidderBid::getBid)
-                .filter(Objects::nonNull)
-                .map(Bid::getImpid)
-                .filter(Objects::nonNull)
-                .forEach(rejectionTracker::succeed);
     }
 
     private static void recordBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
@@ -376,7 +366,7 @@ public class HttpBidderRequester {
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
-                recordSucceededBids(bids, bidRejectionTracker);
+                bidRejectionTracker.succeed(bids);
             }
         }
 
