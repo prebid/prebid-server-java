@@ -188,8 +188,8 @@ class SeatNonBidSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain seatNonBid and seatbid"
-        assert response.ext.seatnonbid.nonBid.size() == 1
+        then: "PBS response shouldn't contain seatNonBid and should contain seatbid"
+        assert response.ext.seatnonbid.nonBid.size() == 0
         assert response.seatbid
     }
 
