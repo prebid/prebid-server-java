@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -105,6 +106,7 @@ public class CookieSyncService {
                 .map(this::filterInvalidBidders)
                 .map(this::filterDisabledBidders)
                 .map(this::filterBiddersWithoutUsersync)
+                .map(this::filterBiddersWithDisabledUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
                 .map(this::filterInSyncBidders);
@@ -187,6 +189,13 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> bidderCatalog.usersyncerByName(bidder).isEmpty(),
                 RejectionReason.UNCONFIGURED_USERSYNC);
+    }
+
+    private CookieSyncContext filterBiddersWithDisabledUsersync(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
+                RejectionReason.DISABLED_USERSYNC);
     }
 
     /**
@@ -322,7 +331,12 @@ public class CookieSyncService {
                 validStatuses(biddersToSync, cookieSyncContext),
                 debugStatuses(biddersToSync, cookieSyncContext));
 
-        return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses));
+        final List<String> warnings = cookieSyncContext.getWarnings();
+        final List<String> resolvedWarnings = CollectionUtils.isNotEmpty(warnings)
+                ? warnings
+                : null;
+
+        return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses), resolvedWarnings);
     }
 
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
@@ -440,6 +454,7 @@ public class CookieSyncService {
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
+            case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
             case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
         };

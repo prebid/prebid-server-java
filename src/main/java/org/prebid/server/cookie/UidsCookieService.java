@@ -172,6 +172,13 @@ public class UidsCookieService {
     }
 
     /**
+     * Lookups host cookie value from request context by configured host cookie name.
+     */
+    public String parseHostCookie(HttpRequestContext httpRequest) {
+        return parseHostCookie(HttpUtil.cookiesAsMap(httpRequest));
+    }
+
+    /**
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
      * UIDs cookie sync.
      */

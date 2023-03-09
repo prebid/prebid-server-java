@@ -129,7 +129,7 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateDealsInfo)
+                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 

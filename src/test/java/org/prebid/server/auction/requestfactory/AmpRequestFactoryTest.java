@@ -29,6 +29,7 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
@@ -101,6 +102,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
+    private AmpGppService ampGppService;
+    @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private ImplicitParametersExtractor implicitParametersExtractor;
@@ -129,6 +132,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(ampGppService.apply(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(
                 MultiMap.caseInsensitiveMultiMap()
@@ -155,7 +161,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
-        given(ortb2RequestFactory.populateDealsInfo(any()))
+        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
@@ -174,6 +180,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
@@ -1424,6 +1431,76 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getRegs())
                 .isEqualTo(Regs.builder().usPrivacy("1Y-N").build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsGppWhenConsentStringIsPresentAndConsentTypeIsGpp() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gpp("someGppString").build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsGppSidWhenGppSidParameterPresentAndCanBeParsed() {
+        // given
+        routingContext.queryParams().add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gppSid(List.of(1, 2, 3)).build());
+    }
+
+    @Test
+    public void shouldPopulateRegsObjectWithGppDataIfGppSidCouldBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder()
+                        .gpp("someGppString")
+                        .gppSid(List.of(1, 2, 3))
+                        .build());
+    }
+
+    @Test
+    public void shouldNotPopulateRegsObjectWithGppDataIfGppSidCouldNotBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,ab");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
     }
 
     @Test

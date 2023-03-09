@@ -1951,10 +1951,16 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future1 = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
+                BidderRequest.builder()
+                        .bidder("bidder1")
+                        .bidRequest(BidRequest.builder().build())
+                        .build(),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderRequestPayload>> future2 = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder2", null, null, BidRequest.builder().build()),
+                BidderRequest.builder()
+                        .bidder("bidder2")
+                        .bidRequest(BidRequest.builder().build())
+                        .build(),
                 auctionContext);
 
         // then
@@ -2002,7 +2008,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
+                BidderRequest.builder()
+                        .bidder("bidder1")
+                        .bidRequest(BidRequest.builder().build())
+                        .build(),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
@@ -2534,7 +2543,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
-                BidderRequest.of("bidder1", null, null, BidRequest.builder().build()),
+                BidderRequest.builder()
+                        .bidder("bidder1")
+                        .bidRequest(BidRequest.builder().build())
+                        .build(),
                 AuctionContext.builder()
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)

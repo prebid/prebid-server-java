@@ -155,6 +155,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return switch (extImp.getRegion()) {
             case "APAC" -> "apac.xyz";
             case "USE" -> "use.xyz";
+            case "EUC" -> "euc.xyz";
             default -> "xyz";
         };
     }

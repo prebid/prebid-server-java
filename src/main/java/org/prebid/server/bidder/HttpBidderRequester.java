@@ -17,6 +17,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.HttpRequest;
@@ -27,6 +28,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -168,8 +170,9 @@ public class HttpBidderRequester {
                 "The bidder failed to generate any bid requests, but also failed to generate an error"))
                 : bidderErrors;
 
-        return Future.succeededFuture(BidderSeatBid.of(
-                Collections.emptyList(), Collections.emptyList(), errors, Collections.emptyList()));
+        return Future.succeededFuture(BidderSeatBid.builder()
+                .errors(errors)
+                .build());
     }
 
     /**
@@ -272,31 +275,26 @@ public class HttpBidderRequester {
         return null;
     }
 
-    private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder,
+    /**
+     * Returns result based on response status code, list of {@link BidderBid}s and other data from bidder.
+     */
+    private static <T> CompositeBidderResponse makeBids(Bidder<T> bidder,
                                                         BidderCall<T> httpCall,
                                                         BidRequest bidRequest) {
 
-        return httpCall.getError() != null
-                ? null
-                : makeResult(bidder, httpCall, bidRequest);
-    }
-
-    /**
-     * Returns result based on response status code and list of {@link BidderBid}s from bidder.
-     */
-    private static <T> Result<List<BidderBid>> makeResult(Bidder<T> bidder,
-                                                          BidderCall<T> httpCall,
-                                                          BidRequest bidRequest) {
+        if (httpCall.getError() != null) {
+            return null;
+        }
 
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
+            return CompositeBidderResponse.empty();
         }
         if (statusCode != HttpResponseStatus.OK.code()) {
             return null;
         }
 
-        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
+        return bidder.makeBidderResponse(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
     }
 
     /**
@@ -318,14 +316,15 @@ public class HttpBidderRequester {
 
     private static class ResultBuilder<T> {
 
-        final List<HttpRequest<T>> httpRequests;
-        final List<BidderError> previousErrors;
-        final BidderRequestCompletionTracker completionTracker;
+        private final List<HttpRequest<T>> httpRequests;
+        private final List<BidderError> previousErrors;
+        private final BidderRequestCompletionTracker completionTracker;
         private final JacksonMapper mapper;
 
-        final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
-        final List<BidderBid> bidsRecorded = new ArrayList<>();
-        final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
+        private final List<BidderBid> bidsRecorded = new ArrayList<>();
+        private final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final List<FledgeAuctionConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
@@ -338,10 +337,10 @@ public class HttpBidderRequester {
             this.mapper = mapper;
         }
 
-        void addHttpCall(BidderCall<T> bidderCall, Result<List<BidderBid>> bidsResult) {
+        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidsResult) {
             bidderCallsRecorded.put(bidderCall.getRequest(), bidderCall);
 
-            final List<BidderBid> bids = bidsResult != null ? bidsResult.getValue() : null;
+            final List<BidderBid> bids = bidsResult != null ? bidsResult.getBids() : null;
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
@@ -350,6 +349,13 @@ public class HttpBidderRequester {
             final List<BidderError> bidderErrors = bidsResult != null ? bidsResult.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
+            }
+
+            final List<FledgeAuctionConfig> fledgeAuctionConfigs = bidsResult != null
+                    ? bidsResult.getFledgeAuctionConfigs()
+                    : null;
+            if (fledgeAuctionConfigs != null) {
+                fledgeRecorded.addAll(fledgeAuctionConfigs);
             }
         }
 
@@ -366,7 +372,12 @@ public class HttpBidderRequester {
                     : Collections.emptyList();
 
             final List<BidderError> errors = combineErrors(previousErrors, httpCalls, errorsRecorded);
-            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors, Collections.emptyList());
+            return BidderSeatBid.builder()
+                    .bids(bidsRecorded)
+                    .httpCalls(extHttpCalls)
+                    .errors(errors)
+                    .fledgeAuctionConfigs(fledgeRecorded)
+                    .build();
         }
 
         /**

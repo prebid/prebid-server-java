@@ -1,9 +1,7 @@
 package org.prebid.server.deals;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.User;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -11,7 +9,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.lineitem.DeliveryPlan;
@@ -24,12 +21,8 @@ import org.prebid.server.deals.proto.Price;
 import org.prebid.server.deals.targeting.TargetingDefinition;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.log.CriteriaLogManager;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.StreamUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -60,8 +53,6 @@ public class LineItemService {
             .appendPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
             .toFormatter();
 
-    private static final String PREBID_EXT = "prebid";
-    private static final String BIDDER_EXT = "bidder";
     private static final String ACTIVE = "active";
     private static final String PG_IGNORE_PACING_VALUE = "1";
 
@@ -72,7 +63,6 @@ public class LineItemService {
 
     private final int maxDealsPerBidder;
     private final TargetingService targetingService;
-    private final BidderCatalog bidderCatalog;
     private final CurrencyConversionService conversionService;
     protected final ApplicationEventService applicationEventService;
     private final String adServerCurrency;
@@ -84,7 +74,6 @@ public class LineItemService {
 
     public LineItemService(int maxDealsPerBidder,
                            TargetingService targetingService,
-                           BidderCatalog bidderCatalog,
                            CurrencyConversionService conversionService,
                            ApplicationEventService applicationEventService,
                            String adServerCurrency,
@@ -93,7 +82,6 @@ public class LineItemService {
 
         this.maxDealsPerBidder = maxDealsPerBidder;
         this.targetingService = Objects.requireNonNull(targetingService);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.conversionService = Objects.requireNonNull(conversionService);
         this.applicationEventService = Objects.requireNonNull(applicationEventService);
         this.adServerCurrency = Objects.requireNonNull(adServerCurrency);
@@ -130,23 +118,34 @@ public class LineItemService {
      * Finds among active Line Items those matching Imp of the OpenRTB2 request
      * taking into account Line Items’ targeting and delivery progress.
      */
-    public MatchLineItemsResult findMatchingLineItems(AuctionContext auctionContext, Imp imp) {
+    public MatchLineItemsResult findMatchingLineItems(BidRequest bidRequest,
+                                                      Imp imp,
+                                                      String bidder,
+                                                      BidderAliases aliases,
+                                                      AuctionContext auctionContext) {
+
         final ZonedDateTime now = ZonedDateTime.now(clock);
-        return findMatchingLineItems(auctionContext, imp, now);
+        return findMatchingLineItems(bidRequest, imp, bidder, aliases, auctionContext, now);
     }
 
     /**
      * Finds among active Line Items those matching Imp of the OpenRTB2 request
      * taking into account Line Items’ targeting and delivery progress by the given time.
      */
-    protected MatchLineItemsResult findMatchingLineItems(AuctionContext auctionContext, Imp imp, ZonedDateTime now) {
-        final BidderAliases aliases = aliases(auctionContext.getBidRequest());
+    protected MatchLineItemsResult findMatchingLineItems(BidRequest bidRequest,
+                                                         Imp imp,
+                                                         String bidder,
+                                                         BidderAliases aliases,
+                                                         AuctionContext auctionContext,
+                                                         ZonedDateTime now) {
+
         final List<LineItem> matchedLineItems =
-                getPreMatchedLineItems(auctionContext.getAccount().getId(), imp, aliases).stream()
-                        .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext, aliases))
+                getPreMatchedLineItems(auctionContext.getAccount().getId(), bidder, aliases).stream()
+                        .filter(lineItem -> isTargetingMatched(lineItem, bidRequest, imp, auctionContext))
                         .toList();
 
-        return MatchLineItemsResult.of(postProcessMatchedLineItems(matchedLineItems, auctionContext, imp, now));
+        return MatchLineItemsResult.of(
+                postProcessMatchedLineItems(matchedLineItems, bidRequest, imp, auctionContext, now));
     }
 
     public void updateIsPlannerResponsive(boolean isPlannerResponsive) {
@@ -211,10 +210,6 @@ public class LineItemService {
         return idToLineItems.values();
     }
 
-    protected Set<String> getLineItemIds() {
-        return idToLineItems.keySet();
-    }
-
     protected void updateLineItem(LineItemMetaData lineItemMetaData, ZonedDateTime now) {
         final TargetingDefinition targetingDefinition = makeTargeting(lineItemMetaData);
         final Price normalizedPrice = normalizedPrice(lineItemMetaData);
@@ -272,30 +267,7 @@ public class LineItemService {
         return Price.of(updatedCpm, adServerCurrency);
     }
 
-    /**
-     * Checks if bidder is valid against configured bidders in {@link BidderCatalog} or aliases.
-     */
-    private boolean isValidActiveBidder(String bidder, BidderAliases aliases) {
-        return !bidderCatalog.isDeprecatedName(bidder)
-                && bidderCatalog.isValidName(aliases.resolveBidder(bidder));
-    }
-
-    /**
-     * Returns true if collection of bidder codes contains bidder or it's alias value.
-     */
-    private boolean containBidderCodeConsideringAliases(List<String> bidders,
-                                                        String bidder,
-                                                        BidderAliases aliases) {
-
-        return bidders.contains(bidder)
-                || bidders.contains(aliases.resolveBidder(bidder))
-                || bidders.stream().map(aliases::resolveBidder).anyMatch(bidder::equals);
-    }
-
-    /**
-     * Return {@link List<LineItem>} matched to {@link Imp} bidders considering aliases.
-     */
-    private List<LineItem> getPreMatchedLineItems(String accountId, Imp imp, BidderAliases aliases) {
+    private List<LineItem> getPreMatchedLineItems(String accountId, String bidder, BidderAliases aliases) {
         if (StringUtils.isBlank(accountId)) {
             return Collections.emptyList();
         }
@@ -313,27 +285,9 @@ public class LineItemService {
             return Collections.emptyList();
         }
 
-        final List<String> bidders = StreamUtil.asStream(bidderParamsFromImp(imp).fieldNames())
-                .filter(bidder -> isValidActiveBidder(bidder, aliases))
-                .distinct()
-                .toList();
-
         return accountsLineItems.stream()
-                .filter(lineItem -> containBidderCodeConsideringAliases(bidders, lineItem.getSource(), aliases))
+                .filter(lineItem -> aliases.isSame(bidder, lineItem.getSource()))
                 .toList();
-    }
-
-    private static JsonNode bidderParamsFromImp(Imp imp) {
-        return imp.getExt().get(PREBID_EXT).get(BIDDER_EXT);
-    }
-
-    private BidderAliases aliases(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
-        final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
-
-        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     /**
@@ -342,9 +296,9 @@ public class LineItemService {
      * Updates deep debug log with matching information.
      */
     private boolean isTargetingMatched(LineItem lineItem,
+                                       BidRequest bidRequest,
                                        Imp imp,
-                                       AuctionContext auctionContext,
-                                       BidderAliases aliases) {
+                                       AuctionContext auctionContext) {
 
         final TargetingDefinition targetingDefinition = lineItem.getTargetingDefinition();
         final String accountId = auctionContext.getAccount().getId();
@@ -362,40 +316,37 @@ public class LineItemService {
         }
 
         final boolean matched = targetingService.matchesTargeting(
-                auctionContext, imp, lineItem.getTargetingDefinition(), lineItem.getSource(), aliases);
-        if (matched) {
-            deepDebug(
-                    auctionContext,
-                    Category.targeting,
-                    "Line Item %s targeting matched imp with id %s".formatted(lineItemId, imp.getId()),
-                    accountId,
-                    source,
-                    lineItemId);
-        } else {
-            deepDebug(
-                    auctionContext,
-                    Category.targeting,
-                    "Line Item %s targeting did not match imp with id %s".formatted(lineItemId, imp.getId()),
-                    accountId,
-                    source,
-                    lineItemId);
-        }
+                bidRequest, imp, lineItem.getTargetingDefinition(), auctionContext);
+
+        final String debugMessage = matched
+                ? "Line Item %s targeting matched imp with id %s".formatted(lineItemId, imp.getId())
+                : "Line Item %s targeting did not match imp with id %s".formatted(lineItemId, imp.getId());
+        deepDebug(
+                auctionContext,
+                Category.targeting,
+                debugMessage,
+                accountId,
+                source,
+                lineItemId);
+
         return matched;
     }
 
     /**
      * Filters {@link LineItem}s by next parameters: fcaps, readyAt, limit per bidder, same deal line items.
      */
-    private List<LineItem> postProcessMatchedLineItems(List<LineItem> lineItems, AuctionContext auctionContext, Imp imp,
+    private List<LineItem> postProcessMatchedLineItems(List<LineItem> lineItems,
+                                                       BidRequest bidRequest,
+                                                       Imp imp,
+                                                       AuctionContext auctionContext,
                                                        ZonedDateTime now) {
+
         final TxnLog txnLog = auctionContext.getTxnLog();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final User user = bidRequest.getUser();
-        final ExtUser extUser = user.getExt();
+        final List<String> fcapIds = bidRequest.getUser().getExt().getFcapIds();
 
         return lineItems.stream()
                 .peek(lineItem -> txnLog.lineItemsMatchedWholeTargeting().add(lineItem.getLineItemId()))
-                .filter(lineItem -> isNotFrequencyCapped(extUser.getFcapIds(), lineItem, auctionContext, txnLog))
+                .filter(lineItem -> isNotFrequencyCapped(fcapIds, lineItem, auctionContext, txnLog))
                 .filter(lineItem -> planHasTokensIfPresent(lineItem, auctionContext))
                 .filter(lineItem -> isReadyAtInPast(now, lineItem, auctionContext, txnLog))
                 .peek(lineItem -> txnLog.lineItemsReadyToServe().add(lineItem.getLineItemId()))
@@ -493,8 +444,11 @@ public class LineItemService {
      * <p>
      * Has side effect - records discarded line item id in the transaction log
      */
-    private boolean isNotFrequencyCapped(List<String> frequencyCappedByIds, LineItem lineItem,
-                                         AuctionContext auctionContext, TxnLog txnLog) {
+    private boolean isNotFrequencyCapped(List<String> frequencyCappedByIds,
+                                         LineItem lineItem,
+                                         AuctionContext auctionContext,
+                                         TxnLog txnLog) {
+
         if (CollectionUtils.isEmpty(lineItem.getFcapIds())) {
             return true;
         }
@@ -566,8 +520,10 @@ public class LineItemService {
      * Removes from consideration any line items that have already been sent to bidder as the TopMatch
      * in a previous impression for auction.
      */
-    private List<LineItem> uniqueBySentToBidderAsTopMatch(List<LineItem> lineItems, AuctionContext auctionContext,
+    private List<LineItem> uniqueBySentToBidderAsTopMatch(List<LineItem> lineItems,
+                                                          AuctionContext auctionContext,
                                                           Imp imp) {
+
         final TxnLog txnLog = auctionContext.getTxnLog();
         final Set<String> topMatchedLineItems = txnLog.lineItemsSentToBidderAsTopMatch().values().stream()
                 .flatMap(Collection::stream)
@@ -615,8 +571,13 @@ public class LineItemService {
         }
     }
 
-    private void deepDebug(AuctionContext auctionContext, Category category, String message, String accountId,
-                           String bidder, String lineItemId) {
+    private void deepDebug(AuctionContext auctionContext,
+                           Category category,
+                           String message,
+                           String accountId,
+                           String bidder,
+                           String lineItemId) {
+
         criteriaLogManager.log(logger, accountId, bidder, lineItemId, message, logger::debug);
         auctionContext.getDeepDebugLog().add(lineItemId, category, () -> message);
     }

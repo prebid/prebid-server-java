@@ -80,7 +80,10 @@
   },
   "user": {
     "ext": {
-      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+      "fcapids": [
+        "fcapId3"
+      ]
     }
   },
   "at": 1,

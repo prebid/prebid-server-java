@@ -1,0 +1,16 @@
+adapters:
+  sspbc:
+    endpoint: https://ssp.wp.pl/bidder/
+    meta-info:
+      maintainer-email: prebid-dev@grupawp.pl
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 676
+    usersync:
+      cookie-family-name: sspbc
+      iframe:
+        url: https://ssp.wp.pl/bidder/usersync?tcf=2&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
