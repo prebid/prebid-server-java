@@ -15,9 +15,8 @@ class AliasSpec extends BaseSpec {
 
     def "PBS should apply aliases for bidder when aliases corresponding to bidder request"() {
         given: "Default bid request with alias"
-        def aliases = [(ALIAS.value): GENERIC] as Map
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = aliases
+            ext.prebid.aliases = [(ALIAS.value): GENERIC] as Map
             imp[0].ext.prebid.bidder.alias = new Generic()
         }
 
@@ -35,10 +34,8 @@ class AliasSpec extends BaseSpec {
 
     def "PBS shouldn't apply aliases for bidder when unknown aliases corresponding to bidder request"() {
         given: "Default bid request with alias"
-        def randomString = PBSUtils.randomString
-        def aliases = [(randomString): GENERIC] as Map
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = aliases
+            ext.prebid.aliases = [(PBSUtils.randomString): GENERIC] as Map
         }
 
         when: "PBS processes auction request"
