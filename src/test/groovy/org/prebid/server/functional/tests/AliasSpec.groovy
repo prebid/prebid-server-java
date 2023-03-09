@@ -12,7 +12,7 @@ import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
 class AliasSpec extends BaseSpec {
 
-    def "PBS should apply aliases for bidder"() {
+    def "PBS should apply aliases for bidder when aliases corresponding to bidder request"() {
         given: "Default bid request with alias"
         def aliases = [("alias"): GENERIC] as Map
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -23,14 +23,34 @@ class AliasSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS contain same url for bidder request"
-        def httpcalls = response.ext.debug.httpcalls
-        assert httpcalls.size() == 2
-        assert httpcalls[GENERIC.value]*.uri == httpcalls[ALIAS.value]*.uri
+        then: "PBS contain two http calls and the same url for both"
+        def responseDebug = response.ext.debug
+        assert responseDebug.httpcalls.size() == 2
+        assert responseDebug.httpcalls[GENERIC.value]*.uri == responseDebug.httpcalls[ALIAS.value]*.uri
 
-        and: "Bidder request should contain aliases"
-        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.every() { it.ext.prebid.aliases == aliases }
+        and: "Resolved request should contain aliases as in request"
+        assert responseDebug.resolvedRequest.ext.prebid.aliases == bidRequest.ext.prebid.aliases
+    }
+
+    def "PBS shouldn't apply aliases for bidder when unknown aliases corresponding to bidder request"() {
+        given: "Default bid request with alias"
+        def randomString = PBSUtils.randomString
+        def aliases = [(randomString): GENERIC] as Map
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = aliases
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS contain one GENERIC requested bidder"
+        def responseDebug = response.ext.debug
+        assert responseDebug.httpcalls.size() == 1
+        assert responseDebug.httpcalls[GENERIC.value]
+        assert !responseDebug.httpcalls[randomString]
+
+        and: "Resolved request should contain unknown aliases as in request"
+        assert responseDebug.resolvedRequest.ext.prebid.aliases == bidRequest.ext.prebid.aliases
     }
 
     def "PBS should apply compression type for bidder alias when adapters.BIDDER.endpoint-compression = gzip"() {
