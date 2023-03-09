@@ -378,7 +378,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(dealsService.matchAndPopulateDeals(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
 
-        given(priceFloorEnforcer.enforce(any(), any(), any()))
+        given(priceFloorEnforcer.enforce(any(), any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
         given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
                 .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
@@ -3561,7 +3561,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId2"))),
                 identity());
 
-        given(priceFloorEnforcer.enforce(any(), any(), any()))
+        given(priceFloorEnforcer.enforce(any(), any(), any(), any()))
                 .willReturn(AuctionParticipation.builder()
                         .bidder("bidder1")
                         .bidderResponse(BidderResponse.of(

@@ -1,7 +1,9 @@
 package org.prebid.server.auction.model;
 
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.util.MapUtil;
 
@@ -9,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class BidRejectionTracker {
@@ -41,6 +44,19 @@ public class BidRejectionTracker {
             succeededImpIds.add(impId);
             rejectedImpIds.remove(impId);
         }
+    }
+
+    public void succeed(Collection<BidderBid> bids) {
+        bids.stream()
+                .map(BidderBid::getBid)
+                .filter(Objects::nonNull)
+                .map(Bid::getImpid)
+                .filter(Objects::nonNull)
+                .forEach(this::succeed);
+    }
+
+    public void restoreFromRejection(Collection<BidderBid> bids) {
+        succeed(bids);
     }
 
     public void reject(String impId, BidRejectionReason reason) {

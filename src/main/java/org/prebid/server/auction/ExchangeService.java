@@ -1417,7 +1417,8 @@ public class ExchangeService {
                 .map(auctionParticipation -> priceFloorEnforcer.enforce(
                         auctionContext.getBidRequest(),
                         auctionParticipation,
-                        auctionContext.getAccount()))
+                        auctionContext.getAccount(),
+                        auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .toList();
     }
 
