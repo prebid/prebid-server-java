@@ -10,5 +10,5 @@ class BidResponsePrebid {
 
     Long auctionTimeStamp
     Map passThrough
-    List<SeatNonBid> seatNonBid
+    ExtBidResponseFledge fledge
 }

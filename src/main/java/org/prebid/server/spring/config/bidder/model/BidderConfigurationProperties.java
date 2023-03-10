@@ -5,8 +5,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 
@@ -67,5 +67,9 @@ public class BidderConfigurationProperties {
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
         endpointCompression = ObjectUtils.defaultIfNull(
                 endpointCompression, defaultProperties.getEndpointCompression());
+
+        if (usersync != null && usersync.getEnabled() == null) {
+            usersync.setEnabled(true);
+        }
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 
@@ -31,6 +32,22 @@ public interface Bidder<T> {
      * "subpar" in some way. For example: the server response didn't have the expected format.
      */
     Result<List<BidderBid>> makeBids(BidderCall<T> httpCall, BidRequest bidRequest);
+
+    /**
+     * Compound Bidder response with bids and other data to be passed back.
+     * <p>
+     * The errors should contain a list of errors which explain why this bidder's bids will be
+     * "subpar" in some way. For example: the server response didn't have the expected format.
+     */
+    default CompositeBidderResponse makeBidderResponse(BidderCall<T> httpCall, BidRequest bidRequest) {
+        var result = makeBids(httpCall, bidRequest);
+        return result != null
+                ? CompositeBidderResponse.builder()
+                    .bids(result.getValue())
+                    .errors(result.getErrors())
+                    .build()
+                : null;
+    }
 
     /**
      * Extracts targeting from bidder-specific extension. It is safe to assume that {@code ext} is not null.

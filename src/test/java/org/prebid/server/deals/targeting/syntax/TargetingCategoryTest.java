@@ -76,7 +76,7 @@ public class TargetingCategoryTest {
         final TargetingCategory bidderParamCategory = TargetingCategory.fromString("bidp.rubicon.siteId");
         // then
         assertThat(bidderParamCategory.type()).isEqualTo(TargetingCategory.Type.bidderParam);
-        assertThat(bidderParamCategory.path()).isEqualTo("rubicon.siteId");
+        assertThat(bidderParamCategory.path()).isEqualTo("siteId");
 
         // when
         final TargetingCategory userSegmentCategory = TargetingCategory.fromString("segment.bluekai");

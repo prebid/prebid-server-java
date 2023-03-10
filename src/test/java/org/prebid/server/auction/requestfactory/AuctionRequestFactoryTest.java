@@ -29,6 +29,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -80,6 +81,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
+    private AuctionGppService auctionGppService;
+    @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
@@ -110,7 +113,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         defaultAccount = Account.empty(ACCOUNT_ID);
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         defaultActionContext = AuctionContext.builder()
                 .requestTypeMetric(MetricName.openrtb2web)
@@ -122,6 +130,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build();
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(auctionGppService.apply(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -156,7 +167,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
-        given(ortb2RequestFactory.populateDealsInfo(any()))
+        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
@@ -166,6 +177,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -198,6 +210,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -607,7 +620,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("1", "consent", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
         given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(privacyContext));

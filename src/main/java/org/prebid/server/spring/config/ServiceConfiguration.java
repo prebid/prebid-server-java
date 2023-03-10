@@ -25,6 +25,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
@@ -32,6 +33,13 @@ import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.gpp.AmpGppService;
+import org.prebid.server.auction.gpp.AuctionGppService;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.gpp.GppService;
+import org.prebid.server.auction.gpp.processor.GppContextProcessor;
+import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
+import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
@@ -56,8 +64,8 @@ import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsPopulator;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
@@ -289,6 +297,36 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    GppContextProcessor tcfEuV2ContextProcessor() {
+        return new TcfEuV2ContextProcessor();
+    }
+
+    @Bean
+    GppContextProcessor uspV1ContextProcessor() {
+        return new UspV1ContextProcessor();
+    }
+
+    @Bean
+    GppService gppService(List<GppContextProcessor> processors) {
+        return new GppService(processors);
+    }
+
+    @Bean
+    AuctionGppService auctionGppProcessor(GppService gppService) {
+        return new AuctionGppService(gppService);
+    }
+
+    @Bean
+    AmpGppService ampGppProcessor(GppService gppService) {
+        return new AmpGppService(gppService);
+    }
+
+    @Bean
+    CookieSyncGppService cookieSyncGppProcessor(GppService gppService) {
+        return new CookieSyncGppService(gppService);
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
@@ -300,7 +338,7 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
-            @Autowired(required = false) DealsPopulator dealsPopulator,
+            @Autowired(required = false) UserAdditionalInfoService userAdditionalInfoService,
             CountryCodeMapper countryCodeMapper,
             PriceFloorProcessor priceFloorProcessor,
             Metrics metrics,
@@ -320,7 +358,7 @@ public class ServiceConfiguration {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsPopulator,
+                userAdditionalInfoService,
                 priceFloorProcessor,
                 countryCodeMapper,
                 metrics,
@@ -333,6 +371,7 @@ public class ServiceConfiguration {
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+            AuctionGppService auctionGppService,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -345,6 +384,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
+                auctionGppService,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
@@ -380,6 +420,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+                                        AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
@@ -392,6 +433,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
@@ -582,6 +624,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    UidUpdater uidUpdater(
+            @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
+            BidderCatalog bidderCatalog,
+            UidsCookieService uidsCookieService) {
+
+        return new UidUpdater(hostCookieFamily, bidderCatalog, uidsCookieService);
+    }
+
+    @Bean
     CoopSyncProvider coopSyncProvider(
             BidderCatalog bidderCatalog,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
@@ -720,12 +771,13 @@ public class ServiceConfiguration {
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
-            DealsProcessor dealsProcessor,
+            @Autowired(required = false) DealsService dealsService,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             MediaTypeProcessor mediaTypeProcessor,
+            UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
@@ -749,12 +801,13 @@ public class ServiceConfiguration {
                 timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
+                uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
                 bidRequestOrtbVersionConversionManager,

@@ -1,0 +1,28 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
+      },
+      "bidfloor": 4.20,
+      "bidfloorcur": "USD",
+      "ext": {
+        "bidstack": {
+          "publisherId": "3ce75cd4-b6d2-11ed-afa1-0242ac120002"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

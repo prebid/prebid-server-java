@@ -17,11 +17,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -81,7 +81,7 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final DealsPopulator dealsPopulator;
+    private final UserAdditionalInfoService userAdditionalInfoService;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
     private final PriceFloorProcessor priceFloorProcessor;
@@ -100,7 +100,7 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               DealsPopulator dealsPopulator,
+                               UserAdditionalInfoService userAdditionalInfoService,
                                PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Metrics metrics,
@@ -117,7 +117,7 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.dealsPopulator = dealsPopulator;
+        this.userAdditionalInfoService = userAdditionalInfoService;
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
@@ -263,9 +263,9 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    public Future<AuctionContext> populateDealsInfo(AuctionContext auctionContext) {
-        return dealsPopulator != null
-                ? dealsPopulator.populate(auctionContext)
+    public Future<AuctionContext> populateUserAdditionalInfo(AuctionContext auctionContext) {
+        return userAdditionalInfoService != null
+                ? userAdditionalInfoService.populate(auctionContext)
                 : Future.succeededFuture(auctionContext);
     }
 

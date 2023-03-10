@@ -18,6 +18,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -74,6 +75,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private CookieSyncGppService cookieSyncGppProcessor;
+    @Mock
     private CookieSyncService cookieSyncService;
     @Mock
     private ApplicationSettings applicationSettings;
@@ -95,19 +98,28 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
+        given(cookieSyncGppProcessor.apply(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
         given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
-                        Privacy.of("", EMPTY, Ccpa.EMPTY, 0),
+                        Privacy.builder()
+                                .gdpr("")
+                                .consentString(EMPTY)
+                                .ccpa(Ccpa.EMPTY)
+                                .coppa(0)
+                                .build(),
                         TcfContext.empty())));
 
         target = new CookieSyncHandler(
                 500,
                 0.05,
                 uidsCookieService,
+                cookieSyncGppProcessor,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,
@@ -242,7 +254,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList(), null));
 
         // when
         target.handle(routingContext);
@@ -340,7 +352,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, bidderStatuses));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, bidderStatuses, null));
 
         // when
         target.handle(routingContext);
@@ -377,7 +389,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
         given(cookieSyncService.prepareResponse(any()))
-                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList()));
+                .willReturn(CookieSyncResponse.of(CookieSyncStatus.OK, emptyList(), null));
     }
 
     private CookieSyncEvent captureCookieSyncTcfEvent() {

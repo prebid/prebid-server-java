@@ -2,12 +2,15 @@ package org.prebid.server.proto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.json.deserializer.CommaSeparatedStringAsListOfIntegersDeserializer;
 
+import java.util.List;
 import java.util.Set;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class CookieSyncRequest {
 
@@ -18,6 +21,11 @@ public class CookieSyncRequest {
     String gdprConsent;
 
     String usPrivacy;
+
+    String gpp;
+
+    @JsonDeserialize(using = CommaSeparatedStringAsListOfIntegersDeserializer.class)
+    List<Integer> gppSid;
 
     @JsonProperty("coopSync")
     Boolean coopSync;

@@ -28,6 +28,10 @@ class HttpUtil implements ObjectMapperWrapper {
         [(COOKIE_HEADER): makeUidsCookieHeaderValue(encode(uidsCookie))]
     }
 
+    static HashMap<String, String> getCookieHeader(String value1, String value2) {
+        [(COOKIE_HEADER): "$value1=$value2"]
+    }
+
     private static String decodeUrl(String url) {
         URLDecoder.decode(url, UTF_8)
     }

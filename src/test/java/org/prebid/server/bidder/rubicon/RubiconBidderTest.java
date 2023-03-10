@@ -83,6 +83,7 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -1044,6 +1045,36 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCopyUserExtDataToUserExtRpTarget() {
+        // given
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("property1", "value1");
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .consent("consent")
+                        .ext(ExtUser.builder().data(dataNode).build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode targetNode = mapper.createObjectNode();
+        targetNode.set("property1", mapper.createArrayNode().add("value1"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .extracting(properties -> properties.get("rp"))
+                .extracting(rp -> rp.get("target"))
+                .containsExactly(targetNode);
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotValidateNativeObjectIfVersionIsOneDotZero() {
         // given
         final Imp nativeImp = givenImp(builder -> builder
@@ -1366,8 +1397,29 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .containsOnly(User.builder()
                         .buyeruid("buyeruid")
-                        .consent("consent")
-                        .ext(ExtUser.builder().build())
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMoveUserConsentToUserExtConsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().consent("consent").build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .containsExactly(
+                        User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build());
     }
 
@@ -3109,15 +3161,15 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldNotReplacePresentAdmWithAdmObject() throws JsonProcessingException {
+    public void makeBidsShouldNotReplacePresentAdmWithAdmNative() throws JsonProcessingException {
         // given
-        final ObjectNode admObject = mapper.createObjectNode();
-        admObject.put("admObjectProperty", "admObjectValue");
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("impId")),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm("someAdm")
-                        .admobject(admObject)
+                        .admNative(admNative)
                         .price(ONE).impid("mismatched_impId")));
 
         // when
@@ -3132,15 +3184,15 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReplaceNotPresentAdmWithAdmObject() throws JsonProcessingException {
+    public void makeBidsShouldReplaceNotPresentAdmWithAdmNative() throws JsonProcessingException {
         // given
-        final ObjectNode admObject = mapper.createObjectNode();
-        admObject.put("admObjectProperty", "admObjectValue");
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("impId")),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm(null)
-                        .admobject(admObject)
+                        .admNative(admNative)
                         .price(ONE).impid("mismatched_impId")));
 
         // when
@@ -3151,7 +3203,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .containsExactly("{\"admObjectProperty\":\"admObjectValue\"}");
+                .containsExactly("{\"admNativeProperty\":\"admNativeValue\"}");
     }
 
     @Test

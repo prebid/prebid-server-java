@@ -409,7 +409,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return bidRequest.toBuilder()
                 .imp(Collections.singletonList(makeImp(imp, extImpRubicon, bidRequest, errors)))
-                .user(makeUser(bidRequest.getUser(), extImpRubicon))
+                .user(downgradeUserConsent(makeUser(bidRequest.getUser(), extImpRubicon)))
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(bidRequest.getSite(), impLanguage, extImpRubicon))
                 .app(makeApp(bidRequest.getApp(), extImpRubicon))
@@ -1195,6 +1195,30 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    // TODO: Refactor this
+    private User downgradeUserConsent(User user) {
+        if (user == null || user.getConsent() == null) {
+            return user;
+        }
+
+        final ExtUser extUser = user.getExt();
+
+        final ExtUser newUserExt = Optional.ofNullable(extUser)
+                .map(ExtUser::toBuilder)
+                .orElseGet(ExtUser::builder)
+                .consent(user.getConsent())
+                .build();
+
+        if (extUser != null) {
+            newUserExt.addProperties(user.getExt().getProperties());
+        }
+
+        return user.toBuilder()
+                .consent(null)
+                .ext(newUserExt)
+                .build();
+    }
+
     private static String resolveUserId(List<Eid> userEids) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
@@ -1693,7 +1717,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final RubiconBid updatedRubiconBid = bid.toBuilder()
                 .id(bidId)
-                .adm(resolveAdm(bid.getAdm(), bid.getAdmobject()))
+                .adm(resolveAdm(bid.getAdm(), bid.getAdmNative()))
                 .price(bidPrice)
                 .build();
 

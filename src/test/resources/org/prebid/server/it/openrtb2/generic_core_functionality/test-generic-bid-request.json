@@ -66,13 +66,11 @@
         "bids" : { }
       },
       "auctiontimestamp" : 0,
-      "pbs" : {
-        "endpoint" : "/openrtb2/auction"
-      },
       "server" : {
         "externalurl" : "http://localhost:8080",
         "gvlid" : 1,
-        "datacenter" : "local"
+        "datacenter" : "local",
+        "endpoint" : "/openrtb2/auction"
       }
     }
   }

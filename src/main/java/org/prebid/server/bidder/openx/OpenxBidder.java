@@ -1,12 +1,12 @@
 package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
+import org.apache.commons.collections4.MapUtils;
+import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -15,10 +15,11 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
-import org.prebid.server.bidder.openx.proto.OpenxImpExt;
+import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.exception.PreBidException;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -39,12 +41,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String CUSTOM_PARAMS_KEY = "customParams";
+    private static final String BIDDER_EXT = "bidder";
+    private static final String PREBID_EXT = "prebid";
+    private static final Set<String> IMP_EXT_SKIP_FIELDS = Set.of(BIDDER_EXT, PREBID_EXT);
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -74,35 +82,53 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidRequest, bidResponse));
+            final OpenxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(),
+                    OpenxBidResponse.class);
+            return CompositeBidderResponse.withBids(extractBids(bidRequest, bidResponse), extractFledge(bidResponse));
         } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
+    }
+
+    /**
+     * @deprecated for this bidder in favor of @link{makeBidderResponse} which supports additional response data
+     */
+    @Override
+    @Deprecated(forRemoval = true)
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
     }
 
     private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,
                                           List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
-        bidRequests.add(createSingleRequest(bannerImps, bidRequest, errors));
+        final BidRequest bannerRequest = createSingleRequest(bannerImps, bidRequest, errors);
+        if (bannerRequest != null) {
+            bidRequests.add(bannerRequest);
+        }
 
         if (CollectionUtils.isNotEmpty(videoImps)) {
             // single request for each video imp
             bidRequests.addAll(videoImps.stream()
                     .map(Collections::singletonList)
                     .map(imps -> createSingleRequest(imps, bidRequest, errors))
+                    .filter(Objects::nonNull)
                     .toList());
         }
         return bidRequests;
     }
 
     private static OpenxImpType resolveImpType(Imp imp) {
-        return imp.getBanner() != null
-                ? OpenxImpType.banner
-                : imp.getVideo() != null ? OpenxImpType.video : OpenxImpType.other;
+        if (imp.getBanner() != null) {
+            return OpenxImpType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return OpenxImpType.video;
+        }
+        return OpenxImpType.other;
     }
 
     private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
@@ -162,7 +188,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
-                .ext(makeImpExt(openxImpExt.getCustomParams()));
+                .ext(makeImpExt(imp.getExt(), MapUtils.isNotEmpty(openxImpExt.getCustomParams())));
 
         if (resolveImpType(imp) == OpenxImpType.video
                 && prebidImpExt != null
@@ -207,19 +233,22 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impExt;
     }
 
-    private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
-        return customParams != null
-                ? mapper.mapper().valueToTree(OpenxImpExt.of(customParams))
-                : null;
+    private ObjectNode makeImpExt(ObjectNode impExt, boolean addCustomParams) {
+        final ObjectNode openxImpExt = impExt.deepCopy();
+        openxImpExt.remove(IMP_EXT_SKIP_FIELDS);
+        if (addCustomParams) {
+            openxImpExt.set(CUSTOM_PARAMS_KEY, impExt.get(BIDDER_EXT).get(CUSTOM_PARAMS_KEY).deepCopy());
+        }
+        return openxImpExt;
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, OpenxBidResponse bidResponse) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, OpenxBidResponse bidResponse) {
         final Map<String, BidType> impIdToBidType = impIdToBidType(bidRequest);
 
         final String bidCurrency = StringUtils.isNotBlank(bidResponse.getCur())
@@ -242,5 +271,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
         return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+    }
+
+    private static List<FledgeAuctionConfig> extractFledge(OpenxBidResponse bidResponse) {
+        return Optional.ofNullable(bidResponse)
+                .map(OpenxBidResponse::getExt)
+                .map(OpenxBidResponseExt::getFledgeAuctionConfigs)
+                .orElse(Collections.emptyMap())
+                .entrySet()
+                .stream()
+                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .toList();
     }
 }

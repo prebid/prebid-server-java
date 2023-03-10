@@ -158,7 +158,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             if (isPriceBelowFloor(price, floor)) {
                 warnings.add(BidderError.rejectedIpf(
                         "Bid with id '%s' was rejected by floor enforcement: price %s is below the floor %s"
-                                .formatted(bid.getId(), price, floor)));
+                                .formatted(bid.getId(), price, floor), bid.getImpid()));
 
                 updatedBidderBids.remove(bidderBid);
             }
@@ -171,8 +171,11 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
-        final BidderSeatBid bidderSeatBid =
-                BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors, warnings);
+        final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
+                .bids(updatedBidderBids)
+                .errors(errors)
+                .warnings(warnings)
+                .build();
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 

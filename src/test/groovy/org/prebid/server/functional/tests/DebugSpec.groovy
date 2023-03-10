@@ -365,9 +365,9 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for called bidder"
-        assert response.ext.prebid.seatNonBid.size() == 1
+        assert response.ext.seatnonbid.size() == 1
 
-        def seatNonBid = response.ext.prebid.seatNonBid[0]
+        def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == NO_BID
@@ -391,9 +391,9 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for called bidder"
-        assert response.ext.prebid.seatNonBid.size() == 1
+        assert response.ext.seatnonbid.size() == 1
 
-        def seatNonBid = response.ext.prebid.seatNonBid[0]
+        def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == NO_BID
@@ -420,7 +420,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid"
-        assert !response.ext.prebid.seatNonBid
+        assert !response.ext.seatnonbid
         assert !response.seatbid
     }
 
@@ -442,7 +442,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid for called bidder"
-        assert !response.ext.prebid.seatNonBid
+        assert !response.ext.seatnonbid
     }
 
     def "PBS shouldn't populate seatNonBid with successful bids"() {
@@ -461,7 +461,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid"
-        assert !response.ext.prebid.seatNonBid
+        assert !response.ext.seatnonbid
         assert response.seatbid
     }
 }

@@ -40,6 +40,7 @@ import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -384,6 +385,35 @@ public class CookieSyncServiceTest extends VertxTest {
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::rejectedBidders)
                 .isEqualTo(Map.of("bidder-without-usersync", RejectionReason.UNCONFIGURED_USERSYNC));
+    }
+
+    @Test
+    public void processContextShouldRejectBiddersWithDisabledUsersync() {
+        // given
+        givenCoopSyncBidders("coop-sync-bidder");
+
+        givenValidActiveBidders("requested-bidder", "coop-sync-bidder", "bidder-with-disabled-usersync");
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+        givenUsersyncerForBidder(
+                false,
+                "bidder-with-disabled-usersync",
+                "bidder-with-disabled-usersync-cookie-family",
+                CookieFamilySource.ROOT);
+
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder", "bidder-with-disabled-usersync");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
+                builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder", "bidder-with-disabled-usersync")));
+
+        // when
+        final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
+
+        // then
+        assertThat(result).isSucceeded()
+                .unwrap()
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::rejectedBidders)
+                .isEqualTo(Map.of("bidder-with-disabled-usersync", RejectionReason.DISABLED_USERSYNC));
     }
 
     @Test
@@ -826,7 +856,7 @@ public class CookieSyncServiceTest extends VertxTest {
         given(bidderCatalog.isValidName("alias")).willReturn(true);
         given(bidderCatalog.isActive("alias")).willReturn(true);
         given(bidderCatalog.isAlias("alias")).willReturn(true);
-        givenUsersyncerForBidder("alias", "root-cookie-family", CookieFamilySource.ROOT);
+        givenUsersyncerForBidder(true, "alias", "root-cookie-family", CookieFamilySource.ROOT);
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
                 cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
@@ -854,7 +884,7 @@ public class CookieSyncServiceTest extends VertxTest {
         given(bidderCatalog.isValidName("alias")).willReturn(true);
         given(bidderCatalog.isActive("alias")).willReturn(true);
         given(bidderCatalog.isAlias("alias")).willReturn(true);
-        givenUsersyncerForBidder("alias", "alias-cookie-family", CookieFamilySource.ALIAS);
+        givenUsersyncerForBidder(true, "alias", "alias-cookie-family", CookieFamilySource.ALIAS);
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
                 cookieSyncContextBuilder -> cookieSyncContextBuilder.debug(true),
@@ -922,8 +952,16 @@ public class CookieSyncServiceTest extends VertxTest {
         final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
 
         // then
-        final String expectedUrl = "https://external-url.com/setuid?bidder=host-bidder-cookie-family"
-                + "&gdpr=gdpr&gdpr_consent=consent-string&us_privacy=&f=b&uid=bogus";
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .noCookie(true)
                 .bidder("host-bidder-cookie-family")
@@ -933,12 +971,97 @@ public class CookieSyncServiceTest extends VertxTest {
         assertThat(result.getBidderStatus()).containsExactly(status);
     }
 
+    @Test
+    public void prepareResponseShouldReturnResponseWithWarningsIfNotEmpty() {
+        // given
+        givenValidActiveBidder("host-bidder");
+        givenUsersyncersForBidders("host-bidder");
+
+        given(uidsCookieService.hostCookieUidToSync(routingContext, "host-bidder-cookie-family"))
+                .willReturn("bogus");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.warnings(List.of("Warning")),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("host-bidder"))
+                        .bidderUsersyncMethod(Map.of("host-bidder", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .noCookie(true)
+                .bidder("host-bidder-cookie-family")
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+        assertThat(result.getWarnings()).containsExactly("Warning");
+    }
+
+    @Test
+    public void prepareResponseShouldReturnResponseWithoutWarningsIfEmpty() {
+        // given
+        givenValidActiveBidder("host-bidder");
+        givenUsersyncersForBidders("host-bidder");
+
+        given(uidsCookieService.hostCookieUidToSync(routingContext, "host-bidder-cookie-family"))
+                .willReturn("bogus");
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(
+                cookieSyncContextBuilder -> cookieSyncContextBuilder.warnings(Collections.emptyList()),
+                biddersContextBuilder -> biddersContextBuilder
+                        .requestedBidders(singleton("host-bidder"))
+                        .bidderUsersyncMethod(Map.of("host-bidder", givenUsersyncMethod("alias"))));
+
+        // when
+        final CookieSyncResponse result = target.prepareResponse(cookieSyncContext);
+
+        // then
+        final String expectedUrl = """
+                https://external-url.com/setuid\
+                ?bidder=host-bidder-cookie-family\
+                &gdpr=gdpr\
+                &gdpr_consent=consent-string\
+                &us_privacy=\
+                &gpp=\
+                &gpp_sid=\
+                &f=b\
+                &uid=bogus""";
+        final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
+                .noCookie(true)
+                .bidder("host-bidder-cookie-family")
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .build();
+
+        assertThat(result.getBidderStatus()).containsExactly(status);
+        assertThat(result.getWarnings()).isNull();
+    }
+
     private PrivacyContext givenAllAllowedPrivacyContext() {
         return givenPrivacyContext(TcfContext.builder().inGdprScope(false).build());
     }
 
     private PrivacyContext givenPrivacyContext(TcfContext tcfContext) {
-        return PrivacyContext.of(Privacy.of("gdpr", "consent-string", Ccpa.EMPTY, 1), tcfContext);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("gdpr")
+                .consentString("consent-string")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(1)
+                .build();
+
+        return PrivacyContext.of(privacy, tcfContext);
     }
 
     private void givenValidActiveBidders(String... bidders) {
@@ -969,15 +1092,17 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     private void givenUsersyncerForBidder(String bidder) {
-        givenUsersyncerForBidder(bidder, bidder + "-cookie-family", CookieFamilySource.ROOT);
+        givenUsersyncerForBidder(true, bidder, bidder + "-cookie-family", CookieFamilySource.ROOT);
     }
 
-    private void givenUsersyncerForBidder(String bidder,
+    private void givenUsersyncerForBidder(boolean enabled,
+                                          String bidder,
                                           String cookieFamilyName,
                                           CookieFamilySource cookieFamilySource) {
 
         final UsersyncMethod usersyncMethod = givenUsersyncMethod(bidder);
-        final Usersyncer usersyncer = Usersyncer.of(cookieFamilyName, cookieFamilySource, usersyncMethod, null);
+        final Usersyncer usersyncer = Usersyncer.of(
+                enabled, cookieFamilyName, cookieFamilySource, usersyncMethod, null);
 
         given(bidderCatalog.usersyncerByName(eq(bidder))).willReturn(Optional.of(usersyncer));
         given(bidderCatalog.cookieFamilyName(eq(bidder))).willReturn(Optional.of(cookieFamilyName));
