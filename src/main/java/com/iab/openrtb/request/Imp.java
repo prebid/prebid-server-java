@@ -3,6 +3,7 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Value;
 
@@ -155,4 +156,9 @@ public class Imp {
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;
+
+    @EqualsAndHashCode.Include(replaces = "bidfloor")
+    private BigDecimal bidFloor() {
+        return bidfloor != null ? bidfloor.stripTrailingZeros() : null;
+    }
 }

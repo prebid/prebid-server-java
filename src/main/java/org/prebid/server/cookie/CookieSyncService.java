@@ -2,6 +2,7 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -330,7 +331,12 @@ public class CookieSyncService {
                 validStatuses(biddersToSync, cookieSyncContext),
                 debugStatuses(biddersToSync, cookieSyncContext));
 
-        return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses));
+        final List<String> warnings = cookieSyncContext.getWarnings();
+        final List<String> resolvedWarnings = CollectionUtils.isNotEmpty(warnings)
+                ? warnings
+                : null;
+
+        return CookieSyncResponse.of(cookieSyncStatus, Collections.unmodifiableList(statuses), resolvedWarnings);
     }
 
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {

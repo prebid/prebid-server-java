@@ -1,0 +1,15 @@
+adapters:
+  bidstack:
+    endpoint: https://server.bidstack.com/openrtb
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: tech@bidstack.com
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 462
+    usersync:
+      cookie-family-name: bidstack
