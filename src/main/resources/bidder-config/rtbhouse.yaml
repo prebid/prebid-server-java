@@ -12,5 +12,5 @@ adapters:
     usersync:
       cookie-family-name: rtbhouse
       redirect:
-        url: https://creativecdn.com/cm-notify?pi=rp-pbserv&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+        url: https://creativecdn.com/cm-notify?pi=rp-pbserv
         support-cors: false
