@@ -2,6 +2,7 @@ package org.prebid.server.bidder.taboola;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -40,10 +41,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointTemplate;
+    private final String domain;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, JacksonMapper mapper) {
+    public TaboolaBidder(String endpointTemplate, String externalUrl, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+        this.domain = HttpUtil.getHostFromUrl(externalUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -73,7 +76,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createHttpRequest(ExtImpTaboola impExt, String type, BidRequest outgoingRequest) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(buildEndpointUrl(impExt, type, outgoingRequest.getSite().getDomain()))
+                .uri(buildEndpointUrl(impExt, type, domain))
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
@@ -111,6 +114,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .domain(StringUtils.defaultString(impExt.getPublisherDomain()))
                 .publisher(Publisher.builder().id(impExt.getPublisherId()).build())
                 .build();
+
         return request.toBuilder()
                 .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : request.getBadv())
                 .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : request.getBcat())
@@ -127,9 +131,14 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, ExtImpTaboola impExt) {
+        Banner banner = imp.getBanner();
+        if (banner != null && impExt.getPosition() != null) {
+            banner = banner.toBuilder().pos(impExt.getPosition()).build();
+        }
         return imp.toBuilder()
                 .tagid(impExt.getPublisherId())
                 .bidfloor(impExt.getBidFloor())
+                .banner(banner)
                 .build();
     }
 

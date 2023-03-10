@@ -50,12 +50,15 @@ public class TaboolaBidderTest extends VertxTest {
     @Before
     public void setUp() {
         taboolaBidder =
-                new TaboolaBidder("https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}", jacksonMapper);
+                new TaboolaBidder("https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}",
+                        "http://localhost-test.com",
+                        jacksonMapper);
     }
 
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TaboolaBidder("incorrect.endpoint",
+                "http://localhost:8090",
                 jacksonMapper));
     }
 
@@ -152,12 +155,13 @@ public class TaboolaBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .contains("https://display.bidder.taboola.com/OpenRTB/PS/auction/test.com/token")
+                .contains("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/token")
                 .doesNotContain(BidType.banner.getName());
     }
 
     @Test
     public void makeHttpRequestWithInvalidTypeShouldReturnErrorWithProperMessage() {
+        // given
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.video(Video.builder().build()).bidfloorcur("USD"));
 
@@ -199,7 +203,7 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnValidBidResponseWithVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnValidBidResponseWithNativeWhenSingleImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.xNative(Native.builder().build()));
 
@@ -221,6 +225,61 @@ public class TaboolaBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.xNative);
+    }
+
+    @Test
+    public void makeBidsShouldReturnValidBidResponseWithTwoResponsesWhenTwoImp() throws JsonProcessingException {
+        // given
+        final Imp impBanner = givenImp(impCustomizer ->
+                impCustomizer.banner(Banner.builder().build()).bidfloorcur("USD"));
+        final Imp impNative = givenImp(impCustomizer ->
+                impCustomizer.xNative(Native.builder().build()).bidfloorcur("EUR"));
+        final BidRequest bidRequest = BidRequest.builder().imp(List.of(impBanner, impNative)).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(identity())));
+
+        // when
+        final Result<List<BidderBid>> result = taboolaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(BidderBid::getBid)
+                .containsOnly(Bid.builder()
+                        .impid("123")
+                        .build());
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner, BidType.xNative);
+    }
+
+    @Test
+    public void makeBidsShouldReturnValidBidResponseWithBannerTypeWhenImpIncludeNativeAndBanner()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
+                .xNative(Native.builder().build())
+                .banner(Banner.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(identity())));
+
+        // when
+        final Result<List<BidderBid>> result = taboolaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .containsOnly(Bid.builder()
+                        .impid("123")
+                        .build());
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
