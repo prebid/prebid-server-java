@@ -9,8 +9,6 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
-import spock.lang.IgnoreRest
-import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -29,7 +27,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Resolved request regs should contain regs.gdpr and gppSid from request"
         def regs = bidResponse.ext.debug.resolvedRequest.regs
@@ -49,7 +47,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain regs.gdpr and gppSid from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -67,7 +65,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -90,7 +88,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -115,7 +113,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -137,7 +135,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain user.consent from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -181,7 +179,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -198,7 +196,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain user and regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -220,7 +218,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
