@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.request.activitie.AllowActivities
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
@@ -30,6 +31,7 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    AllowActivities allowActivities;
 
     static class Channel {
 
