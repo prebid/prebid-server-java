@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.cwire;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -24,7 +23,6 @@ import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -192,6 +190,5 @@ public class CwireBidderTest extends VertxTest {
     private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(null, HttpResponse.of(204, null, body), null);
     }
-
 
 }
