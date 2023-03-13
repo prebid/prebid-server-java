@@ -121,15 +121,13 @@ class SeatNonBidSpec extends BaseSpec {
 
     def "PBS should populate seatNonBid when rejected due to timeout"() {
         given: "PBS config with min and max time-out"
-        def tmax = 1
         def pbsService = pbsServiceFactory.getService(
-                ["auction.biddertmax.max": tmax.toString(),
-                 "auction.biddertmax.min": "1"])
+                ["auction.biddertmax.min": "10"])
 
         and: "Default bid request with max timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            tmax = tmax + 1
+            tmax = 5
         }
 
         and: "Default bidder response"
