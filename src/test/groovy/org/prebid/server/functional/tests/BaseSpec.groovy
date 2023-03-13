@@ -15,7 +15,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {

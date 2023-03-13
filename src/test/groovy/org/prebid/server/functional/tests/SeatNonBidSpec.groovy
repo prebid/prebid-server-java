@@ -45,7 +45,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].statusCode == FAILED_TO_REQUEST_BIDS
     }
 
-    def "PBS should populate seatNonBid and debug when returnAllBidStatus=true, debug=0 and requested bidder didn't bid for any reason"() {
+    def "PBS should populate seatNonBid when returnAllBidStatus=true and shouldn't populate when debug=0 and requested bidder didn't bid for any reason"() {
         given: "Default bid request with returnAllBidStatus and debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
@@ -75,30 +75,8 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response?.ext?.debug
     }
 
-    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and bidder didn't bid for any reason"() {
+    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and debug=0 and bidder didn't bid for any reason"() {
         given: "Default bid request with disabled returnAllBidStatus"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.returnAllBidStatus = false
-        }
-
-        and: "Default bidder response without bids"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid = []
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse, PBSUtils.getRandomElement(HttpStatusCode.values() as List))
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS response shouldn't contain seatNonBid"
-        assert !response.ext.seatnonbid
-        assert !response.seatbid
-    }
-
-    def "PBS shouldn't populate seatNonBid when debug=0 and requested bidder didn't bid for any reason"() {
-        given: "Default bid request with returnAllBidStatus and debug, test"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = false
             ext.prebid.debug = 0
@@ -115,8 +93,10 @@ class SeatNonBidSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response shouldn't contain seatNonBid for called bidder"
+        then: "PBS response shouldn't contain seatNonBid, debug"
         assert !response.ext.seatnonbid
+        assert !response.seatbid
+        assert !response?.ext?.debug
     }
 
     def "PBS shouldn't populate seatNonBid with successful bids"() {
@@ -140,15 +120,16 @@ class SeatNonBidSpec extends BaseSpec {
     }
 
     def "PBS should populate seatNonBid when rejected due to timeout"() {
-        given: "PBS config with min time-out"
+        given: "PBS config with min and max time-out"
+        def tmax = 1
         def pbsService = pbsServiceFactory.getService(
-                ["auction.biddertmax.max": "1",
+                ["auction.biddertmax.max": tmax.toString(),
                  "auction.biddertmax.min": "1"])
 
         and: "Default bid request with max timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            tmax = 1
+            tmax = tmax + 1
         }
 
         and: "Default bidder response"
@@ -197,7 +178,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
     }
 
-    def "PBS should populate seatNonBid, seatBid when returnAllBidStatus=true and requested bidder didn't bid and did bid"() {
+    def "PBS should populate seatNonBid, seatBid when returnAllBidStatus=true and imps have or have not bids"() {
         given: "Pbs config with Rubicon"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.rubicon.enabled" : "true",
@@ -217,7 +198,7 @@ class SeatNonBidSpec extends BaseSpec {
         bidRequest.imp[1].ext.prebid.bidder.rubicon = new Rubicon(accountId: PBSUtils.randomNumber,
                 siteId: PBSUtils.randomNumber, zoneId: PBSUtils.randomNumber)
 
-        and: "Set up bid just for the first imp"
+        and: "Set up bid only for the first imp"
         def bids = [Bid.getDefaultBid(bidRequest.imp[0])]
         def seatBidResponse = new SeatBid(bid: bids, seat: RUBICON)
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
