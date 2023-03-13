@@ -7,7 +7,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -56,19 +59,21 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
+            ExtImpTaboola impExt;
             try {
                 validateImp(imp);
-                ExtImpTaboola impExt = parseImpExt(imp);
-                String type = getBidType(imp).equals(BidType.banner)
-                        ? DISPLAY_ENDPOINT_PREFIX
-                        : BidType.xNative.getName();
-
-                final BidRequest outgoingRequest = createRequest(request, imp, impExt);
-                HttpRequest<BidRequest> httpRequest = createHttpRequest(impExt, type, outgoingRequest);
-                httpRequests.add(httpRequest);
+                impExt = parseImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+            String type = getBidType(imp).equals(BidType.banner)
+                    ? DISPLAY_ENDPOINT_PREFIX
+                    : BidType.xNative.getName();
+
+            final BidRequest outgoingRequest = createRequest(request, imp, impExt);
+            HttpRequest<BidRequest> httpRequest = createHttpRequest(impExt, type, outgoingRequest);
+            httpRequests.add(httpRequest);
         }
         return Result.of(httpRequests, errors);
     }
@@ -165,16 +170,45 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        final List<BidderError> errors = new ArrayList<>();
+        return bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest,
-                                             BidResponse bidResponse) {
+                                             BidResponse bidResponse,
+                                             List<BidderError> errors) {
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .flatMap(bid -> bidRequest.getImp().stream()
-                                .map(imp -> BidderBid.of(bid, getBidType(imp), bidResponse.getCur()))))
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid, errors))
                 .toList();
+    }
+
+    private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = resolveBidType(bid.getImpid(), imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+        return BidderBid.of(bid, bidType, currency);
+    }
+
+    private BidType resolveBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+                return BidType.banner;
+            }
+        }
+        throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
 }

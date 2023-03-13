@@ -228,12 +228,12 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnValidBidResponseWithTwoResponsesWhenTwoImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnValidBidResponseWithBannerWhenRequestHaveTwoImp() throws JsonProcessingException {
         // given
         final Imp impBanner = givenImp(impCustomizer ->
-                impCustomizer.banner(Banner.builder().build()).bidfloorcur("USD"));
+                impCustomizer.id("123").banner(Banner.builder().build()).bidfloorcur("USD"));
         final Imp impNative = givenImp(impCustomizer ->
-                impCustomizer.xNative(Native.builder().build()).bidfloorcur("EUR"));
+                impCustomizer.id("123").xNative(Native.builder().build()).bidfloorcur("EUR"));
         final BidRequest bidRequest = BidRequest.builder().imp(List.of(impBanner, impNative)).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
@@ -245,14 +245,14 @@ public class TaboolaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .containsOnly(Bid.builder()
                         .impid("123")
                         .build());
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.xNative);
+                .containsExactly(BidType.banner);
     }
 
     @Test

@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Taboola Adapter Params",
   "description": "A schema which validates params accepted by the Taboola adapter",
-
   "type": "object",
   "properties": {
     "publisherId": {
@@ -36,5 +35,8 @@
       "type": "integer"
     }
   },
-  "required": ["tagid","publisherId"]
+  "required": [
+    "tagid",
+    "publisherId"
+  ]
 }

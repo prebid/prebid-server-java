@@ -11,16 +11,25 @@ public class ExtImpTaboola {
 
     @JsonProperty("publisherId")
     String publisherId;
+
     @JsonProperty("publisherDomain")
     String publisherDomain;
+
     @JsonProperty("tagid")
     String tagId;
+
     @JsonProperty("bidfloor")
     BigDecimal bidFloor;
+
     @JsonProperty("bcat")
     List<String> bCat;
+
     @JsonProperty("badv")
     List<String> bAdv;
+
+    @JsonProperty("pageType")
     String pageType;
+
+    @JsonProperty("position")
     Integer position;
 }
