@@ -16,10 +16,7 @@
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
-    "id": "site_id",
-    "ext": {
-      "amp": 0
-    }
+    "id": "site_id"
   },
   "tmax": 5000,
   "regs": {

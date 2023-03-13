@@ -1,14 +1,17 @@
 package org.prebid.server.bidder.adtrgtme;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -44,22 +47,12 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
-
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             final BidRequest updatedRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-
             try {
-                String requestUri = resolveRequestUri(updatedRequest);
-
-                requests.add(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUri)
-                        .headers(makeRequestHeaders(updatedRequest.getDevice()))
-                        .body(mapper.encodeToBytes(updatedRequest))
-                        .payload(updatedRequest)
-                        .build());
+                requests.add(makeHttpRequest(updatedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -68,36 +61,35 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
-            final List<BidderBid> bidderBids = extractBids(bidResponse, errors, imps);
-            return Result.of(bidderBids, errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(makeUrl(bidRequest))
+                .headers(makeRequestHeaders(bidRequest.getDevice()))
+                .body(mapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build();
     }
 
-    private String resolveRequestUri(BidRequest singleRequest) {
-        return Optional.ofNullable(singleRequest.getSite())
-                .map(site -> {
-                    if (site.getId() == null || site.getId().isEmpty()) {
-                        throw new PreBidException("request.Site.ID is not provided");
-                    }
-                    return String.format("%s?s=%s&prebid", endpointUrl, site.getId());
-                })
-                .or(() -> Optional.ofNullable(singleRequest.getApp())
-                        .map(app -> {
-                            if (app.getId() == null || app.getId().isEmpty()) {
-                                throw new PreBidException("request.App.ID is not provided");
-                            }
-                            return String.format("%s?s=%s&prebid", endpointUrl, app.getId());
-                        })
-                )
+    private String makeUrl(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getSite()).map(AdtrgtmeBidder::extractId)
+                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(AdtrgtmeBidder::extractId))
+                .map(id -> "%s?s=%s&prebid".formatted(endpointUrl, id))
                 .orElseThrow(() -> new PreBidException("request.Site or request.App are not provided"));
+    }
+
+    private static String extractId(Site site) {
+        return Optional.of(site)
+                .map(Site::getId)
+                .filter(StringUtils::isNotEmpty)
+                .orElseThrow(() -> new PreBidException("request.Site.ID is not provided"));
+    }
+
+    private static String extractId(App app) {
+        return Optional.of(app)
+                .map(App::getId)
+                .filter(StringUtils::isNotEmpty)
+                .orElseThrow(() -> new PreBidException("request.App.ID is not provided"));
     }
 
     private MultiMap makeRequestHeaders(Device device) {
@@ -112,6 +104,19 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
                 ObjectUtil.getIfNotNull(device, Device::getIp));
 
         return headers;
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, errors, imps);
+            return Result.of(bidderBids, errors);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors, List<Imp> imps) {
