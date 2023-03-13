@@ -180,17 +180,10 @@ public class AdtrgtmeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSplitRequestIntoMultipleRequests() {
         // given
         final BidRequest bidRequest = BidRequest.builder().site(Site.builder().id("site_id").build())
-                .imp(asList(Imp.builder()
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdrino.of("test"))))
-                                .build(),
-                        Imp.builder()
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdrino.of("test"))))
-                                .build()))
-                .build();
+                .imp(asList(givenImp(impBuilder -> impBuilder.xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdrino.of("test"))))),
+                        givenImp(impBuilder -> impBuilder.xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdrino.of("test"))))))).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
