@@ -17,7 +17,8 @@
             "bar1",
             "bar2"
           ]
-        }
+        },
+        "tid" : "${json-unit.any-string}"
       }
     }
   ],

@@ -31,7 +31,7 @@ import static org.prebid.server.functional.model.request.cookiesync.FilterType.E
 import static org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse.Status.NO_COOKIE
 import static org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse.Status.OK
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -1024,7 +1024,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Discarded bidder user sync should contain an error"
         def rejectedBidderUserSyncs = getRejectedBidderUserSyncs(response)
         assert rejectedBidderUserSyncs.size() == bidders.size() - limit
-        assert rejectedBidderUserSyncs.every {it.value == "limit reached"}
+        assert rejectedBidderUserSyncs.every { it.value == "limit reached" }
     }
 
     def "PBS cookie sync with enabled coop-sync in request and when bidder invalid should log error: bidder is provided for prioritized coop-syncing but #reason"() {
@@ -1347,7 +1347,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Discarded bidder user sync should contain an error"
         def rejectedBidderUserSyncs = getRejectedBidderUserSyncs(response)
         assert rejectedBidderUserSyncs.size() == bidders.size() - limit
-        assert rejectedBidderUserSyncs.every {it.value == "limit reached"}
+        assert rejectedBidderUserSyncs.every { it.value == "limit reached" }
     }
 
     def "PBS cookie sync shouldn't emit error limit reached when bidder coop-synced"() {

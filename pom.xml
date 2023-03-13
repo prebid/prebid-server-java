@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.112.0-SNAPSHOT</version>
+        <version>1.114.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -55,6 +55,8 @@
         <logback.version>1.2.11</logback.version>
         <log4j.version>2.19.0</log4j.version>
         <hikari.version>5.0.1</hikari.version>
+        <gpp-encoder.version>3.0.10</gpp-encoder.version>
+        <protobuf.version>3.21.5</protobuf.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -360,14 +362,19 @@
             <version>${hikari.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.iabgpp</groupId>
+            <artifactId>iabgpp-encoder</artifactId>
+            <version>${gpp-encoder.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
-            <version>3.21.5</version>
+            <version>${protobuf.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.21.5</version>
+            <version>${protobuf.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>

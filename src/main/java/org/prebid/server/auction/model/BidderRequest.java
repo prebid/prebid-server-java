@@ -1,13 +1,16 @@
 package org.prebid.server.auction.model;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Deal;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 
-/**
- * Structure to pass {@link BidRequest} along with the bidder name
- */
-@Value(staticConstructor = "of")
+import java.util.List;
+import java.util.Map;
+
+@Builder(toBuilder = true)
+@Value
 public class BidderRequest {
 
     String bidder;
@@ -16,9 +19,11 @@ public class BidderRequest {
 
     String storedResponse;
 
+    Map<String, List<Deal>> impIdToDeals;
+
     BidRequest bidRequest;
 
     public BidderRequest with(BidRequest bidRequest) {
-        return of(this.bidder, this.ortbVersion, this.storedResponse, bidRequest);
+        return toBuilder().bidRequest(bidRequest).build();
     }
 }

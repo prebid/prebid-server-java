@@ -50,7 +50,6 @@
     }
   },
   "regs": {
-    "gpp": "gppValue",
     "gpp_sid": [
       1,
       3,

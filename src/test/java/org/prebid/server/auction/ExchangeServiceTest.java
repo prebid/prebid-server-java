@@ -66,7 +66,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
@@ -218,6 +218,9 @@ public class ExchangeServiceTest extends VertxTest {
     private StoredResponseProcessor storedResponseProcessor;
 
     @Mock
+    private DealsService dealsService;
+
+    @Mock
     private PrivacyEnforcementService privacyEnforcementService;
 
     @Mock
@@ -292,8 +295,6 @@ public class ExchangeServiceTest extends VertxTest {
     private Clock clock;
 
     private ExchangeService exchangeService;
-
-    private DealsProcessor dealsProcessor;
 
     @SuppressWarnings("unchecked")
     @Before
@@ -374,6 +375,9 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.updateStoredBidResponse(any()))
                 .willAnswer(inv -> inv.getArgument(0));
 
+        given(dealsService.matchAndPopulateDeals(any(), any(), any()))
+                .willAnswer(inv -> inv.getArgument(0));
+
         given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
         given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
@@ -401,13 +405,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        dealsProcessor = new DealsProcessor(jacksonMapper);
-
         exchangeService = new ExchangeService(
                 90,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
                 supplyChainResolver,
@@ -441,7 +443,7 @@ public class ExchangeServiceTest extends VertxTest {
                         -1,
                         bidderCatalog,
                         storedResponseProcessor,
-                        dealsProcessor,
+                        dealsService,
                         privacyEnforcementService,
                         fpdResolver,
                         supplyChainResolver,
@@ -718,59 +720,85 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
+    public void shouldFilterPgDealsOnlyBiddersWithoutDeals() {
         // given
-        exchangeService = new ExchangeService(
-                90,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsProcessor,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                new NoOpMediaTypeProcessor(),
-                uidUpdater,
-                timeoutResolver,
-                timeoutFactory,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager);
-
         final Bidder<?> bidder1 = mock(Bidder.class);
         final Bidder<?> bidder2 = mock(Bidder.class);
         givenBidder("bidder1", bidder1, givenEmptySeatBid());
         givenBidder("bidder2", bidder2, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap("bidder1", 1),
-                        identity()),
-                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
-                        identity())));
+                givenImp(
+                        Map.of(
+                                "bidder1", mapper.valueToTree("traceToken"),
+                                "bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
+                        imp -> imp.id("imp1")),
+                givenImp(
+                        singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
+                        imp -> imp.id("imp2"))));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
-        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
-        assertThat(capturedBidRequest.getImp()).hasSize(1)
-                .extracting(imp -> imp.getExt().get("bidder").asInt())
-                .containsOnly(1);
+        verify(httpBidderRequester, times(1))
+                .requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
+
+        assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
+                .extracting(imp -> imp.getExt().get("bidder").asText())
+                .containsExactly("traceToken");
+
+        assertThat(result.result().getDebugWarnings()).containsExactly("""
+                Not calling bidder2 bidder for impressions imp1, imp2 \
+                due to pgdealsonly flag and no available PG line items.""");
+    }
+
+    @Test
+    public void shouldFillAuctionContextWithMatchedDeals() {
+        // given
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        givenBidder("bidder1", bidder1, givenEmptySeatBid());
+        givenBidder("bidder2", bidder2, givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap("bidder1", mapper.createObjectNode()), imp -> imp.id("imp1")),
+                givenImp(singletonMap("bidder2", mapper.createObjectNode()), imp -> imp.id("imp2"))));
+
+        given(dealsService.matchAndPopulateDeals(any(), any(), any()))
+                .willAnswer(arguments -> {
+                    final BidderRequest bidderRequest = arguments.getArgument(0);
+                    final Map<String, List<Deal>> impIdToDeals = switch (bidderRequest.getBidder()) {
+                        case "bidder1" -> singletonMap("imp1", singletonList(Deal.builder().id("deal1").build()));
+                        case "bidder2" -> singletonMap("imp2", singletonList(Deal.builder().id("deal2").build()));
+                        default -> null;
+                    };
+
+                    return bidderRequest.toBuilder().impIdToDeals(impIdToDeals).build();
+                });
+
+        // when
+        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getImp)
+                .satisfies(imps -> {
+                    assertThat(imps.get(0))
+                            .extracting(Imp::getPmp)
+                            .extracting(Pmp::getDeals)
+                            .asInstanceOf(InstanceOfAssertFactories.list(Deal.class))
+                            .containsExactly(Deal.builder().id("deal1").build());
+
+                    assertThat(imps.get(1))
+                            .extracting(Imp::getPmp)
+                            .extracting(Pmp::getDeals)
+                            .asInstanceOf(InstanceOfAssertFactories.list(Deal.class))
+                            .containsExactly(Deal.builder().id("deal2").build());
+                });
+
     }
 
     @Test
@@ -1005,39 +1033,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestByAliasForDeal() {
-        // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("bidder", bidder, givenEmptySeatBid());
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(singletonMap("bidderAlias", 1), identity()).toBuilder().pmp(Pmp.builder()
-                                .deals(singletonList(Deal.builder()
-                                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId", "extLineItemId",
-                                                singletonList(Format.builder().w(100).h(100).build()),
-                                                "bidderAlias")))).build()))
-                                .build()).build()),
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .aliases(singletonMap("bidderAlias", "bidder")).build())));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester)
-                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), anyBoolean());
-        assertThat(bidRequestCaptor.getValue().getBidRequest().getImp()).hasSize(1)
-                .extracting(Imp::getPmp)
-                .flatExtracting(Pmp::getDeals).hasSize(1)
-                .extracting(Deal::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtDeal.class))
-                .extracting(ExtDeal::getLine)
-                .containsOnly(ExtDealLine.of("lineItemId", "extLineItemId",
-                        singletonList(Format.builder().w(100).h(100).build()), null));
-    }
-
-    @Test
     public void shouldExtractMultipleRequestsForTheSameBidderIfAliasesWereUsed() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -1084,27 +1079,41 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithinSingleImp() {
         // given
-        given(httpBidderRequester.requestBids(any(),
-                eq(BidderRequest.of("bidder", null, null, givenBidRequest(
-                        singletonList(givenImp(
-                                null,
-                                builder -> builder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, 1))))),
-                        builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .auctiontimestamp(1000L)
-                                .build()))))), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(
+                any(),
+                eq(BidderRequest.builder()
+                        .bidder("bidder")
+                        .bidRequest(givenBidRequest(
+                                singletonList(givenImp(
+                                        null,
+                                        builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null, 1))))),
+                                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                        .auctiontimestamp(1000L)
+                                        .build()))))
+                        .build()),
+                any(),
+                any(),
+                any(),
+                anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBidderBid(Bid.builder().impid("impId1").price(BigDecimal.ONE).build())))));
 
-        given(httpBidderRequester.requestBids(any(),
-                eq(BidderRequest.of("bidderAlias", null, null, givenBidRequest(
-                        singletonList(givenImp(
-                                null,
-                                builder -> builder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, 2))))),
-                        builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .auctiontimestamp(1000L)
-                                .build()))))), any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(
+                any(),
+                eq(BidderRequest.builder()
+                        .bidder("bidderAlias")
+                        .bidRequest(givenBidRequest(
+                                singletonList(givenImp(
+                                        null,
+                                        builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null, 2))))),
+                                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                        .auctiontimestamp(1000L)
+                                        .build()))))
+                        .build()),
+                any(),
+                any(),
+                any(),
+                anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBidderBid(Bid.builder().impid("impId2").price(BigDecimal.ONE).build())))));
 
@@ -1185,7 +1194,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
 
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.resolveDebugForBidder(any(), eq("bidder")))
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), eq(true)))
@@ -1235,7 +1244,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
-        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+        given(debugResolver.resolveDebugForBidder(any(), eq("bidder")))
                 .willReturn(true);
 
         // when
@@ -4174,75 +4183,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendOnlyRelevantDealsToBiddersPresentInImp() {
-        // given
-        final List<Deal> deals = asList(
-                Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(
-                                ExtDealLine.of(null, null, null, "someBidder"))))
-                        .build(),
-                Deal.builder()
-                        .id("dealId2")
-                        .ext(mapper.valueToTree(ExtDeal.of(
-                                ExtDealLine.of(null, null, null, "otherBidder"))))
-                        .build());
-
-        final Imp imp = givenImp(
-                singletonMap("someBidder", 1),
-                builder -> builder
-                        .pmp(Pmp.builder()
-                                .deals(deals)
-                                .build()));
-        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .build();
-
-        // when
-        exchangeService.holdAuction(auctionContext);
-
-        // then
-        final Deal expectedDeal = Deal.builder()
-                .id("dealId1")
-                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, null, null, null))))
-                .build();
-        final BidRequest capturedBidRequest = captureBidRequest();
-
-        assertThat(capturedBidRequest.getImp())
-                .extracting(Imp::getPmp)
-                .flatExtracting(Pmp::getDeals)
-                .containsOnly(expectedDeal);
-    }
-
-    @Test
-    public void shouldThrowErrorIfExtDealLineCannotBeParsed() {
-        // given
-        final List<Deal> deals = singletonList(
-                Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.createObjectNode().set("line", mapper.createArrayNode()))
-                        .build());
-
-        final Imp imp = givenImp(singletonMap("someBidder", 1),
-                builder -> builder
-                        .pmp(Pmp.builder()
-                                .deals(deals)
-                                .build()));
-        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest);
-
-        // when
-        Future<AuctionContext> result = exchangeService.holdAuction(auctionContext);
-
-        // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause())
-                .hasMessageStartingWith("Error decoding bidRequest.imp.pmp.deal.ext: "
-                        + "Cannot deserialize value of type `org.prebid.server.proto.openrtb.ext.request.ExtDealLine`"
-                        + " from Array value (token `JsonToken.START_ARRAY`)");
-    }
-
-    @Test
     public void shouldProperPopulateImpExtPrebidEvenIfInExtImpPrebidContainNotCorrectField() {
         // given
         final Imp imp = Imp.builder()
@@ -4447,7 +4387,7 @@ public class ExchangeServiceTest extends VertxTest {
                 90,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
                 supplyChainResolver,
