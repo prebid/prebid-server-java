@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -18,7 +17,7 @@ import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.NOT_E
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-class GppAuctionSpec extends BaseSpec {
+class GppAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS should populate gdpr to 1 when regs.gdpr is not specified and gppSid contains 2"() {
         given: "Default bid request with gppSid and without gdpr"
@@ -28,7 +27,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Resolved request regs should contain regs.gdpr and gppSid from request"
         def regs = bidResponse.ext.debug.resolvedRequest.regs
@@ -48,7 +47,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain regs.gdpr and gppSid from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -66,7 +65,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -89,7 +88,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -114,7 +113,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -136,7 +135,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain user.consent from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -158,7 +157,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -180,7 +179,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -197,7 +196,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain user and regs.usPrivacy from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -219,7 +218,7 @@ class GppAuctionSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
