@@ -4,6 +4,17 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+      cwire:
+        enabled: false
+        endpoint: https://ortb.cwi.re/v1/bid
+        modifying-vast-xml-allowed: false
+        endpoint-compression: gzip
+        meta-info:
+          maintainer-email: devs@cwire.com
+          site-media-types:
+            - banner
+          supported-vendors:
+          vendor-id: 1081
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:
@@ -18,14 +29,3 @@ adapters:
         - audio
       supported-vendors:
       vendor-id: 0
-      cwire:
-        enabled: false
-        endpoint: https://ortb.cwi.re/v1/bid
-        modifying-vast-xml-allowed: false
-        endpoint-compression: gzip
-        meta-info:
-          maintainer-email: devs@cwire.com
-          site-media-types:
-            - banner
-          supported-vendors:
-          vendor-id: 1081
