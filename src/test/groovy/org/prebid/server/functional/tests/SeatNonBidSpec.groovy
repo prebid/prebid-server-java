@@ -45,11 +45,11 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].statusCode == FAILED_TO_REQUEST_BIDS
     }
 
-    def "PBS should populate seatNonBid when returnAllBidStatus=true and shouldn't populate when debug=0 and requested bidder didn't bid for any reason"() {
-        given: "Default bid request with returnAllBidStatus and debug"
+    def "PBS should populate seatNonBid when returnAllBidStatus=true and debug = #debug and requested bidder didn't bid for any reason"() {
+        given: "Default bid request with returnAllBidStatus and debug = #debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            ext.prebid.debug = 0
+            ext.prebid.debug = debug
         }
 
         and: "Default bidder response without bid"
@@ -71,18 +71,21 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == FAILED_TO_REQUEST_BIDS
 
-        and: "PBS response shouldn't contain debug"
-        assert !response?.ext?.debug
+        and: "PBS response shouldn't contain seatBid"
+        assert !response.seatbid
+
+        where:
+        debug << [1, 0, null]
     }
 
-    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and debug=0 and bidder didn't bid for any reason"() {
-        given: "Default bid request with disabled returnAllBidStatus"
+    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and debug = #debug and requested bidder didn't bid for any reason"() {
+        given: "Default bid request with disabled returnAllBidStatus and debug = #debug"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = false
-            ext.prebid.debug = 0
+            ext.prebid.debug = debug
         }
 
-        and: "Default bidder response without bids"
+        and: "Default bidder response without bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid = []
         }
@@ -93,10 +96,12 @@ class SeatNonBidSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response shouldn't contain seatNonBid, debug"
+        then: "PBS response shouldn't contain seatNonBid and seatbid for called bidder"
         assert !response.ext.seatnonbid
         assert !response.seatbid
-        assert !response?.ext?.debug
+
+        where:
+        debug << [1, 0, null]
     }
 
     def "PBS shouldn't populate seatNonBid with successful bids"() {
@@ -119,7 +124,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.seatbid
     }
 
-    def "PBS should populate seatNonBid when rejected due to timeout"() {
+    def "PBS should populate seatNonBid when auction.biddertmax.min value not enough for bidder request"() {
         given: "PBS config with min and max time-out"
         def pbsService = pbsServiceFactory.getService(
                 ["auction.biddertmax.min": "10"])
@@ -138,6 +143,33 @@ class SeatNonBidSpec extends BaseSpec {
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid and contain errors"
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == TIMED_OUT
+    }
+
+    def "PBS should populate seatNonBid when rejected due to timeout"() {
+        given: "Default bid request with max timeout"
+        def timeout = 1
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+            tmax = timeout
+        }
+
+        and: "Default bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse, timeout + timeout)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid and contain errors"
         def seatNonBids = response.ext.seatnonbid

@@ -3,12 +3,15 @@ package org.prebid.server.functional.testcontainers.scaffolding
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
+import org.mockserver.model.Delay
 import org.mockserver.model.Header
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
+
+import java.util.concurrent.TimeUnit
 
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.mockserver.model.ClearType.ALL
@@ -74,6 +77,20 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                         .respond(response().withStatusCode(statusCode.code())
                                            .withBody(mockResponse, APPLICATION_JSON)
                                            .withHeaders(responseHeaders))
+    }
+
+    void setResponse(String value,
+                     ResponseModel responseModel,
+                     int responseDelay,
+                     HttpStatusCode statusCode = OK_200,
+                     Map<String, String> headers = [:]) {
+        def responseHeaders = headers.collect { new Header(it.key, it.value) }
+        def mockResponse = encode(responseModel)
+        mockServerClient.when(getRequest(value), Times.unlimited())
+                        .respond(response().withStatusCode(statusCode.code())
+                                           .withBody(mockResponse, APPLICATION_JSON)
+                                           .withHeaders(responseHeaders)
+                                           .withDelay(Delay.delay(TimeUnit.MILLISECONDS, responseDelay)))
     }
 
     void setResponse(String value, String mockResponse) {
