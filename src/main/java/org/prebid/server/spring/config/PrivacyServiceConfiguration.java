@@ -7,6 +7,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeEightStrategy;
@@ -110,6 +111,14 @@ public class PrivacyServiceConfiguration {
                 bidderCatalog,
                 ipAddressHelper,
                 metrics);
+    }
+
+    @Bean
+    HostVendorTcfDefinerService hostVendorTcfDefinerService(
+            TcfDefinerService tcfDefinerService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
+
+        return new HostVendorTcfDefinerService(tcfDefinerService, hostVendorId);
     }
 
     @Bean

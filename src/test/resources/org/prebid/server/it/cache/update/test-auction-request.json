@@ -5,7 +5,7 @@
       "ext": {
         "prebid": {
           "storedrequest": {
-            "id": "test-rubicon-stored-imp-cache-update"
+            "id": "test-generic-stored-imp-cache-update"
           }
         }
       }
@@ -17,7 +17,7 @@
       "ext": {
         "prebid": {
           "storedrequest": {
-            "id": "test-rubicon-stored-video-cache-update"
+            "id": "test-genericAlias-stored-video-cache-update"
           },
           "options": {
             "echovideoattrs": true

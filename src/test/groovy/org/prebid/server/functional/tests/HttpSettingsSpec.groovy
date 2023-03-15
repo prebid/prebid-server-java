@@ -11,7 +11,6 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
@@ -19,7 +18,7 @@ import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.

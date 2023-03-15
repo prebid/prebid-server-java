@@ -1,6 +1,6 @@
 adapters:
   dianomi:
-    endpoint: https://hb.emxdgt.com
+    endpoint: https://www-prebid.dianomi.com/cgi-bin/smartads_prebid.pl
     meta-info:
       maintainer-email: prebid-maintainer@dianomi.com
       app-media-types:

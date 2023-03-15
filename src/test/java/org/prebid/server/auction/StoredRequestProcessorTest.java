@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
@@ -32,6 +34,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -117,11 +120,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 singletonMap("imp", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result()).isEqualTo(
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest()).isEqualTo(
                 BidRequest.builder()
                         .id("test-request-id")
                         .tmax(1000L)
@@ -157,11 +162,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest()).isEqualTo(BidRequest.builder()
                 .id("test-request-id")
                 .tmax(1000L)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
@@ -208,11 +215,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest()).isEqualTo(BidRequest.builder()
                 .id("request-id")
                 .at(1)
                 .test(1)
@@ -252,11 +261,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result()).isEqualTo(givenBidRequest(builder -> builder
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest()).isEqualTo(givenBidRequest(builder -> builder
                 .id("generated-stored-id")
                 .app(App.builder().build())
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))));
@@ -281,11 +292,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result()).isEqualTo(givenBidRequest(builder -> builder
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest()).isEqualTo(givenBidRequest(builder -> builder
                 .app(App.builder().build())
                 .id("generated-stored-id")
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))));
@@ -415,7 +428,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -438,7 +452,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -457,7 +472,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .build())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -487,11 +503,13 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result().getImp().get(0)).isEqualTo(Imp.builder()
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest().getImp().get(0)).isEqualTo(Imp.builder()
                 .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
                 .ext(mapper.valueToTree(
                         ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))
@@ -508,7 +526,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -531,7 +550,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123"))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -548,13 +568,15 @@ public class StoredRequestProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(builder -> builder.imp(singletonList(imp)));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         verifyNoInteractions(applicationSettings, metrics);
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(imp);
-        assertThat(bidRequestFuture.result()).isSameAs(bidRequest);
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isFalse();
+        assertThat(bidRequestFuture.result().bidRequest().getImp().get(0)).isSameAs(imp);
+        assertThat(bidRequestFuture.result().bidRequest()).isSameAs(bidRequest);
     }
 
     @Test
@@ -576,12 +598,14 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
-        assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(impWithoutStoredRequest);
-        assertThat(bidRequestFuture.result().getImp().get(1)).isEqualTo(Imp.builder()
+        assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
+        assertThat(bidRequestFuture.result().bidRequest().getImp().get(0)).isSameAs(impWithoutStoredRequest);
+        assertThat(bidRequestFuture.result().bidRequest().getImp().get(1)).isEqualTo(Imp.builder()
                 .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
                 .ext(mapper.valueToTree(
                         ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))
@@ -602,7 +626,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -621,7 +646,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         .set("id", mapper.createObjectNode().putArray("id")
                                                 .add("id"))))).id("imp-test")))));
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // when
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -644,7 +670,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture(new Exception("Error during file fetching")));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -667,7 +694,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", "{{}"), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -691,7 +719,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedImpFetchResult, emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAuctionRequest(null, bidRequest);
+        final Future<AuctionStoredResult> bidRequestFuture =
+                storedRequestProcessor.processAuctionRequest(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -954,6 +983,52 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(result.result().getErrors()).containsOnly(
                 "No stored Imp for stored id st2",
                 "No stored video found for Imp with id id1");
+    }
+
+    @Test
+    public void shouldProperlyCompareBigDecimalsAsKeysInHashMap() throws IOException {
+        // given
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("{}"));
+
+        storedRequestProcessor = new StoredRequestProcessor(
+                DEFAULT_TIMEOUT,
+                "path/to/default/request.json",
+                false,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        final Video storedImpVideo = Video.builder().mimes(singletonList("video/mp4")).w(640).h(480).build();
+        final String storedImpJson = mapper.writeValueAsString(givenImp(builder -> builder.video(storedImpVideo)));
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("storedImpId", storedImpJson), emptyList())));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .bidfloor(BigDecimal.TEN)
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("storedImpId")).build(),
+                                null)))))));
+
+        // when
+        final Future<AuctionStoredResult> bidRequestFuture = storedRequestProcessor
+                .processAuctionRequest(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result())
+                .extracting(AuctionStoredResult::bidRequest)
+                .extracting(BidRequest::getImp)
+                .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
+                .extracting(Imp::getVideo)
+                .containsExactly(storedImpVideo);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

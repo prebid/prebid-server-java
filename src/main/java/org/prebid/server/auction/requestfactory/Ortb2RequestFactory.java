@@ -17,11 +17,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -81,7 +81,7 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final DealsPopulator dealsPopulator;
+    private final UserAdditionalInfoService userAdditionalInfoService;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
     private final PriceFloorProcessor priceFloorProcessor;
@@ -100,7 +100,7 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               DealsPopulator dealsPopulator,
+                               UserAdditionalInfoService userAdditionalInfoService,
                                PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Metrics metrics,
@@ -117,7 +117,7 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.dealsPopulator = dealsPopulator;
+        this.userAdditionalInfoService = userAdditionalInfoService;
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
@@ -146,6 +146,7 @@ public class Ortb2RequestFactory {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
+                .startTime(startTime)
                 .timeout(timeout(bidRequest, startTime))
                 .deepDebugLog(createDeepDebugLog(bidRequest))
                 .build();
@@ -262,9 +263,9 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    public Future<AuctionContext> populateDealsInfo(AuctionContext auctionContext) {
-        return dealsPopulator != null
-                ? dealsPopulator.populate(auctionContext)
+    public Future<AuctionContext> populateUserAdditionalInfo(AuctionContext auctionContext) {
+        return userAdditionalInfoService != null
+                ? userAdditionalInfoService.populate(auctionContext)
                 : Future.succeededFuture(auctionContext);
     }
 
@@ -272,12 +273,43 @@ public class Ortb2RequestFactory {
         return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
+    public AuctionContext updateTimeout(AuctionContext auctionContext, long startTime) {
+        final Timeout currentTimeout = auctionContext.getTimeout();
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final BidRequest resolvedBidRequest = resolveBidRequest(bidRequest);
+        final BidRequest effectiveBidRequest = resolvedBidRequest != null
+                ? resolvedBidRequest
+                : bidRequest;
+
+        final Timeout requestTimeout = timeoutFactory.create(startTime, effectiveBidRequest.getTmax());
+        if (requestTimeout.getDeadline() == currentTimeout.getDeadline()) {
+            return resolvedBidRequest != null
+                    ? auctionContext.with(resolvedBidRequest)
+                    : auctionContext;
+        }
+
+        return auctionContext.toBuilder()
+                .bidRequest(effectiveBidRequest)
+                .timeout(requestTimeout)
+                .build();
+    }
+
+    private BidRequest resolveBidRequest(BidRequest bidRequest) {
+        final Long resolvedTmax = resolveTmax(bidRequest.getTmax());
+        return resolvedTmax != null ? bidRequest.toBuilder().tmax(resolvedTmax).build() : null;
+    }
+
+    private Long resolveTmax(Long requestTimeout) {
+        final long timeout = timeoutResolver.limitToMax(requestTimeout);
+        return !Objects.equals(requestTimeout, timeout) ? timeout : null;
+    }
+
     /**
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
-        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
+        final long timeout = timeoutResolver.limitToMax(bidRequest.getTmax());
         return timeoutFactory.create(startTime, timeout);
     }
 
@@ -286,7 +318,7 @@ public class Ortb2RequestFactory {
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
                 : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
-                .map(this::accountIdFrom);
+                .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
     }
 
     private String validateIfAccountBlacklisted(String accountId) {

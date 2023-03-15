@@ -19,11 +19,17 @@ class PBSUtils implements ObjectMapperWrapper {
     private static final int DEFAULT_NUMBER_PRECISION = 6
 
     static int getRandomNumber(int min = 0, int max = MAX_VALUE) {
-        new Random().nextInt(max - min) + min
+        int upperBound = max == MAX_VALUE ? max : max + 1
+        new Random().nextInt(upperBound - min) + min
+    }
+
+    static int getRandomNumberWithExclusion(int excludedValue, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
     }
 
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
-        getRandomNumber(min, max)
+        getRandomNumber(max, min * -1) * -1
     }
 
     static BigDecimal getRandomDecimal(float min = 0, float max = MAX_VALUE) {
@@ -39,13 +45,28 @@ class PBSUtils implements ObjectMapperWrapper {
         RandomStringUtils.randomAlphanumeric(stringLength)
     }
 
-    static Path createJsonFile(BidRequest bidRequest) {
-        def data = encode(bidRequest)
-        createTempFile(data, ".json")
+    static <T> T getRandomElement(List<T> list) {
+        list[getRandomNumber(0, list.size() - 1)]
     }
 
     static BigDecimal getRandomFloorValue(float floorMin = FLOOR_MIN, float floorMax = FLOOR_MAX) {
         roundDecimal(getRandomDecimal(floorMin, floorMax), 2)
+    }
+
+    static def randomizeCase(String string) {
+        string.toCharArray().collect {
+            def number = getRandomNumber(0, 1)
+            if (number == 0) {
+                it.toLowerCase()
+            } else {
+                it.toUpperCase()
+            }
+        }.join()
+    }
+
+    static Path createJsonFile(BidRequest bidRequest) {
+        def data = encode(bidRequest)
+        createTempFile(data, ".json")
     }
 
     private static Path createTempFile(String content, String suffix) {

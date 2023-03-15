@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.SetuidEvent;
@@ -26,13 +25,14 @@ import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.cookie.exception.UnauthorizedUidsException;
+import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.UnauthorizedUidsException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -63,8 +63,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
-    private final TcfDefinerService tcfDefinerService;
-    private final Integer gdprHostVendorId;
+    private final HostVendorTcfDefinerService tcfDefinerService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
@@ -75,8 +74,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          PrivacyEnforcementService privacyEnforcementService,
-                         TcfDefinerService tcfDefinerService,
-                         Integer gdprHostVendorId,
+                         HostVendorTcfDefinerService tcfDefinerService,
                          AnalyticsReporterDelegator analyticsDelegator,
                          Metrics metrics,
                          TimeoutFactory timeoutFactory) {
@@ -86,7 +84,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -98,13 +95,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .map(Optional::get)
                 .distinct() // built-in aliases looks like bidders with the same usersyncers
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
-    }
-
-    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
-        if (gdprHostVendorId == null) {
-            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
-        }
-        return gdprHostVendorId;
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
@@ -186,7 +176,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext);
         }
     }
 
@@ -194,6 +184,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
      * If host vendor id is null, host allowed to setuid.
      */
     private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
+        final Integer gdprHostVendorId = tcfDefinerService.getGdprHostVendorId();
         return gdprHostVendorId == null
                 ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
@@ -211,7 +202,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponseToSetuidContext.getActions();
         final PrivacyEnforcementAction hostPrivacyAction = vendorIdToAction != null
-                ? vendorIdToAction.get(gdprHostVendorId)
+                ? vendorIdToAction.get(tcfDefinerService.getGdprHostVendorId())
                 : null;
         final boolean blockPixelSync = hostPrivacyAction == null || hostPrivacyAction.isBlockPixelSync();
 
@@ -255,12 +246,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String uid = routingContext.request().getParam(UID_PARAM);
         final String bidder = setuidContext.getCookieName();
 
-        final UidsCookieUpdateResult uidsCookieUpdateResult = updateUidsCookie(
-                setuidContext.getUidsCookie(), bidder, uid);
-
+        final UidsCookieUpdateResult uidsCookieUpdateResult =
+                uidsCookieService.updateUidsCookie(setuidContext.getUidsCookie(), bidder, uid);
         final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
         addCookie(routingContext, updatedUidsCookie);
 
+        if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
+            metrics.updateUserSyncSetsMetric(bidder);
+        }
         final int statusCode = HttpResponseStatus.OK.code();
         HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
 
@@ -272,20 +265,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .success(uidsCookieUpdateResult.isSuccessfullyUpdated())
                 .build();
         analyticsDelegator.processEvent(setuidEvent, tcfContext);
-    }
-
-    private UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String bidderName, String uid) {
-        if (StringUtils.isBlank(uid)) {
-            return UidsCookieUpdateResult.unaltered(uidsCookie.deleteUid(bidderName));
-        } else if (UidsCookie.isFacebookSentinel(bidderName, uid)) {
-            // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
-            // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
-            return UidsCookieUpdateResult.unaltered(uidsCookie);
-        } else {
-            final UidsCookie updatedCookie = uidsCookie.updateUid(bidderName, uid);
-            metrics.updateUserSyncSetsMetric(bidderName);
-            return UidsCookieUpdateResult.updated(updatedCookie);
-        }
     }
 
     private Consumer<HttpServerResponse> buildCookieResponseConsumer(SetuidContext setuidContext,
@@ -339,21 +318,5 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
         routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
-    }
-
-    @Value(staticConstructor = "of")
-    private static class UidsCookieUpdateResult {
-
-        private static UidsCookieUpdateResult updated(UidsCookie uidsCookie) {
-            return of(true, uidsCookie);
-        }
-
-        private static UidsCookieUpdateResult unaltered(UidsCookie uidsCookie) {
-            return of(false, uidsCookie);
-        }
-
-        boolean successfullyUpdated;
-
-        UidsCookie uidsCookie;
     }
 }

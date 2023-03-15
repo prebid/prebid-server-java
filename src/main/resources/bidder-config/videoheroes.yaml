@@ -1,0 +1,15 @@
+adapters:
+  videoheroes:
+    endpoint: http://point.contextualadv.com/?t=3&partner={{PublisherID}}
+    meta-info:
+      maintainer-email: support@videoheroes.tv
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

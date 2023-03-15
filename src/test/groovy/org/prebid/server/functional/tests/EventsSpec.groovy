@@ -1,10 +1,10 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.model.db.StoredRequest
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE

@@ -122,7 +122,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$invalidTcfConsent" - failed.*/
+        assert response.ext?.warnings[PREBID]*.message[0].startsWith("Parsing consent string:\"${invalidTcfConsent}\"")
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]

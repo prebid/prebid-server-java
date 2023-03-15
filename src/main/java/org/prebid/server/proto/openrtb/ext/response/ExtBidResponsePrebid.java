@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.Map;
@@ -8,7 +9,8 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext.prebid
  */
-@Value(staticConstructor = "of")
+@Value
+@Builder(toBuilder = true)
 public class ExtBidResponsePrebid {
 
     /**
@@ -21,7 +23,10 @@ public class ExtBidResponsePrebid {
      */
     ExtModules modules;
 
-    JsonNode passthrough;
+    /**
+     * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
+     */
+    ExtBidResponseFledge fledge;
 
     /**
      * Additional targeting key/values for the bid response (only used for AMP)
@@ -29,4 +34,9 @@ public class ExtBidResponsePrebid {
      * a bid won the auction or not.
      */
     Map<String, JsonNode> targeting;
+
+    /*
+     * Value from bidrequest.ext.prebid.passthrough.
+     */
+    JsonNode passthrough;
 }

@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId",
+          "ext": {
+            "origbidcpm": 3.33,
+            "prebid": {
+              "type": "banner"
+            },
+            "type": "standard"
+          },
+          "adm": "some-test-ad-1",
+          "adomain":[
+            "somedomain.com"
+          ],
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "ccx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "ccx": "{{ ccx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

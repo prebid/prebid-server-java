@@ -60,7 +60,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.isRejected()).isTrue();
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badInput("Bidder does not support any media types."));
@@ -78,7 +78,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
@@ -95,7 +95,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
@@ -113,7 +113,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.getBidRequest())
                 .extracting(BidRequest::getImp)
                 .asList()
@@ -134,7 +134,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.getBidRequest())
                 .extracting(BidRequest::getImp)
                 .asList()
@@ -157,7 +157,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // when
         final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
 
-        //then
+        // then
         assertThat(result.isRejected()).isTrue();
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badInput("Imp " + null + " does not have a supported media type "

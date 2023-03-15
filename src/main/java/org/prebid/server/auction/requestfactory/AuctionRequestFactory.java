@@ -11,8 +11,9 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
@@ -34,11 +35,11 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    private final AuctionGppService gppProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
-    private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -49,12 +50,12 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
+                                 AuctionGppService gppProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
                                  PrivacyEnforcementService privacyEnforcementService,
-                                 TimeoutResolver timeoutResolver,
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper) {
 
@@ -62,12 +63,12 @@ public class AuctionRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
+        this.gppProcessor = Objects.requireNonNull(gppProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -113,9 +114,11 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateDealsInfo)
+                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
 
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
+
+                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -168,20 +171,24 @@ public class AuctionRequestFactory {
      */
     private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
+        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
-        return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
-
-                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-
-                .map(resolvedBidRequest ->
-                        paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
-
-                .compose(resolvedBidRequest ->
-                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
-
+        return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
+                .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(bidRequest, debugWarnings))
                 .map(interstitialProcessor::process);
+    }
+
+    private Future<BidRequest> updateBidRequest(AuctionStoredResult auctionStoredResult,
+                                                AuctionContext auctionContext) {
+
+        final boolean hasStoredBidRequest = auctionStoredResult.hasStoredBidRequest();
+
+        return Future.succeededFuture(auctionStoredResult.bidRequest())
+                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
+                .map(bidRequest -> gppProcessor.apply(bidRequest, auctionContext))
+                .map(bidRequest -> paramsResolver.resolve(
+                        bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {

@@ -65,10 +65,14 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldExtractInitialPrivacy() {
         // given
-        final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
+        final Privacy emptyPrivacy = Privacy.builder()
+                .gdpr("")
+                .consentString("")
+                .ccpa(Ccpa.EMPTY)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(emptyPrivacy);
-        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
+        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(emptyPrivacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
@@ -87,10 +91,14 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarningsWhenInGdprScope() {
         // given
-        final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
+        final Privacy emptyPrivacy = Privacy.builder()
+                .gdpr("")
+                .consentString("")
+                .ccpa(Ccpa.EMPTY)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(emptyPrivacy);
-        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
+        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(emptyPrivacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
@@ -109,7 +117,11 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldNotRemoveConsentStringOnEmptyConsentTypeParam() {
         // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.EMPTY)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
@@ -129,7 +141,11 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldRemoveConsentStringAndEmitErrorOnTcf1ConsentTypeParam() {
         // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.EMPTY)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 
@@ -164,7 +180,12 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldMaskIpV4WhenCoppaEqualsToOneAndIpV4Present() {
         // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.of("1YYY"), 1);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.of("1YYY"))
+                .coppa(1)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 
@@ -194,7 +215,12 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldMaskIpV6WhenCoppaEqualsToOneAndIpV6Present() {
         // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.of("1YYY"), 1);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.of("1YYY"))
+                .coppa(1)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 
@@ -224,7 +250,12 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldAddRefUrlWhenPresentAndRequestTypeIsWeb() {
         // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, 0);
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(0)
+                .build();
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 

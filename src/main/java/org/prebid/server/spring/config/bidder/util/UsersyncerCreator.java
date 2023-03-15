@@ -5,27 +5,36 @@ import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class UsersyncerCreator {
 
     private UsersyncerCreator() {
     }
 
-    public static Function<UsersyncConfigurationProperties, Usersyncer> create(String externalUrl) {
-        return usersyncConfig -> createAndValidate(usersyncConfig, externalUrl);
+    public static BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> create(
+            String externalUrl) {
+
+        return (usersyncConfig, cookieFamilySource) ->
+                createAndValidate(usersyncConfig, cookieFamilySource, externalUrl);
     }
 
-    private static Usersyncer createAndValidate(UsersyncConfigurationProperties usersync, String externalUrl) {
+    private static Usersyncer createAndValidate(UsersyncConfigurationProperties usersync,
+                                                CookieFamilySource cookieFamilySource,
+                                                String externalUrl) {
+
         final String cookieFamilyName = usersync.getCookieFamilyName();
 
         return Usersyncer.of(
+                usersync.getEnabled(),
                 cookieFamilyName,
+                cookieFamilySource,
                 toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName, externalUrl),
                 toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), cookieFamilyName, externalUrl));
     }

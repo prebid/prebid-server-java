@@ -9,7 +9,7 @@ import java.util.Arrays;
  */
 public enum ConsentType {
 
-    TCF_V1("1"), TCF_V2("2"), CCPA("3"), EMPTY(""), UNKNOWN("unknown");
+    TCF_V1("1"), TCF_V2("2"), CCPA("3"), GPP("4"), EMPTY(""), UNKNOWN("unknown");
 
     private final String type;
 

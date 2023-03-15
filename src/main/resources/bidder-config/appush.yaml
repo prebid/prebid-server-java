@@ -1,0 +1,15 @@
+adapters:
+  appush:
+    endpoint: http://hb.appush.com/pserver
+    meta-info:
+      maintainer-email: support@appush.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 879

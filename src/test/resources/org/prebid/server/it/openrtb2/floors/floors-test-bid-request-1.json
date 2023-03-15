@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 320,
         "h": 250
@@ -10,6 +11,7 @@
       "bidfloor": 4,
       "bidfloorcur": "NZD",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "prebid": {
           "floors": {
             "floorRule": "www.example.com|banner|320x250",
@@ -21,6 +23,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -37,7 +42,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -58,13 +63,11 @@
       "channel": {
         "name": "web"
       },
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       },
       "floors": {
         "data": {

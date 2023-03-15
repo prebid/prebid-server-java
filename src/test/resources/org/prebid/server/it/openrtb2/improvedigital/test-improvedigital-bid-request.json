@@ -3,11 +3,13 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "placementId": 13245,
           "size": {
@@ -18,6 +20,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -47,7 +52,7 @@
     }
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -58,13 +63,11 @@
   },
   "ext": {
     "prebid": {
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       }
     }
   }
