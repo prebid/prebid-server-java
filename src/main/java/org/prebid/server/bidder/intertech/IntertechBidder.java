@@ -53,100 +53,6 @@ public class IntertechBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-                .headers(headers(outgoingRequest))
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
-    }
-
-    private static MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers();
-
-        final Device device = bidRequest.getDevice();
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
-        }
-        HttpUtil.headers().add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
-
-        return headers;
-    }
-
-    private ExtImpIntertech parseAndValidateImpExt(ObjectNode impExtNode, int index) {
-        final ExtImpIntertech extImpIntertech;
-        try {
-            extImpIntertech = mapper.mapper().convertValue(impExtNode, INTERTECH_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
-        }
-        final Integer pageId = extImpIntertech.getPageId();
-        if (pageId == null || pageId == 0) {
-            throw new PreBidException(String.format("imp #%s: missing param page_id", index));
-        }
-        final Integer impId = extImpIntertech.getImpId();
-        if (impId == null || impId == 0) {
-            throw new PreBidException(String.format("imp #%s: missing param imp_id", index));
-        }
-        return extImpIntertech;
-    }
-
-    private static Banner makeBanner(Banner banner) {
-        if (banner == null) {
-            return null;
-        }
-        final Integer w = banner.getW();
-        final Integer h = banner.getH();
-        final List<Format> format = banner.getFormat();
-        if (w == null || h == null || w == 0 || h == 0) {
-            if (CollectionUtils.isNotEmpty(format)) {
-                final Format firstFormat = format.get(0);
-                return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
-            }
-            throw new PreBidException(String.format("Invalid sizes provided for Banner %sx%s", w, h));
-        }
-        return banner;
-    }
-
-    private static Imp modifyImp(Imp imp) {
-        if (imp.getBanner() != null) {
-            return imp.toBuilder().banner(makeBanner(imp.getBanner())).build();
-        }
-        if (imp.getXNative() != null) {
-            return imp;
-        }
-        throw new PreBidException(String.format("Intertech only supports banner and native types. "
-                + "Ignoring imp id=%s", imp.getId()));
-    }
-
-    private String modifyUrl(ExtImpIntertech extImpIntertech, String referer, String cur) {
-        final String resolvedUrl = endpointUrl
-                .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getPageId().toString()))
-                .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getImpId().toString()));
-        final StringBuilder uri = new StringBuilder(resolvedUrl);
-        if (StringUtils.isNotBlank(referer)) {
-            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referer));
-        }
-        if (StringUtils.isNotBlank(cur)) {
-            uri.append("&ssp-cur=").append(cur);
-        }
-        return uri.toString();
-    }
-
-    private String getReferer(BidRequest request) {
-        String referer = null;
-        final Site site = request.getSite();
-        if (site != null) {
-            referer = site.getPage();
-        }
-        return referer;
-    }
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
@@ -171,6 +77,96 @@ public class IntertechBidder implements Bidder<BidRequest> {
             }
         }
         return Result.of(bidRequests, errors);
+    }
+
+    private String getReferer(BidRequest request) {
+        final Site site = request.getSite();
+        return site != null ? site.getPage() : null;
+    }
+
+    private ExtImpIntertech parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+        final ExtImpIntertech extImpIntertech;
+        try {
+            extImpIntertech = mapper.mapper().convertValue(impExtNode, INTERTECH_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
+        }
+        final Integer pageId = extImpIntertech.getPageId();
+        if (pageId == null || pageId == 0) {
+            throw new PreBidException(String.format("imp #%s: missing param page_id", index));
+        }
+        final Integer impId = extImpIntertech.getImpId();
+        if (impId == null || impId == 0) {
+            throw new PreBidException(String.format("imp #%s: missing param imp_id", index));
+        }
+        return extImpIntertech;
+    }
+
+    private static Imp modifyImp(Imp imp) {
+        if (imp.getBanner() != null) {
+            return imp.toBuilder().banner(updateBanner(imp.getBanner())).build();
+        }
+        if (imp.getXNative() != null) {
+            return imp;
+        }
+        throw new PreBidException(String.format("Intertech only supports banner and native types. "
+                + "Ignoring imp id=%s", imp.getId()));
+    }
+
+    private static Banner updateBanner(Banner banner) {
+        if (banner == null) {
+            return null;
+        }
+        final Integer w = banner.getW();
+        final Integer h = banner.getH();
+        final List<Format> format = banner.getFormat();
+        if (w == null || h == null || w == 0 || h == 0) {
+            if (CollectionUtils.isNotEmpty(format)) {
+                final Format firstFormat = format.get(0);
+                return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+            }
+            throw new PreBidException(String.format("Invalid sizes provided for Banner %sx%s", w, h));
+        }
+        return banner;
+    }
+
+    private String modifyUrl(ExtImpIntertech extImpIntertech, String referer, String cur) {
+        final String resolvedUrl = endpointUrl
+                .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getPageId().toString()))
+                .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getImpId().toString()));
+        final StringBuilder uri = new StringBuilder(resolvedUrl);
+        if (StringUtils.isNotBlank(referer)) {
+            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referer));
+        }
+        if (StringUtils.isNotBlank(cur)) {
+            uri.append("&ssp-cur=").append(cur);
+        }
+        return uri.toString();
+    }
+
+    private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .headers(headers(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .payload(outgoingRequest)
+                .build();
+    }
+
+    private static MultiMap headers(BidRequest bidRequest) {
+        final MultiMap headers = HttpUtil.headers();
+
+        final Device device = bidRequest.getDevice();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+        }
+        HttpUtil.headers().add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
+
+        return headers;
     }
 
     @Override
@@ -208,11 +204,7 @@ public class IntertechBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String bidImpId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (bidImpId.equals(imp.getId())) {
-                final BidType bidType = resolveImpType(imp);
-                if (bidType == null) {
-                    throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
-                }
-                return bidType;
+                return resolveImpType(imp);
             }
         }
         throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
@@ -232,6 +224,6 @@ public class IntertechBidder implements Bidder<BidRequest> {
         if (imp.getAudio() != null) {
             return BidType.audio;
         }
-        return null;
+        throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
     }
 }
