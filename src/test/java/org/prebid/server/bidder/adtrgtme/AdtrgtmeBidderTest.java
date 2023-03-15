@@ -57,7 +57,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).satisfies(httpRequest -> {
+        assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
             assertThat(httpRequest.getUri()).isEqualTo(String.format("%s?s=%s&prebid", ENDPOINT_URL, "site_id"));
         });
@@ -72,9 +72,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .hasSize(1)
-                .element(0)
-                .satisfies(httpRequest -> assertThat(httpRequest.getHeaders())
+                .allSatisfy(httpRequest -> assertThat(httpRequest.getHeaders())
                         .extracting(Map.Entry::getKey, Map.Entry::getValue)
                         .containsExactly(
                                 tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
@@ -90,7 +88,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).satisfies(httpRequest -> {
+        assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getPayload()).isEqualTo(bidRequest);
             assertThat(httpRequest.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest));
         });
@@ -106,7 +104,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://z.cdn.adtarget.market/ssp?s=site_id&prebid");
     }
@@ -124,13 +122,13 @@ public class AdtrgtmeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://z.cdn.adtarget.market/ssp?s=app_id&prebid");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorSiteAppIdsNotProvided() {
+    public void makeHttpRequestsShouldReturnErrorWhenSiteAndAppIdsAreAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("test-request-id")
@@ -235,7 +233,8 @@ public class AdtrgtmeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getId).containsExactly("bidId1", "bidId2");
+                .extracting(Bid::getId)
+                .containsExactly("bidId1", "bidId2");
     }
 
     @Test
@@ -247,7 +246,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).satisfies(bidderError -> {
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
             assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
             assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
         });
@@ -278,24 +277,24 @@ public class AdtrgtmeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfVideo() throws JsonProcessingException {
         // given
-        final String id = "123";
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .id(id)
+                        .id("123")
                         .video(Video.builder().build())
                         .build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid(id))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, bidRequest);
 
         // then
-        String errorText = String.format("Unsupported bidtype for bid: \"%s\"", id);
         assertThat(result.getErrors()).isNotEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(errorText));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse(
+                        String.format("Unsupported bidtype for bid: \"%s\"", "123")));
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
