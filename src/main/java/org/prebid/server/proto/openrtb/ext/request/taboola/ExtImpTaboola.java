@@ -32,4 +32,15 @@ public class ExtImpTaboola {
 
     @JsonProperty("position")
     Integer position;
+
+    public static ExtImpTaboola empty() {
+        return of(null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
 }

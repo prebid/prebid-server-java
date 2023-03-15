@@ -57,35 +57,31 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-
+        List<Imp> bannerImps = new ArrayList<>();
+        List<Imp> nativeImps = new ArrayList<>();
+        ExtImpTaboola extImpTaboola = ExtImpTaboola.empty();
         for (Imp imp : request.getImp()) {
-            ExtImpTaboola impExt;
             try {
                 validateImp(imp);
-                impExt = parseImpExt(imp);
+                extImpTaboola = parseImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
-            String type = getBidType(imp).equals(BidType.banner)
-                    ? DISPLAY_ENDPOINT_PREFIX
-                    : BidType.xNative.getName();
-
-            final BidRequest outgoingRequest = createRequest(request, imp, impExt);
-            HttpRequest<BidRequest> httpRequest = createHttpRequest(impExt, type, outgoingRequest);
-            httpRequests.add(httpRequest);
+            if (imp.getBanner() != null) {
+                bannerImps.add(modifyImp(imp, extImpTaboola));
+            } else {
+                nativeImps.add(modifyImp(imp, extImpTaboola));
+            }
         }
-        return Result.of(httpRequests, errors);
-    }
+        final String publisherId = extImpTaboola.getPublisherId();
+        final BidRequest bannerRequest = createRequest(request, bannerImps, extImpTaboola);
+        final BidRequest nativeRequest = createRequest(request, nativeImps, extImpTaboola);
 
-    private HttpRequest<BidRequest> createHttpRequest(ExtImpTaboola impExt, String type, BidRequest outgoingRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(buildEndpointUrl(impExt, type, domain))
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .build();
+        httpRequests.add(createHttpRequest(publisherId, DISPLAY_ENDPOINT_PREFIX, bannerRequest));
+        httpRequests.add(createHttpRequest(publisherId, BidType.xNative.name(), nativeRequest));
+
+        return Result.of(httpRequests, errors);
     }
 
     private static void validateImp(Imp imp) {
@@ -102,39 +98,6 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest createRequest(BidRequest request, Imp taboolaImp, ExtImpTaboola impExt) {
-        Imp updatedImp = modifyImp(taboolaImp, impExt);
-        final List<String> blockedAdomain = impExt.getBAdv();
-        final List<String> blockedAdvCat = impExt.getBCat();
-        final ExtRequest initialExt = (request.getExt() == null) ? ExtRequest.empty() : request.getExt();
-        final ExtRequest modifiedExtRequest = StringUtils.isNotEmpty(impExt.getPageType())
-                ? modifyExtRequest(initialExt, impExt.getPageType())
-                : initialExt;
-
-        Site newSite = Optional.ofNullable(request.getSite())
-                .map(Site::toBuilder)
-                .orElseGet(Site::builder)
-                .id(impExt.getPublisherId())
-                .name(impExt.getPublisherId())
-                .domain(StringUtils.defaultString(impExt.getPublisherDomain()))
-                .publisher(Publisher.builder().id(impExt.getPublisherId()).build())
-                .build();
-
-        return request.toBuilder()
-                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : request.getBadv())
-                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : request.getBcat())
-                .imp(Collections.singletonList(updatedImp))
-                .ext(modifiedExtRequest)
-                .site(newSite)
-                .build();
-    }
-
-    private String buildEndpointUrl(ExtImpTaboola extImpTaboola, String type, String domain) {
-        return endpointTemplate.replace("{{Host}}", domain)
-                .replace("{{MediaType}}", type)
-                .replace("{{PublisherID}}", extImpTaboola.getPublisherId());
-    }
-
     private static Imp modifyImp(Imp imp, ExtImpTaboola impExt) {
         Banner banner = imp.getBanner();
         if (banner != null && impExt.getPosition() != null) {
@@ -147,13 +110,61 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private BidRequest createRequest(BidRequest request, List<Imp> taboolaImp, ExtImpTaboola impExt) {
+        final List<String> blockedAdomain = impExt.getBAdv();
+        final List<String> blockedAdvCat = impExt.getBCat();
+        final String domain = getDomain(request, impExt);
+        final ExtRequest initialExt = (request.getExt() == null) ? ExtRequest.empty() : request.getExt();
+        final ExtRequest modifiedExtRequest = StringUtils.isNotEmpty(impExt.getPageType())
+                ? modifyExtRequest(initialExt, impExt.getPageType())
+                : initialExt;
+
+        Site newSite = Optional.ofNullable(request.getSite())
+                .map(Site::toBuilder)
+                .orElseGet(Site::builder)
+                .id(impExt.getPublisherId())
+                .name(impExt.getPublisherId())
+                .domain(StringUtils.defaultString(domain))
+                .publisher(Publisher.builder().id(impExt.getPublisherId()).build())
+                .build();
+
+        return request.toBuilder()
+                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : request.getBadv())
+                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : request.getBcat())
+                .imp(taboolaImp)
+                .ext(modifiedExtRequest)
+                .site(newSite)
+                .build();
+    }
+
+    private String getDomain(BidRequest request, ExtImpTaboola impExt) {
+        if (impExt.getPublisherDomain() != null) {
+            return impExt.getPublisherDomain();
+        } else if (request.getSite() != null && request.getSite().getDomain() != null) {
+            return request.getSite().getDomain();
+        }
+        return "";
+    }
+
     private ExtRequest modifyExtRequest(ExtRequest extRequest, String pageType) {
         final ObjectNode adfNode = mapper.mapper().createObjectNode().put("pageType", pageType);
         return mapper.fillExtension(extRequest, adfNode);
     }
 
-    private static BidType getBidType(Imp imp) {
-        return imp.getBanner() != null ? BidType.banner : BidType.xNative;
+    private HttpRequest<BidRequest> createHttpRequest(String publisherId, String type, BidRequest outgoingRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(buildEndpointUrl(publisherId, type, domain))
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .headers(HttpUtil.headers())
+                .payload(outgoingRequest)
+                .build();
+    }
+
+    private String buildEndpointUrl(String publisherId, String type, String domain) {
+        return endpointTemplate.replace("{{Host}}", domain)
+                .replace("{{MediaType}}", type)
+                .replace("{{PublisherID}}", StringUtils.defaultString(publisherId, ""));
     }
 
     @Override
@@ -188,14 +199,13 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
-        final BidType bidType;
         try {
-            bidType = resolveBidType(bid.getImpid(), imps);
+            BidType bidType = resolveBidType(bid.getImpid(), imps);
+            return BidderBid.of(bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, currency);
     }
 
     private BidType resolveBidType(String impId, List<Imp> imps) {

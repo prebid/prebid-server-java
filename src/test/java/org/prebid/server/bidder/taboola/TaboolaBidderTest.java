@@ -73,7 +73,7 @@ public class TaboolaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
@@ -110,10 +110,10 @@ public class TaboolaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .containsExactly(expectedSite, expectedSite);
     }
 
     @Test
@@ -152,7 +152,10 @@ public class TaboolaBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString())
+                );
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .contains("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/token")
