@@ -129,14 +129,15 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private Price resolveBidFloor(Imp imp, ExtImpRtbhouse impExt, BidRequest bidRequest) {
-        List<String> brCur = bidRequest.getCur();
-        Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        final List<String> brCur = bidRequest.getCur();
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
-        BigDecimal impExtBidFloor = impExt.getBidFloor();
-        String impExtCurrency = impExtBidFloor != null && brCur != null && brCur.size() > 0
+        final BigDecimal impExtBidFloor = impExt.getBidFloor();
+        final String impExtCurrency = impExtBidFloor != null && brCur != null && brCur.size() > 0
                 ? brCur.get(0) : null;
-        Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
-        Price resolvedPrice = initialBidFloorPrice.getValue() == null ? impExtBidFloorPrice : initialBidFloorPrice;
+        final Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
+        final Price resolvedPrice = initialBidFloorPrice.getValue() == null
+                ? impExtBidFloorPrice : initialBidFloorPrice;
 
         return BidderUtil.isValidPrice(resolvedPrice)
                 && !StringUtils.equalsIgnoreCase(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
