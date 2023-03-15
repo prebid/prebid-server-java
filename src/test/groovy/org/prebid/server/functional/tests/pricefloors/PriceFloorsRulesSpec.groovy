@@ -1,7 +1,7 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.ModelGroup

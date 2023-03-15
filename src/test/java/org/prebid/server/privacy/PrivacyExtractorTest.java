@@ -229,7 +229,7 @@ public class PrivacyExtractorTest extends VertxTest {
                 .gdprConsent("consent")
                 .usPrivacy("1Yn-")
                 .gpp("gpp")
-                .gppSid("1, 2, 3")
+                .gppSid(List.of(1, 2, 3))
                 .build();
 
         // when

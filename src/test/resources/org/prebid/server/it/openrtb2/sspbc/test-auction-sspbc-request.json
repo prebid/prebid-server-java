@@ -1,0 +1,32 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "tagid": "imp_id",
+      "banner": {
+        "format": [
+          {
+            "w": 120,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "sspbc": {
+          "siteId": "siteId",
+          "id": "anyId",
+          "test": 1
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
