@@ -959,11 +959,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid and contain errors"
-        assert response.ext.seatnonbid == null
-        assert response.seatbid == null
+        assert !response.ext.seatnonbid
+        assert !response.seatbid
 
         where:
         enforcePbs << [true, null]
     }
-
 }
