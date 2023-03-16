@@ -3,7 +3,6 @@ package org.prebid.server.functional.testcontainers.scaffolding
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
-import org.mockserver.model.Delay
 import org.mockserver.model.Header
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
@@ -90,7 +89,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                         .respond(response().withStatusCode(statusCode.code())
                                            .withBody(mockResponse, APPLICATION_JSON)
                                            .withHeaders(responseHeaders)
-                                           .withDelay(Delay.delay(TimeUnit.MILLISECONDS, responseDelay)))
+                                           .withDelay(TimeUnit.MILLISECONDS, responseDelay))
     }
 
     void setResponse(String value, String mockResponse) {

@@ -1,7 +1,6 @@
 package org.prebid.server.functional.util
 
 import org.apache.commons.lang3.RandomStringUtils
-import org.apache.commons.text.RandomStringGenerator
 import org.prebid.server.functional.model.request.auction.BidRequest
 
 import java.math.RoundingMode
