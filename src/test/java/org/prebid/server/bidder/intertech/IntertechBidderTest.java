@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.intertech;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -54,7 +55,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
+                impBuilder -> impBuilder.id("imp1")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
                 identity());
 
@@ -65,7 +66,7 @@ public class IntertechBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("imp #0: Cannot deserialize value");
+                    assertThat(error.getMessage()).startsWith("imp #imp1: Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -74,7 +75,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenPageIdIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
+                impBuilder -> impBuilder.id("imp1")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIntertech.of(null, 7)))),
                 identity());
 
@@ -82,23 +83,22 @@ public class IntertechBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = intertechBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #0: missing param page_id"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #imp1: missing param page_id"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpIdIsEmpty() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIntertech.of(123456, 0)))),
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("imp1")
+                        .ext(givenImpExt(0)),
                 identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = intertechBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #0: missing param imp_id"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #imp1: missing param imp_id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -116,9 +116,9 @@ public class IntertechBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = intertechBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #1: missing param imp_id"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #imp2: missing param imp_id"));
         assertThat(result.getValue()).hasSize(2)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp).hasSize(2)
                 .extracting(Imp::getId)
                 .containsOnly("imp1", "imp3");
@@ -129,26 +129,13 @@ public class IntertechBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        Imp.builder().id("123")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpIntertech.of(123456, 7))
-                                )).build(),
+                        Imp.builder().id("123").ext(givenImpExt(7)).build(),
                         Imp.builder()
                                 .banner(Banner.builder().w(100).h(100).build()).id("321")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpIntertech.of(123456, 7))
-                                )).build(),
+                                .ext(givenImpExt(7)).build(),
                         Imp.builder()
                                 .xNative(Native.builder().build()).id("322")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpIntertech.of(123456, 8))
-                                )).build()))
+                                .ext(givenImpExt(8)).build()))
                 .build();
 
         // when
@@ -163,7 +150,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenBannerWidthIsZero() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().w(0).h(100).build()),
+                impBuilder -> impBuilder.id("imp1").banner(Banner.builder().w(0).h(100).build()),
                 identity());
 
         // when
@@ -178,7 +165,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenBannerHeightIsZero() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().w(100).h(0).build()),
+                impBuilder -> impBuilder.id("imp1").banner(Banner.builder().w(100).h(0).build()),
                 identity());
 
         // when
@@ -193,7 +180,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenBannerHasNoFormats() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                impBuilder -> impBuilder.id("imp1").banner(Banner.builder().build()),
                 identity());
 
         // when
@@ -209,7 +196,7 @@ public class IntertechBidderTest extends VertxTest {
     public void makeHttpRequestsSetFirstImpressionBannerWidthAndHeightWhenFromFirstFormatIfTheyAreNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
+                impBuilder -> impBuilder.id("imp1")
                         .banner(Banner.builder().format(singletonList(Format.builder().w(250).h(300).build())).build()),
                 identity());
 
@@ -219,7 +206,7 @@ public class IntertechBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
@@ -303,8 +290,7 @@ public class IntertechBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badServerResponse(
-                        "Invalid bid imp ID 321 does not match any imp IDs from the original bid request"
-                ));
+                        "Invalid bid imp ID 321 does not match any imp IDs from the original bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -346,8 +332,12 @@ public class IntertechBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIntertech.of(123456, 7)))))
+                        .ext(givenImpExt(7)))
                 .build();
+    }
+
+    private static ObjectNode givenImpExt(int impId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpIntertech.of(123456, impId)));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
