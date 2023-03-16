@@ -20,7 +20,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -73,7 +72,7 @@ public class TaboolaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
@@ -86,14 +85,16 @@ public class TaboolaBidderTest extends VertxTest {
         final Imp impBanner = givenImp(impCustomizer ->
                 impCustomizer.banner(Banner.builder().build()).bidfloorcur("USD")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpTaboola.of("token",
-                                "test.com",
-                                "1",
-                                BigDecimal.TEN,
-                                List.of("test-cat"),
-                                List.of("test-badv"),
-                                "test",
-                                1)))));
+                                ExtImpTaboola.builder()
+                                        .publisherId("token")
+                                        .publisherDomain("test.com")
+                                        .tagId("1")
+                                        .bidFloor(BigDecimal.TEN)
+                                        .bCat(List.of("test-cat"))
+                                        .bAdv(List.of("test-badv"))
+                                        .pageType("test")
+                                        .position(1)
+                                        .build()))));
 
         final BidRequest bidRequest = BidRequest
                 .builder().imp(List.of(impBanner)).site(null).build();
@@ -110,10 +111,10 @@ public class TaboolaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite, expectedSite);
+                .containsExactly(expectedSite);
     }
 
     @Test
@@ -134,7 +135,7 @@ public class TaboolaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(BigDecimal.TEN, "USD"), tuple(BigDecimal.TEN, "EUR"));
+                .containsExactly(tuple(BigDecimal.TEN, "EUR"), tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test
@@ -152,27 +153,24 @@ public class TaboolaBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString())
                 );
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .contains("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/token")
+                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/token")
                 .doesNotContain(BidType.banner.getName());
     }
 
     @Test
-    public void makeHttpRequestWithInvalidTypeShouldReturnErrorWithProperMessage() {
+    public void makeHttpRequestWithInvalidTypeShouldReturnEmptyResponse() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.video(Video.builder().build()).bidfloorcur("USD"));
 
         // when
         Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("For Imp ID 123 Banner or Native is undefined");
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(0);
     }
 
     @Test
@@ -289,14 +287,12 @@ public class TaboolaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTaboola.of("token",
-                                        "test.com",
-                                        "1",
-                                        BigDecimal.TEN,
-                                        null,
-                                        null,
-                                        null,
-                                        null)))))
+                                ExtImpTaboola.builder()
+                                        .publisherId("token")
+                                        .publisherDomain("test.com")
+                                        .tagId("1")
+                                        .bidFloor(BigDecimal.TEN)
+                                        .build()))))
                 .build();
     }
 
