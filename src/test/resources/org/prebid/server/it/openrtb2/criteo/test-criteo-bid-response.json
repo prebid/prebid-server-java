@@ -1,16 +1,24 @@
 {
   "id": "request_id",
-  "slots": [
+  "seatbid": [
     {
-      "arbitrageid": "bid_id",
-      "impid": "imp_id",
-      "zoneid": 123456,
-      "networkid": 78910,
-      "width": 250,
-      "height": 250,
-      "cpm": 0.5,
-      "creative": "<iframe id='789abc' name='789abc' src='http://creative-url.criteo.com'></iframe>",
-      "creativecode": "creative-123"
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.25,
+          "crid": "crid",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ]
     }
-  ]
+  ],
+  "bidid": "bid_id"
 }
