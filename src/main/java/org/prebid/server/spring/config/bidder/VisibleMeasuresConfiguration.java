@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.criteo.CriteoBidder;
+import org.prebid.server.bidder.visiblemeasures.VisibleMeasuresBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/criteo.yaml", factory = YamlPropertySourceFactory.class)
-public class CriteoConfiguration {
+@PropertySource(value = "classpath:/bidder-config/visiblemeasures.yaml", factory = YamlPropertySourceFactory.class)
+public class VisibleMeasuresConfiguration {
 
-    private static final String BIDDER_NAME = "criteo";
+    private static final String BIDDER_NAME = "visiblemeasures";
 
-    @Bean("criteoConfigurationProperties")
-    @ConfigurationProperties("adapters.criteo")
+    @Bean("visiblemeasuresConfigurationProperties")
+    @ConfigurationProperties("adapters.visiblemeasures")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps criteoBidderDeps(BidderConfigurationProperties criteoConfigurationProperties,
-                                @NotBlank @Value("${external-url}") String externalUrl,
-                                JacksonMapper mapper) {
+    BidderDeps visiblemeasuresBidderDeps(BidderConfigurationProperties visiblemeasuresConfigurationProperties,
+                                         @NotBlank @Value("${external-url}") String externalUrl,
+                                         JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(criteoConfigurationProperties)
+                .withConfig(visiblemeasuresConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new CriteoBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new VisibleMeasuresBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

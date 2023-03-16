@@ -8,8 +8,8 @@
         "h": 250
       },
       "ext": {
-        "criteo": {
-          "zoneId": 1
+        "visiblemeasures": {
+          "placementId": "id"
         }
       }
     }

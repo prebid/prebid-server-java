@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "criteo",
+      "seat": "visiblemeasures",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "criteo": "{{ criteo.response_time_ms }}"
+      "visiblemeasures": "{{ visiblemeasures.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

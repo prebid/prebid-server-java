@@ -9,9 +9,9 @@
         "h": 250
       },
       "ext": {
-        "tid": "${json-unit.any-string}",
         "bidder": {
-          "zoneId": 1
+          "type" : "publisher",
+          "placementId" : "id"
         }
       }
     }
