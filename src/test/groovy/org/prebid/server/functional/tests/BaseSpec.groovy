@@ -15,13 +15,14 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer)
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(networkServiceContainer)
+    protected static final Bidder bidder = new Bidder(networkServiceContainer)
+    protected static final PrebidCache prebidCache = new PrebidCache(networkServiceContainer)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
