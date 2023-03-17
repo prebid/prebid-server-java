@@ -1,0 +1,37 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 11.393,
+          "adm": "some adm price 10",
+          "adomain": [
+          ],
+          "crid": "test-creative-id-1",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
+          }
+        }
+      ],
+      "seat": "seedingAlliance",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "seedingAlliance": "{{ seedingAlliance.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
