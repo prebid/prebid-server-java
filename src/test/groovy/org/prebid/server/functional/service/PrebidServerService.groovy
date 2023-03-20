@@ -362,10 +362,10 @@ class PrebidServerService implements ObjectMapperWrapper {
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
-        def deltaTime = Duration.between(testStart, testEnd).seconds
+        def deltaTime = Duration.between(testStart, testEnd).toMillis()
 
-        for (int i = 0; i <= deltaTime; i++) {
-            def time = testStart.plus(ChronoUnit.SECONDS.duration)
+        for (int i = 0; i <= deltaTime; i += deltaTime / 5) {
+            def time = testStart.plusMillis(i)
             def element = logs.find { it.contains(formatter.format(time)) }
             if (element) {
                 filteredLogs.addAll(logs.subList(logs.indexOf(element), logs.size()))
