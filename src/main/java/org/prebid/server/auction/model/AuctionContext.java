@@ -54,6 +54,8 @@ public class AuctionContext {
 
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
+    Map<String, BidRejectionTracker> bidRejectionTrackers;
+
     PrivacyContext privacyContext;
 
     GeoInfo geoInfo;
