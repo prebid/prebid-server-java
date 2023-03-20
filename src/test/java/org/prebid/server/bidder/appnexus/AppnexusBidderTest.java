@@ -381,7 +381,9 @@ public class AppnexusBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder
                         .placementId(null)
-                        .legacyPlacementId(101)
+                        .deprecatedPlacementId(101)
+                        .usePmtRule(false)
+                        .deprecatedUsePaymentRule(true)
                         .invCode(null)
                         .legacyInvCode("legacyInvCode1")
                         .trafficSourceCode(null)
@@ -398,7 +400,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .containsOnly(tuple(
                         "legacyInvCode1",
                         mapper.valueToTree(AppnexusImpExt.of(
-                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))));
+                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", true, null)))));
     }
 
     @Test

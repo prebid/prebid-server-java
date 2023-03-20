@@ -5,11 +5,17 @@
   "type": "object",
   "properties": {
     "placement_id": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "string"
+      ],
       "description": "An ID which identifies this placement of the impression"
     },
     "placementId": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "string"
+      ],
       "description": "Deprecated, use placement_id instead."
     },
     "inv_code": {
@@ -70,6 +76,10 @@
     "use_pmt_rule": {
       "type": "boolean",
       "description": "Boolean to signal AppNexus to apply the relevant payment rule"
+    },
+    "use_payment_rule": {
+      "type": "boolean",
+      "description": "Deprecated, Boolean to signal AppNexus to apply the relevant payment rule. use_pmt_rule will get precedence over usePaymentRule."
     },
     "generate_ad_pod_id": {
       "type": "boolean",
