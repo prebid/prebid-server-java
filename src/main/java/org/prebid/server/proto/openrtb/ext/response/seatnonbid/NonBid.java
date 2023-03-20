@@ -2,7 +2,7 @@ package org.prebid.server.proto.openrtb.ext.response.seatnonbid;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
-import org.prebid.server.auction.model.ImpRejectionReason;
+import org.prebid.server.auction.model.BidRejectionReason;
 
 @Value(staticConstructor = "of")
 public class NonBid {
@@ -11,5 +11,5 @@ public class NonBid {
     String impId;
 
     @JsonProperty("statuscode")
-    ImpRejectionReason statusCode;
+    BidRejectionReason statusCode;
 }

@@ -11,6 +11,8 @@ import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
+import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
@@ -21,6 +23,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
 import static org.prebid.server.functional.model.pricefloors.DeviceType.MULTIPLE
@@ -45,6 +48,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
@@ -265,8 +269,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         where:
         bidRequest                       | bothFloorValue            | bannerFloorValue          | videoFloorValue
-        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
-        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       | PBSUtils.randomFloorValue
+        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue |
+                PBSUtils.randomFloorValue
+        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       |
+                PBSUtils.randomFloorValue
         BidRequest.defaultVideoRequest   | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.6
     }
 
@@ -291,8 +297,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
             modelGroups[0].values = [(new Rule(size: "*").rule)                           : floorsProviderFloorValue,
-                                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue + 0.1,
-                                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue + 0.2]
+                                     (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue +
+                                             0.1,
+                                     (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue +
+                                             0.2]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -634,12 +642,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        updateImpClosure << [{anyStr, imp -> imp.ext.gpid = anyStr},
-                             {anyStr, imp -> imp.tagId = anyStr},
-                             {anySrt, imp -> imp.ext.data = new ImpExtContextData(pbAdSlot: anySrt)}]
+        updateImpClosure << [{ anyStr, imp -> imp.ext.gpid = anyStr },
+                             { anyStr, imp -> imp.tagId = anyStr },
+                             { anySrt, imp -> imp.ext.data = new ImpExtContextData(pbAdSlot: anySrt) }]
     }
 
-     def "PBS should choose correct rule when adUnitCode is defined in rules with stored request"() {
+    def "PBS should choose correct rule when adUnitCode is defined in rules with stored request"() {
         given: "BidRequest with stored request"
         def randomString = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -661,7 +669,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [AD_UNIT_CODE])
             modelGroups[0].values =
-                    [(new Rule(adUnitCode: randomString).rule)    : floorValue,
+                    [(new Rule(adUnitCode: randomString).rule)         : floorValue,
                      (new Rule(adUnitCode: PBSUtils.randomString).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
@@ -868,5 +876,93 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond to appropriate rule value"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == 0.04
+    }
+
+    def "PBS should populate seatNonBid when bid rejected due to floor"() {
+        given: "PBS config with floors config"
+        def pbsService = pbsServiceFactory.getService(floorsConfig)
+
+        and: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid[0].price = floorValue - 0.1
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid and contain errors"
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_PRICE_FLOOR
+        assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
+
+        where:
+        enforcePbs << [true, null]
+    }
+
+    def "PBS shouldn't populate seatNonBid when rejected due to floor and returnAllBidStatus is false"() {
+        given: "PBS config with floors config"
+        def pbsService = pbsServiceFactory.getService(floorsConfig)
+
+        and: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
+            ext.prebid.returnAllBidStatus = false
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid[0].price = floorValue - 0.1
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+        assert !response.seatbid
+
+        where:
+        enforcePbs << [true, null]
     }
 }
