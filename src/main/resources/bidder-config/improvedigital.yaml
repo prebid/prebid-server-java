@@ -1,6 +1,6 @@
 adapters:
   improvedigital:
-    endpoint: http://ad.360yield.com/pbs
+    endpoint: http://ad.360yield.com/{PathPrefix}pbs
     endpoint-compression: gzip
     meta-info:
       maintainer-email: hb@azerion.com

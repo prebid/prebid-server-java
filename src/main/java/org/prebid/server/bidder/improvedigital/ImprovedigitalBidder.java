@@ -62,8 +62,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                parseAndValidateImpExt(imp);
-                httpRequests.add(resolveRequest(request, imp));
+                final ExtImpImprovedigital extImp = parseAndValidateImpExt(imp);
+                httpRequests.add(resolveRequest(request, imp, extImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -115,7 +115,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY, arrayNode));
     }
 
-    private void parseAndValidateImpExt(Imp imp) {
+    private ExtImpImprovedigital parseAndValidateImpExt(Imp imp) {
         final ExtImpImprovedigital ext;
         try {
             ext = mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
@@ -127,9 +127,10 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         if (placementId == null) {
             throw new PreBidException("No placementId provided");
         }
+        return ext;
     }
 
-    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp) {
+    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp, ExtImpImprovedigital extImp) {
         final User user = bidRequest.getUser();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
@@ -138,6 +139,12 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                         : null)
                 .build();
 
+        String pathPrefix = "";
+        if (extImp.getPublisherId() != null && extImp.getPublisherId() > 0) {
+            pathPrefix = String.format("%d/", extImp.getPublisherId());
+        }
+
+        final String endpointUrl = this.endpointUrl.replace("{PathPrefix}", pathPrefix);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)

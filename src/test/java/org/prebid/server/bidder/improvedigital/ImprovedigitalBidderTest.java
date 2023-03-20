@@ -40,7 +40,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ImprovedigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{PathPrefix}";
 
     private ImprovedigitalBidder improvedigitalBidder;
 
@@ -60,11 +60,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234, null))))
                                 .build(),
                         Imp.builder()
                                 .id("456")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234, 1))))
                                 .build()
                 ))
                 .id("request_id")
@@ -80,6 +80,42 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("123", "456");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseProperEndpoints() throws JsonProcessingException {
+        final Integer placementId = 1234;
+        final Integer publisherId = 789;
+        // given
+        BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(Imp.builder()
+                                .id("123")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(placementId, null))))
+                                .build(),
+                        Imp.builder()
+                                .id("456")
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpImprovedigital.of(
+                                                placementId, publisherId
+                                        ))
+                                ))
+                                .build()
+                ))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(2)
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        "https://test.endpoint.com/",
+                        "https://test.endpoint.com/%d/".formatted(publisherId)
+                );
     }
 
     @Test
@@ -512,7 +548,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1)))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1, null)))))
                 .build();
     }
 
