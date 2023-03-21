@@ -39,7 +39,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
@@ -362,10 +361,10 @@ class PrebidServerService implements ObjectMapperWrapper {
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
-        def deltaTime = Duration.between(testStart, testEnd).toMillis()
+        def deltaTime = Duration.between(testStart, testEnd).plusSeconds(1).seconds
 
-        for (int i = 0; i <= deltaTime; i += deltaTime / 5) {
-            def time = testStart.plusMillis(i)
+        for (int i = 0; i <= deltaTime; i++) {
+            def time = testStart.plusSeconds(i)
             def element = logs.find { it.contains(formatter.format(time)) }
             if (element) {
                 filteredLogs.addAll(logs.subList(logs.indexOf(element), logs.size()))
