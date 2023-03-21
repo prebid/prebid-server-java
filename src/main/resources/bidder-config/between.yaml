@@ -12,6 +12,6 @@ adapters:
     usersync:
       cookie-family-name: between
       redirect:
-        url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url={{redirect_url}}
+        url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url={{redirect_url}}
         support-cors: false
         uid-macro: '${USER_ID}'
