@@ -296,6 +296,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .cid(ad.getLineItemId())
                 .crid(ad.getCreativeId())
                 .price(extractPrice(ad))
+                .dealid(ad.getDealId())
                 .adm(adsUnit.getHtml())
                 .adomain(extractDomain(ad.getDestinationUrls()))
                 .build();
