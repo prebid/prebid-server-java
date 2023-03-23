@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "origbidcpm": 3.33,
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "adtrgtme",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adtrgtme": "{{ adtrgtme.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
