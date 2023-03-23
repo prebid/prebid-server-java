@@ -243,6 +243,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid, errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
