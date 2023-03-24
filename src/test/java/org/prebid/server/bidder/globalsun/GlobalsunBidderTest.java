@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.globalsun;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -87,8 +86,7 @@ public class GlobalsunBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtGlobalsun(
-                        ext -> ext.type("publisher").placementId("somePlacementId")));
+                .containsExactly(givenImpExtGlobalsun("publisher", "somePlacementId"));
     }
 
     @Test
@@ -252,11 +250,8 @@ public class GlobalsunBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtGlobalsun(
-            UnaryOperator<GlobalsunImpExtBidder.GlobalsunImpExtBidderBuilder> impExtGlobalsun) {
-        final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
-
-        return modifiedImpExtBidder.set("bidder", mapper.convertValue(impExtGlobalsun
-                .apply(GlobalsunImpExtBidder.builder()).build(), JsonNode.class));
+    private static ObjectNode givenImpExtGlobalsun(String publisherPath, String placementId) {
+        return mapper.valueToTree(ExtPrebid.of(null, GlobalsunImpExtBidder.of(publisherPath,
+                placementId)));
     }
 }

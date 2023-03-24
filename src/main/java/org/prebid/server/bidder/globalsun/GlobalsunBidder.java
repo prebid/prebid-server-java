@@ -8,7 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.globalsun.model.GlobalsunImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -105,15 +104,7 @@ public class GlobalsunBidder implements Bidder<BidRequest> {
     }
 
     private GlobalsunImpExtBidder resolveOutgoingImpExt(ExtImpGlobalsun extImpAndGlobalsun) {
-        final GlobalsunImpExtBidder.GlobalsunImpExtBidderBuilder impExtAndGlobalsun
-                = GlobalsunImpExtBidder.builder();
-
-        if (StringUtils.isNotEmpty(extImpAndGlobalsun.getPlacementId())) {
-            impExtAndGlobalsun
-                    .type(TYPE_PUBLISHER)
-                    .placementId(extImpAndGlobalsun.getPlacementId());
-        }
-        return impExtAndGlobalsun.build();
+        return GlobalsunImpExtBidder.of(TYPE_PUBLISHER, extImpAndGlobalsun.getPlacementId());
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
