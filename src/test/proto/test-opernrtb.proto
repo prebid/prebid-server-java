@@ -1,0 +1,212 @@
+syntax = "proto2";
+
+import "openrtb.proto";
+
+option java_outer_classname = "OpenRtbTest";
+
+package org.prebid.server.openrtb.v2;
+
+message TestExt {
+
+    optional string field = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Content {
+
+    optional TestExt content = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest {
+
+    optional TestExt nativeRequest = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp {
+
+    optional TestExt imp = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Geo {
+
+    optional TestExt geo = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Pmp {
+
+    optional TestExt pmp = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Producer {
+
+    optional TestExt producer = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Video {
+
+    optional TestExt video = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest.Asset.Image {
+
+    optional TestExt nativeImage = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Regs {
+
+    optional TestExt regs = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Banner.Format {
+
+    optional TestExt format = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Publisher {
+
+    optional TestExt publisher = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Banner {
+
+    optional TestExt banner = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Site {
+
+    optional TestExt site = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest.EventTrackers {
+
+    optional TestExt eventTrackers = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Video.CompanionAd {
+
+    optional TestExt companionAd = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest.Asset.Data {
+
+    optional TestExt nativeData = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest.Asset {
+
+    optional TestExt nativeAsset = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest {
+
+    optional TestExt bidRequest = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.App {
+
+    optional TestExt app = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Audio {
+
+    optional TestExt audio = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Data.Segment {
+
+    optional TestExt segment = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Metric {
+
+    optional TestExt metric = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Device {
+
+    optional TestExt device = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Source {
+
+    optional TestExt source = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Data {
+
+    optional TestExt data = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Native {
+
+    optional TestExt native = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Pmp.Deal {
+
+    optional TestExt deal = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.User {
+
+    optional TestExt user = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest.Asset.Title {
+
+    optional TestExt nativeTitle = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse {
+
+    optional TestExt bidResponse = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Image {
+
+    optional TestExt responseImage = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse {
+
+    optional TestExt nativeResponse = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid {
+
+    optional TestExt seatBid = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset {
+
+    optional TestExt responseAsset = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Title {
+
+    optional TestExt responseTitle = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Data {
+
+    optional TestExt responseData = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Link {
+
+    optional TestExt responseLink = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid.Bid {
+
+    optional TestExt bid = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.Asset.Video {
+
+    optional TestExt responseVideo = 8871;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeResponse.EventTracker {
+
+    optional TestExt eventTracker = 8871;
+}
