@@ -63,7 +63,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpImprovedigital extImp = parseAndValidateImpExt(imp);
-                httpRequests.add(resolveRequest(request, imp, extImp));
+                httpRequests.add(resolveRequest(request, imp, extImp.getPublisherId()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -130,7 +130,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         return ext;
     }
 
-    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp, ExtImpImprovedigital extImp) {
+    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp, Integer publisherId) {
         final User user = bidRequest.getUser();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
@@ -139,10 +139,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                         : null)
                 .build();
 
-        String pathPrefix = "";
-        if (extImp.getPublisherId() != null && extImp.getPublisherId() > 0) {
-            pathPrefix = String.format("%d/", extImp.getPublisherId());
-        }
+        final String pathPrefix = publisherId != null && publisherId > 0
+                ? String.format("%d/", publisherId) : "";
 
         final String endpointUrl = this.endpointUrl.replace("{PathPrefix}", pathPrefix);
         return HttpRequest.<BidRequest>builder()

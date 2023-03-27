@@ -87,7 +87,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Integer placementId = 1234;
         final Integer publisherId = 789;
         // given
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .id("123")
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(placementId, null))))
@@ -109,13 +109,12 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .hasSize(2)
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
                         "https://test.endpoint.com/",
                         "https://test.endpoint.com/%d/".formatted(publisherId)
-                );
+        );
     }
 
     @Test
