@@ -3,16 +3,13 @@ package org.prebid.server.functional.tests.privacy.activity
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.activitie.Activity
-import org.prebid.server.functional.model.request.activitie.ActivityRule
 import org.prebid.server.functional.model.request.activitie.AllowActivities
-import org.prebid.server.functional.model.request.activitie.Condition
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.tests.BaseSpec
 
 import java.time.Clock
 import java.time.ZonedDateTime
@@ -23,7 +20,8 @@ import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.getDefaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 
-class GppSyncUserActivitiesSpec extends BaseSpec {
+// TODO update tests by sync config due to fact than CookieSyncRequest will not be updated
+class GppSyncUserActivitiesSpec extends ActivityBaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
@@ -43,7 +41,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
     def "PBS cookie sync request with all bidder allowed in activities should include all bidders"() {
         given: "Activities set for cookie sync with all bidders allowed"
-        AllowActivities activities = generateDefaultActivities(List.of("bidders"), true)
+        AllowActivities activities = gene(List.of("bidders"), true)
 
         and: "Cookie sync request with allow activities set"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -319,22 +317,5 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[RUBICON]
-    }
-
-
-    private AllowActivities generateDefaultSyncUserActivities(List<String> bidderNames, boolean isAllowed) {
-        AllowActivities.defaultAllowActivities.tap {
-            syncUser = Activity.defaultActivityRule.tap {
-
-                rules = [ActivityRule.defaultActivityRule.tap {
-                    allow = isAllowed
-                    condition = Condition.defaultCondition.tap {
-                        componentName = Condition.Component.defaultComponent.tap {
-                            xIn = bidderNames
-                        }
-                    }
-                }]
-            }
-        }
     }
 }

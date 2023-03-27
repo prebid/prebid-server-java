@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.activitie.Activity
 import org.prebid.server.functional.model.request.activitie.ActivityRule
 import org.prebid.server.functional.model.request.activitie.AllowActivities
+import org.prebid.server.functional.model.request.activitie.Component
 import org.prebid.server.functional.model.request.activitie.Condition
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -12,15 +13,15 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
 
-class GppFetchBidActivitiesSpec extends BaseSpec {
+class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
@@ -41,7 +42,8 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
     def "PBS should skip call to restricted bidder when restricted in activities component name"() {
         given: "Default bid request with allow activities for fetch bid that restrict bidders in selection"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
+                    generateDefaultFetchBidActivities(conditions, isAllowed)))
         }
 
         when: "PBS processes auction request"
@@ -54,19 +56,20 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         assert !bidderRequests
 
         where:
-        conditions                                                                      | isAllowed
-        [new Condition(componentName: Condition.Component.defaultComponent)]            | false
-        [new Condition(componentType: new Condition.Component(xIn: ["bidders"]))]       | false
-        [new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Condition.Component(notIn: ["bidders"]))]     | true
-        [new Condition(componentName: Condition.Component.defaultComponent),
-         new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | true
+        conditions                                                            | isAllowed
+        [new Condition(componentName: Component.defaultComponent)]            | false
+        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
+        [new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
+        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
+        [new Condition(componentName: Component.defaultComponent),
+         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
     }
 
     def "PBS should allow call to bidder when allowed in activities component name"() {
         given: "Default bid request with allow activities for fetch bid that allow bidders in selection"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
+                    generateDefaultFetchBidActivities(conditions, isAllowed)))
         }
 
         when: "PBS processes auction request"
@@ -79,23 +82,23 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequests
         where:
-        conditions                                                                      | isAllowed
-        [new Condition(componentName: Condition.Component.defaultComponent)]            | true
-        [new Condition(componentType: new Condition.Component(xIn: ["bidders"]))]       | true
-        [new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | false
-        [new Condition(componentType: new Condition.Component(notIn: ["bidders"]))]     | false
+        conditions                                                            | isAllowed
+        [new Condition(componentName: Component.defaultComponent)]            | true
+        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
+        [new Condition(componentName: new Component(notIn: [GENERIC.value]))] | false
+        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
     }
 
     def "PBS should allow call to bidder when  activities component with restricted condition have higher priority"() {
         given: "Default bid request with restricted conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = true
         }
 
@@ -123,12 +126,12 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         given: "Default bid request with allowed conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentType: new Condition.Component(xIn: ["bidders"]))
+            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
             allow = true
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
@@ -156,13 +159,13 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         given: "Default bid request with conditions collision and same priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentType: new Condition.Component(xIn: ["bidders"]))
+            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
             allow = true
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
@@ -193,7 +196,8 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             accountId = PBSUtils.randomString
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
+                    generateDefaultFetchBidActivities(conditions, isAllowed)))
         }
 
         and: "Save storedRequest into DB"
@@ -208,13 +212,13 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         assert !bidderRequests
 
         where:
-        conditions                                                                      | isAllowed
-        [new Condition(componentName: Condition.Component.defaultComponent)]            | false
-        [new Condition(componentType: new Condition.Component(xIn: ["bidders"]))]       | false
-        [new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Condition.Component(notIn: ["bidders"]))]     | true
-        [new Condition(componentName: Condition.Component.defaultComponent),
-         new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | true
+        conditions                                                            | isAllowed
+        [new Condition(componentName: Component.defaultComponent)]            | false
+        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
+        [new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
+        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
+        [new Condition(componentName: Component.defaultComponent),
+         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
     }
 
     def "PBS should allow amp call to bidder when allowed in activities component name"() {
@@ -224,7 +228,8 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         and: "Default bid request with allow activities settings for fetch bid that allow bidders in selection"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             accountId = PBSUtils.randomString
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
+                    generateDefaultFetchBidActivities(conditions, isAllowed)))
         }
 
         and: "Save storedRequest into DB"
@@ -239,11 +244,11 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         assert bidderRequest.site.publisher.id == ampRequest.account as String
 
         where:
-        conditions                                                                      | isAllowed
-        [new Condition(componentName: Condition.Component.defaultComponent)]            | true
-        [new Condition(componentType: new Condition.Component(xIn: ["bidders"]))]       | true
-        [new Condition(componentName: new Condition.Component(notIn: [GENERIC.value]))] | false
-        [new Condition(componentType: new Condition.Component(notIn: ["bidders"]))]     | false
+        conditions                                                            | isAllowed
+        [new Condition(componentName: Component.defaultComponent)]            | true
+        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
+        [new Condition(componentName: new Component(notIn: [GENERIC.value]))] | false
+        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
     }
 
     def "PBS should allow amp call to bidder when activities component with restricted condition have higher priority"() {
@@ -253,12 +258,12 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         and: "Default bid request with restricted conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = true
         }
 
@@ -291,12 +296,12 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         and: "Default bid request with allowed conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentType: new Condition.Component(xIn: ["bidders"]))
+            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
             allow = true
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
@@ -329,13 +334,13 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         and: "Default bid request with conditions collision and same priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentType: new Condition.Component(xIn: ["bidders"]))
+            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
             allow = true
         }
 
         def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
-            condition = new Condition(componentName: new Condition.Component(xIn: [GENERIC.value]))
+            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
             allow = false
         }
 
@@ -359,18 +364,5 @@ class GppFetchBidActivitiesSpec extends BaseSpec {
         then: "Bidder request should not contain bidRequest from amp request"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequests
-    }
-
-    private AllowActivities generateDefaultFetchBidActivities(List<Condition> conditions, boolean isAllowed = true) {
-        AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = conditions.collect { singleCondition ->
-                    ActivityRule.defaultActivityRule.tap {
-                        allow = isAllowed
-                        condition = singleCondition
-                    }
-                }
-            }
-        }
     }
 }

@@ -14,8 +14,8 @@ import lombok.Value
 class Activity {
 
     @JsonProperty("default")
-    public boolean defaultAction;
-    public List<ActivityRule> rules;
+    boolean defaultAction;
+    List<ActivityRule> rules;
 
     static Activity getDefaultActivityRule() {
         new Activity().tap {

@@ -13,7 +13,7 @@ class ActivityRule {
     static ActivityRule getDefaultActivityRule() {
         new ActivityRule().tap {
         priority = 10
-        condition = Condition.defaultCondition
+        condition = Condition.generateDefaultCondition()
         allow = true
         }
     }

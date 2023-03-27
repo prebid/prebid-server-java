@@ -1,10 +1,8 @@
 package org.prebid.server.functional.model.request.activitie
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import org.hibernate.type.ComponentType
 
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
@@ -12,21 +10,30 @@ class Condition {
     Component componentType
     Component componentName
 
-    @ToString(includeNames = true, ignoreNulls = true)
-    @EqualsAndHashCode
-    static class Component {
-        @JsonProperty("in")
-        List<String> xIn
-        @JsonProperty("notin")
-        List<String> notIn
-
-        static Component getDefaultComponent() {
-            new Component(xIn: [GENERIC.value], notIn: null)
-        }
-    }
-
-    static Condition getDefaultCondition() {
+    static Condition generateDefaultCondition() {
         new Condition(componentName: Component.defaultComponent)
     }
 
+    static Condition generateTypedCondition(Component componentName, ComponentType componentType) {
+        new Condition(componentName: componentName, componentType: new Component(xIn: [componentType.name]))
+    }
+
+    enum ConditionType {
+        BIDDER("bidder"),
+        ANALITICS("analitics"),
+        GENERAL_MODULE("general"),
+        RTD_MODULE("rtd"),
+        USER_ID_MODULE("userid"),
+        ANALYTICS("analytics")
+
+        final String name
+
+        private ConditionType(String name) {
+            this.name = name
+        }
+
+        String getName() {
+            return name
+        }
+    }
 }
