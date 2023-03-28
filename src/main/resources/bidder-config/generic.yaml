@@ -11,6 +11,7 @@ adapters:
         endpoint-compression: gzip
         meta-info:
           maintainer-email: devs@cwire.com
+          app-media-types:
           site-media-types:
             - banner
           supported-vendors:
