@@ -71,10 +71,11 @@ LIMIT 1
     }
 
     static Map<String, String> getBidderConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["adapters.generic.enabled"                    : "true",
-         "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
-         "adapters.generic.usersync.cookie-family-name": "generic",
-         "adapters.generic.ortb-version"               : "2.6"]
+        ["adapters.generic.enabled"                                 : "true",
+         "adapters.generic.endpoint"                                : "$rootUri/auction".toString(),
+         "adapters.generic.aliases.cwire.meta-info.site-media-types": "",
+         "adapters.generic.usersync.cookie-family-name"             : "generic",
+         "adapters.generic.ortb-version"                            : "2.6"]
     }
 
     static Map<String, String> getPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
@@ -86,13 +87,13 @@ LIMIT 1
     }
 
     static Map<String, String> getMySqlConfig(MySQLContainer mysql = Dependencies.mysqlContainer) {
-        ["settings.database.type"     : "mysql",
-         "settings.database.host"     : mysql.getNetworkAliases().get(0),
-         "settings.database.port"     : mysql.exposedPorts.get(0) as String,
-         "settings.database.dbname"   : mysql.databaseName,
-         "settings.database.user"     : mysql.username,
-         "settings.database.password" : mysql.password,
-         "settings.database.pool-size": "2", // setting 2 here to leave some slack for the PBS
+        ["settings.database.type"          : "mysql",
+         "settings.database.host"          : mysql.getNetworkAliases().get(0),
+         "settings.database.port"          : mysql.exposedPorts.get(0) as String,
+         "settings.database.dbname"        : mysql.databaseName,
+         "settings.database.user"          : mysql.username,
+         "settings.database.password"      : mysql.password,
+         "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
          "settings.database.provider-class": "hikari"
         ].asImmutable()
     }
