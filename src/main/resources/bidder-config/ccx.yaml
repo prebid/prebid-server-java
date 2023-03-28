@@ -1,0 +1,15 @@
+adapters:
+  ccx:
+    endpoint: https://delivery.clickonometrics.pl/ortb/prebid/bid
+    meta-info:
+      maintainer-email: it@clickonometrics.pl
+      site-media-types:
+        - banner
+        - video
+      vendor-id: 773
+    usersync:
+      cookie-family-name: ccx
+      redirect:
+        url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false
+        uid-macro: '${USER_ID}'

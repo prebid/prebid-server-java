@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -50,6 +52,8 @@ public class BasicPriceFloorEnforcerTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private BidRejectionTracker rejectionTracker;
+    @Mock
     private CurrencyConversionService currencyConversionService;
     @Mock
     private Metrics metrics;
@@ -72,7 +76,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(accountFloors -> accountFloors.enabled(false));
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -91,7 +96,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -110,7 +116,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -127,7 +134,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -144,7 +152,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -161,7 +170,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -178,7 +188,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(accountFloors -> accountFloors.enforceDealFloors(false));
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -197,7 +208,9 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -216,7 +229,9 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -233,7 +248,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(accountFloors -> accountFloors.enforceFloorsRate(100));
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -250,7 +266,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -267,7 +284,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(accountFloors -> accountFloors.enforceFloorsRate(-1));
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -284,7 +302,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -301,7 +320,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(accountFloors -> accountFloors.enforceFloorsRate(101));
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                null, auctionParticipation, account, rejectionTracker);
 
         // then
         assertSame(result, auctionParticipation);
@@ -311,30 +331,34 @@ public class BasicPriceFloorEnforcerTest {
     public void shouldRejectBidsHavingPriceBelowFloor() {
         // given
         final BidRequest bidRequest = givenBidRequest(request ->
-                request.imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE))));
+                request.imp(givenImps(
+                        imp -> imp.id("impId1").bidfloor(BigDecimal.ONE),
+                        imp -> imp.id("impId2").bidfloor(BigDecimal.ONE))));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 identity(),
                 identity(),
                 givenBidderSeatBid(
-                        bid -> bid.id("bidId1").price(BigDecimal.ZERO),
-                        bid -> bid.id("bidId2").price(BigDecimal.TEN)));
+                        bid -> bid.id("bidId1").impid("impId1").price(BigDecimal.ZERO),
+                        bid -> bid.id("bidId2").impid("impId2").price(BigDecimal.TEN)));
 
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
+        verify(rejectionTracker).reject("impId1", BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids, BidderSeatBid::getWarnings)
                 .containsExactly(
                         singletonList(BidderBid.of(
-                                Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
+                                Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.TEN).build(), null, null)),
                         singletonList(BidderError.of("Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf)));
+                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf, singleton("impId1"))));
     }
 
     @Test
@@ -351,7 +375,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertThat(singleton(result))
@@ -374,7 +399,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertThat(singleton(result))
@@ -397,7 +423,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertThat(singleton(result))
@@ -422,7 +449,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertThat(singleton(result))
@@ -447,7 +475,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         assertThat(singleton(result))
@@ -475,7 +504,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         verify(currencyConversionService)
@@ -508,7 +538,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         verify(currencyConversionService)
@@ -538,7 +569,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         verify(currencyConversionService)
@@ -569,7 +601,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         verify(currencyConversionService)
@@ -600,7 +633,8 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(
+                bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
         verify(currencyConversionService)
@@ -619,17 +653,16 @@ public class BasicPriceFloorEnforcerTest {
             BidderSeatBid bidderSeatBid) {
 
         return AuctionParticipation.builder()
-                .bidderRequest(BidderRequest.of(
-                        "bidder",
-                        null,
-                        null,
-                        bidRequestCustomizer.apply(BidRequest.builder()
+                .bidderRequest(BidderRequest.builder()
+                        .bidder("bidder1")
+                        .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()
                                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                                 .floors(PriceFloorRules.builder()
                                                         .enforcement(givenEnforcement(enforcementCustomizer))
                                                         .build())
                                                 .build())))
-                                .build()))
+                                .build())
+                        .build())
                 .bidderResponse(BidderResponse.of("bidder", bidderSeatBid, 0))
                 .build();
     }

@@ -1565,6 +1565,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .body(mapper.encodeToBytes(bidRequest))
                 .headers(headers)
                 .payload(bidRequest)
+                .impIds(BidderUtil.impIds(bidRequest))
                 .build();
     }
 

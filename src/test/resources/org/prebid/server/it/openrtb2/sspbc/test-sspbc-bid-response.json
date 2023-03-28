@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "anyId",
+          "price": 3.33,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "<!--preformatted-->",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "adlabel": "Reklama",
+            "pubid": "431",
+            "siteid": "237503",
+            "slotid": "005",
+            "tagid": "slot"
+          }
+        }
+      ]
+    }
+  ]
+}

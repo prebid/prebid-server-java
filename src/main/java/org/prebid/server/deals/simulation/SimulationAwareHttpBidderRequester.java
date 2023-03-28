@@ -11,6 +11,8 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -76,6 +78,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
     @Override
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
+                                                 BidRejectionTracker bidRejectionTracker,
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
                                                  BidderAliases aliases,
@@ -91,6 +94,8 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .collect(Collectors.toSet())));
 
         if (impsToDealInfo.values().stream().noneMatch(CollectionUtils::isNotEmpty)) {
+            bidRejectionTracker.rejectAll(BidRejectionReason.FAILED_TO_REQUEST_BIDS);
+
             return Future.succeededFuture(BidderSeatBid.builder()
                     .errors(Collections.singletonList(BidderError.failedToRequestBids(
                             "Matched or ready to serve line items were not found, but required in simulation mode")))

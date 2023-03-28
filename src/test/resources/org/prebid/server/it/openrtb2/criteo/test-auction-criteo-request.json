@@ -4,13 +4,12 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 250,
+        "w": 300,
         "h": 250
       },
       "ext": {
         "criteo": {
-          "zoneId": 123456,
-          "networkid": 78910
+          "zoneId": 1
         }
       }
     }
