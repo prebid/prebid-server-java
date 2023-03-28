@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public enum DatabaseType {
+
     postgres("org.postgresql.Driver"),
     mysql("com.mysql.cj.jdbc.Driver");
 
