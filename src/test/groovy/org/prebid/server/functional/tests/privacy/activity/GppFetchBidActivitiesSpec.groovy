@@ -10,40 +10,21 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.Prebid
-import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
-import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
-import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
 
 class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
-    private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
-    private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync2"
-    private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-    private static final Map<String, String> RUBICON_CONFIG = [
-            "adapters.${RUBICON.value}.enabled"                    : "true",
-            "adapters.${RUBICON.value}.usersync.cookie-family-name": RUBICON.value,]
-    private static final Map<String, String> APPNEXUS_CONFIG = [
-            "adapters.${APPNEXUS.value}.enabled"                    : "true",
-            "adapters.${APPNEXUS.value}.usersync.cookie-family-name": APPNEXUS.value]
-    private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + GENERIC_CONFIG
-
-    private PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+    static final AllowActivities.ActivityType type = AllowActivities.ActivityType.FETCH_BID
 
     def "PBS should skip call to restricted bidder when restricted in activities component name"() {
         given: "Default bid request with allow activities for fetch bid that restrict bidders in selection"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         when: "PBS processes auction request"
@@ -68,8 +49,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
     def "PBS should allow call to bidder when allowed in activities component name"() {
         given: "Default bid request with allow activities for fetch bid that allow bidders in selection"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         when: "PBS processes auction request"
@@ -89,7 +71,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
     }
 
-    def "PBS should allow call to bidder when  activities component with restricted condition have higher priority"() {
+    def "PBS should allow call to bidder when activities component with restricted condition have higher priority"() {
         given: "Default bid request with restricted conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
@@ -102,11 +84,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = true
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
@@ -122,7 +102,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert !bidderRequests
     }
 
-    def "PBS should allow call to bidder when  activities component with allow condition have higher priority"() {
+    def "PBS should allow call to bidder when activities component with allow condition have higher priority"() {
         given: "Default bid request with allowed conditions and priority settings"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
@@ -135,11 +115,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
@@ -169,11 +147,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
@@ -196,8 +172,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             accountId = PBSUtils.randomString
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         and: "Save storedRequest into DB"
@@ -228,8 +205,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         and: "Default bid request with allow activities settings for fetch bid that allow bidders in selection"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             accountId = PBSUtils.randomString
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultFetchBidActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         and: "Save storedRequest into DB"
@@ -267,11 +245,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = true
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
@@ -305,11 +281,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
@@ -344,11 +318,9 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities fetchActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
