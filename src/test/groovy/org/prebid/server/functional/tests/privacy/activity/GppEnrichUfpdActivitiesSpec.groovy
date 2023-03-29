@@ -14,43 +14,27 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
-import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
-import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PbsPgConfig
-import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
 import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.ANALITICS
 import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.USER_ID_MODULE
 import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
-import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
-    private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
-    private static final GeneralPlanner generalPlanner = new GeneralPlanner(networkServiceContainer)
-    private final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgConfig.properties)
-
-    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final Map<String, String> PBS_CONFIG = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                           "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
-    def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-            + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
-               "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
+    static final AllowActivities.ActivityType type = AllowActivities.ActivityType.ENRICH_UFPD
 
     def "PBS should populate buyeruid from uids cookie when enrich UFDP activities is allowing"() {
         given: "Bid request with buyeruids and allowing enrich UFDP activities"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultEnrichUfpdActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         and: "Cookies headers"
@@ -70,10 +54,8 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         [new Condition(componentName: Component.defaultComponent,
                 componentType:
                         new Component(xIn: [BIDDER.name]))]                         | true
-        [new Condition(componentType: new Component(xIn: [ANALITICS.name]))]        | true
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]           | true
         [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]   | true
-        [new Condition(componentType: new Component(notIn: [ANALITICS.name]))]      | true
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]         | true
         [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]     | true
         [new Condition(componentType: new Component(notIn: [USER_ID_MODULE.name]))] | true
@@ -90,8 +72,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         given: "Bid request with buyeruids and restricting enrich UFDP activities"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultEnrichUfpdActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         and: "Cookies headers"
@@ -111,10 +94,8 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         [new Condition(componentName: Component.defaultComponent,
                 componentType:
                         new Component(xIn: [BIDDER.name]))]                         | false
-        [new Condition(componentType: new Component(xIn: [ANALITICS.name]))]        | false
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]           | false
         [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]   | false
-        [new Condition(componentType: new Component(notIn: [ANALITICS.name]))]      | false
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]         | false
         [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]     | false
         [new Condition(componentType: new Component(notIn: [USER_ID_MODULE.name]))] | false
@@ -140,16 +121,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = true
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            enrichUfpd = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with buyeruids and allowing enrich UFDP activities"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         and: "Cookies headers"
@@ -165,7 +144,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
     }
 
     def "PBS should populate buyeruid from uids cookie when activities component has a higher priority allowed condition"() {
-        given: "Allow activities request with priority settings for fetch bid"
+        given: "Allow activities request with priority settings for  enrich ufpd"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
             condition = new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))
@@ -177,16 +156,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with buyeruids and allowing enrich UFDP activities"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         and: "Cookies headers"
@@ -202,7 +179,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
     }
 
     def "PBS should populate buyeruid from uids cookie when activities component has a same priority collision condition"() {
-        given: "Allow activities request with priority settings for fetch bid"
+        given: "Allow activities request with priority settings for  enrich ufpd"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
             condition = new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))
@@ -215,16 +192,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with buyeruids and allowing enrich UFDP activities"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         and: "Cookies headers"
@@ -249,8 +224,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         and: "Bid request with allowing setup for enrich UFPD"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             it.device = device
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultEnrichUfpdActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         when: "PBS processes BidRequest"
@@ -266,10 +242,8 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         [new Condition(componentName: Component.defaultComponent,
                 componentType:
                         new Component(xIn: [BIDDER.name]))]                         | true
-        [new Condition(componentType: new Component(xIn: [ANALITICS.name]))]        | true
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]           | true
         [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]   | true
-        [new Condition(componentType: new Component(notIn: [ANALITICS.name]))]      | true
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]         | true
         [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]     | true
         [new Condition(componentType: new Component(notIn: [USER_ID_MODULE.name]))] | true
@@ -292,8 +266,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         and: "Bid request with restricting setup for enrich UFPD"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             it.device = device
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities:
-                    generateDefaultEnrichUfpdActivities(conditions, isAllowed)))
+            ext.prebid.allowActivities =
+                    AllowActivities.getDefaultAllowActivities(type,
+                            Activity.getActivityWithRules(conditions, isAllowed))
         }
 
         when: "PBS processes BidRequest"
@@ -309,10 +284,8 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         [new Condition(componentName: Component.defaultComponent,
                 componentType:
                         new Component(xIn: [BIDDER.name]))]                         | false
-        [new Condition(componentType: new Component(xIn: [ANALITICS.name]))]        | false
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]           | false
         [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]   | false
-        [new Condition(componentType: new Component(notIn: [ANALITICS.name]))]      | false
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]         | false
         [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]     | false
         [new Condition(componentType: new Component(notIn: [USER_ID_MODULE.name]))] | false
@@ -345,16 +318,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = true
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            enrichUfpd = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with allowing setup for enrich UFPD"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             it.device = device
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         when: "PBS processes BidRequest"
@@ -385,16 +356,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            enrichUfpd = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with allowing setup for enrich UFPD"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             it.device = device
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         when: "PBS processes BidRequest"
@@ -413,7 +382,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             it.ext = new DeviceExt(atts: randomAtts)
         }
 
-        and: "Allow activities request with priority settings for fetch bid"
+        and: "Allow activities request with priority settings for  enrich ufpd"
         def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
             priority = 1
             condition = new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))
@@ -426,16 +395,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
             allow = false
         }
 
-        AllowActivities fetchActivity = AllowActivities.defaultAllowActivities.tap {
-            fetchBid = Activity.defaultActivityRule.tap {
-                rules = [topPriorityActivity, defaultPriorityActivity]
-            }
-        }
+        AllowActivities enrichUfpdActivity =
+                AllowActivities.getDefaultAllowActivities(type,
+                        Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity]))
 
         and: "Bid request with allowing setup for enrich UFPD"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             it.device = device
-            ext = new BidRequestExt(prebid: new Prebid(allowActivities: fetchActivity))
+            ext = new BidRequestExt(prebid: new Prebid(allowActivities: enrichUfpdActivity))
         }
 
         when: "PBS processes BidRequest"
@@ -450,9 +417,4 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         PBSUtils.getRandomElement(DeviceExt.Atts.values() as List<DeviceExt.Atts>)
     }
 
-    protected void updateLineItemsAndWait() {
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
-    }
 }

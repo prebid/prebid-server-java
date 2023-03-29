@@ -10,11 +10,11 @@ class Condition {
     Component componentType
     Component componentName
 
-    static Condition generateDefaultCondition() {
+    static Condition getDefaultCondition() {
         new Condition(componentName: Component.defaultComponent)
     }
 
-    static Condition generateTypedCondition(Component componentName, ComponentType componentType) {
+    static Condition getTypedCondition(Component componentName, ComponentType componentType) {
         new Condition(componentName: componentName, componentType: new Component(xIn: [componentType.name]))
     }
 
