@@ -1,0 +1,11 @@
+adapters:
+  adtrgtme:
+    endpoint: https://z.cdn.adtarget.market/ssp
+    meta-info:
+      maintainer-email: info@adtarget.me
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
