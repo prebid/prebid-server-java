@@ -188,13 +188,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getDeprecatedPlacementId(), extImpAppnexus.getPlacementId());
+                extImpAppnexus.getPlacementId(), extImpAppnexus.getDeprecatedPlacementId());
         final String resolvedInvCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
         final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
         final Boolean resolvedUsePaymentRule = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getDeprecatedUsePaymentRule(), extImpAppnexus.getUsePmtRule());
+                extImpAppnexus.getUsePmtRule(), extImpAppnexus.getDeprecatedUsePaymentRule());
 
         return extImpAppnexus.toBuilder()
                 .placementId(resolvedPlacementId)
