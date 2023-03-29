@@ -258,7 +258,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (impId.equals(imp.getId())) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getXNative() != null) {
