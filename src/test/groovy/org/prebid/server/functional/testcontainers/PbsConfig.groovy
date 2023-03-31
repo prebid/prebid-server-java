@@ -71,11 +71,10 @@ LIMIT 1
     }
 
     static Map<String, String> getBidderConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["adapters.generic.enabled"                                 : "true",
-         "adapters.generic.endpoint"                                : "$rootUri/auction".toString(),
-         "adapters.generic.aliases.cwire.meta-info.site-media-types": "",
-         "adapters.generic.usersync.cookie-family-name"             : "generic",
-         "adapters.generic.ortb-version"                            : "2.6"]
+        ["adapters.generic.enabled"                    : "true",
+         "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
+         "adapters.generic.usersync.cookie-family-name": "generic",
+         "adapters.generic.ortb-version"               : "2.6"]
     }
 
     static Map<String, String> getPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
@@ -100,6 +99,11 @@ LIMIT 1
 
     static Map<String, String> getMetricConfig() {
         ["admin-endpoints.collected-metrics.enabled": "true"].asImmutable()
+    }
+
+    // due to a config validation we'll need to circumvent all future aliases this way
+    static Map<String, String> getBidderAliasConfig() {
+        ["adapters.generic.aliases.cwire.meta-info.site-media-types": ""]
     }
 
     private PbsConfig() {}

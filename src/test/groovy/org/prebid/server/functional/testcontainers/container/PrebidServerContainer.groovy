@@ -38,6 +38,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.metricConfig
                 << PbsConfig.adminEndpointConfig
                 << PbsConfig.bidderConfig
+                << PbsConfig.bidderAliasConfig
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
