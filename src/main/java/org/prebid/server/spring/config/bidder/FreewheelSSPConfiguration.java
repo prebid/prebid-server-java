@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.rtbhouse.RtbhouseBidder;
-import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.bidder.freewheelssp.FreewheelSSPBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,29 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/rtbhouse.yaml", factory = YamlPropertySourceFactory.class)
-public class RtbhouseConfiguration {
+@PropertySource(value = "classpath:/bidder-config/freewheelssp.yaml", factory = YamlPropertySourceFactory.class)
+public class FreewheelSSPConfiguration {
 
-    private static final String BIDDER_NAME = "rtbhouse";
+    private static final String BIDDER_NAME = "freewheelssp";
 
-    @Bean("rtbhouseConfigurationProperties")
-    @ConfigurationProperties("adapters.rtbhouse")
+    @Bean("freewheelsspConfigurationProperties")
+    @ConfigurationProperties("adapters.freewheelssp")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps rtbhouseBidderDeps(BidderConfigurationProperties rtbhouseConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  CurrencyConversionService currencyConversionService,
-                                  JacksonMapper mapper) {
+    BidderDeps freewheelsspBidderDeps(BidderConfigurationProperties freewheelsspConfigurationProperties,
+                                      @NotBlank @Value("${external-url}") String externalUrl,
+                                      JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(rtbhouseConfigurationProperties)
+                .withConfig(freewheelsspConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new RtbhouseBidder(
-                    config.getEndpoint(),
-                    currencyConversionService,
-                    mapper))
+                .bidderCreator(config -> new FreewheelSSPBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

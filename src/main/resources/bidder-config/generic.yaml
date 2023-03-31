@@ -4,6 +4,17 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+      blue:
+        enabled: false
+        endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
+        meta-info:
+          maintainer-email: prebid@getblue.io
+          site-media-types:
+            - banner
+          app-media-types:
+            - banner
+          supported-vendors:
+          vendor-id: 620
       cwire:
         enabled: false
         endpoint: https://ortb.cwi.re/v1/bid
