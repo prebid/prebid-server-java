@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,9 @@ public class BidderCatalog {
     }
 
     private void validateBidderName(String bidderName) {
-        if (bidderDepsMap.containsKey(bidderName)) {
+        Map<String, BidderInstanceDeps> insensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        insensitiveMap.putAll(bidderDepsMap);
+        if (insensitiveMap.containsKey(bidderName)) {
             throw new IllegalArgumentException(
                     "Duplicate bidder or alias '%s'. Please check the configuration".formatted(bidderName));
         }
@@ -74,7 +77,9 @@ public class BidderCatalog {
      * Tells if given name corresponds to any of the registered bidders.
      */
     public boolean isValidName(String name) {
-        return bidderDepsMap.containsKey(name);
+        Map<String, BidderInstanceDeps> insensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        insensitiveMap.putAll(bidderDepsMap);
+        return insensitiveMap.containsKey(name);
     }
 
     /**
@@ -119,7 +124,9 @@ public class BidderCatalog {
      * through calling {@link #isValidName(String)}.
      */
     public BidderInfo bidderInfoByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
+        Map<String, BidderInstanceDeps> insensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        insensitiveMap.putAll(bidderDepsMap);
+        final BidderInstanceDeps bidderDeps = insensitiveMap.get(name);
         return bidderDeps != null ? bidderDeps.getBidderInfo() : null;
     }
 

@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BidderCatalogTest {
 
     private static final String BIDDER = "rubicon";
+    public static final String BIDDER_CAMEL_CASE = "smartyAds";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -37,6 +38,19 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(bidderCatalog.isValidName(BIDDER)).isTrue();
+    }
+
+    @Test
+    public void isValidNameShouldBeCaseInsensitiveReturnTrueForKnownBidder() {
+        // given
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
+                .name(BIDDER_CAMEL_CASE)
+                .deprecatedNames(emptyList())
+                .build()));
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.isValidName(BIDDER_CAMEL_CASE.toLowerCase())).isTrue();
     }
 
     @Test
@@ -112,6 +126,36 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(bidderCatalog.bidderInfoByName(BIDDER)).isEqualTo(bidderInfo);
+    }
+
+    @Test
+    public void metaInfoByNameShouldBeCaseInsensitiveReturnMetaInfoForKnownBidder() {
+        // given
+        final BidderInfo bidderInfo = BidderInfo.create(
+                true,
+                null,
+                true,
+                null,
+                null,
+                "test@email.com",
+                singletonList(MediaType.BANNER),
+                singletonList(MediaType.VIDEO),
+                null,
+                99,
+                true,
+                false,
+                CompressionType.NONE);
+
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
+                .name(BIDDER_CAMEL_CASE)
+                .deprecatedNames(emptyList())
+                .bidderInfo(bidderInfo)
+                .build()));
+
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.bidderInfoByName(BIDDER_CAMEL_CASE.toLowerCase())).isEqualTo(bidderInfo);
     }
 
     @Test
