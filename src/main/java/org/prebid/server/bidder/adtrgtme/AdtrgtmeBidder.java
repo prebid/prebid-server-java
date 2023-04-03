@@ -1,17 +1,15 @@
 package org.prebid.server.bidder.adtrgtme;
 
-import com.iab.openrtb.request.App;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,6 +19,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adtrgtme.ExtImpAdtrgtme;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -30,11 +30,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
     private static final String X_OPENRTB_VERSION = "2.5";
+
+    private static final TypeReference<ExtPrebid<?, ExtImpAdtrgtme>> ADTRGTME_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,9 +52,10 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final BidRequest updatedRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
             try {
-                requests.add(makeHttpRequest(updatedRequest));
+                ExtImpAdtrgtme impAdtrgtme = parseImpExt(imp);
+                final BidRequest updatedRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+                requests.add(makeHttpRequest(updatedRequest, impAdtrgtme.getSiteId()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -61,35 +64,27 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
+    private ExtImpAdtrgtme parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ADTRGTME_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("ext.bidder not provided");
+        }
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Integer siteId) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeUrl(bidRequest))
+                .uri(makeUrl(siteId))
                 .headers(makeRequestHeaders(bidRequest.getDevice()))
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
     }
 
-    private String makeUrl(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getSite()).map(AdtrgtmeBidder::extractId)
-                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(AdtrgtmeBidder::extractId))
-                .map(id -> "%s?s=%s&prebid".formatted(endpointUrl, id))
-                .orElseThrow(() -> new PreBidException("request.Site or request.App are not provided"));
-    }
+    private String makeUrl(Integer siteId) {
+        return "%s?s=%d&prebid".formatted(endpointUrl, siteId);
 
-    private static String extractId(Site site) {
-        return Optional.of(site)
-                .map(Site::getId)
-                .filter(StringUtils::isNotEmpty)
-                .orElseThrow(() -> new PreBidException("request.Site.ID is not provided"));
-    }
-
-    private static String extractId(App app) {
-        return Optional.of(app)
-                .map(App::getId)
-                .filter(StringUtils::isNotEmpty)
-                .orElseThrow(() -> new PreBidException("request.App.ID is not provided"));
     }
 
     private MultiMap makeRequestHeaders(Device device) {

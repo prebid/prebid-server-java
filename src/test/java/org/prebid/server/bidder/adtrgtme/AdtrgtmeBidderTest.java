@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adtrgtme;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -24,6 +23,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
+import org.prebid.server.proto.openrtb.ext.request.adtrgtme.ExtImpAdtrgtme;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -35,6 +35,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
@@ -59,7 +60,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(String.format("%s?s=%s&prebid", ENDPOINT_URL, "site_id"));
+            assertThat(httpRequest.getUri()).isEqualTo(String.format("%s?s=%d&prebid", ENDPOINT_URL, 123));
         });
     }
 
@@ -97,7 +98,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateExpectedUrlWithSiteId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("id"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
@@ -106,72 +107,26 @@ public class AdtrgtmeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://z.cdn.adtarget.market/ssp?s=site_id&prebid");
+                .containsExactly("https://z.cdn.adtarget.market/ssp?s=123&prebid");
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateExpectedUrlWithAppId() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("test-request-id")
-                .imp(singletonList(givenImp(identity())))
-                .app(App.builder().id("app_id").build()).build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://z.cdn.adtarget.market/ssp?s=app_id&prebid");
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("ext.bidder not provided"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenSiteAndAppIdsAreAbsent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("test-request-id")
-                .imp(singletonList(givenImp(identity()))).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("request.Site or request.App are not provided"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldContainErrorAppIdNotProvided() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("test-request-id")
-                .app(App.builder().build())
-                .imp(singletonList(givenImp(identity()))).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("request.App.ID is not provided"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldContainErrorSiteIdNotProvided() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("test-request-id")
-                .site(Site.builder().build())
-                .imp(singletonList(givenImp(identity()))).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("request.Site.ID is not provided"));
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdtrgtmeBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -297,11 +252,10 @@ public class AdtrgtmeBidderTest extends VertxTest {
                         String.format("Unsupported bidtype for bid: \"%s\"", "123")));
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123"))
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
+        return impModifier.apply(Imp.builder()
+                        .banner(Banner.builder().h(150).w(300).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtrgtme.of(123)))))
                 .build();
     }
 
@@ -321,18 +275,16 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 null);
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(UnaryOperator.identity(), impCustomizer);
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
+        return givenBidRequest(impModifier, identity());
     }
 
     private static BidRequest givenBidRequest(
-            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .id("test-request-id")
-                        .site(Site.builder().id("site_id").build())
-                        .imp(singletonList(givenImp(impCustomizer))))
+        return requestModifier.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impModifier))))
                 .build();
     }
 }

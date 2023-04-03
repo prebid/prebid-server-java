@@ -29,6 +29,7 @@
       },
       "ext": {
         "bidder": {
+          "site_id": 123
         },
         "tid": "${json-unit.any-string}"
       },
@@ -46,7 +47,6 @@
     "ext": {
       "amp": 0
     },
-    "id": "site_id",
     "page": "http://www.example.com",
     "publisher": {
       "domain": "example.com"
