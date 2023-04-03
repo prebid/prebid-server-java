@@ -27,6 +27,7 @@ public class VertxConfiguration {
                 @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics) {
         final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
                 .setEnabled(true)
+                .setJmxEnabled(true)
                 .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
         if (enablePerClientEndpointMetrics) {
             metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
