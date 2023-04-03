@@ -48,7 +48,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class LimeLightDigitalBidderTest extends VertxTest {
 
-    public static final String ENDPOINT_URL = "http://{{Host}}.test.com/{{PublisherID}}";
+    public static final String ENDPOINT_URL = "http://ads.test.com/{{PublisherID}}?host={{Host}}";
 
     private LimeLightDigitalBidder bidder;
 
@@ -186,55 +186,7 @@ public class LimeLightDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("http://some.host.test.com/456");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorForHostStartingWithDot() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpLimeLightDigital.of(".somehost", 456)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Hostname is invalid: .somehost"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorForHostEndingWithDot() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpLimeLightDigital.of("somehost.", 456)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Hostname is invalid: somehost."));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorForHostWithoutDot() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpLimeLightDigital.of("somehost", 456)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Hostname is invalid: somehost"));
+                .containsExactly("http://ads.test.com/456?host=some.host");
     }
 
     @Test
