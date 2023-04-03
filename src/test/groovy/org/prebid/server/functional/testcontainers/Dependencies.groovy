@@ -16,6 +16,7 @@ class Dependencies {
     static final Network network = Network.newNetwork()
 
     static final MySQLContainer mysqlContainer = new MySQLContainer<>("mysql:8.0.30")
+            .withConfigurationOverride("org/prebid/server/functional/")
             .withDatabaseName("prebid")
             .withUsername("prebid")
             .withPassword("prebid")
