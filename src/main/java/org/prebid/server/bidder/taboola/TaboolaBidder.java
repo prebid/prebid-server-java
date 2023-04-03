@@ -144,7 +144,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest createRequest(BidRequest request, List<Imp> imps, ExtImpTaboola impExt) {
-        final String impExtPublisherId = impExt.getPublisherId();
+        final String impExtPublisherId = StringUtils.defaultString(impExt.getPublisherId());
         final List<String> impExtBAdv = impExt.getBAdv();
         final List<String> impExtBCat = impExt.getBCat();
         final String impExtPageType = impExt.getPageType();
@@ -207,7 +207,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return endpointTemplate
                 .replace("{{Host}}", domain)
                 .replace("{{MediaType}}", type)
-                .replace("{{PublisherID}}", StringUtils.defaultString(publisherId, ""));
+                .replace("{{PublisherID}}", HttpUtil.encodeUrl(StringUtils.defaultString(publisherId, "")));
     }
 
     @Override
@@ -258,7 +258,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (impId.equals(imp.getId())) {
+            if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getXNative() != null) {
