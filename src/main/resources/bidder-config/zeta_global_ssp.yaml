@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: zeta_global_ssp
       redirect:
-        url: https://ssp.disqus.com/redirectuser?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}&partner=
+        url: https://ssp.disqus.com/redirectuser?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}&partner=GET_SHORTNAME_FROM_ZETA
         uid-macro: 'BUYERUID'
         support-cors: false
