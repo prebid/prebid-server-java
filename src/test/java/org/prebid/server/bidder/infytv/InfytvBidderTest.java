@@ -3,7 +3,6 @@ package org.prebid.server.bidder.infytv;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -29,8 +28,8 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class InfytvBidderTest extends VertxTest {
 
@@ -59,25 +58,15 @@ public class InfytvBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), video, null));
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new InfytvBidder("invalid_url", jacksonMapper));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {
         // given
         final BidRequest bidRequest = BidRequest.builder().id("test-request-id").build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = infytvBidder.makeHttpRequests(bidRequest);
 
@@ -120,17 +109,14 @@ public class InfytvBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenWhereIsNoBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenThereIsNoBid() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(null);
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("impId").build()))
-                .build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -140,7 +126,7 @@ public class InfytvBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCanNotBeParsed() {
+    public void makeBidsShouldReturnErrorWhenResponseCanNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
@@ -166,26 +152,8 @@ public class InfytvBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
     private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(null, HttpResponse.of(204, null, body), null);
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static Bid givenBid() {
-        return Bid.builder().impid("123").build();
     }
 
 }

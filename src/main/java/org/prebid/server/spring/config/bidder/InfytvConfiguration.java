@@ -29,8 +29,8 @@ public class InfytvConfiguration {
 
     @Bean
     BidderDeps infytvBidderDeps(BidderConfigurationProperties infytvConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(infytvConfigurationProperties)
