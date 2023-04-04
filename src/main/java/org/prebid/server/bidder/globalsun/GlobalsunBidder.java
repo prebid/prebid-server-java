@@ -62,33 +62,12 @@ public class GlobalsunBidder implements Bidder<BidRequest> {
         return Result.withValues(outgoingRequests);
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
     private ExtImpGlobalsun parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), GLOBALSUN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
-    }
-
-    private Imp modifyImp(Imp imp, ExtImpGlobalsun extImpAndGlobalsun) {
-        final GlobalsunImpExtBidder globalsunImpExtBidder = resolveOutgoingImpExt(extImpAndGlobalsun);
-        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-
-        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(globalsunImpExtBidder));
-
-        return imp.toBuilder()
-                .ext(modifiedImpExtBidder)
-                .build();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {
@@ -103,8 +82,29 @@ public class GlobalsunBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private GlobalsunImpExtBidder resolveOutgoingImpExt(ExtImpGlobalsun extImpAndGlobalsun) {
+    private Imp modifyImp(Imp imp, ExtImpGlobalsun extImpAndGlobalsun) {
+        final GlobalsunImpExtBidder globalsunImpExtBidder = resolveOutgoingImpExt(extImpAndGlobalsun);
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+
+        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(globalsunImpExtBidder));
+
+        return imp.toBuilder()
+                .ext(modifiedImpExtBidder)
+                .build();
+    }
+
+    private static GlobalsunImpExtBidder resolveOutgoingImpExt(ExtImpGlobalsun extImpAndGlobalsun) {
         return GlobalsunImpExtBidder.of(TYPE_PUBLISHER, extImpAndGlobalsun.getPlacementId());
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {

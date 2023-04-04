@@ -8,6 +8,6 @@ public class GlobalsunImpExtBidder {
 
     String type;
 
-    @JsonProperty(value = "placementId")
+    @JsonProperty("placementId")
     String placementId;
 }
