@@ -22,11 +22,9 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -43,27 +41,12 @@ public class InfytvBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateExpectedUrl() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = infytvBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://nxs.infy.tv/pbs/openrtb");
-    }
-
-    @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new InfytvBidder("invalid_url", jacksonMapper));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {
+    public void makeHttpRequestsShouldReturnExpectedHttpRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder().id("test-request-id").build();
 
@@ -140,15 +123,12 @@ public class InfytvBidderTest extends VertxTest {
         });
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .build())))
                 .build();
     }
 
