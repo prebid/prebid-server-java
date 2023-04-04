@@ -51,21 +51,17 @@ public class TaboolaBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        taboolaBidder =
-                new TaboolaBidder("https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}",
-                        "http://localhost-test.com",
-                        jacksonMapper);
+        taboolaBidder = new TaboolaBidder(
+                "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}",
+                "http://localhost-test.com",
+                jacksonMapper);
     }
 
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
-        //when
-        String invalidEndpoint = "incorrect.endpoint";
-        String externalUrl = "http://localhost:8090";
-        //then
-        assertThatIllegalArgumentException().isThrownBy(() -> new TaboolaBidder(invalidEndpoint,
-                externalUrl,
-                jacksonMapper));
+        // when and then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new TaboolaBidder("incorrect.endpoint", "http://localhost:8090", jacksonMapper));
     }
 
     @Test
@@ -93,8 +89,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnErrorIfImpExtIsInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenBannerImp(
-                        imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, "invalid"))), identity()),
+                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, "invalid"))), identity()),
                 givenBannerImp(identity(), identity()), // valid imp
                 givenImp(imp -> imp
                                 .video(Video.builder().build())
@@ -330,13 +325,15 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldContainProperUriAndHeaderWhenAllDataPresentInRequestAndTypeIsBanner() {
+    public void makeHttpRequestShouldContainProperUriWhenTypeIsBanner() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(impCustomizer -> impCustomizer.banner(Banner.builder().build())));
+                givenBannerImp(identity(), ext -> ext.publisherId("publisherId")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -344,27 +341,31 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldContainProperUriAndHeaderWhenPublisherIdNotSafeForRequest() {
+    public void makeHttpRequestShouldContainProperUriWithEncodedPublisherId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenBannerImp(identity(), extImp -> extImp.publisherId("is not safe/ for: HTTP request")));
+                givenBannerImp(identity(), extImp -> extImp.publisherId("not/encoded")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/is+not+safe%2F+for%3A+HTTP+request");
+                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/not%2Fencoded");
     }
 
     @Test
-    public void makeHttpRequestShouldContainProperUriAndHeaderWhenAllDataPresentInRequestAndTypeIsNative() {
+    public void makeHttpRequestShouldContainProperUriWhenTypeIsNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(impCustomizer -> impCustomizer.xNative(Native.builder().build())));
+                givenImp(imp -> imp.xNative(Native.builder().build()), ext -> ext.publisherId("publisherId")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -372,167 +373,124 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestWitSiteAndMinimalImpExpDataShouldUpdateInitialSiteRequest() {
+    public void makeHttpRequestShouldModifySiteDependsOnExtPublisherId() {
         // given
-        final Imp impBanner = givenImp(
-                impCustomizer ->
-                        impCustomizer.banner(Banner.builder().build()),
-                extImpCustomizer -> extImpCustomizer.tagId("tagId").publisherId("publisherId")
-        );
-
-        final Site requestSite = Site.builder()
-                .id("siteId")
-                .name("siteName")
-                .domain("site.com")
-                .publisher(Publisher.builder().id("site_publisher_id").build())
-                .build();
-
-        final BidRequest bidRequest = BidRequest
-                .builder().imp(List.of(impBanner)).site(requestSite).build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(
+                        Site.builder()
+                                .id("id")
+                                .name("name")
+                                .publisher(Publisher.builder().id("id").build())
+                                .build()),
+                givenBannerImp(identity(), ext -> ext.publisherId("extPublisherId")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
         // then
-        final Site expectedSite = Site.builder()
-                .id("publisherId")
-                .name("publisherId")
-                .domain("site.com")
-                .publisher(Publisher.builder().id("publisherId").build())
-                .build();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .allSatisfy(site -> {
+                    assertThat(site.getId()).isEqualTo("extPublisherId");
+                    assertThat(site.getName()).isEqualTo("extPublisherId");
+                    assertThat(site.getPublisher())
+                            .extracting(Publisher::getId)
+                            .isEqualTo("extPublisherId");
+                });
     }
 
     @Test
-    public void makeHttpRequestWithSiteIsNullAndExtImpContainPublisherIdShouldUpdateSiteFromExtImp() {
+    public void makeHttpRequestShouldModifySiteDomainIfExtPublisherDomainIsNotEmpty() {
         // given
-        final Imp impBanner = givenBannerImp(identity(), extImpCustomizer -> extImpCustomizer
-                .publisherId("publisherId"));
-
-        final BidRequest bidRequest = BidRequest
-                .builder().imp(List.of(impBanner)).site(null).build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().domain("domain").build()),
+                givenBannerImp(identity(), ext -> ext.publisherDomain("extDomain")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Site expectedSite = Site.builder()
-                .id("publisherId")
-                .name("publisherId")
-                .domain("")
-                .publisher(Publisher.builder().id("publisherId").build())
-                .build();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .extracting(Site::getDomain)
+                .containsExactly("extDomain");
     }
 
     @Test
-    public void makeHttpRequestWithSiteAndExtImpContainOnlyPublisherIdShouldReplaceSiteDataWithExtImp() {
+    public void makeHttpRequestShouldNotModifySiteDomainIfExtPublisherDomainIsEmpty() {
         // given
-        final Site requestSite = Site.builder()
-                .id("token")
-                .name("token")
-                .domain("test.com")
-                .publisher(Publisher.builder().id("token").build())
-                .build();
-
-        final Imp impBanner = givenBannerImp(identity(), extImpCustomizer -> extImpCustomizer
-                .publisherId("publisherId"));
-
-        final BidRequest bidRequest = BidRequest
-                .builder().imp(List.of(impBanner)).site(requestSite).build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().domain("domain").build()),
+                givenBannerImp(identity(), ext -> ext.publisherDomain("")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Site expectedSite = Site.builder()
-                .id("publisherId")
-                .name("publisherId")
-                .domain("test.com")
-                .publisher(Publisher.builder().id("publisherId").build())
-                .build();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .extracting(Site::getDomain)
+                .containsExactly("domain");
     }
 
     @Test
-    public void makeHttpRequestWithSiteAndExtImpContainOnlyPublisherDomainShouldReplaceSiteDataWithExtImp() {
+    public void makeHttpRequestShouldAddEmptyDomainIfNoOtherSources() {
         // given
-        final Site requestSite = Site.builder()
-                .id("token")
-                .name("token")
-                .domain("test.com")
-                .publisher(Publisher.builder().id("token").build())
-                .build();
-
-        final Imp impBanner = givenBannerImp(identity(), extImpCustomizer -> extImpCustomizer
-                .publisherDomain("publisherDomain.com"));
-
-        final BidRequest bidRequest = BidRequest
-                .builder().imp(List.of(impBanner)).site(requestSite).build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().build()),
+                givenBannerImp(identity(), identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Site expectedSite = Site.builder()
-                .id("")
-                .name("")
-                .domain("publisherDomain.com")
-                .publisher(Publisher.builder().id("").build())
-                .build();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .extracting(Site::getDomain)
+                .containsExactly("");
     }
 
     @Test
-    public void makeHttpRequestWithSiteAndExtImpContainOnlyEmptyPublisherDomainShouldUseDomainFromSite() {
+    public void makeHttpRequestShouldCreateSiteIfNotPresent() {
         // given
-        final Site requestSite = Site.builder()
-                .id("token")
-                .name("token")
-                .domain("test.com")
-                .publisher(Publisher.builder().id("token").build())
-                .build();
-
-        final Imp impBanner = givenBannerImp(identity(), extImpCustomizer -> extImpCustomizer
-                .publisherDomain(""));
-
-        final BidRequest bidRequest = BidRequest
-                .builder().imp(List.of(impBanner)).site(requestSite).build();
+        final BidRequest bidRequest = givenBidRequest(givenBannerImp(identity(), identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Site expectedSite = Site.builder()
-                .id("")
-                .name("")
-                .domain("test.com")
-                .publisher(Publisher.builder().id("").build())
-                .build();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(expectedSite);
+                .doesNotContainNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldUseDataFromLastImpExtForRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenBannerImp(identity(), ext -> ext.publisherId("1")),
+                givenBannerImp(identity(), ext -> ext.publisherId("2")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getId)
+                .containsExactly("2");
     }
 
     @Test
@@ -561,7 +519,7 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsWithInvalidBodyShouldResultInError() {
+    public void makeBidsShouldReturnErrorOnInvalidResponseBody() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
@@ -574,7 +532,7 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidderErrorWhenImpIsInvalidBidderType() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenCorrespondedImpHasInvalidMediaType() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(impCustomizer -> impCustomizer
@@ -596,7 +554,7 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnValidBidResponseWithBannerTypeWhenImpIncludeNativeAndBanner()
+    public void makeBidsShouldReturnBidderBidWithBannerTypeWhenImpContainsBothNativeAndBanner()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -629,16 +587,12 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenImp(impCustomizer, extImpCustomizer -> extImpCustomizer
-                .publisherId("publisherId")
-                .publisherDomain("test.com")
-                .bidFloor(BigDecimal.TEN)
-                .tagId("tagId")
-                .position(1));
+        return givenImp(impCustomizer, identity());
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer,
                                 UnaryOperator<ExtImpTaboola.ExtImpTaboolaBuilder> extImpCustomizer) {
+
         return impCustomizer
                 .apply(Imp.builder().ext(mapper
                         .valueToTree(ExtPrebid.of(null, extImpCustomizer.apply(ExtImpTaboola.builder()).build()))))

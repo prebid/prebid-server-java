@@ -207,7 +207,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return endpointTemplate
                 .replace("{{Host}}", domain)
                 .replace("{{MediaType}}", type)
-                .replace("{{PublisherID}}", HttpUtil.encodeUrl(StringUtils.defaultString(publisherId, "")));
+                .replace("{{PublisherID}}", HttpUtil.encodeUrl(publisherId));
     }
 
     @Override
