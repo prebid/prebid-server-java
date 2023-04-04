@@ -108,11 +108,11 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    MetricRegistry metricRegistry() {
+    MetricRegistry metricRegistry(@Value("${metrics.jmxEnabled}") boolean jmxEnabled) {
         final boolean alreadyExists = SharedMetricRegistries.names().contains(METRIC_REGISTRY_NAME);
         final MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
 
-        if (!alreadyExists) {
+        if (!alreadyExists && jmxEnabled) {
             metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
             metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
         }

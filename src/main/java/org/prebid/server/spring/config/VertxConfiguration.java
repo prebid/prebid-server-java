@@ -24,10 +24,11 @@ public class VertxConfiguration {
 
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
-                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics) {
+                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics,
+                @Value("${metrics.jmxEnabled}") boolean jmxEnabled) {
         final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
                 .setEnabled(true)
-                .setJmxEnabled(true)
+                .setJmxEnabled(jmxEnabled)
                 .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
         if (enablePerClientEndpointMetrics) {
             metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
