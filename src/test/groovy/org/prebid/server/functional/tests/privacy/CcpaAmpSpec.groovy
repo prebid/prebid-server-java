@@ -199,7 +199,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
     }
 
     def "PBS should emit error for amp request with gdprConsent when consent_type is TCF_1"() {
-        given: "Default AmpRequest with invalid ccpa type"
+        given: "Default AmpRequest with invalid consent_type"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def ampRequest = getCcpaAmpRequest(validCcpa).tap {
             consentType = TCF_1
