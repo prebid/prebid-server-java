@@ -1,0 +1,49 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "1",
+          "price": 8.43,
+          "crid": "crid14",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 8.43,
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        },
+        {
+          "id": "bid_id",
+          "impid": "2",
+          "price": 8.43,
+          "crid": "crid14",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 8.43,
+            "prebid": {
+              "type": "native"
+            }
+          }
+        }
+      ],
+      "seat": "taboola",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "taboola": "{{ taboola.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
