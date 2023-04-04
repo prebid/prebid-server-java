@@ -40,6 +40,7 @@ import java.util.Objects;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
+    private static final String URL_PATH_PREFIX_MACRO = "{{PathPrefix}}";
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -142,7 +143,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         final String pathPrefix = publisherId != null && publisherId > 0
                 ? String.format("%d/", publisherId) : "";
 
-        final String endpointUrl = this.endpointUrl.replace("{PathPrefix}", pathPrefix);
+        final String endpointUrl = this.endpointUrl.replace(URL_PATH_PREFIX_MACRO, pathPrefix);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)

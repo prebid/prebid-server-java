@@ -40,7 +40,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ImprovedigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/{PathPrefix}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{{PathPrefix}}";
 
     private ImprovedigitalBidder improvedigitalBidder;
 
@@ -84,19 +84,17 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldUseProperEndpoints() throws JsonProcessingException {
-        final Integer placementId = 1234;
-        final Integer publisherId = 789;
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(placementId, null))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234, null))))
                                 .build(),
                         Imp.builder()
                                 .id("456")
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpImprovedigital.of(
-                                                placementId, publisherId
+                                                1234, 789
                                         ))
                                 ))
                                 .build()
@@ -113,7 +111,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
                         "https://test.endpoint.com/",
-                        "https://test.endpoint.com/%d/".formatted(publisherId)
+                        "https://test.endpoint.com/789/"
         );
     }
 
