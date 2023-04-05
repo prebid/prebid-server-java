@@ -10,4 +10,7 @@ public class ExtImpImprovedigital {
 
     @JsonProperty("placementId")
     Integer placementId;
+
+    @JsonProperty("publisherId")
+    Integer publisherId;
 }
