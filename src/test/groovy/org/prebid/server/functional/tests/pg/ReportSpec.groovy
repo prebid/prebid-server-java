@@ -31,7 +31,11 @@ import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 class ReportSpec extends BasePgSpec {
 
     def cleanup() {
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
+        deliveryStatistics.reset()
+        PBSUtils.waitUntil { deliveryStatistics.requestCount == 0 }
+        deliveryStatistics.setResponse()
     }
 
     def "PBS shouldn't send delivery statistics when PBS doesn't have reports to send"() {
