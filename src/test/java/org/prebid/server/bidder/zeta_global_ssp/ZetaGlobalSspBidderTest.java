@@ -18,10 +18,10 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,9 +55,9 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(bidRequest);
+                .containsExactly(bidRequest);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                requestBuilder -> requestBuilder.imp(Arrays.asList(
+                requestBuilder -> requestBuilder.imp(asList(
                         givenImp(identity()),
                         givenImp(identity()).toBuilder().id("2").build())));
 
@@ -125,7 +125,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(null).video(null)),
                 mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
@@ -140,9 +140,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfNoBannerAndHasVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(null).video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
@@ -157,9 +155,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfHasBothBannerAndVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(givenImp(identity())))
-                        .build(),
+                givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
@@ -182,9 +178,10 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().id("123"))
-                .banner(Banner.builder().build())
-                .video(Video.builder().build())
+        return impCustomizer.apply(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build()))
                 .build();
     }
 
