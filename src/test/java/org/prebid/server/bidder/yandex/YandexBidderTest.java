@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.yandex;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -15,7 +16,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -50,20 +51,292 @@ public class YandexBidderTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new YandexBidder("invalid_url", jacksonMapper));
     }
 
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("imp #blockA: Cannot deserialize value");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenPageIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(0, 1)))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("imp #blockA: wrong value for page_id param"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").ext(givenImpExt(0)),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("imp #blockA: wrong value for imp_id param"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithErrors() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.id("blockA")),
+                        givenImp(impBuilder -> impBuilder.id("blockB")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(134001, null))))),
+                        givenImp(impBuilder -> impBuilder.id("blockC"))))
+                .build();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #blockB: missing param imp_id"));
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).hasSize(2)
+                .extracting(Imp::getId)
+                .containsOnly("blockA", "blockC");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithNoBanner() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        Imp.builder().id("blockA").ext(givenImpExt(1)).build(),
+                        Imp.builder().id("blockB")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .ext(givenImpExt(2)).build(),
+                        Imp.builder().id("blockC")
+                                .xNative(Native.builder().build())
+                                .ext(givenImpExt(3)).build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id #blockA")
+        );
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBannerWidthIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(Banner.builder().w(0).h(600).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Banner 0x600"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBannerHeightIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(Banner.builder().w(300).h(0).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Banner 300x0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBannerHasNoFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(Banner.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid sizes provided for Banner nullxnull"));
+    }
+
+    @Test
+    public void makeHttpRequestsSetFirstImpressionBannerWidthAndHeightWhenFromFirstFormatIfTheyAreNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA")
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(600).build())).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(300, 600));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(null, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(null,
+                mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(null,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(null,
+                mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("SeatBids is empty"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("blockA").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("wrongBlock"))));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse(
+                        "Invalid bid imp ID #wrongBlock does not match any imp IDs from the original bid request"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerAndNative() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(asList(Imp.builder().id("blockA").xNative(Native.builder().build()).build(),
+                                Imp.builder().id("blockB").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(asList(Bid.builder().impid("blockA").build(),
+                                        Bid.builder().impid("blockB").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), xNative, "USD"),
+                        BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .site(Site.builder().id("123").build())
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .site(Site.builder().id("1").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 7)))))
+                        .banner(Banner.builder().w(300).h(600).build())
+                        .ext(givenImpExt(1)))
                 .build();
+    }
+
+    private static ObjectNode givenImpExt(int impId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(134001, impId)));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -75,295 +348,10 @@ public class YandexBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenBidderCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize value");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenPageIdIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(null, 7)))),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("imp #0: missing param page_id"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpIdIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 0)))),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("imp #0: missing param imp_id"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithErrors() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(impBuilder -> impBuilder.id("imp1")),
-                        givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(1234567, null))))),
-                        givenImp(impBuilder -> impBuilder.id("imp3"))))
-                .build();
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("imp #1: missing param imp_id"));
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(2)
-                .extracting(Imp::getId)
-                .containsOnly("imp1", "imp3");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithNoBanner() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        Imp.builder().id("123")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpYandex.of(123456, 7))
-                                )).build(),
-                        Imp.builder()
-                                .banner(Banner.builder().w(100).h(100).build()).id("321")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpYandex.of(123456, 7))
-                                )).build(),
-                        Imp.builder()
-                                .xNative(Native.builder().build()).id("322")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpYandex.of(123456, 8))
-                                )).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
-                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id=123")
-        );
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenBannerWidthIsZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().w(0).h(100).build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid sizes provided for Banner 0x100"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenBannerHeightIsZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().w(100).h(0).build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid sizes provided for Banner 100x0"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenBannerHasNoFormats() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid sizes provided for Banner nullxnull"));
-    }
-
-    @Test
-    public void makeHttpRequestsSetFirstImpressionBannerWidthAndHeightWhenFromFirstFormatIfTheyAreNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().format(singletonList(Format.builder().w(250).h(300).build())).build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(250, 300));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("SeatBids is empty"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .banner(Banner.builder().build())
-                                .id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
-                BidderError.badServerResponse(
-                        "Invalid bid imp ID 321 does not match any imp IDs from the original bid request"
-                ));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerAndNative() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(asList(Imp.builder().xNative(Native.builder().build()).id("123").build(),
-                                Imp.builder().banner(Banner.builder().build()).id("321").build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("USD")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("123").build(),
-                                        Bid.builder().impid("321").build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"),
-                        BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
     }
 }

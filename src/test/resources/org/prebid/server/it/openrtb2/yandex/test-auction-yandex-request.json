@@ -5,12 +5,12 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 250
+        "h": 600
       },
       "ext": {
         "yandex": {
-          "page_id": 123456,
-          "imp_id": 7
+          "page_id": 134001,
+          "imp_id": 1
         }
       }
     }

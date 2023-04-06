@@ -17,7 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -38,11 +38,11 @@ import java.util.stream.Collectors;
 public class YandexBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYandex>> YANDEX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpYandex>>() {
+            new TypeReference<>() {
             };
 
-    private static final String PAGE_ID_MACRO = "{{page_id}}";
-    private static final String IMP_ID_MACRO = "{{imp_id}}";
+    private static final String PAGE_ID_MACRO = "{{PageId}}";
+    private static final String IMP_ID_MACRO = "{{ImpId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -52,35 +52,69 @@ public class YandexBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-                .headers(headers(outgoingRequest))
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
+
+        final String cur = getCur(request);
+        final String referer = getReferer(request);
+
+        for (Imp imp : request.getImp()) {
+            try {
+                ExtImpYandex extImpYandex = parseAndValidateImpExt(imp.getExt(), imp.getId());
+                final Imp modifiedImp = modifyImp(imp);
+                final String modifiedUrl = modifyUrl(extImpYandex, referer, cur);
+                final BidRequest modifiedRequest =
+                        request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
+                bidRequests.add(buildHttpRequest(modifiedRequest, modifiedUrl));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        return Result.of(bidRequests, errors);
     }
 
-    private ExtImpYandex parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+    private String getReferer(BidRequest request) {
+        final Site site = request.getSite();
+        return site != null ? site.getPage() : null;
+    }
+
+    private String getCur(BidRequest request) {
+        final List<String> curs = request.getCur();
+        return curs != null && !curs.isEmpty() ? curs.get(0) : "";
+    }
+
+    private ExtImpYandex parseAndValidateImpExt(ObjectNode impExtNode, final String impId) {
         final ExtImpYandex extImpYandex;
         try {
             extImpYandex = mapper.mapper().convertValue(impExtNode, YANDEX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
+            throw new PreBidException("imp #%s: %s".formatted(impId, e.getMessage()));
         }
         final Integer pageId = extImpYandex.getPageId();
-        if (pageId == null || pageId == 0) {
-            throw new PreBidException(String.format("imp #%s: missing param page_id", index));
+        if (pageId == 0) {
+            throw new PreBidException("imp #%s: wrong value for page_id param".formatted(impId));
         }
-        final Integer impId = extImpYandex.getImpId();
-        if (impId == null || impId == 0) {
-            throw new PreBidException(String.format("imp #%s: missing param imp_id", index));
+        final Integer yandexImpId = extImpYandex.getImpId();
+        if (yandexImpId == 0) {
+            throw new PreBidException("imp #%s: wrong value for imp_id param".formatted(impId));
         }
         return extImpYandex;
     }
 
-    private static Banner makeBanner(Banner banner) {
+    private static Imp modifyImp(Imp imp) {
+        if (imp.getBanner() != null) {
+            return imp.toBuilder().banner(modifyBanner(imp.getBanner())).build();
+        }
+        if (imp.getXNative() != null) {
+            return imp;
+        }
+        throw new PreBidException("Yandex only supports banner and native types. Ignoring imp id #%s"
+                .formatted(imp.getId()));
+    }
+
+    private static Banner modifyBanner(Banner banner) {
         if (banner == null) {
             return null;
         }
@@ -92,20 +126,9 @@ public class YandexBidder implements Bidder<BidRequest> {
                 final Format firstFormat = format.get(0);
                 return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
-            throw new PreBidException(String.format("Invalid sizes provided for Banner %sx%s", w, h));
+            throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(w, h));
         }
         return banner;
-    }
-
-    private static Imp modifyImp(Imp imp) {
-        if (imp.getBanner() != null) {
-            return imp.toBuilder().banner(makeBanner(imp.getBanner())).build();
-        }
-        if (imp.getXNative() != null) {
-            return imp;
-        }
-        throw new PreBidException(String.format("Yandex only supports banner and native types. "
-                + "Ignoring imp id=%s", imp.getId()));
     }
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String cur) {
@@ -122,57 +145,31 @@ public class YandexBidder implements Bidder<BidRequest> {
         return uri.toString();
     }
 
-    private String getReferer(BidRequest request) {
-        String referer = null;
-        final Site site = request.getSite();
-        if (site != null) {
-            referer = site.getPage();
-        }
-        return referer;
+    private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .headers(headers(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .payload(outgoingRequest)
+                .build();
     }
 
     private static MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers();
-
         final Device device = bidRequest.getDevice();
         if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
         }
 
         return headers;
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
-        final List<BidderError> errors = new ArrayList<>();
-
-        final String referer = getReferer(request);
-        final List<String> curs = request.getCur();
-        final String cur = curs != null && !curs.isEmpty() ? curs.get(0) : "";
-
-        final List<Imp> impList = request.getImp();
-        for (int i = 0; i < impList.size(); i++) {
-            try {
-                final Imp imp = impList.get(i);
-                ExtImpYandex extImpYandex = parseAndValidateImpExt(imp.getExt(), i);
-                final Imp modifiedImp = modifyImp(imp);
-                final String modifiedUrl = modifyUrl(extImpYandex, referer, cur);
-                final BidRequest modifiedRequest =
-                        request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
-                bidRequests.add(buildHttpRequest(modifiedRequest, modifiedUrl));
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
-        return Result.of(bidRequests, errors);
-    }
-
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
@@ -206,15 +203,11 @@ public class YandexBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String bidImpId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (bidImpId.equals(imp.getId())) {
-                final BidType bidType = resolveImpType(imp);
-                if (bidType == null) {
-                    throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
-                }
-                return bidType;
+                return resolveImpType(imp);
             }
         }
-        throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
-                + "bid request", bidImpId));
+        throw new PreBidException(("Invalid bid imp ID #%s does not match any imp IDs from the original "
+                + "bid request").formatted(bidImpId));
     }
 
     private static BidType resolveImpType(Imp imp) {
@@ -230,6 +223,6 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (imp.getAudio() != null) {
             return BidType.audio;
         }
-        return null;
+        throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
     }
 }

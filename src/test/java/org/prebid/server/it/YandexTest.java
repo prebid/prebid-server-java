@@ -21,9 +21,9 @@ public class YandexTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYandex() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo(
-                "/yandex-exchange&target-ref=http%3A%2F%2Fwww.example.com&ssp-cur=USD"
-        )).withRequestBody(equalToJson(jsonFrom("openrtb2/yandex/test-yandex-bid-request.json")))
+        WIRE_MOCK_RULE.stubFor(post(
+                urlPathEqualTo("/yandex-exchange&target-ref=http%3A%2F%2Fwww.example.com&ssp-cur=USD"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/yandex/test-yandex-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/yandex/test-yandex-bid-response.json"))));
 
         // when
@@ -31,7 +31,6 @@ public class YandexTest extends IntegrationTest {
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/yandex/test-auction-yandex-response.json", response,
-                singletonList("yandex"));
+        assertJsonEquals("openrtb2/yandex/test-auction-yandex-response.json", response, singletonList("yandex"));
     }
 }

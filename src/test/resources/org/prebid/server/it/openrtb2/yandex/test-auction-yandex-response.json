@@ -10,7 +10,7 @@
           "adm": "adm001",
           "crid": "crid",
           "w": 300,
-          "h": 250,
+          "h": 600,
           "ext": {
             "prebid": {
               "type": "banner"
