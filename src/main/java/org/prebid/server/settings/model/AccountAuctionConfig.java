@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class AccountAuctionConfig {
 
@@ -30,4 +30,7 @@ public class AccountAuctionConfig {
     AccountBidValidationConfig bidValidations;
 
     AccountEventsConfig events;
+
+    @JsonProperty("price-floors")
+    AccountPriceFloorsConfig priceFloors;
 }

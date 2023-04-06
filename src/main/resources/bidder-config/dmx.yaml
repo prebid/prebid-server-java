@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 144
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: dmx
-      type: redirect
-      support-cors: false

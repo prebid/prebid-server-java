@@ -1,6 +1,6 @@
 package org.prebid.server.bidder.unruly;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -10,13 +10,15 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -25,9 +27,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class UnrulyBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -42,16 +47,24 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = request.getImp().stream()
                 .map(this::modifyImp)
                 .map(imp -> createSingleRequest(imp, request))
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.withValues(httpRequests);
     }
 
     private Imp modifyImp(Imp imp) {
-        final ObjectNode modifiedExt = mapper.mapper().createObjectNode()
-                .set("bidder", imp.getExt().get("bidder"));
 
-        return imp.toBuilder().ext(modifiedExt).build();
+        return imp.toBuilder()
+                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseImpExt(imp))))
+                .build();
+    }
+
+    private ExtImpUnruly parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {
@@ -67,7 +80,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -97,7 +110,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {

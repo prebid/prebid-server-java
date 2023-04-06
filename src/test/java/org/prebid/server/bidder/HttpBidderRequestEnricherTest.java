@@ -9,18 +9,27 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
 public class HttpBidderRequestEnricherTest {
+
+    private static final String BIDDER_NAME = "bidderName";
+
+    private static final String BIDDER_ALIAS_NAME = "bidderAliasName";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -28,12 +37,20 @@ public class HttpBidderRequestEnricherTest {
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
 
+    @Mock
+    private BidderAliases bidderAliases;
+
+    @Mock
+    private BidderCatalog bidderCatalog;
+
     private HttpBidderRequestEnricher requestEnricher;
 
     @Before
     public void setUp() {
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
-        requestEnricher = new HttpBidderRequestEnricher(prebidVersionProvider);
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(null);
+
+        requestEnricher = new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
     }
 
     @Test
@@ -44,8 +61,8 @@ public class HttpBidderRequestEnricherTest {
         headers.add("header2", "value2");
 
         // when
-        final MultiMap resultHeaders =
-                requestEnricher.enrichHeaders(headers, CaseInsensitiveMultiMap.empty(), BidRequest.builder().build());
+        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+                BIDDER_NAME, headers, CaseInsensitiveMultiMap.empty(), bidderAliases, BidRequest.builder().build());
 
         // then
         final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -63,9 +80,12 @@ public class HttpBidderRequestEnricherTest {
                 .build();
 
         // when
-        final MultiMap resultHeaders =
-                requestEnricher.enrichHeaders(MultiMap.caseInsensitiveMultiMap(),
-                        originalHeaders, BidRequest.builder().build());
+        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+                BIDDER_NAME,
+                MultiMap.caseInsensitiveMultiMap(),
+                originalHeaders,
+                bidderAliases,
+                BidRequest.builder().build());
 
         // then
         assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
@@ -81,8 +101,8 @@ public class HttpBidderRequestEnricherTest {
         final MultiMap bidderRequestHeaders = MultiMap.caseInsensitiveMultiMap().add("Sec-GPC", "0");
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(bidderRequestHeaders,
-                originalHeaders, BidRequest.builder().build());
+        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+                BIDDER_NAME, bidderRequestHeaders, originalHeaders, bidderAliases, BidRequest.builder().build());
 
         // then
         assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
@@ -103,13 +123,87 @@ public class HttpBidderRequestEnricherTest {
                 .build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(MultiMap.caseInsensitiveMultiMap(),
-                CaseInsensitiveMultiMap.empty(), bidRequest);
+        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+                BIDDER_NAME,
+                MultiMap.caseInsensitiveMultiMap(),
+                CaseInsensitiveMultiMap.empty(),
+                bidderAliases,
+                bidRequest);
 
         // then
         final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
         expectedHeaders.add("x-prebid", "pbjs/4.39,prebid-mobile/1.2.3,pbs-java/1.00");
         assertThat(isEqualsMultiMaps(resultHeaders, expectedHeaders)).isTrue();
+    }
+
+    @Test
+    public void shouldAddContentEncodingHeaderIfRequiredByBidderConfig() {
+        // given
+        when(bidderAliases.resolveBidder(BIDDER_NAME)).thenReturn(BIDDER_NAME);
+        when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false,
+                CompressionType.GZIP));
+
+        final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
+
+        // when
+        final MultiMap resultHeaders = requestEnricher
+                .enrichHeaders(
+                        BIDDER_NAME,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        originalHeaders,
+                        bidderAliases,
+                        BidRequest.builder().build());
+
+        // then
+        assertThat(resultHeaders.contains("Content-Encoding")).isTrue();
+        assertThat(resultHeaders.get("Content-Encoding")).isEqualTo("gzip");
+    }
+
+    @Test
+    public void shouldAddContentEncodingHeaderIfRequiredByBidderAliasConfig() {
+        // given
+        when(bidderAliases.resolveBidder(BIDDER_ALIAS_NAME)).thenReturn(BIDDER_NAME);
+        when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false,
+                CompressionType.GZIP));
+
+        final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
+
+        // when
+        final MultiMap resultHeaders = requestEnricher
+                .enrichHeaders(
+                        BIDDER_ALIAS_NAME,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        originalHeaders,
+                        bidderAliases,
+                        BidRequest.builder().build());
+
+        // then
+        assertThat(resultHeaders.contains("Content-Encoding")).isTrue();
+        assertThat(resultHeaders.get("Content-Encoding")).isEqualTo("gzip");
     }
 
     private static boolean isEqualsMultiMaps(MultiMap left, MultiMap right) {

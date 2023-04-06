@@ -4,9 +4,10 @@ adapters:
     aliases:
       adform:
         usersync:
-          url: https://cm.adform.net/cookie?redirect_url=
-          redirect-url: /setuid?bidder=adform&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
           cookie-family-name: adform
+          redirect:
+            url: https://cm.adform.net/cookie?redirect_url={{redirect_url}}
+            uid-macro: '$UID'
     meta-info:
       maintainer-email: scope.sspp@adform.com
       app-media-types:
@@ -20,8 +21,8 @@ adapters:
       supported-vendors:
       vendor-id: 50
     usersync:
-      url: https://cm.adform.net/cookie?redirect_url=
-      redirect-url: /setuid?bidder=adf&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: adf
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://cm.adform.net/cookie?redirect_url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

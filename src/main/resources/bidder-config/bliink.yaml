@@ -1,0 +1,22 @@
+adapters:
+  bliink:
+    endpoint: http://engine.bliink.io/bid
+    modifying-vast-xml-allowed: false
+    meta-info:
+      maintainer-email: support@bliink.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 658
+    usersync:
+      cookie-family-name: bliink
+      redirect:
+        url: https://cookiesync.api.bliink.io/getuid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

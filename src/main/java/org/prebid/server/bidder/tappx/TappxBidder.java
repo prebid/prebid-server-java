@@ -11,8 +11,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.tappx.model.TappxBidderExt;
@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -34,7 +35,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
@@ -98,7 +98,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         try {
             uriBuilder = new URIBuilder(baseUri);
         } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
+            throw new PreBidException("Failed to build endpoint URL: " + e.getMessage());
         }
 
         if (!isNewEndpoint) {
@@ -110,7 +110,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         uriBuilder.addParameter("v", VERSION);
         uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
-        if (test != null && test == 0) {
+        if (!BidderUtil.isNullOrZero(test)) {
             uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
         }
 
@@ -164,7 +164,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -184,7 +184,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

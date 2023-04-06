@@ -120,6 +120,12 @@ accounts:
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-processed-bidder-response
+  - id: 12001
+    auction:
+      price-floors:
+        fetch:
+          url: http://localhost:8090/floors-provider
+          enabled: true
 domains:
   - rubiconproject.com
   - www.rubiconproject.com

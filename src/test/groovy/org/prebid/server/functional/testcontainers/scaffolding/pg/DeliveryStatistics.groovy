@@ -4,7 +4,6 @@ import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.deals.report.DeliveryStatisticsReport
 import org.prebid.server.functional.testcontainers.scaffolding.NetworkScaffolding
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.ClearType.ALL
@@ -17,11 +16,11 @@ class DeliveryStatistics extends NetworkScaffolding {
 
     static final String REPORT_DELIVERY_ENDPOINT_PATH = "/deals/report/delivery"
 
-    DeliveryStatistics(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, REPORT_DELIVERY_ENDPOINT_PATH, mapper)
+    DeliveryStatistics(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, REPORT_DELIVERY_ENDPOINT_PATH)
     }
 
-    Map<String, String> getLastRecordedDeliveryRequestHeaders() {
+    Map<String, List<String>> getLastRecordedDeliveryRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 
@@ -40,7 +39,7 @@ class DeliveryStatistics extends NetworkScaffolding {
 
     List<DeliveryStatisticsReport> getRecordedDeliveryStatisticsReportRequests() {
         def body = getRecordedRequestsBody(request)
-        body.collect { mapper.decode(it, DeliveryStatisticsReport) }
+        body.collect { decode(it, DeliveryStatisticsReport) }
     }
 
     @Override

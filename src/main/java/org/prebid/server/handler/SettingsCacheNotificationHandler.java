@@ -32,14 +32,9 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
     @Override
     public void handle(RoutingContext routingContext) {
         switch (routingContext.request().method()) {
-            case POST:
-                doSave(routingContext);
-                break;
-            case DELETE:
-                doInvalidate(routingContext);
-                break;
-            default:
-                doFail(routingContext);
+            case POST -> doSave(routingContext);
+            case DELETE -> doInvalidate(routingContext);
+            default -> doFail(routingContext);
         }
     }
 

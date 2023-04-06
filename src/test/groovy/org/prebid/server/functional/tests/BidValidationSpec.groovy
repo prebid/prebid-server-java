@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -9,11 +8,11 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-@PBSTest
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 class BidValidationSpec extends BaseSpec {
 
     @PendingFeature
@@ -156,7 +155,7 @@ class BidValidationSpec extends BaseSpec {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = 1
-        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: BidderName.GENERIC.value, maxBids: 2)]
+        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -210,5 +209,41 @@ class BidValidationSpec extends BaseSpec {
         then: "Bid validation metric value is incremented"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
+    }
+
+    def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {
+        given: "Default basic BidRequest with aliasgvlids and aliases"
+        def bidderName = PBSUtils.randomString
+        def validId = 1
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.ext.prebid.aliasgvlids = [(bidderName): validId]
+        bidRequest.ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
+
+        when: "Sending auction request to PBS"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
+                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
+    }
+
+    def "PBS should return an error when GVL ID alias value is lower that one"() {
+        given: "Default basic BidRequest with aliasgvlids and aliases"
+        def bidderName = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.ext.prebid.aliasgvlids = [(bidderName): invalidId]
+        bidRequest.ext.prebid.aliases = [(bidderName): GENERIC]
+
+        when: "Sending auction request to PBS"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
+                "Invalid vendorId ${invalidId} for alias: ${bidderName}. Choose a different vendorId, or remove this entry.")
+
+        where:
+        invalidId << [PBSUtils.randomNegativeNumber, 0]
     }
 }

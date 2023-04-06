@@ -7,20 +7,18 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.ChannelType.AMP
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
+import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class CcpaAmpSpec extends PrivacyBaseSpec {
 
     @PendingFeature
@@ -31,7 +29,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -72,7 +70,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -96,7 +94,6 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
     }
 
-    @Unroll
     def "PBS should apply ccpa when privacy.ccpa.channel-enabled.amp or privacy.ccpa.enabled = true in account config"() {
         given: "Default AmpRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
@@ -104,7 +101,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -125,7 +122,6 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
                        new AccountCcpaConfig(enabled: true)]
     }
 
-    @Unroll
     def "PBS should not apply ccpa when privacy.ccpa.channel-enabled.amp or privacy.ccpa.enabled = false in account config"() {
         given: "Default AmpRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
@@ -133,7 +129,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -163,7 +159,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -191,7 +187,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -200,6 +196,28 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Invalid consent_type param passed"]
+    }
+
+    def "PBS should emit error for amp request with gdprConsent when consent_type is TCF_1"() {
+        given: "Default AmpRequest with invalid consent_type"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def ampRequest = getCcpaAmpRequest(validCcpa).tap {
+            consentType = TCF_1
+        }
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
     }
 
     def "PBS should emit error for amp request when set not appropriate tcf consent"() {
@@ -215,7 +233,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

@@ -406,9 +406,10 @@ public class DeliveryStatsServiceTest extends VertxTest {
 
     private static String decompress(byte[] byteArray) {
         final StringBuilder body = new StringBuilder();
-        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(byteArray));
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(gzipInputStream,
-                        StandardCharsets.UTF_8))) {
+        try (
+                GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(byteArray));
+                BufferedReader bufferedReader =
+                        new BufferedReader(new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 body.append(line);

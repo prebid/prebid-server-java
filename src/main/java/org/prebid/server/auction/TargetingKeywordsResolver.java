@@ -71,7 +71,7 @@ public class TargetingKeywordsResolver {
 
         return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
                 .filter(TargetingKeywordsResolver::hasImpPath)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<ExtRequestPrebidAdservertargetingRule> responseRules(
@@ -79,7 +79,7 @@ public class TargetingKeywordsResolver {
 
         return rulesBySource.getOrDefault(Source.bidresponse, Collections.emptyList()).stream()
                 .filter(TargetingKeywordsResolver::hasSeatbidBidPath)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Map<String, String> resolveStaticAndRequestKeywords(
@@ -122,7 +122,7 @@ public class TargetingKeywordsResolver {
 
         return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
                 .filter(rule -> !hasImpPath(rule))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Map<String, String> resolveImpRequestKeywords(Bid bid) {
@@ -203,7 +203,7 @@ public class TargetingKeywordsResolver {
     }
 
     private static String toPath(String value) {
-        return String.format("/%s", value.replaceAll("\\.", "/"));
+        return "/" + value.replaceAll("\\.", "/");
     }
 
     private static <T, U> U get(T target, Function<T, U> getter) {

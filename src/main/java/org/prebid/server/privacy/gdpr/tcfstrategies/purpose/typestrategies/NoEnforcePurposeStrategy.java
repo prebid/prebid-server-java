@@ -9,7 +9,6 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
@@ -27,7 +26,7 @@ public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)
                 .filter(vendorPermission -> isAllowedByVendorConsent(vendorPermission.getVendorId(), isEnforceVendors,
                         vendorConsent, vendorLIConsent))
-                .collect(Collectors.toList());
+                .toList();
 
         return CollectionUtils.union(allowedVendorPermissions, toVendorPermissions(excludedVendors));
     }

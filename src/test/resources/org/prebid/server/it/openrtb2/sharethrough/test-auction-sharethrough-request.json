@@ -4,24 +4,15 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
       "ext": {
-        "prebid": {
-          "bidder": {
-            "sharethrough": {
-              "pkey": "abc123",
-              "iframe": true,
-              "iframeSize": [
-                50,
-                50
-              ],
-              "bidfloor": 3.5
-            }
-          }
+        "sharethrough": {
+          "pkey": "pkey"
         }
-      }
+      },
+      "tagid": "tag_id"
     }
   ],
   "tmax": 5000,

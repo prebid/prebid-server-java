@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -115,7 +115,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, null);
@@ -129,7 +129,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResponseWhenResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(null));
 
         // when
@@ -143,7 +143,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorsWhenSeatBidIsEmptyList() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
@@ -158,7 +158,7 @@ public class AdmixerBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorsWhenBidsEmptyList()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
                                 .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
@@ -175,7 +175,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -194,7 +194,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -213,7 +213,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -232,7 +232,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -251,7 +251,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfAudioIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -355,8 +355,8 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);

@@ -1,0 +1,30 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "alkimi": {
+          "bidFloor": 0.5,
+          "token": "XXX"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

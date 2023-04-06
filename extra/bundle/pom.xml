@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.86.0-SNAPSHOT</version>
+        <version>1.116.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -17,14 +17,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <java.version>11</java.version>
-
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
         <spring.boot.version>2.5.6</spring.boot.version>
-        <jackson.version>2.13.2</jackson.version>
-        <!--TODO: Replace this with jackson.version after dependencies update-->
-        <jackson.databind.version>2.13.2.2</jackson.databind.version>
+        <jackson.version>2.14.0-rc1</jackson.version>
         <httpclient.version>4.5.13</httpclient.version>
     </properties>
 
@@ -39,7 +36,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.databind.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -77,12 +74,12 @@
         <dependency>
             <groupId>org.prebid</groupId>
             <artifactId>prebid-server</artifactId>
-            <version>1.86.0-SNAPSHOT</version>
+            <version>1.116.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>ortb2-blocking</artifactId>
-            <version>1.86.0-SNAPSHOT</version>
+            <version>1.116.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

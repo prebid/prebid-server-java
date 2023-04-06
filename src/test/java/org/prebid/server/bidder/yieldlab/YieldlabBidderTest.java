@@ -14,8 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -105,7 +105,7 @@ public class YieldlabBidderTest extends VertxTest {
                                         .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -171,7 +171,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -192,7 +192,7 @@ public class YieldlabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+        final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
@@ -220,7 +220,7 @@ public class YieldlabBidderTest extends VertxTest {
                                 .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -228,7 +228,7 @@ public class YieldlabBidderTest extends VertxTest {
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
@@ -236,15 +236,16 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String adm = String.format(
-                "<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>",
-                timestamp);
+        final String adm = """
+                <script src="https://ad.yieldlab.net/d/1/2/728x90?ts=%s\
+                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent">\
+                </script>""".formatted(timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("1")
                         .impid("test-imp-id")
                         .price(BigDecimal.valueOf(2.01))
-                        .crid(String.format("11234%s", weekNumber))
+                        .crid("11234" + weekNumber)
                         .dealid("1234")
                         .w(728)
                         .h(90)
@@ -275,20 +276,23 @@ public class YieldlabBidderTest extends VertxTest {
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
-        final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
-                + "<AdSystem>Yieldlab</AdSystem>"
-                + "<VASTAdTagURI>"
-                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
-                + "1e1e-4cfd-8edc-7d32dc1a21e5 ]]>"
-                + "</VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
+        final String expectedAdm = """
+                <VAST version="2.0"><Ad id="12345"><Wrapper>
+                <AdSystem>Yieldlab</AdSystem>
+                <VASTAdTagURI><![CDATA[ %s%s%s ]]></VASTAdTagURI>
+                <Impression></Impression>
+                <Creatives></Creatives>
+                </Wrapper></Ad></VAST>""".formatted(
+                "https://ad.yieldlab.net/d/12345/123456789/728x90?ts=",
+                timestamp,
+                "&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -297,8 +301,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .containsExactly(expectedAdm);
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

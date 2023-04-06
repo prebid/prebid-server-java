@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "12345_freewheelssp-test_1",
+          "impid": "imp-1",
+          "price": 1.0,
+          "adid": "7857",
+          "adm": "<?xml version='1.0' encoding='UTF-8'?><VAST version='2.0'></VAST>",
+          "cid": "4001",
+          "crid": "7857",
+          "ext": {
+            "prebid": {
+              "type": "video"
+            },
+            "origbidcpm": 1
+          }
+        }
+      ],
+      "seat": "freewheelssp",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "freewheelssp": "{{ freewheelssp.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

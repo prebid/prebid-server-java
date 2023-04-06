@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static java.util.Arrays.asList;
@@ -37,7 +38,7 @@ public class InIntegersTest {
     @Test
     public void matchesShouldReturnTrueWhenThereIsMatch() {
         // given
-        willReturn(2).given(context).lookupInteger(any());
+        willReturn(LookupResult.ofValue(2)).given(context).lookupInteger(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -47,7 +48,7 @@ public class InIntegersTest {
     @Test
     public void matchesShouldReturnFalseWhenThereIsNoMatch() {
         // given
-        willReturn(4).given(context).lookupInteger(any());
+        willReturn(LookupResult.ofValue(4)).given(context).lookupInteger(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -56,7 +57,7 @@ public class InIntegersTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsMissing() {
         // given
-        willReturn(null).given(context).lookupInteger(any());
+        willReturn(LookupResult.empty()).given(context).lookupInteger(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();

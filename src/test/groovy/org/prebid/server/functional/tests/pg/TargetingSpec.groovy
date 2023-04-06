@@ -6,8 +6,6 @@ import org.prebid.server.functional.model.deals.lineitem.targeting.BooleanOperat
 import org.prebid.server.functional.model.deals.lineitem.targeting.Targeting
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.App
-import org.prebid.server.functional.model.request.auction.AppExt
-import org.prebid.server.functional.model.request.auction.AppExtData
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Bidder
@@ -19,20 +17,14 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
+import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.model.request.auction.Publisher
-import org.prebid.server.functional.model.request.auction.Site
-import org.prebid.server.functional.model.request.auction.SiteExt
-import org.prebid.server.functional.model.request.auction.SiteExtData
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
-import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.model.request.auction.UserTime
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
-import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -59,15 +51,8 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.INVALID
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.PAGE_POSITION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_BUYER_ID
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_BUYER_IDS
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_KEYWORDS
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SFPD_LANGUAGE
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_ID
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_IDS
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_KEYWORDS
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -82,14 +67,9 @@ class TargetingSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
-    @Unroll
     def "PBS should invalidate line items when targeting has #reason"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -144,14 +124,9 @@ class TargetingSpec extends BasePgSpec {
                                                                                 .build()
     }
 
-    @Unroll
     def "PBS should invalidate line items with not supported '#matchingFunction' matching function by '#targetingType' targeting type"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -182,13 +157,8 @@ class TargetingSpec extends BasePgSpec {
         WITHIN           | AD_UNIT_AD_SLOT
     }
 
-    @Unroll
     def "PBS should support line item targeting by string '#targetingType' targeting type"() {
-        given: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Planner response"
+        given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(targetingType, MATCHES, stringTargetingValue)
@@ -206,194 +176,21 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType | bidRequest
+        targetingType  | bidRequest
 
-        REFERRER      | BidRequest.defaultBidRequest.tap {
+        REFERRER       | BidRequest.defaultBidRequest.tap {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
+        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
             app = new App(id: PBSUtils.randomString,
                     bundle: stringTargetingValue)
         }
 
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+        UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                language = stringTargetingValue
+                buyeruid = stringTargetingValue
             }
-        }
-    }
-
-    @Unroll
-    def "PBS should support both scalar and array String inputs by User First Party Data '#targetingType' for intersects matching function"() {
-        given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(targetingType, INTERSECTS, [stringTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS had PG auction"
-        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
-
-        where:
-        targetingType | bidRequest
-
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                ext = new UserExt(data: new UserExtData(language: stringTargetingValue))
-            }
-        }
-
-        UFPD_KEYWORDS | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                ext = new UserExt(data: new UserExtData(keywords: [stringTargetingValue]))
-            }
-        }
-    }
-
-    @Unroll
-    def "PBS should support both scalar and array Integer inputs by User First Party Data '#targetingType' for intersects matching function"() {
-        given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(targetingType, INTERSECTS, [integerTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS had PG auction"
-        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
-
-        where:
-        targetingType  | bidRequest
-
-        UFPD_BUYER_ID  | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                ext = new UserExt(data: new UserExtData(buyerid: integerTargetingValue))
-            }
-        }
-
-        UFPD_BUYER_IDS | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                ext = new UserExt(data: new UserExtData(buyerids: [integerTargetingValue]))
-            }
-        }
-    }
-
-    @Unroll
-    def "PBS should support taking Site First Party Data from 3 different sources"() {
-        given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(SFPD_LANGUAGE, INTERSECTS, [stringTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS had PG auction"
-        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
-
-        where:
-        bidRequest << [
-                BidRequest.defaultBidRequest.tap {
-                    imp = [Imp.defaultImpression.tap {
-                        banner = Banner.defaultBanner
-                        ext.context = new ImpExtContext(data: new ImpExtContextData(language: stringTargetingValue))
-                    }]
-                },
-                BidRequest.defaultBidRequest.tap {
-                    site = Site.defaultSite.tap {
-                        ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
-                    }
-                },
-                BidRequest.defaultBidRequest.tap {
-                    app = new App(id: PBSUtils.randomString).tap {
-                        ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
-                    }
-                }
-        ]
-    }
-
-    def "PBS should support String array input for Site First Party Data to be matched by intersects matching function"() {
-        given: "Bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp = [Imp.defaultImpression.tap {
-                banner = Banner.defaultBanner
-                ext.context = new ImpExtContext(data: new ImpExtContextData(keywords: [stringTargetingValue]))
-            }]
-        }
-
-        and: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(SFPD_KEYWORDS, INTERSECTS, [stringTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS had PG auction"
-        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
-    }
-
-    @Unroll
-    def "PBS should support both scalar and array Integer inputs in Site First Party Data ('#targetingType') by intersects matching function"() {
-        given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(targetingType, INTERSECTS, [integerTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS had PG auction"
-        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
-
-        where:
-        targetingType  | bidRequest
-        SFPD_BUYER_ID  | BidRequest.defaultBidRequest.tap {
-            imp = [Imp.defaultImpression.tap {
-                banner = Banner.defaultBanner
-                ext.context = new ImpExtContext(data: new ImpExtContextData(buyerid: integerTargetingValue))
-            }]
-        }
-
-        SFPD_BUYER_IDS | BidRequest.defaultBidRequest.tap {
-            imp = [Imp.defaultImpression.tap {
-                banner = Banner.defaultBanner
-                ext.context = new ImpExtContext(data: new ImpExtContextData(buyerids: [integerTargetingValue]))
-            }]
         }
     }
 
@@ -403,7 +200,7 @@ class TargetingSpec extends BasePgSpec {
             imp = [Imp.defaultImpression.tap {
                 banner = Banner.defaultBanner
                 ext = ImpExt.defaultImpExt
-                ext.prebid.bidder = new Bidder(rubicon: Rubicon.default.tap { accountId = integerTargetingValue })
+                ext.prebid.bidder = new Bidder(rubicon: Rubicon.defaultRubicon.tap { accountId = integerTargetingValue })
             }]
         }
 
@@ -426,50 +223,11 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
     }
 
-    @Unroll
-    def "PBS doesn't throw a NPE for '#targetingType' when its Ext is absent and targeting Intersects matching type is selected"() {
-        given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(targetingType, INTERSECTS, [stringTargetingValue])
-                                              .build()
-        }
-        generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        when: "Auction is happened"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS successfully processed request"
-        notThrown(PrebidServerException)
-
-        and: "PBS hasn't had PG auction as request targeting is not specified in the right place"
-        assert !auctionResponse.ext?.debug?.pgmetrics
-
-        where:
-        targetingType | bidRequest
-        SFPD_KEYWORDS | BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite.tap {
-                keywords = stringTargetingValue
-            }
-        }
-
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                language = stringTargetingValue
-            }
-        }
-    }
-
     def "PBS should support line item targeting by page position targeting type"() {
         given: "Bid request and bid response"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner.pos = integerTargetingValue
         }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -497,8 +255,6 @@ class TargetingSpec extends BasePgSpec {
                 ext = new UserExt(time: new UserTime(userdow: weekDay))
             }
         }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -526,8 +282,6 @@ class TargetingSpec extends BasePgSpec {
                 ext = new UserExt(time: new UserTime(userhour: hour))
             }
         }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -550,8 +304,6 @@ class TargetingSpec extends BasePgSpec {
     def "PBS should support line item targeting by '#targetingType' targeting type"() {
         given: "Bid request and bid response"
         def bidRequest = BidRequest.defaultBidRequest
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -580,13 +332,8 @@ class TargetingSpec extends BasePgSpec {
         "'\$not' root node without matches" | new Targeting.Builder(NOT).buildNotBooleanOperatorTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
     }
 
-    @Unroll
     def "PBS should support line item domain targeting by #domainTargetingType"() {
-        given: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Planner response"
+        given: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(SITE_DOMAIN, MATCHES, stringTargetingValue)
@@ -619,15 +366,12 @@ class TargetingSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS should support line item domain targeting"() {
         given: "Bid response"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site.domain = siteDomain
             site.publisher = Publisher.defaultPublisher.tap { domain = sitePublisherDomain }
         }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -657,14 +401,9 @@ class TargetingSpec extends BasePgSpec {
         "www.example.com"         | "example.com"
     }
 
-    @Unroll
     def "PBS should appropriately match '\$or', '\$not' line items targeting root node rules"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -718,5 +457,102 @@ class TargetingSpec extends BasePgSpec {
         requestValue          | lineItemValue
         stringTargetingValue  | stringTargetingValue
         integerTargetingValue | integerTargetingValue as String
+    }
+
+    def "PBS should be able to match Ad Slot targeting taken from different sources by MATCHES matching function"() {
+        given: "Bid request with set ad slot info in different request places"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp = [Imp.defaultImpression.tap {
+                tagId = impTagId
+                ext.gpid = impExtGpid
+                ext.data = new ImpExtContextData(pbAdSlot: adSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
+            }]
+        }
+
+        and: "Planner response with MATCHES one of Ad Slot values"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(AD_UNIT_AD_SLOT, MATCHES, stringTargetingValue)
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+        def lineItemSize = plansResponse.lineItems.size()
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
+
+        where:
+        impTagId              | impExtGpid            | adSlot                | adServerAdSlot
+        stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString
+        PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString
+        null                  | null                  | stringTargetingValue  | PBSUtils.randomString
+        null                  | null                  | PBSUtils.randomString | stringTargetingValue
+    }
+
+    def "PBS should be able to match Ad Slot targeting taken from different sources by IN matching function"() {
+        given: "Bid request with set ad slot info in different request places"
+        def contextAdSlot = PBSUtils.randomString
+        def contextAdServerAdSlot = PBSUtils.randomString
+        def adSlot = PBSUtils.randomString
+        def adServerAdSlot = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp = [Imp.defaultImpression.tap {
+                ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
+                ext.data = new ImpExtContextData(pbAdSlot: adSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
+            }]
+        }
+
+        and: "Planner response with IN all of Ad Slot values"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(AD_UNIT_AD_SLOT, IN, [contextAdSlot, contextAdServerAdSlot, adSlot, adServerAdSlot, PBSUtils.randomString])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+        def lineItemSize = plansResponse.lineItems.size()
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
+    }
+
+    def "PBS should be able to match video size targeting taken from imp[].video sources by INTERSECTS matching function"() {
+        given: "Default video bid request"
+        def lineItemSize = LineItemSize.defaultLineItemSize
+        def bidRequest = BidRequest.defaultVideoRequest.tap {
+            imp[0].video.w = lineItemSize.w
+            imp[0].video.h = lineItemSize.h
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [lineItemSize])
+                                                            .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
+                                                            .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
     }
 }

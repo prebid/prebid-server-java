@@ -1,0 +1,24 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.25,
+          "crid": "crid",
+          "adm": "adm001",
+          "ext": {
+            "prebid": {
+              "type": "video"
+            }
+          },
+          "h": 600,
+          "w": 800
+        }
+      ]
+    }
+  ],
+  "bidid": "bid001"
+}

@@ -13,8 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.mgid.model.ExtBidMgid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
@@ -128,11 +127,11 @@ public class MgidBidder implements Bidder<BidRequest> {
         final String placementId = impMgid.getPlacementId();
         final String impId = imp.getId();
 
-        return StringUtils.isBlank(placementId) ? impId : String.format("%s/%s", placementId, impId);
+        return StringUtils.isBlank(placementId) ? impId : "%s/%s".formatted(placementId, impId);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall,
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall,
                                                   BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -156,7 +155,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidType getBidType(Bid bid) {

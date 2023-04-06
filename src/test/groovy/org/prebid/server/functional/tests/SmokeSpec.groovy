@@ -5,21 +5,17 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
-import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
-import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
-@PBSTest
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {
@@ -52,7 +48,7 @@ class SmokeSpec extends BaseSpec {
         ampStoredRequest.site.publisher.id = ampRequest.account
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -68,52 +64,6 @@ class SmokeSpec extends BaseSpec {
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 
-    def "Call PBS /cookie_sync without uids cookie should return element.usersync.url"() {
-        given: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-
-        when: "PBS processes cookie sync request"
-        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should contain all bidders"
-        assert response.status == CookieSyncResponse.Status.NO_COOKIE
-        assert response.bidderStatus?.size() == cookieSyncRequest.bidders.size()
-        def bidderStatus = response.getBidderUsersync(GENERIC)
-        assert bidderStatus?.usersync?.url
-        assert bidderStatus?.usersync?.type
-    }
-
-    def "Call PBS /cookie_sync with valid uids cookie should return status OK"() {
-        given: "Default CookieSyncRequest"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        when: "PBS processes cookie sync request"
-        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
-
-        then: "Response should contain have status 'OK'"
-        assert response.status == CookieSyncResponse.Status.OK
-
-        and: "Response should contain all bidders"
-        assert !response.getBidderUsersync(GENERIC)
-    }
-
-    def "PBS should set uids cookie"() {
-        given: "Default SetuidRequest"
-        def request = SetuidRequest.defaultSetuidRequest
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        when: "PBS processes setuid request"
-        def response = defaultPbsService.sendSetUidRequest(request, uidsCookie)
-
-        then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
-        assert !response.uidsCookie.tempUIDs
-        assert !response.uidsCookie.uids
-        assert response.responseBody ==
-                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
-    }
-
     def "PBS should get uids cookie"() {
         given: "Default uids Cookie"
         def uidsCookie = UidsCookie.defaultUidsCookie
@@ -123,7 +73,7 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidder uids"
         assert response.buyeruids?.size() == uidsCookie.tempUIDs.size()
-        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidder].uid == uid }
+        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidderNameByString(bidder)].uid == uid }
     }
 
     def "PBS should return tracking pixel on event request"() {
@@ -145,7 +95,7 @@ class SmokeSpec extends BaseSpec {
     def "PBS should return PBC response on vtrack request"() {
         given: "Default VtrackRequest"
         def payload = PBSUtils.randomNumber.toString()
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber.toString()
 
         when: "PBS processes vtrack request"

@@ -16,16 +16,22 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "4.20",
-                "hb_pb_rubicon": "4.20",
+                "hb_pb_generic": "4.20",
                 "hb_size": "120x600",
-                "hb_bidder": "rubicon",
-                "hb_size_rubicon": "120x600",
-                "hb_bidder_rubicon": "rubicon"
+                "hb_bidder": "generic",
+                "hb_size_generic": "120x600",
+                "hb_bidder_generic": "generic"
               }
             },
             "origbidcpm": 4.26
           }
-        },
+        }
+      ],
+      "seat": "generic",
+      "group": 0
+    },
+    {
+      "bid": [
         {
           "id": "31124",
           "impid": "impId-video-cache-update",
@@ -39,11 +45,11 @@
               "type": "video",
               "targeting": {
                 "hb_pb": "3.00",
-                "hb_pb_rubicon": "3.00",
+                "hb_pb_genericAlias": "3.00",
                 "hb_size": "120x600",
-                "hb_bidder": "rubicon",
-                "hb_size_rubicon": "120x600",
-                "hb_bidder_rubicon": "rubicon"
+                "hb_bidder": "genericAlias",
+                "hb_size_genericAlias": "120x600",
+                "hb_bidder_genericAlias": "genericAlias"
               },
               "storedrequestattributes": {
                 "maxduration": 60,
@@ -67,14 +73,15 @@
           }
         }
       ],
-      "seat": "rubicon",
+      "seat": "genericAlias",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "rubicon": "{{ rubicon.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}",
+      "genericAlias": "{{ genericAlias.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

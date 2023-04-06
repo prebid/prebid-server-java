@@ -13,8 +13,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adot.model.AdotBidExt;
 import org.prebid.server.bidder.adot.model.AdotExtAdot;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdotBidder implements Bidder<BidRequest> {
 
@@ -87,7 +86,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -111,7 +110,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid createBidderBid(Bid bid, BidResponse bidResponse) {
@@ -138,7 +137,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                 .filter(bidType -> bidType.getName().equals(bidExtType))
                 .findFirst()
                 .orElseThrow(() -> new PreBidException(
-                        String.format("Wrong Adot bid ext in bid with id : %s", bid.getId())));
+                        "Wrong Adot bid ext in bid with id : " + bid.getId()));
     }
 
     private String parseBidExtType(Bid bid) {
@@ -153,7 +152,7 @@ public class AdotBidder implements Bidder<BidRequest> {
 
             return mediaType;
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Wrong Adot bid ext in bid with id : %s", bid.getId()));
+            throw new PreBidException("Wrong Adot bid ext in bid with id : " + bid.getId());
         }
     }
 }

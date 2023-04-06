@@ -16,8 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -251,7 +251,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = pangleBidder.makeBids(httpCall, null);
@@ -264,7 +264,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -278,7 +278,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = pangleBidder.makeBids(httpCall, null);
@@ -295,7 +295,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(singletonList(SeatBid.builder()
@@ -315,7 +315,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidExtIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
@@ -331,7 +331,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidExtAdTypeIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bid -> bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(null)))))));
@@ -348,7 +348,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfAdTypeIsOne() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(1)))))));
@@ -367,7 +367,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfAdTypeIsTwo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(2)))))));
@@ -386,7 +386,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfAdTypeIsFive() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(5)))))));
@@ -405,7 +405,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVide0BidIfAdTypeIsSeven() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(7)))))));
@@ -424,7 +424,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVide0BidIfAdTypeIsEight() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(8)))))));
@@ -443,7 +443,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorForUnrecognizedAdType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bid ->
                         bid.ext(mapper.valueToTree(PangleBidExt.of(BidExt.of(777)))))));
@@ -460,7 +460,7 @@ public class PangleBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorsAndResult() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
                         .cur("USD")
@@ -487,7 +487,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", "2", "2"),
+                                        "token", "2", "2"),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -498,7 +498,7 @@ public class PangleBidderTest extends VertxTest {
         // then
         final ObjectNode expectedExt = mapper
                 .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                        "token", "2", "2"),
+                                "token", "2", "2"),
                         1, true, NetworkIds.of("2", "2")));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -515,7 +515,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", null, "1"),
+                                        "token", null, "1"),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -535,7 +535,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", "1", null),
+                                        "token", "1", null),
                                 null, true, NetworkIds.of("1", "1"))))
                         .build()))
                 .build();
@@ -555,7 +555,7 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                                "token", null, null),
+                                        "token", null, null),
                                 null, true, null)))
                         .build()))
                 .build();
@@ -579,7 +579,7 @@ public class PangleBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -590,7 +590,7 @@ public class PangleBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPangle.of("token", null, null))))
                 .build();
@@ -605,8 +605,8 @@ public class PangleBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
 }

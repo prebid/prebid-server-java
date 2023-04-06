@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static java.util.Arrays.asList;
@@ -37,7 +38,7 @@ public class InStringsTest {
     @Test
     public void matchesShouldReturnTrueWhenThereIsMatch() {
         // given
-        willReturn("Berlin").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("Berlin")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -47,7 +48,7 @@ public class InStringsTest {
     @Test
     public void matchesShouldReturnFalseWhenThereIsNoMatch() {
         // given
-        willReturn("Ingolstadt").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("Ingolstadt")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -56,7 +57,7 @@ public class InStringsTest {
     @Test
     public void matchesShouldPerformCaseInsensitiveComparison() {
         // given
-        willReturn("BERLIN").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("BERLIN")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -65,7 +66,8 @@ public class InStringsTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsMissing() {
         // given
-        willReturn(null).given(context).lookupString(any());
+        willReturn(LookupResult.empty()).given(context).lookupString(any());
+        willReturn(LookupResult.empty()).given(context).lookupInteger(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -74,7 +76,8 @@ public class InStringsTest {
     @Test
     public void matchesShouldReturnTrueWhenActualValueIsInteger() {
         // given
-        willReturn(123).given(context).lookupInteger(any());
+        willReturn(LookupResult.empty()).given(context).lookupString(any());
+        willReturn(LookupResult.ofValue(123)).given(context).lookupInteger(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();

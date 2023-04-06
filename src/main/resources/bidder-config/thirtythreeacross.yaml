@@ -2,7 +2,7 @@ adapters:
   thirtythreeacross:
     endpoint: https://ssc.33across.com/api/v1/s2s
     aliases:
-      '33across':
+      33across:
         enabled: false
       ttx:
         enabled: false
@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 58
     usersync:
-      url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru=
-      redirect-url: /setuid?bidder=33across&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=33XUSERID33X
       cookie-family-name: 33across
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru={{redirect_url}}
+        support-cors: false
+        uid-macro: '33XUSERID33X'

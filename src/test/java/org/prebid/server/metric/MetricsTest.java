@@ -272,40 +272,8 @@ public class MetricsTest {
     }
 
     @Test
-    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(
-                metrics -> metrics.cookieSync().incCounter(MetricName.gen));
-    }
-
-    @Test
-    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithPrefix() {
-        // when
-        metrics.cookieSync().incCounter(MetricName.gen);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.gen").getCount()).isOne();
-    }
-
-    @Test
     public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
-    }
-
-    @Test
-    public void shouldReturnBidderCookieSyncMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(metrics -> metrics
-                .cookieSync()
-                .forBidder(RUBICON)
-                .incCounter(MetricName.gen));
-    }
-
-    @Test
-    public void shouldReturnBidderCookieSyncMetricsConfiguredWithBidder() {
-        // when
-        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.gen);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isOne();
     }
 
     @Test
@@ -487,6 +455,38 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateFetchWithFetchResultShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.fetch.failure").getCount()).isOne();
+    }
+
+    @Test
+    public void updatePriceFloorGeneralErrorsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAlertsConfigMetricsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+        metrics.updateAlertsConfigFailed("anotherId", MetricName.failed);
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+
+        // then
+        assertThat(metricRegistry.counter("alerts.account_config.accountId.price-floors")
+                .getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("alerts.account_config.anotherId.failed")
+                .getCount()).isOne();
+    }
+
+    @Test
     public void updateAdapterResponseTimeShouldUpdateMetrics() {
         // when
         metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
@@ -648,21 +648,15 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateCookieSyncGenMetricShouldIncrementMetric() {
+    public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncGenMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
 
         // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isOne();
-    }
-
-    @Test
-    public void updateCookieSyncMatchesMetricShouldIncrementMetric() {
-        // when
-        metrics.updateCookieSyncMatchesMetric(RUBICON);
-
-        // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.matches").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.filtered").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.conversant.filtered").getCount()).isEqualTo(2);
     }
 
     @Test

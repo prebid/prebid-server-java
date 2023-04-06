@@ -12,17 +12,29 @@ This section can be extended against standard [Spring configuration](https://doc
 - `vertx.worker-pool-size` - set the maximum number of worker threads to be used by the Vert.x instance.
 - `vertx.uploads-dir` - directory that Vert.x [BodyHandler](http://vertx.io/docs/apidocs/io/vertx/ext/web/handler/BodyHandler.html) will use to store multi-part file uploads. 
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
-- `vertx.http-server-instances` - how many http server instances should be created. 
-This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
-## HTTP
-- `http.port` - the port to listen on.
-- `http.max-headers-size` - set the maximum length of all headers.
-- `http.ssl` - enable SSL/TLS support.
-- `http.jks-path` - path to the java keystore (if ssl is enabled).
-- `http.jks-password` - password for the keystore (if ssl is enabled).
+## Server
+- `server.max-headers-size` - set the maximum length of all headers.
+- `server.ssl` - enable SSL/TLS support.
+- `server.jks-path` - path to the java keystore (if ssl is enabled).
+- `server.jks-password` - password for the keystore (if ssl is enabled).
+
+## HTTP Server
+- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.http.server-instances` - how many http server instances should be created.
+  This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
+- `server.http.enabled` - if set to `true` enables http server
+- `server.http.port` - the port to listen on.
+
+## Unix Domain Socket Server
+- `server.unix-socket.server-instances` - how many http server instances should be created.
+- `server.unix-socket.enabled` - if set to `true` enables unix socket server
+- `server.unix-socket.path` - the path to unix socket to listen on.
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
@@ -65,13 +77,15 @@ Removes and downloads file again if depending service cant process probably corr
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
-- `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
+- `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
+- `auction.tmax-upstream-response-time` - the amount of time that PBS needs to respond to the original caller.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
-- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
 - `auction.generate-source-tid` - whether to generate bidrequest.source.tid in the OpenRTB request.
@@ -102,9 +116,9 @@ Removes and downloads file again if depending service cant process probably corr
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
-- `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
-- `cookie-sync.coop-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
-- `cookie-sync.coop-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
+- `cookie-sync.pri` - lists of bidders prioritised in groups.
+- `cookie-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
+- `cookie-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
 
 ## Vtrack
 - `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
@@ -249,7 +263,11 @@ For `console` backend type available next options:
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
 For `prometheus` backend type available next options:
-- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+- `metrics.prometheus.enabled` - if equals to `true` then prometheus reporter will be started
+- `metrics.prometheus.port` - prometheus reporter port
+- `metrics.prometheus.namespace` - optional namespace prefix for metrics
+- `metrics.prometheus.subsystem` - optional subsystem prefix for metrics
+- `metrics.prometheus.custom-labels-enabled` - If set to `true` it enables tags/labels for prometheus metrics instead of including them in the metrics path
 
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
@@ -293,6 +311,7 @@ For database data source available next options:
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
 - `settings.database.account-query` - the SQL query to fetch account.
+- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.

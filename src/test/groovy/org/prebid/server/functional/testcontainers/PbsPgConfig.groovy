@@ -1,5 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.PBSUtils
 
@@ -27,7 +28,7 @@ class PbsPgConfig {
     final String subSystem
     final String hostId
     final String vendor
-    final String currency
+    final Currency currency
     final String userIdType
     final int maxDealsPerBidder
     final int lineItemsPerReport
@@ -50,7 +51,7 @@ class PbsPgConfig {
     private static Map<String, String> getPgConfig(String networkServiceContainerUri) {
         pbsGeneralSettings() + adminDealsUpdateEndpoint() + deals() + deliveryProgress() +
                 planner(networkServiceContainerUri) + deliveryStatistics(networkServiceContainerUri) +
-                alert(networkServiceContainerUri) + userData(networkServiceContainerUri)
+                alert(networkServiceContainerUri) + userData(networkServiceContainerUri) + adminLineItemStatusEndpoint()
     }
 
     private static Map<String, String> pbsGeneralSettings() {
@@ -67,6 +68,10 @@ class PbsPgConfig {
 
     private static Map<String, String> adminDealsUpdateEndpoint() {
         ["admin-endpoints.force-deals-update.enabled": "true"]
+    }
+
+    private static Map<String, String> adminLineItemStatusEndpoint() {
+        ["admin-endpoints.lineitem-status.enabled": "true"]
     }
 
     private static Map<String, String> deals() {

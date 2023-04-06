@@ -6,6 +6,7 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 class PrebidCache {
 
+    @JsonProperty("winningonly")
     Boolean winningOnly
     PrebidCacheSettings bids
     @JsonProperty("vastxml")

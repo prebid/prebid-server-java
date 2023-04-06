@@ -65,17 +65,26 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               String url,
                                               MultiMap headers,
                                               String body,
-                                              long timeoutMs) {
+                                              long timeoutMs,
+                                              long maxResponseSize) {
 
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).onComplete(promise));
+                .execute(promise ->
+                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
+                                .onComplete(promise));
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body,
-                                              long timeoutMs) {
+    public Future<HttpClientResponse> request(HttpMethod method,
+                                              String url,
+                                              MultiMap headers,
+                                              byte[] body,
+                                              long timeoutMs,
+                                              long maxResponseSize) {
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).onComplete(promise));
+                .execute(promise ->
+                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
+                                .onComplete(promise));
     }
 
     private CircuitBreaker createCircuitBreaker(String name,
@@ -111,8 +120,10 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void circuitOpened(String name) {
-        conditionalLogger.warn(String.format("Http client request to %s is failed, circuit opened.", name),
-                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
+        conditionalLogger.warn(
+                "Http client request to %s is failed, circuit opened.".formatted(name),
+                LOG_PERIOD_SECONDS,
+                TimeUnit.SECONDS);
     }
 
     private void circuitHalfOpened(String name) {
@@ -137,7 +148,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
         try {
             return new URL(url);
         } catch (MalformedURLException e) {
-            throw new PreBidException(String.format("Invalid url: %s", url), e);
+            throw new PreBidException("Invalid url: " + url, e);
         }
     }
 }

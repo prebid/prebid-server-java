@@ -107,10 +107,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery(
-                selectAccountQuery,
-                Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
-                timeout)
+                        selectAccountQuery,
+                        Collections.singletonList(accountId),
+                        result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
+                        timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
 
@@ -138,7 +138,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     private static <T> Future<T> failedIfNull(T value, String id, String errorPrefix) {
         return value != null
                 ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+                : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
     private Account toAccount(String source) {

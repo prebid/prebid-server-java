@@ -16,15 +16,22 @@ class CookieSyncRequest {
     Integer gdpr
     String gdprConsent
     String usPrivacy
+    String gpp
+    String gppSid
     @JsonProperty("coopSync")
     Boolean coopSync
+    Boolean debug
     Integer limit
     String account
+    @JsonProperty("filterSettings")
+    FilterSettings filterSettings
 
     static CookieSyncRequest getDefaultCookieSyncRequest() {
-        def request = new CookieSyncRequest()
-        request.bidders = [GENERIC]
-        request.gdpr = 0
-        request
+        new CookieSyncRequest().tap {
+            bidders = [GENERIC]
+            gdpr = 0
+            coopSync = false
+            debug = true
+        }
     }
 }

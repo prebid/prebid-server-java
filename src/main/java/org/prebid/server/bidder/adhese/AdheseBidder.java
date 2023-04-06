@@ -25,8 +25,8 @@ import org.prebid.server.bidder.adhese.model.Cpm;
 import org.prebid.server.bidder.adhese.model.CpmValues;
 import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -130,7 +130,7 @@ public class AdheseBidder implements Bidder<AdheseRequestBody> {
     }
 
     private static String getSlotParameter(ExtImpAdhese extImpAdhese) {
-        return String.format("%s-%s",
+        return "%s-%s".formatted(
                 HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
     }
@@ -169,7 +169,7 @@ public class AdheseBidder implements Bidder<AdheseRequestBody> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
 
         final JsonNode bodyNode;
@@ -261,10 +261,10 @@ public class AdheseBidder implements Bidder<AdheseRequestBody> {
             if (StringUtils.containsAny(adheseBid.getBody(), "<script", "<div", "<html")) {
                 String counter = "";
                 if (adheseResponseExt.getImpressionCounter().length() > 0) {
-                    counter = String.format("%s%s%s", "<img src='", adheseResponseExt.getImpressionCounter(),
-                            "' style='height:1px; width:1px; margin: -1px -1px; display:none;'/>");
+                    counter = "<img src='%s' style='height:1px; width:1px; margin: -1px -1px; display:none;'/>"
+                            .formatted(adheseResponseExt.getImpressionCounter());
                 }
-                return String.format("%s%s", adheseBid.getBody(), counter);
+                return adheseBid.getBody() + counter;
             }
             if (StringUtils.containsAny(adheseBid.getBody(), "<?xml", "<vast")) {
                 return adheseBid.getBody();

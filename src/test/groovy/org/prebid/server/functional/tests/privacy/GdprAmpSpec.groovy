@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -16,12 +15,12 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
+import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@PBSTest
 class GdprAmpSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
@@ -40,7 +39,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -81,7 +80,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -116,7 +115,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -124,8 +123,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$invalidTcfConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0].startsWith("Parsing consent string:\"${invalidTcfConsent}\"")
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -144,7 +142,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -153,6 +151,32 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
+    }
+
+    def "PBS should emit error for amp request with consentString when consent_type is us_privacy"() {
+        given: "Default AmpRequest with invalid consent_type"
+        def consentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .build()
+        def ampRequest = getGdprAmpRequest(consentString).tap {
+            consentType = US_PRIVACY
+        }
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["CCPA consent $consentString has invalid format: " +
+                         "us_privacy must contain 4 characters"]
     }
 
     def "PBS should emit error for amp request with consentString when consent_type is bogus"() {
@@ -168,7 +192,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -190,7 +214,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -198,8 +222,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message[0] ==~
-                /Parsing consent string:"$ccpaConsent" - failed. Version \d+is unsupported yet/
+        assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$ccpaConsent" - failed.*/
     }
 
     def "PBS should apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = true in account config"() {
@@ -212,7 +235,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"
@@ -243,7 +266,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = storedRequestWithGeo
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Save account config into DB"

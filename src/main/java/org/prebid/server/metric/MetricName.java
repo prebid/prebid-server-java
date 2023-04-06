@@ -77,9 +77,10 @@ public enum MetricName {
     opt_outs,
     bad_requests,
     sets,
-    gen,
-    matches,
     blocked,
+    filtered,
+    sizeblocked,
+    sizedout,
 
     // tcf
     userid_removed,
@@ -112,7 +113,9 @@ public enum MetricName {
     xml,
 
     // account.*.requests.
-    rejected,
+    rejected_by_invalid_account("rejected.invalid-account"),
+    rejected_by_invalid_stored_impr("rejected.invalid-stored-impr"),
+    rejected_by_invalid_stored_request("rejected.invalid-stored-request"),
 
     // currency rates
     stale,
@@ -135,6 +138,9 @@ public enum MetricName {
     failure,
     execution_error("execution-error"),
     duration,
+
+    // price-floors
+    price_floors("price-floors"),
 
     // win notifications
     win_notifications,
@@ -161,7 +167,6 @@ public enum MetricName {
     delivery_request_failed,
     delivery_request_successful,
     delivery_request_time;
-
 
     private final String name;
 

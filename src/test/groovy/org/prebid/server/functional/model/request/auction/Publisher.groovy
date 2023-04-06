@@ -8,6 +8,7 @@ class Publisher {
 
     String id
     String name
+    Integer cattax
     List<String> cat
     String domain
 

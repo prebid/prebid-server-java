@@ -1,19 +1,19 @@
 adapters:
   sharethrough:
-    endpoint: http://btlr.sharethrough.com/FGMrCMMc/v1
+    endpoint: https://btlr.sharethrough.com/universal/v1?supply_id=FGMrCMMc
     meta-info:
       maintainer-email: pubgrowth.engineering@sharethrough.com
       app-media-types:
         - banner
-        - native
+        - video
       site-media-types:
-        - native
         - banner
+        - video
       supported-vendors:
       vendor-id: 80
     usersync:
-      url: https://match.sharethrough.com/FGMrCMMc/v1?redirectUri=
-      redirect-url: /setuid?bidder=sharethrough&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: sharethrough
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://match.sharethrough.com/FGMrCMMc/v1?redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

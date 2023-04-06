@@ -20,8 +20,8 @@ import org.prebid.server.bidder.consumable.model.ConsumableDecision;
 import org.prebid.server.bidder.consumable.model.ConsumablePlacement;
 import org.prebid.server.bidder.consumable.model.ConsumablePricing;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -152,7 +152,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER, String.format("azk=%s", user.getBuyeruid().trim()));
+            headers.add(HttpUtil.COOKIE_HEADER, "azk=" + user.getBuyeruid().trim());
         }
 
         final Site site = request.getSite();
@@ -170,7 +170,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<ConsumableBidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<ConsumableBidRequest> httpCall, BidRequest bidRequest) {
         final ConsumableBidResponse consumableResponse;
         try {
             consumableResponse = mapper.decodeValue(httpCall.getResponse().getBody(), ConsumableBidResponse.class);

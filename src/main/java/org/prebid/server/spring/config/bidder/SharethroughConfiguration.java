@@ -2,11 +2,13 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.sharethrough.SharethroughBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +32,18 @@ public class SharethroughConfiguration {
     @Bean
     BidderDeps sharethroughBidderDeps(BidderConfigurationProperties sharethroughConfigurationProperties,
                                       @NotBlank @Value("${external-url}") String externalUrl,
+                                      CurrencyConversionService currencyConversionService,
+                                      PrebidVersionProvider prebidVersionProvider,
                                       JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(sharethroughConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SharethroughBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new SharethroughBidder(
+                        config.getEndpoint(),
+                        currencyConversionService,
+                        prebidVersionProvider,
+                        mapper))
                 .assemble();
     }
 }

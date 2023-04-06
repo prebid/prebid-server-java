@@ -10,7 +10,6 @@ import org.prebid.server.auction.model.BidInfo;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -386,7 +385,7 @@ public class WinningBidComparatorFactoryTest {
     private static BidInfo givenBidInfo(float price, String dealId, List<String> impDealIds) {
         final List<Deal> impDeals = impDealIds.stream()
                 .map(impDealId -> Deal.builder().id(impDealId).build())
-                .collect(Collectors.toList());
+                .toList();
         final Pmp pmp = Pmp.builder().deals(impDeals).build();
 
         return BidInfo.builder()

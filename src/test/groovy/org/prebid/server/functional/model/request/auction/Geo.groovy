@@ -3,6 +3,7 @@ package org.prebid.server.functional.model.request.auction
 import groovy.transform.AutoClone
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
+import org.prebid.server.functional.model.pricefloors.Country
 
 @AutoClone
 @EqualsAndHashCode
@@ -15,7 +16,7 @@ class Geo {
     Integer accuracy
     Integer lastfix
     Integer ipservice
-    String country
+    Country country
     String region
     String regionfips104
     String metro

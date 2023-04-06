@@ -11,5 +11,6 @@ class Targeting {
     PriceGranularity priceGranularity
     Boolean includeWinners
     Boolean includeBidderKeys
-    Boolean preferdeals
+    Boolean preferDeals
+    Boolean alwaysIncludeDeals
 }

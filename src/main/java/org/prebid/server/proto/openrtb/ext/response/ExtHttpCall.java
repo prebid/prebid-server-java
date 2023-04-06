@@ -2,6 +2,7 @@ package org.prebid.server.proto.openrtb.ext.response;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.bidder.model.BidderCallType;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ public class ExtHttpCall {
     String requestbody;
 
     String responsebody;
+
+    BidderCallType calltype;
 
     Map<String, List<String>> requestheaders;
 

@@ -19,6 +19,7 @@ import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -46,6 +47,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String OPENX = "openx";
     private static final String EPLANNING = "eplanning";
     private static final String BEACHFRONT = "beachfront";
+    private static final String VISX = "visx";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -67,7 +69,8 @@ public class BidderParamValidatorTest extends VertxTest {
                 FACEBOOK,
                 OPENX,
                 EPLANNING,
-                BEACHFRONT)));
+                BEACHFRONT,
+                VISX)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
         given(bidderCatalog.bidderInfoByName(eq(APPNEXUS_ALIAS))).willReturn(givenBidderInfo(APPNEXUS));
 
@@ -381,9 +384,37 @@ public class BidderParamValidatorTest extends VertxTest {
                 "org/prebid/server/validation/schema//valid/test-schemas.json"));
     }
 
+    @Test
+    public void validateShouldReturnValidationMessagesWhenVisxUidNotValid() {
+        // given
+        final JsonNode node = mapper.createObjectNode().put("uid", "1a2b3c");
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(VISX, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void validateShouldReturnNoValidationMessagesWhenVisxUidValid() {
+        // given
+        final JsonNode stringUidNode = mapper.createObjectNode().put("uid", "123");
+        final JsonNode integerUidNode = mapper.createObjectNode().put("uid", 567);
+
+        // when
+        final Set<String> messagesStringUid = bidderParamValidator.validate(VISX, stringUidNode);
+        final Set<String> messagesIntegerUid = bidderParamValidator.validate(VISX, integerUidNode);
+
+        // then
+        assertThat(messagesStringUid).isEmpty();
+        assertThat(messagesIntegerUid).isEmpty();
+    }
+
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
                 true,
+                null,
                 true,
                 "https://endpoint.com",
                 aliasOf,
@@ -393,7 +424,8 @@ public class BidderParamValidatorTest extends VertxTest {
                 null,
                 0,
                 true,
-                false);
+                false,
+                CompressionType.NONE);
     }
 
     private static BidderInfo givenBidderInfo() {

@@ -20,23 +20,27 @@ public class Source {
     /**
      * Entity responsible for the final impression sale decision,
      * where 0 = exchange, 1 = upstream source.
-     * (recommended)
      */
     Integer fd;
 
     /**
      * Transaction ID that must be common across all participants in this bid
      * request (e.g., potentially multiple exchanges).
-     * (recommended)
      */
     String tid;
 
     /**
      * Payment ID chain string containing embedded syntax described in the TAG
      * Payment ID Protocol v1.0.
-     * (recommended)
      */
     String pchain;
+
+    /**
+     * This object represents both the links in the supply chain as
+     * well as an indicator whether or not the supply chain is complete.
+     * Details via the {@link SupplyChain} object (section 3.2.25)
+     */
+    SupplyChain schain;
 
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.

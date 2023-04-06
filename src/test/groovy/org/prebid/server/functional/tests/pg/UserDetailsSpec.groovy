@@ -13,7 +13,6 @@ import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import java.time.format.DateTimeFormatter
 
@@ -28,7 +27,7 @@ class UserDetailsSpec extends BasePgSpec {
     private static final String USER_SERVICE_NAME = "userservice"
 
     @Shared
-    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
+    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer)
 
     def "PBS should send user details request to the User Service during deals auction"() {
         given: "Bid request"
@@ -45,7 +44,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -58,12 +57,11 @@ class UserDetailsSpec extends BasePgSpec {
         def userDetailsRequest = userData.recordedUserDetailsRequest
         assert userDetailsRequest.time?.isAfter(uidsCookie.bday)
         assert userDetailsRequest.ids?.size() == 1
-        assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
+        assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC).uid
         assert userDetailsRequest.ids[0].type == pgConfig.userIdType
     }
 
-    @Unroll
-    def "PBS should validate bad user details response status code ('#statusCode')"() {
+    def "PBS should validate bad user details response status code #statusCode"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -78,15 +76,15 @@ class UserDetailsSpec extends BasePgSpec {
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
 
-        and: "Initial user details request count is taken"
-        def initialRequestCount = userData.recordedUserDetailsRequestCount
-
         and: "User Service response is set"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse, statusCode)
 
+        and: "Initial user details request count is taken"
+        def initialRequestCount = userData.recordedUserDetailsRequestCount
+
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -97,7 +95,7 @@ class UserDetailsSpec extends BasePgSpec {
         assert userServiceCall?.size() == 1
 
         assert !userServiceCall[0].status
-        assert !userServiceCall[0].responsebody
+        assert !userServiceCall[0].responseBody
 
         cleanup:
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -106,7 +104,6 @@ class UserDetailsSpec extends BasePgSpec {
         statusCode << [NO_CONTENT_204, NOT_FOUND_404, INTERNAL_SERVER_ERROR_500]
     }
 
-    @Unroll
     def "PBS should invalidate user details response body when response has absent #fieldName field"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -130,7 +127,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -142,8 +139,8 @@ class UserDetailsSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.httpcalls?.get(USER_SERVICE_NAME)?.size() == 1
 
         and: "Data from the user service response wasn't added to the bid request by PBS"
-        assert !auctionResponse.ext?.debug?.resolvedrequest?.user?.data
-        assert !auctionResponse.ext?.debug?.resolvedrequest?.user?.ext?.fcapids
+        assert !auctionResponse.ext?.debug?.resolvedRequest?.user?.data
+        assert !auctionResponse.ext?.debug?.resolvedRequest?.user?.ext?.fcapids
 
         cleanup:
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -177,7 +174,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -222,7 +219,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS where the winner is instantiated"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -242,7 +239,7 @@ class UserDetailsSpec extends BasePgSpec {
             winNotificationRequest.lineItemId == lineItemId
             winNotificationRequest.region == pgConfig.region
             winNotificationRequest.userIds?.size() == 1
-            winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
+            winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC).uid
             winNotificationRequest.userIds[0].type == pgConfig.userIdType
             timeFormatter.format(winNotificationRequest.lineUpdatedDateTime) == timeFormatter.format(lineItemUpdateTime)
             winNotificationRequest.winEventDateTime.isAfter(winNotificationRequest.lineUpdatedDateTime)
@@ -250,7 +247,6 @@ class UserDetailsSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS shouldn't send win notification request to the User Service when #reason line item id is given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -280,7 +276,7 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS where the winner is instantiated"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -297,7 +293,6 @@ class UserDetailsSpec extends BasePgSpec {
         "non-existent" | PBSUtils.randomNumber as String
     }
 
-    @Unroll
     def "PBS shouldn't send win notification request to the User Service when #reason cookies header was given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -331,7 +326,7 @@ class UserDetailsSpec extends BasePgSpec {
         pgPbsService.sendAuctionRequest(bidRequest)
 
         and: "Sending event request to PBS"
-        pgPbsService.sendEventRequest(eventRequest, HttpUtil.getCookieHeader(mapper, uidsCookie))
+        pgPbsService.sendEventRequest(eventRequest, HttpUtil.getCookieHeader(uidsCookie))
 
         then: "PBS hasn't sent a win notification to the User Service"
         assert userData.requestCount == initialRequestCount

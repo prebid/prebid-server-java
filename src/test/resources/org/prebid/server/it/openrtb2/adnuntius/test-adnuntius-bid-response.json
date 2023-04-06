@@ -1,8 +1,8 @@
 {
-  "ad_units": [
+  "adUnits": [
     {
-      "au_id": "some_au_id",
-      "target_id": "some_au_id-imp_id",
+      "auId": "some_au_id",
+      "targetId": "some_au_id-imp_id",
       "html": "some_html",
       "ads": [
         {
@@ -10,12 +10,12 @@
             "amount": 42.42,
             "currency": "USD"
           },
-          "ad_id": "some_ad_id",
-          "creative_width": "140",
-          "creative_height": "90",
-          "creative_id": "some_creative_id",
-          "line_item_id": "some_line_item_id",
-          "destination_urls": {
+          "adId": "some_ad_id",
+          "creativeWidth": "140",
+          "creativeHeight": "90",
+          "creativeId": "some_creative_id",
+          "lineItemId": "some_line_item_id",
+          "destinationUrls": {
             "some_url": "https://www.domain.dm/uri"
           }
         }

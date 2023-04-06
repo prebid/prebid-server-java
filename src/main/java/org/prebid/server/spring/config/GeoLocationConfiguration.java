@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import lombok.experimental.UtilityClass;
 import org.prebid.server.execution.RemoteFileSyncer;
+import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -72,22 +73,24 @@ public class GeoLocationConfiguration {
                     circuitBreakerProperties.getClosingIntervalMs(), clock);
         }
 
-        private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties,
-                                                            Vertx vertx) {
-
-            final HttpClientProperties httpClientProperties = fileSyncerProperties.getHttpClient();
+        private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties properties, Vertx vertx) {
+            final HttpClientProperties httpClientProperties = properties.getHttpClient();
             final HttpClientOptions httpClientOptions = new HttpClientOptions()
                     .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
-            final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getTmpFilepath(),
-                    fileSyncerProperties.getRetryCount(), fileSyncerProperties.getRetryIntervalMs(),
-                    fileSyncerProperties.getTimeoutMs(), fileSyncerProperties.getUpdateIntervalMs(),
-                    vertx.createHttpClient(httpClientOptions), vertx, vertx.fileSystem());
+            final RemoteFileSyncer remoteFileSyncer = new RemoteFileSyncer(
+                    properties.getDownloadUrl(),
+                    properties.getSaveFilepath(),
+                    properties.getTmpFilepath(),
+                    FixedIntervalRetryPolicy.limited(properties.getRetryIntervalMs(), properties.getRetryCount()),
+                    properties.getTimeoutMs(),
+                    properties.getUpdateIntervalMs(),
+                    vertx.createHttpClient(httpClientOptions),
+                    vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
+            remoteFileSyncer.sync(maxMindGeoLocationService);
             return maxMindGeoLocationService;
         }
     }

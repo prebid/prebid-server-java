@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price":  11.393,
+          "adomain": [
+          ],
+          "crid": "test-creative-id-1",
+          "ext": {
+            "prebid": {
+              "type": "native"
+            },
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
+          }
+        }
+      ],
+      "seat": "definemedia",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "definemedia": "{{ definemedia.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}

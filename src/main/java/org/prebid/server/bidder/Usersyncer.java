@@ -1,28 +1,22 @@
 package org.prebid.server.bidder;
 
 import lombok.Value;
+import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 @Value(staticConstructor = "of")
 public class Usersyncer {
 
+    boolean enabled;
+
     String cookieFamilyName;
 
-    UsersyncMethod primaryMethod;
+    CookieFamilySource cookieFamilySource;
 
-    UsersyncMethod secondaryMethod;
+    UsersyncMethod iframe;
 
-    @Value(staticConstructor = "of")
-    public static class UsersyncMethod {
+    UsersyncMethod redirect;
 
-        public static final String IFRAME_TYPE = "iframe";
-        public static final String REDIRECT_TYPE = "redirect";
-
-        String type;
-
-        String usersyncUrl;
-
-        String redirectUrl;
-
-        boolean supportCORS;
+    public static Usersyncer of(String cookieFamilyName, UsersyncMethod iframe, UsersyncMethod redirect) {
+        return of(true, cookieFamilyName, CookieFamilySource.ROOT, iframe, redirect);
     }
 }

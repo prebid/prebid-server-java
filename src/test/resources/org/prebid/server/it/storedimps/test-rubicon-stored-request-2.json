@@ -11,6 +11,7 @@
     "h": 600
   },
   "ext": {
+    "tid": "tid",
     "rubicon": {
       "accountId": 5001,
       "siteId": 6001,

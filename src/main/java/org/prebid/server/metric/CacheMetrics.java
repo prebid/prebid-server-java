@@ -34,7 +34,7 @@ class CacheMetrics extends UpdatableMetrics {
     }
 
     private static String createPrefix(String prefix) {
-        return String.format("%s.%s", prefix, createPrefix());
+        return "%s.%s".formatted(prefix, createPrefix());
     }
 
     private static String createPrefix() {
@@ -42,7 +42,7 @@ class CacheMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     RequestMetrics requests() {

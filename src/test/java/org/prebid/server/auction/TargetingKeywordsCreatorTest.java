@@ -33,17 +33,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", false, null, null, null, null);
 
         // then
@@ -62,17 +63,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null);
 
         // then
@@ -95,17 +97,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                true,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        true,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1", "categoryDuration");
 
         // then
@@ -136,17 +139,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                true,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        true,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "", true, null, "banner", null, null);
 
         // then
@@ -160,17 +164,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -185,17 +190,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                true,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        true,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -211,17 +217,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                false,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -235,17 +242,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -259,17 +267,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                false,
-                false,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -283,17 +292,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                false,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -307,17 +317,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                false,
-                true,
-                false,
-                false,
-                20,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                        20,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
@@ -332,17 +343,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                false,
-                false,
-                false,
-                7,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        7,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -357,17 +369,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                true,
-                true,
-                6,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        true,
+                        true,
+                        6,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -383,17 +396,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                false,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                null)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
                 .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
@@ -414,17 +428,18 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                20,
-                null,
-                null,
-                resolver)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        20,
+                        null,
+                        null,
+                        resolver)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -444,20 +459,71 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(
-                        2,
-                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
-                true,
-                true,
-                false,
-                false,
-                0,
-                null,
-                null,
-                resolver)
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        true,
+                        true,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        resolver)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));
+    }
+
+    @Test
+    public void shouldIncludeDealBidTargetingIfAlwaysIncludeDealsFlagIsTrue() {
+        // given
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).dealid("dealId").build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        false,
+                        true,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
+                .makeFor(bid, "bidder1", false, null, null, null, null);
+
+        // then
+        assertThat(keywords).containsOnlyKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
+    }
+
+    @Test
+    public void shouldNotIncludeDealBidTargetingIfAlwaysIncludeDealsFlagIsFalse() {
+        // given
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).dealid("dealId").build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                        ExtPriceGranularity.of(
+                                2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        0,
+                        null,
+                        null,
+                        null)
+                .makeFor(bid, "bidder1", false, null, null, null, null);
+
+        // then
+        assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
     }
 }

@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -22,8 +21,8 @@ class Bidder extends NetworkScaffolding {
 
     private static final String AUCTION_ENDPOINT = "/auction"
 
-    Bidder(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, AUCTION_ENDPOINT, mapper)
+    Bidder(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, AUCTION_ENDPOINT)
     }
 
     @Override
@@ -37,16 +36,21 @@ class Bidder extends NetworkScaffolding {
         request().withPath(AUCTION_ENDPOINT)
     }
 
+    HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
+        request().withPath(AUCTION_ENDPOINT)
+                 .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
+    }
+
     @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond{request -> request.withPath(endpoint)
+                        .respond {request -> request.withPath(endpoint)
                                 ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
                                 : HttpResponse.notFoundResponse()}
     }
 
     List<BidderRequest> getBidderRequests(String bidRequestId) {
-        getRecordedRequestsBody(bidRequestId).collect { mapper.decode(it, BidderRequest) }
+        getRecordedRequestsBody(bidRequestId).collect { decode(it, BidderRequest) }
     }
 
     BidderRequest getBidderRequest(String bidRequestId) {
@@ -62,7 +66,7 @@ class Bidder extends NetworkScaffolding {
 
     private String getBodyByRequest(HttpRequest request) {
         def requestString = request.bodyAsString
-        def jsonNode = mapper.toJsonNode(requestString)
+        def jsonNode = toJsonNode(requestString)
         def id = jsonNode.get("id").asText()
         def impNode = jsonNode.get("imp")
         def imps = impNode.collect {
@@ -73,6 +77,6 @@ class Bidder extends NetworkScaffolding {
                             : null)}
         def bidRequest = new BidRequest(id: id, imp: imps)
         def response = BidResponse.getDefaultBidResponse(bidRequest)
-        mapper.encode(response)
+        encode(response)
     }
 }

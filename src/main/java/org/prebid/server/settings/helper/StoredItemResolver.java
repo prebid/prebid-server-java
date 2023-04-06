@@ -34,21 +34,21 @@ public class StoredItemResolver {
      */
     public static StoredItem resolve(StoredDataType type, String accountId, String id, Set<StoredItem> storedItems) {
         if (CollectionUtils.isEmpty(storedItems)) {
-            throw new PreBidException(String.format("No stored %s found for id: %s", type, id));
+            throw new PreBidException("No stored %s found for id: %s".formatted(type, id));
         }
 
         // at least one stored item has account
         if (storedItems.size() > 1) {
             if (StringUtils.isEmpty(accountId)) {
                 // we cannot choose stored item among multiple without account
-                throw new PreBidException(String.format(
-                        "Multiple stored %ss found for id: %s but no account was specified", type, id));
+                throw new PreBidException(
+                        "Multiple stored %ss found for id: %s but no account was specified".formatted(type, id));
             }
             return storedItems.stream()
                     .filter(storedItem -> Objects.equals(storedItem.getAccountId(), accountId))
                     .findAny()
-                    .orElseThrow(() -> new PreBidException(String.format(
-                            "No stored %s found among multiple id: %s for account: %s", type, id, accountId)));
+                    .orElseThrow(() -> new PreBidException(
+                            "No stored %s found among multiple id: %s for account: %s".formatted(type, id, accountId)));
         }
 
         // only one stored item found
@@ -57,7 +57,6 @@ public class StoredItemResolver {
                 || Objects.equals(accountId, storedItem.getAccountId())) {
             return storedItem;
         }
-        throw new PreBidException(
-                String.format("No stored %s found for id: %s for account: %s", type, id, accountId));
+        throw new PreBidException("No stored %s found for id: %s for account: %s".formatted(type, id, accountId));
     }
 }

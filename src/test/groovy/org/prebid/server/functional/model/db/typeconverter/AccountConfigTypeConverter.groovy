@@ -2,17 +2,17 @@ package org.prebid.server.functional.model.db.typeconverter
 
 import javax.persistence.AttributeConverter
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.ObjectMapperWrapper
 
-class AccountConfigTypeConverter implements AttributeConverter<AccountConfig, String> {
+class AccountConfigTypeConverter implements AttributeConverter<AccountConfig, String>, ObjectMapperWrapper {
 
     @Override
     String convertToDatabaseColumn(AccountConfig accountConfig) {
-        accountConfig ? Dependencies.objectMapperWrapper.encode(accountConfig) : null
+        accountConfig ? encode(accountConfig) : null
     }
 
     @Override
     AccountConfig convertToEntityAttribute(String value) {
-        value ? Dependencies.objectMapperWrapper.decode(value, AccountConfig) : null
+        value ? decode(value, AccountConfig) : null
     }
 }

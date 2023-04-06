@@ -1,13 +1,14 @@
 package org.prebid.server.bidder.unicorn;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.BidResponse;
@@ -15,18 +16,18 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.unicorn.model.UnicornImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
@@ -34,18 +35,13 @@ import org.prebid.server.proto.openrtb.ext.request.unicorn.ExtImpUnicorn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 public class UnicornBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpUnicorn>> UNICORN_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -57,20 +53,24 @@ public class UnicornBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> requestImps = request.getImp();
+        final ExtImpUnicorn firstImpExt;
         final List<Imp> modifiedImps;
-        final Source source;
-        final Integer firstImpAccountId;
+        final Source modifiedSource;
+        final App modifiedApp;
+
         try {
             validateRegs(request.getRegs());
-            modifiedImps = modifyImps(requestImps);
-            source = updateSource(request.getSource());
-            firstImpAccountId = parseImpExtBidder(requestImps.get(0)).getAccountId();
+
+            firstImpExt = parseImpExt(request.getImp().get(0)).getBidder();
+            modifiedImps = request.getImp().stream().map(this::modifyImp).toList();
+            modifiedSource = modifySource(request.getSource());
+            modifiedApp = modifyApp(request.getApp(), firstImpExt.getMediaId(), firstImpExt.getPublisherId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-        final ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpAccountId);
-        return Result.withValue(createRequest(request, modifiedImps, source, modifiedExtRequest));
+
+        final ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpExt.getAccountId());
+        return Result.withValue(createRequest(request, modifiedImps, modifiedApp, modifiedSource, modifiedExtRequest));
     }
 
     private static void validateRegs(Regs regs) {
@@ -78,11 +78,13 @@ public class UnicornBidder implements Bidder<BidRequest> {
             if (Objects.equals(regs.getCoppa(), 1)) {
                 throw new PreBidException("COPPA is not supported");
             }
+
             final ExtRegs extRegs = regs.getExt();
             if (extRegs != null) {
                 if (Objects.equals(extRegs.getGdpr(), 1)) {
                     throw new PreBidException("GDPR is not supported");
                 }
+
                 if (StringUtils.isNotEmpty(extRegs.getUsPrivacy())) {
                     throw new PreBidException("CCPA is not supported");
                 }
@@ -90,39 +92,36 @@ public class UnicornBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<Imp> modifyImps(List<Imp> imps) {
-        final List<Imp> modifiedImps = new ArrayList<>();
-        for (Imp imp : imps) {
-            final UnicornImpExt unicornImpExt = parseImpExt(imp);
-            final ExtImpUnicorn extImpBidder = unicornImpExt.getBidder();
-            final Imp.ImpBuilder impBuilder = imp.toBuilder().secure(1);
-            final String placementId = extImpBidder.getPlacementId();
+    private Imp modifyImp(Imp imp) {
+        final UnicornImpExt unicornImpExt = parseImpExt(imp);
+        final ExtImpUnicorn extImpBidder = unicornImpExt.getBidder();
 
-            if (StringUtils.isEmpty(placementId)) {
-                final String resolvedPlacementId = getStoredRequestImpId(imp);
-                final UnicornImpExt updatedExt = unicornImpExt.toBuilder()
-                        .bidder(extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
-                        .build();
-                impBuilder
-                        .tagid(resolvedPlacementId)
-                        .ext(mapper.mapper().convertValue(updatedExt, ObjectNode.class));
-            } else {
-                impBuilder
-                        .tagid(placementId)
-                        .ext(mapper.mapper().convertValue(unicornImpExt, ObjectNode.class));
-            }
+        final String placementId = extImpBidder.getPlacementId();
+        final String resolvedPlacementId = StringUtils.isEmpty(placementId)
+                ? getStoredRequestImpId(imp)
+                : null;
 
-            modifiedImps.add(impBuilder.build());
-        }
-        return modifiedImps;
+        final UnicornImpExt resolvedUnicornImpExt = resolvedPlacementId != null
+                ? unicornImpExt.toBuilder()
+                .bidder(extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
+                .build()
+                : null;
+
+        return imp.toBuilder()
+                .secure(1)
+                .tagid(resolvedPlacementId != null ? resolvedPlacementId : placementId)
+                .ext(mapper.mapper().convertValue(
+                        ObjectUtils.defaultIfNull(resolvedUnicornImpExt, unicornImpExt),
+                        ObjectNode.class))
+                .build();
     }
 
     private UnicornImpExt parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), UnicornImpExt.class);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "Error while decoding ext of imp with id: %s, error: %s ", imp.getId(), e.getMessage()));
+            throw new PreBidException("Error while decoding ext of imp with id: %s, error: %s "
+                    .formatted(imp.getId(), e.getMessage()));
         }
     }
 
@@ -133,21 +132,24 @@ public class UnicornBidder implements Bidder<BidRequest> {
         final String storedRequestId = storedRequestIdNode != null && storedRequestIdNode.isTextual()
                 ? storedRequestIdNode.textValue()
                 : null;
-        if (StringUtils.isNotEmpty(storedRequestId)) {
-            return storedRequestId;
-        } else {
-            throw new PreBidException(String.format("stored request id not found in imp: %s", imp.getId()));
+
+        if (StringUtils.isEmpty(storedRequestId)) {
+            throw new PreBidException("stored request id not found in imp: " + imp.getId());
         }
+
+        return storedRequestId;
     }
 
     private static boolean isNotEmptyNode(JsonNode node) {
         return node != null && !node.isEmpty();
     }
 
-    private static Source updateSource(Source source) {
-        return source != null
-                ? source.toBuilder().ext(createExtSource()).build()
-                : Source.builder().ext(createExtSource()).build();
+    private static Source modifySource(Source source) {
+        return Optional.ofNullable(source)
+                .map(Source::toBuilder)
+                .orElseGet(Source::builder)
+                .ext(createExtSource())
+                .build();
     }
 
     private static ExtSource createExtSource() {
@@ -157,29 +159,43 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return extSource;
     }
 
-    private ExtImpUnicorn parseImpExtBidder(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), UNICORN_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+    private static App modifyApp(App app, String mediaId, String publisherId) {
+        if (app == null) {
+            throw new PreBidException("request app is required");
         }
+
+        final Publisher publisher = Optional.ofNullable(app.getPublisher())
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(publisherId)
+                .build();
+
+        return app.toBuilder().id(mediaId).publisher(publisher).build();
     }
 
-    private static ExtRequest modifyExtRequest(ExtRequest extRequest, Integer accountId) {
-        final ExtRequest modifiedRequest = extRequest != null
-                ? ExtRequest.of(extRequest.getPrebid())
-                : ExtRequest.of(null);
-        final int resolvedAccountId = accountId == null ? 0 : accountId;
-        modifiedRequest.addProperty("accountId", new IntNode(resolvedAccountId));
+    private static ExtRequest modifyExtRequest(ExtRequest extRequest, int accountId) {
+        final ExtRequest modifiedRequest;
+        if (extRequest != null) {
+            modifiedRequest = ExtRequest.of(extRequest.getPrebid());
+            modifiedRequest.addProperties(extRequest.getProperties());
+        } else {
+            modifiedRequest = ExtRequest.of(null);
+        }
+
+        modifiedRequest.addProperty("accountId", new IntNode(accountId));
 
         return modifiedRequest;
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request,
-                                                  List<Imp> imps, Source source,
+                                                  List<Imp> imps,
+                                                  App app,
+                                                  Source source,
                                                   ExtRequest extRequest) {
+
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(imps)
+                .app(app)
                 .source(source)
                 .ext(extRequest)
                 .build();
@@ -207,7 +223,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
@@ -230,6 +246,6 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

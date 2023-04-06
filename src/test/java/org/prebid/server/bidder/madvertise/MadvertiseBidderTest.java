@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -28,7 +28,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -162,11 +161,11 @@ public class MadvertiseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder()
-                        .format(singletonList(
-                                Format.builder()
-                                        .w(300).h(500)
-                                        .build()))
-                        .build())
+                                .format(singletonList(
+                                        Format.builder()
+                                                .w(300).h(500)
+                                                .build()))
+                                .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMadvertise.of("someZoneIdLongerThan7")))));
 
@@ -183,7 +182,7 @@ public class MadvertiseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = madvertiseBidder.makeBids(httpCall, null);
@@ -200,7 +199,7 @@ public class MadvertiseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = madvertiseBidder.makeBids(httpCall, null);
@@ -213,7 +212,7 @@ public class MadvertiseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -228,7 +227,7 @@ public class MadvertiseBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfSixAndSevenAndSixteenIsAbsentInRequestImp()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -245,7 +244,7 @@ public class MadvertiseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfImpAttrContainsSixOrSevenOrSixteen() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
@@ -272,7 +271,7 @@ public class MadvertiseBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -282,9 +281,9 @@ public class MadvertiseBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 
@@ -298,14 +297,14 @@ public class MadvertiseBidderTest extends VertxTest {
     private static BidResponse givenBidResponses(List<Function<Bid.BidBuilder, Bid.BidBuilder>> bidCustomizers) {
         return BidResponse.builder()
                 .seatbid(bidCustomizers.stream().map(customizer -> SeatBid.builder()
-                        .bid(singletonList(customizer.apply(Bid.builder()).build()))
-                        .build())
-                        .collect(Collectors.toList()))
+                                .bid(singletonList(customizer.apply(Bid.builder()).build()))
+                                .build())
+                        .toList())
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

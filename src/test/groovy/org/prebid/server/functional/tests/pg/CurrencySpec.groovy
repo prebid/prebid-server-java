@@ -17,7 +17,7 @@ import static org.prebid.server.functional.testcontainers.Dependencies.networkSe
 
 class CurrencySpec extends BasePgSpec {
 
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer, mapper).tap {
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse)
     }
 

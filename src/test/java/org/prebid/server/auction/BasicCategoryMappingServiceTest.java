@@ -1190,7 +1190,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     }
 
     private static BidderResponse givenBidderResponse(String bidder, BidderBid... bidderBids) {
-        return BidderResponse.of(bidder, BidderSeatBid.of(asList(bidderBids), null, null), 100);
+        return BidderResponse.of(bidder, BidderSeatBid.of(List.of(bidderBids)), 100);
     }
 
     private static BidderBid givenBidderBid(Bid bid, BidType bidType, Integer duration) {

@@ -1,33 +1,46 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.UserExtPrebid
+import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
+import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
-import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
+import static org.prebid.server.functional.model.AccountStatus.INACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
 
+    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final boolean CORS_SUPPORT = false
+    private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
-
+    private static final Map<String, String> PBS_CONFIG = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+                                                           "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
+    private static final Map<String, String> GENERIC_CONFIG = [
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
     def "PBS should return version in response header for auction request for #description"() {
-
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequestRaw(bidRequest)
 
         then: "Response header should contain PBS version"
-        assert response.headers["x-prebid"] == PBS_VERSION_HEADER
+        assert response.headers["x-prebid"] == "pbs-java/$PBS_VERSION"
 
         where:
         bidRequest                   || description
@@ -35,160 +48,266 @@ class AuctionSpec extends BaseSpec {
         new BidRequest()             || "invalid bid request"
     }
 
-    def "PBS should apply timeout from stored request when it's not specified in the auction request"() {
+    def "PBS should update account.<account-id>.requests.rejected.invalid-account metric when account is inactive"() {
         given: "Default basic BidRequest with generic bidder"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = null
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
-        }
+        def bidRequest = BidRequest.defaultBidRequest
 
-        and: "Default stored request with timeout"
-        def timeout = getRandomTimeout()
-        def storedRequestModel = BidRequest.defaultStoredRequest.tap {
-            tmax = timeout
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
-        storedRequestDao.save(storedRequest)
+        and: "Account in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = new Account(uuid: accountId, status: INACTIVE)
+        accountDao.save(account)
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain timeout from the stored request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == timeout as Long
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 401
+        assert exception.responseBody == "Account ${accountId} is inactive"
+
+        and: "account.<account-id>.requests.rejected.invalid-account metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["account.${accountId}.requests.rejected.invalid-account" as String] == 1
     }
 
-    def "PBS should prefer timeout from the auction request"() {
-        given: "Default basic BidRequest with generic bidder"
-        def timeout = getRandomTimeout()
+    def "PBS should update account.<account-id>.requests.rejected.#metricName metric when stored request is invalid"() {
+        given: "Bid request with no stored request id"
+        def noIdStoredRequest = new PrebidStoredRequest(id: null)
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = timeout
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            updateBidRequestClosure(it, noIdStoredRequest)
         }
 
-        and: "Default stored request"
-        def storedRequestModel = BidRequest.defaultStoredRequest.tap {
-            it.tmax = tmaxStoredRequest
-        }
+        and: "Initial metric count is taken"
+        def accountId = bidRequest.site.publisher.id
+        def fullMetricName = "account.${accountId}.requests.rejected.$metricName" as String
+        def initialMetricCount = getCurrentMetricValue(fullMetricName)
 
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
-        storedRequestDao.save(storedRequest)
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
-        when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        then: "Request fails with an stored request id is not found error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody ==
+                "Invalid request format: Stored request processing failed: Id is not found in storedRequest"
 
-        then: "Bidder request should contain timeout from the request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == timeout as Long
+        and: "Metric count is updated"
+        assert getCurrentMetricValue(fullMetricName) == initialMetricCount + 1
 
         where:
-        tmaxStoredRequest << [null, getRandomTimeout()]
+        metricName               | updateBidRequestClosure
+        "invalid-stored-request" | { bidReq, storedReq -> bidReq.ext.prebid.storedRequest = storedReq }
+        "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
     }
 
-    def "PBS should honor max timeout from the settings for auction request"() {
-        given: "Default basic BidRequest with generic bidder"
+    def "PBS should copy imp level passThrough to bidresponse.seatbid[].bid[].ext.prebid.passThrough when the passThrough is present"() {
+        given: "Default bid request with passThrough"
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = auctionRequestTimeout
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            imp[0].ext.prebid.passThrough = passThrough
         }
 
-        and: "Default stored request"
-        def storedRequest = BidRequest.defaultStoredRequest.tap {
-            it.tmax = storedRequestTimeout
+        when: "Requesting PBS auction"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same passThrough as on request"
+        assert response.seatbid.first().bid.first().ext.prebid.passThrough == passThrough
+    }
+
+    def "PBS should copy global level passThrough object to bidresponse.ext.prebid.passThrough when passThrough is present"() {
+        given: "Default bid request with passThrough"
+        def randomString = PBSUtils.randomString
+        def passThrough = [(randomString): randomString]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.passThrough = passThrough
         }
 
-        and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
-        storedRequestDao.save(storedRequestModel)
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same passThrough as on request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.passThrough == passThrough
+    }
+
+    def "PBS should populate bidder request buyeruid from buyeruids when buyeruids with appropriate bidder present in request"() {
+        given: "Bid request with buyeruids"
+        def buyeruid = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): buyeruid])))
+        }
 
         when: "PBS processes auction request"
         prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == MAX_TIMEOUT as Long
-
-        where:
-        auctionRequestTimeout || storedRequestTimeout
-        MAX_TIMEOUT + 1       || null
-        null                  || MAX_TIMEOUT + 1
-        MAX_TIMEOUT + 1       || MAX_TIMEOUT + 1
+        assert bidderRequest?.user?.buyeruid == buyeruid
     }
 
-    def "PBS should honor default timeout for auction request"() {
-        given: "Default basic BidRequest without timeout"
+    def "PBS shouldn't populate bidder request buyeruid from buyeruids when buyeruids without appropriate bidder present in request"() {
+        given: "Bid request with buyeruids"
+        def buyeruid = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = null
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(APPNEXUS): buyeruid])))
         }
-
-        and: "Default stored request without timeout"
-        def storedRequest = BidRequest.defaultStoredRequest.tap {
-            it.tmax = null
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
-        storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
         prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request shouldn't contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+        assert !bidderRequest.user
     }
 
-    def "PBS should take data by priority when request, stored request, default request are defined"() {
-        given: "Default request with timeout"
-        def defaultRequestModel = new BidRequest(tmax: defaultRequestTmax)
-        def defaultRequest = PBSUtils.createJsonFile(defaultRequestModel)
+    def "PBS should populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
+                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
 
-        and: "Pbs config with default request"
-        def pbsContainer = new PrebidServerContainer(
-                ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
-                 "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
-                 "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]).tap {
-            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
-        pbsContainer.start()
-        def pbsService = new PrebidServerService(pbsContainer, mapper)
-
-        and: "Default basic BidRequest with timeout"
+        and: "Bid request with buyeruids"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = requestTmax
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
         }
 
-        and: "Default stored request with timeout"
-        def storedRequestModel = BidRequest.defaultStoredRequest.tap {
-            tmax = storedRequestTmax as Long
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
-        storedRequestDao.save(storedRequest)
+        and: "Cookies headers"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        prebidServerService.sendAuctionRequest(bidRequest, cookieHeader)
 
-        then: "Response should not contain error"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
-
-        then: "Bidder request should contain correct tmax"
+        then: "Bidder request should contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+        assert bidderRequest?.user?.buyeruid == uidsCookie.tempUIDs[GENERIC].uid
+    }
 
-        cleanup: "Stop container with default request"
-        pbsContainer.stop()
+    def "PBS shouldn't populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
+                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
+                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
 
-        where:
-        requestTmax     | storedRequestTmax  | defaultRequestTmax
-        DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
-        null            | DEFAULT_TIMEOUT    | getRandomTimeout()
-        null            | null               | DEFAULT_TIMEOUT
+        and: "Bid request with buyeruids"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): ""])))
+        }
+
+        and: "Empty cookies headers"
+        def cookieHeader = HttpUtil.getCookieHeader(null)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookieHeader)
+
+        then: "Bidder request shouldn't contain buyeruid from the uids cookie"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user
+    }
+
+    def "PBS should take precedence buyeruids whenever present valid uid cookie"() {
+        given: "Bid request with buyeruids"
+        def buyeruid = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): buyeruid])))
+        }
+
+        and: "Cookies headers"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookieHeader)
+
+        then: "Bidder request should contain buyeruid from the buyeruids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.user?.buyeruid == buyeruid
+    }
+
+    def "PBS should populate buyeruid from host cookie name config when host cookie family matched with requested bidder"() {
+        given: "PBS config"
+        def cookieName = PBSUtils.randomString
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+                + ["host-cookie.family"                          : GENERIC.value,
+                   "host-cookie.cookie-name"                     : cookieName,
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Host cookie"
+        def hostCookieUid = UUID.randomUUID().toString()
+        def cookies = HttpUtil.getCookieHeader(cookieName, hostCookieUid)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookies)
+
+        then: "Bidder request should contain buyeruid from cookieName"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.user?.buyeruid == hostCookieUid
+    }
+
+    def "PBS shouldn't populate buyeruid from cookie name config when host cookie family not matched with requested cookie-family-name"() {
+        given: "PBS config"
+        def cookieName = PBSUtils.randomString
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+                + ["host-cookie.family"                          : APPNEXUS.value,
+                   "host-cookie.cookie-name"                     : cookieName,
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Host cookie"
+        def hostCookieUid = UUID.randomUUID().toString()
+        def cookies = HttpUtil.getCookieHeader(cookieName, hostCookieUid)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookies)
+
+        then: "Bidder request shouldn't contain buyeruid from cookieName"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user
+    }
+
+    def "PBS shouldn't populate buyeruid from cookie when cookie-name in cookie and config are diferent"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+                + ["host-cookie.family"                          : GENERIC.value,
+                   "host-cookie.cookie-name"                     : PBSUtils.randomString,
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Host cookie"
+        def hostCookieUid = UUID.randomUUID().toString()
+        def cookies = HttpUtil.getCookieHeader(PBSUtils.randomString, hostCookieUid)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookies)
+
+        then: "Bidder request shouldn't contain buyeruid from cookieName"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user
+    }
+
+    def "PBS should move and not populate certain fields when debug enabled"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(PBSUtils.randomString):GENERIC]
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
+
+        and: "BidderRequest shouldn't populate fields"
+        assert !bidderRequest.ext.prebid.aliases
     }
 }

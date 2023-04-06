@@ -1,4 +1,4 @@
-FROM openjdk:11-jre-slim
+FROM amazoncorretto:17
 
 WORKDIR /app/prebid-server
 

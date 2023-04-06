@@ -51,14 +51,15 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers>header1: value1\n"
-                + "header2: value2\n"
-                + "</Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response></Response>
+                <Headers>header1: value1
+                header2: value2
+                </Headers>
+                </Log>""");
     }
 
     @Test
@@ -68,12 +69,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response></Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -83,12 +85,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response></Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -101,12 +104,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response>{\"tmaxrequest\":5}</Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response>{"tmaxrequest":5}</Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -129,12 +133,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response></Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -148,15 +153,16 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response>{\"tmaxrequest\":5}\n"
-                + "Errors:\n"
-                + "error1\n"
-                + "error2</Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response>{"tmaxrequest":5}
+                Errors:
+                error1
+                error2</Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -166,15 +172,16 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response>\n"
-                + "Errors:\n"
-                + "error1\n"
-                + "error2</Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response>
+                Errors:
+                error1
+                error2</Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -184,12 +191,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response>No response or errors created</Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response>No response or errors created</Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -199,12 +207,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request>request body</Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request>request body</Request>
+                <Response></Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -214,12 +223,13 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request></Request>\n"
-                + "<Response></Response>\n"
-                + "<Headers></Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request></Request>
+                <Response></Response>
+                <Headers></Headers>
+                </Log>""");
     }
 
     @Test
@@ -236,16 +246,17 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request>requestBody</Request>\n"
-                + "<Response>{\"tmaxrequest\":5}\n"
-                + "Errors:\n"
-                + "error1\n"
-                + "error2</Response>\n"
-                + "<Headers>headerkey: headervalue\n"
-                + "</Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request>requestBody</Request>
+                <Response>{"tmaxrequest":5}
+                Errors:
+                error1
+                error2</Response>
+                <Headers>headerkey: headervalue
+                </Headers>
+                </Log>""");
     }
 
     @Test
@@ -265,16 +276,17 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request>requestBody</Request>\n"
-                + "<Response>{\"responsetimemillis\":{\"key\":5},\"tmaxrequest\":5}\n"
-                + "Errors:\n"
-                + "error1\n"
-                + "error2</Response>\n"
-                + "<Headers>headerkey: headervalue\n"
-                + "</Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request>requestBody</Request>
+                <Response>{"responsetimemillis":{"key":5},"tmaxrequest":5}
+                Errors:
+                error1
+                error2</Response>
+                <Headers>headerkey: headervalue
+                </Headers>
+                </Log>""");
     }
 
     @Test
@@ -296,15 +308,16 @@ public class CachedDebugLogTest extends VertxTest {
         final String cacheBody = cachedDebugLog.buildCacheBody();
 
         // then
-        assertThat(cacheBody).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                + "<Log>\n"
-                + "<Request><requestBody></Request>\n"
-                + "<Response>{\"responsetimemillis\":{\"<key>\":5},\"tmaxrequest\":5}\n"
-                + "Errors:\n"
-                + "<error1>\n"
-                + "<error2></Response>\n"
-                + "<Headers><headerkey>: <headervalue>\n"
-                + "</Headers>\n"
-                + "</Log>");
+        assertThat(cacheBody).isEqualTo("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Log>
+                <Request><requestBody></Request>
+                <Response>{"responsetimemillis":{"<key>":5},"tmaxrequest":5}
+                Errors:
+                <error1>
+                <error2></Response>
+                <Headers><headerkey>: <headervalue>
+                </Headers>
+                </Log>""");
     }
 }

@@ -5,16 +5,18 @@ import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 
-@PBSTest
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString
@@ -260,7 +262,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -289,7 +291,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -305,5 +307,40 @@ class DebugSpec extends BaseSpec {
         0            || null
         null         || 0
         null         || null
+    }
+
+    def "PBS shouldn't populate call type when it's default bidder call"() {
+        given: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain call type"
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == null
+
+        and: "Response should not contain ext.warnings"
+        assert !response.ext?.warnings
+    }
+
+    def "PBS should return STORED_BID_RESPONSE call type when call from stored bid response "() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        bidRequest.imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain call type STORED_BID_RESPONSE"
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == STORED_BID_RESPONSE
+
+        and: "Response should not contain ext.warnings"
+        assert !response.ext?.warnings
     }
 }

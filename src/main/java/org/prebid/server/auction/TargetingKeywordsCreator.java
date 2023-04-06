@@ -85,6 +85,7 @@ public class TargetingKeywordsCreator {
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
+    private final boolean alwaysIncludeDeals;
     private final boolean includeFormat;
     private final boolean isApp;
     private final int truncateAttrChars;
@@ -95,6 +96,7 @@ public class TargetingKeywordsCreator {
     private TargetingKeywordsCreator(PriceGranularity priceGranularity,
                                      boolean includeWinners,
                                      boolean includeBidderKeys,
+                                     boolean alwaysIncludeDeals,
                                      boolean includeFormat,
                                      boolean isApp,
                                      int truncateAttrChars,
@@ -105,6 +107,7 @@ public class TargetingKeywordsCreator {
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.includeBidderKeys = includeBidderKeys;
+        this.alwaysIncludeDeals = alwaysIncludeDeals;
         this.includeFormat = includeFormat;
         this.isApp = isApp;
         this.truncateAttrChars = truncateAttrChars;
@@ -119,6 +122,7 @@ public class TargetingKeywordsCreator {
     public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity,
                                                   boolean includeWinners,
                                                   boolean includeBidderKeys,
+                                                  boolean alwaysIncludeDeals,
                                                   boolean includeFormat,
                                                   boolean isApp,
                                                   int truncateAttrChars,
@@ -130,6 +134,7 @@ public class TargetingKeywordsCreator {
                 PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
                 includeWinners,
                 includeBidderKeys,
+                alwaysIncludeDeals,
                 includeFormat,
                 isApp,
                 truncateAttrChars,
@@ -185,7 +190,12 @@ public class TargetingKeywordsCreator {
                                         String format,
                                         String dealId) {
 
-        final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
+        final boolean includeDealBid = alwaysIncludeDeals && StringUtils.isNotEmpty(dealId);
+        final KeywordMap keywordMap = new KeywordMap(
+                bidder,
+                winningBid,
+                includeWinners,
+                includeBidderKeys || includeDealBid,
                 Collections.emptySet());
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
@@ -240,7 +250,7 @@ public class TargetingKeywordsCreator {
      */
     private static String sizeFrom(Integer width, Integer height) {
         return width != null && width != 0 && height != null && height != 0
-                ? String.format("%sx%s", width, height)
+                ? "%sx%s".formatted(width, height)
                 : null;
     }
 
@@ -291,7 +301,7 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(String.format("%s_%s", prefix, bidder));
+                keys.add("%s_%s".formatted(prefix, bidder));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {

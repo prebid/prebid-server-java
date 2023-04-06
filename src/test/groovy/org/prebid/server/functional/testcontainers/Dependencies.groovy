@@ -1,7 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
@@ -14,11 +13,9 @@ class Dependencies {
     private static final Boolean IS_LAUNCH_CONTAINERS = Boolean.valueOf(
             SystemProperties.getPropertyOrDefault("launchContainers", "false"))
 
-    static final ObjectMapperWrapper objectMapperWrapper = new ObjectMapperWrapper()
-
     static final Network network = Network.newNetwork()
 
-    static final MySQLContainer mysqlContainer = new MySQLContainer<>("mysql:8.0.26")
+    static final MySQLContainer mysqlContainer = new MySQLContainer<>("mysql:8.0.30")
             .withDatabaseName("prebid")
             .withUsername("prebid")
             .withPassword("prebid")

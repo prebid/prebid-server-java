@@ -91,8 +91,8 @@
     "status": "active",
     "sizes": [
       {
-        "w": 320,
-        "h": 320
+        "w": 300,
+        "h": 250
       }
     ],
     "accountId": "2001",

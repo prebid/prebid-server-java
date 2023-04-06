@@ -173,4 +173,39 @@ class PgBidResponseSpec extends BasePgSpec {
                 /Bid "$bid.id" has 'w' and 'h' not matched to Line Item\. / +
                 /Bid dimensions: '${bid.w}x$bid.h', Line Item sizes: '${lineItemSize.w}x$lineItemSize.h'.*/
     }
+
+    def "PBS should invalidate bidder response when line items sizes empty"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner.format = [Format.defaultFormat]
+        }
+
+        and: "Planner Mock line items with a empty sizes"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].sizes = []
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        and: "Set bid response without line items sizes 'h' and 'w' "
+        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
+        def bid = bidResponse.seatbid[0].bid[0]
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Sending auction request to PBS"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder response is invalid"
+        assert auctionResponse.ext?.debug?.pgmetrics?.responseInvalidated?.size() == plansResponse.lineItems.size()
+
+        and: "PBS invalidated response as line items sizes empty"
+        def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
+
+        assert bidderErrors?.size() == 1
+        assert bidderErrors[0].message == "BidId `${bid.id}` validation messages: " +
+                "Error: Line item sizes were not found for " +
+                "bidId ${bid.id} and dealId ${plansResponse.getLineItems()[0].dealId}"
+    }
 }

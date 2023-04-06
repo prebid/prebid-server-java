@@ -1,6 +1,5 @@
 package org.prebid.server.deals;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -13,6 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -30,12 +30,15 @@ import org.prebid.server.deals.proto.Price;
 import org.prebid.server.deals.proto.Token;
 import org.prebid.server.deals.targeting.TargetingDefinition;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -53,6 +56,7 @@ import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -85,6 +89,8 @@ public class LineItemServiceTest extends VertxTest {
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
+    private BidderAliases bidderAliases;
+
     private LineItemService lineItemService;
 
     private ZonedDateTime now;
@@ -99,8 +105,16 @@ public class LineItemServiceTest extends VertxTest {
         given(conversionService.convertCurrency(any(), anyMap(), anyString(), anyString(), any()))
                 .willReturn(BigDecimal.ONE);
 
-        lineItemService = new LineItemService(2, targetingService, bidderCatalog, conversionService,
-                applicationEventService, "USD", clock, criteriaLogManager);
+        bidderAliases = BidderAliases.of(Map.of("rubiAlias", "rubicon"), emptyMap(), bidderCatalog);
+
+        lineItemService = new LineItemService(
+                2,
+                targetingService,
+                conversionService,
+                applicationEventService,
+                "USD",
+                clock,
+                criteriaLogManager);
     }
 
     @Test
@@ -289,8 +303,14 @@ public class LineItemServiceTest extends VertxTest {
     public void updateLineItemsShouldConvertPriceWhenLineItemMetaDataCurrencyIsDifferent() {
         // given
         final String defaultCurrency = "RUB";
-        lineItemService = new LineItemService(2, targetingService, bidderCatalog, conversionService,
-                applicationEventService, defaultCurrency, clock, criteriaLogManager);
+        lineItemService = new LineItemService(
+                2,
+                targetingService,
+                conversionService,
+                applicationEventService,
+                defaultCurrency,
+                clock,
+                criteriaLogManager);
 
         final List<LineItemMetaData> planResponse = asList(
                 givenLineItemMetaData("lineItem1", null, null,
@@ -557,10 +577,11 @@ public class LineItemServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(emptyList());
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).isEmpty();
@@ -575,8 +596,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountIdUnknown", "rubicon",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
@@ -584,10 +603,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).isEmpty();
@@ -602,8 +622,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountId", "rubicon",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
@@ -611,10 +629,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("pubmatic")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "pubmatic", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).isEmpty();
@@ -629,8 +648,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountId", "rubicon",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
@@ -638,10 +655,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("lineItem1");
@@ -656,8 +674,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountId", "rubiAlias",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
@@ -665,70 +681,14 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("lineItem1");
-    }
-
-    @Test
-    public void findMatchingLineItemsShouldFilterLineItemsWithNotValidBidders() {
-        // given
-        final AuctionContext auctionContext = givenAuctionContext(emptyList());
-
-        givenTargetingService();
-
-        givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
-
-        given(bidderCatalog.isValidName(eq("invalid"))).willReturn(false);
-
-        final List<LineItemMetaData> planResponse = singletonList(
-                givenLineItemMetaData("lineItem1", "accountId", "invalid",
-                        singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
-                                singleton(Token.of(1, 100)))), now));
-
-        lineItemService.updateLineItems(planResponse, true);
-
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("invalid")).build();
-
-        // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
-
-        // then
-        assertThat(result.getLineItems()).isEmpty();
-    }
-
-    @Test
-    public void findMatchingLineItemsShouldFilterLineItemsWithDeprecatedBidders() {
-        // given
-        final AuctionContext auctionContext = givenAuctionContext(emptyList());
-
-        givenTargetingService();
-
-        givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
-        given(bidderCatalog.isDeprecatedName(eq("deprecated"))).willReturn(true);
-
-        final List<LineItemMetaData> planResponse = singletonList(
-                givenLineItemMetaData("lineItem1", "accountId", "deprecated",
-                        singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
-                                singleton(Token.of(1, 100)))), now));
-
-        lineItemService.updateLineItems(planResponse, true);
-
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("deprecated")).build();
-
-        // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
-
-        // then
-        assertThat(result.getLineItems()).isEmpty();
     }
 
     @Test
@@ -740,8 +700,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountId", "rubicon",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
@@ -749,10 +707,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubiAlias", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("lineItem1");
@@ -768,8 +727,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 givenLineItemMetaData("lineItem1", "accountId", "rubicon",
                         singletonList(givenDeliverySchedule("planId1", now.minusHours(1), now.plusMinutes(1),
@@ -777,10 +734,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).isEmpty();
@@ -795,11 +753,10 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(TargetingDefinition.of(context -> false));
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), any()))
+                .willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -825,17 +782,68 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).isEmpty();
+
+        assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
+                        "Line Item id1 targeting did not match imp with id imp1"));
+    }
+
+    @Test
+    public void findMatchingLineItemsShouldReturnLineItemsThatMatchedTargeting() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList());
+
+        given(targetingService.parseTargetingDefinition(any(), eq("id1")))
+                .willReturn(TargetingDefinition.of(context -> false));
+        given(targetingService.parseTargetingDefinition(any(), eq("id2")))
+                .willReturn(TargetingDefinition.of(context -> true));
+        given(targetingService.matchesTargeting(any(), any(), any(), any()))
+                .willAnswer(withEvaluatedTargeting());
+
+        givenClock(now, now.plusMinutes(1));
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(1))
+                        .lineItemId("id1")
+                        .status("active")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(1), singleton(Token.of(1, 100)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(1))
+                        .lineItemId("id2")
+                        .status("active")
+                        .source("appnexus")
+                        .accountId("accountId")
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(1), singleton(Token.of(1, 100)))))
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "appnexus", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
 
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
-                        "Line Item id1 targeting did not match imp with id imp1"),
                 ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.targeting,
                         "Line Item id2 targeting matched imp with id imp1"),
                 ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
@@ -851,11 +859,10 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(null);
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), any()))
+                .willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -881,21 +888,18 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
-        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).isEmpty();
 
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
                 ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
-                        "Line Item id1 targeting was not defined or has incorrect format"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.targeting,
-                        "Line Item id2 targeting matched imp with id imp1"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
-                        "Matched Line Item id2 for bidder appnexus ready to serve. relPriority null"));
+                        "Line Item id1 targeting was not defined or has incorrect format"));
     }
 
     @Test
@@ -906,8 +910,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -934,13 +936,14 @@ public class LineItemServiceTest extends VertxTest {
         lineItemService.updateLineItems(planResponse, true);
         lineItemService.getLineItemById("id1").incSpentToken(now.plusSeconds(1));
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
-        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).isEmpty();
     }
 
     @Test
@@ -951,8 +954,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -979,13 +980,14 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
-        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).isEmpty();
     }
 
     @Test
@@ -996,8 +998,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1024,13 +1024,14 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
-        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).isEmpty();
         assertThat(auctionContext.getTxnLog().lineItemsMatchedTargetingFcapped()).containsOnly("id1");
         assertThat(auctionContext.getDeepDebugLog().entries()).contains(
                 ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.pacing,
@@ -1047,8 +1048,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1076,10 +1075,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
@@ -1095,8 +1095,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1124,10 +1122,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
@@ -1141,8 +1140,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1170,10 +1167,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
@@ -1187,8 +1185,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1218,10 +1214,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
@@ -1235,8 +1232,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1268,10 +1263,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
@@ -1285,8 +1281,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1318,10 +1312,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(auctionContext.getTxnLog().lineItemsPacingDeferred()).contains("id1");
@@ -1340,8 +1335,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
                         .startTimeStamp(now.minusMinutes(1))
@@ -1385,10 +1378,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2", "id3");
@@ -1401,8 +1395,6 @@ public class LineItemServiceTest extends VertxTest {
 
         givenTargetingService();
         givenClock(now, now.plusSeconds((now.plusMinutes(5).toEpochSecond() - now.toEpochSecond()) / 100));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = singletonList(
                 LineItemMetaData.builder()
@@ -1421,91 +1413,14 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id1");
-    }
-
-    @Test
-    public void findMatchingLineItemsShouldReturnListOfDifferentBidders() {
-        // given
-        final AuctionContext auctionContext = givenAuctionContext(emptyList());
-
-        givenTargetingService();
-
-        givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
-
-        final List<LineItemMetaData> planResponse = asList(
-                // filtered by readyAt
-                LineItemMetaData.builder()
-                        .startTimeStamp(now.minusMinutes(1))
-                        .endTimeStamp(now.plusMinutes(1))
-                        .lineItemId("id1")
-                        .status("active")
-                        .dealId("1")
-                        .source("rubicon")
-                        .accountId("accountId")
-                        .relativePriority(1)
-                        .price(Price.of(BigDecimal.ONE, "USD"))
-                        .deliverySchedules(singletonList(givenDeliverySchedule("futurePlanId", now.minusMinutes(1),
-                                now.plusDays(1), singleton(Token.of(1, 1)))))
-                        .build(),
-                LineItemMetaData.builder()
-                        .startTimeStamp(now.minusMinutes(1))
-                        .endTimeStamp(now.plusMinutes(1))
-                        .lineItemId("id2")
-                        .status("active")
-                        .dealId("2")
-                        .source("rubicon")
-                        .accountId("accountId")
-                        .relativePriority(1)
-                        .price(Price.of(BigDecimal.TEN, "USD"))
-                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
-                                now.plusMinutes(1), singleton(Token.of(1, 100)))))
-                        .build(),
-                // filtered by same deal Id with lowest priority
-                LineItemMetaData.builder()
-                        .startTimeStamp(now.minusMinutes(1))
-                        .endTimeStamp(now.plusMinutes(1))
-                        .lineItemId("id3")
-                        .status("active")
-                        .dealId("3")
-                        .source("appnexus")
-                        .accountId("accountId")
-                        .relativePriority(2)
-                        .price(Price.of(BigDecimal.TEN, "USD"))
-                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
-                                now.plusMinutes(1), singleton(Token.of(1, 100)))))
-                        .build(),
-                LineItemMetaData.builder()
-                        .startTimeStamp(now.minusMinutes(1))
-                        .endTimeStamp(now.plusMinutes(1))
-                        .lineItemId("id4")
-                        .status("active")
-                        .dealId("3")
-                        .source("appnexus")
-                        .accountId("accountId")
-                        .relativePriority(1)
-                        .price(Price.of(BigDecimal.TEN, "USD"))
-                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
-                                now.plusMinutes(1), singleton(Token.of(1, 100)))))
-                        .build());
-
-        lineItemService.updateLineItems(planResponse, true);
-        lineItemService.getLineItemById("id1").incSpentToken(now.plusSeconds(1));
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
-
-        // when
-        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(auctionContext, imp);
-
-        // then
-        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2", "id4");
     }
 
     @Test
@@ -1516,8 +1431,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1576,10 +1489,13 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        lineItemService.findMatchingLineItems(auctionContext, imp);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "appnexus", bidderAliases, auctionContext);
 
         // then
         final TxnLog expectedTxnLog = TxnLog.create();
@@ -1600,8 +1516,6 @@ public class LineItemServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(emptyList());
         givenTargetingService();
 
-        givenBidderCatalog();
-
         final List<LineItemMetaData> planResponse = singletonList(
                 LineItemMetaData.builder()
                         .startTimeStamp(now.minusMinutes(1))
@@ -1621,15 +1535,16 @@ public class LineItemServiceTest extends VertxTest {
         lineItemService.getLineItemById("id5").incSpentToken(now.plusSeconds(1));
         lineItemService.getLineItemById("id5").incSpentToken(now.plusSeconds(1));
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        lineItemService.findMatchingLineItems(auctionContext, imp);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         final TxnLog expectedTxnLog = TxnLog.create();
-        expectedTxnLog.lineItemsMatchedWholeTargeting().addAll(singletonList("id5"));
-        expectedTxnLog.lineItemsPacingDeferred().addAll(singletonList("id5"));
+        expectedTxnLog.lineItemsMatchedWholeTargeting().add("id5");
+        expectedTxnLog.lineItemsPacingDeferred().add("id5");
         assertThat(auctionContext.getTxnLog()).isEqualTo(expectedTxnLog);
     }
 
@@ -1641,8 +1556,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1675,10 +1588,11 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        lineItemService.findMatchingLineItems(auctionContext, imp);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
 
         // then
         assertThat(auctionContext.getTxnLog().lineItemsMatchedTargetingFcapLookupFailed()).containsOnly("id2");
@@ -1695,10 +1609,14 @@ public class LineItemServiceTest extends VertxTest {
 
         givenClock(now, now.plusMinutes(1));
 
-        givenBidderCatalog();
-
-        lineItemService = new LineItemService(3, targetingService, bidderCatalog, conversionService,
-                applicationEventService, "USD", clock, criteriaLogManager);
+        lineItemService = new LineItemService(
+                3,
+                targetingService,
+                conversionService,
+                applicationEventService,
+                "USD",
+                clock,
+                criteriaLogManager);
 
         final List<LineItemMetaData> planResponse = asList(
                 givenLineItemMetaData("id1", now, "1",
@@ -1713,14 +1631,14 @@ public class LineItemServiceTest extends VertxTest {
 
         lineItemService.updateLineItems(planResponse, true);
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
         final Map<String, Integer> count = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
             AuctionContext auctionContext = givenAuctionContext(emptyList());
-            MatchLineItemsResult matchLineItemsResult =
-                    lineItemService.findMatchingLineItems(auctionContext, imp);
+            MatchLineItemsResult matchLineItemsResult = lineItemService.findMatchingLineItems(
+                    auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
             count.compute(matchLineItemsResult.getLineItems().get(0).getLineItemId(),
                     (s, integer) -> integer != null ? ++integer : 1);
         }
@@ -1739,8 +1657,6 @@ public class LineItemServiceTest extends VertxTest {
         givenTargetingService();
 
         givenClock(now, now.plusMinutes(1));
-
-        givenBidderCatalog();
 
         final List<LineItemMetaData> planResponse = asList(
                 LineItemMetaData.builder()
@@ -1768,10 +1684,13 @@ public class LineItemServiceTest extends VertxTest {
         lineItemService.updateLineItems(planResponse, true);
         lineItemService.getLineItemById("id2").incSpentToken(now.plusSeconds(1));
 
-        final Imp imp = Imp.builder().id("imp1").ext(givenImpExt("rubicon", "appnexus")).build();
+        final Imp imp = Imp.builder().id("imp1").build();
 
         // when
-        lineItemService.findMatchingLineItems(auctionContext, imp);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+        lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "appnexus", bidderAliases, auctionContext);
 
         // then
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
@@ -1786,6 +1705,275 @@ public class LineItemServiceTest extends VertxTest {
                                 + " at 2019-07-26T21:59:30.000Z, current time is 2019-07-26T10:01:00.000Z"));
     }
 
+    @Test
+    public void findMatchingLineItemsShouldReturnWithoutUnspentTokensOrOnCoolDownIfIgnorePacingHeaderProvided() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList())
+                .toBuilder()
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.builder().add(HttpUtil.PG_IGNORE_PACING, "1").build())
+                        .build())
+                .build();
+
+        givenTargetingService();
+
+        givenClock(now.plusMinutes(5), now);
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id1")
+                        .status("active")
+                        .dealId("dealId1")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 0)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id2")
+                        .status("active")
+                        .dealId("dealId2")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.TEN, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id2", "id1");
+    }
+
+    @Test
+    public void findMatchingLineItemsShouldLowerPriorityIfDeliveryPlanIsNullAndPgIgnorePacing() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList())
+                .toBuilder()
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.builder().add(HttpUtil.PG_IGNORE_PACING, "1").build())
+                        .build())
+                .build();
+
+        givenTargetingService();
+
+        givenClock(now, now.plusMinutes(1));
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id1")
+                        .status("active")
+                        .dealId("dealId1")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id2")
+                        .status("active")
+                        .dealId("dealId2")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.TEN, "USD"))
+                        .deliverySchedules(null)
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
+    }
+
+    @Test
+    public void findMatchingLineItemsShouldLowerPriorityIfNoTokensUnspentAndPgIgnorePacing() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList())
+                .toBuilder()
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.builder().add(HttpUtil.PG_IGNORE_PACING, "1").build())
+                        .build())
+                .build();
+
+        givenTargetingService();
+
+        givenClock(now, now.plusMinutes(1));
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id1")
+                        .status("active")
+                        .dealId("dealId1")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id2")
+                        .status("active")
+                        .dealId("dealId2")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.TEN, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 0)))))
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
+    }
+
+    @Test
+    public void findMatchingLineItemsShouldLowerPriorityIfRelativePriorityIsNullAndPgIgnorePacing() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList())
+                .toBuilder()
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.builder().add(HttpUtil.PG_IGNORE_PACING, "1").build())
+                        .build())
+                .build();
+
+        givenTargetingService();
+
+        givenClock(now, now.plusMinutes(1));
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id1")
+                        .status("active")
+                        .dealId("dealId1")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id2")
+                        .status("active")
+                        .dealId("dealId2")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(null)
+                        .price(Price.of(BigDecimal.TEN, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
+    }
+
+    @Test
+    public void findMatchingLineItemsShouldLowerPriorityIfCpmIsNullAndPgIgnorePacing() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(emptyList())
+                .toBuilder()
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.builder().add(HttpUtil.PG_IGNORE_PACING, "1").build())
+                        .build())
+                .build();
+
+        givenTargetingService();
+
+        givenClock(now, now.plusMinutes(1));
+
+        final List<LineItemMetaData> planResponse = asList(
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id1")
+                        .status("active")
+                        .dealId("dealId1")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(BigDecimal.ZERO, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build(),
+                LineItemMetaData.builder()
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(10))
+                        .lineItemId("id2")
+                        .status("active")
+                        .dealId("dealId2")
+                        .source("rubicon")
+                        .accountId("accountId")
+                        .relativePriority(1)
+                        .price(Price.of(null, "USD"))
+                        .deliverySchedules(singletonList(givenDeliverySchedule("planId1", now.minusHours(1),
+                                now.plusMinutes(10), singleton(Token.of(1, 100)))))
+                        .build());
+
+        lineItemService.updateLineItems(planResponse, true);
+
+        final Imp imp = Imp.builder().id("imp1").build();
+
+        // when
+        final MatchLineItemsResult result = lineItemService.findMatchingLineItems(
+                auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
+
+        // then
+        assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsExactly("id1", "id2");
+    }
+
     private static LineItemMetaData givenLineItemMetaData(
             String lineItemId,
             ZonedDateTime now,
@@ -1794,17 +1982,17 @@ public class LineItemServiceTest extends VertxTest {
             Function<LineItemMetaData.LineItemMetaDataBuilder,
                     LineItemMetaData.LineItemMetaDataBuilder> lineItemMetaDataCustomizer) {
         return lineItemMetaDataCustomizer.apply(LineItemMetaData.builder()
-                .startTimeStamp(now.minusMinutes(1))
-                .endTimeStamp(now.plusMinutes(1))
-                .lineItemId(lineItemId)
-                .dealId(dealId)
-                .status("active")
-                .accountId("accountId")
-                .source("rubicon")
-                .price(Price.of(BigDecimal.ONE, "USD"))
-                .relativePriority(5)
-                .updatedTimeStamp(now)
-                .deliverySchedules(deliverySchedules))
+                        .startTimeStamp(now.minusMinutes(1))
+                        .endTimeStamp(now.plusMinutes(1))
+                        .lineItemId(lineItemId)
+                        .dealId(dealId)
+                        .status("active")
+                        .accountId("accountId")
+                        .source("rubicon")
+                        .price(Price.of(BigDecimal.ONE, "USD"))
+                        .relativePriority(5)
+                        .updatedTimeStamp(now)
+                        .deliverySchedules(deliverySchedules))
                 .build();
     }
 
@@ -1854,6 +2042,7 @@ public class LineItemServiceTest extends VertxTest {
 
     private AuctionContext givenAuctionContext(List<String> fcaps) {
         return AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.empty()).build())
                 .account(Account.builder().id("accountId").build())
                 .deepDebugLog(DeepDebugLog.create(true, clock))
                 .txnLog(TxnLog.create())
@@ -1870,7 +2059,8 @@ public class LineItemServiceTest extends VertxTest {
     private void givenTargetingService() {
         given(targetingService.parseTargetingDefinition(any(), any()))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), any()))
+                .willAnswer(withEvaluatedTargeting());
     }
 
     private Answer<Boolean> withEvaluatedTargeting() {
@@ -1882,19 +2072,5 @@ public class LineItemServiceTest extends VertxTest {
                 dateTimes[0].toInstant(),
                 Arrays.stream(dateTimes).skip(1).map(ZonedDateTime::toInstant).toArray(Instant[]::new));
         given(clock.getZone()).willReturn(dateTimes[0].getZone());
-    }
-
-    private void givenBidderCatalog() {
-        given(bidderCatalog.isDeprecatedName(any())).willReturn(false);
-        given(bidderCatalog.isValidName(any())).willReturn(true);
-    }
-
-    private ObjectNode givenImpExt(String... bidders) {
-        final ObjectNode extPrebidBidder = mapper.createObjectNode();
-        Arrays.stream(bidders).forEach(extPrebidBidder::putNull);
-
-        return mapper.createObjectNode().set(
-                "prebid", mapper.createObjectNode().set(
-                        "bidder", extPrebidBidder));
     }
 }

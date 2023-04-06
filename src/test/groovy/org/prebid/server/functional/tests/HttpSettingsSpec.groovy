@@ -11,8 +11,6 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
@@ -20,13 +18,13 @@ import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-@PBSTest
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
 
     @Shared
-    HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
+    HttpSettings httpSettings = new HttpSettings(networkServiceContainer)
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
@@ -66,7 +64,7 @@ class HttpSettingsSpec extends BaseSpec {
         ampStoredRequest.regs.ext.gdpr = 1
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Prepare default account response with gdpr = 0"
@@ -106,7 +104,13 @@ class HttpSettingsSpec extends BaseSpec {
     }
 
     def "PBS should take account information from http data source on setuid request"() {
-        given: "Get default SetuidRequest and set account, gdpr=1 "
+        given: "Pbs config with adapters.generic.usersync.redirect.*"
+        def prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig +
+                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.generic.usersync.redirect.support-cors"   : "false",
+                 "adapters.generic.usersync.redirect.format-override": "blank"])
+
+        and: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
         request.gdpr = 1
         request.account = PBSUtils.randomNumber.toString()
@@ -133,7 +137,7 @@ class HttpSettingsSpec extends BaseSpec {
     def "PBS should take account information from http data source on vtrack request"() {
         given: "Default VtrackRequest"
         String payload = PBSUtils.randomString
-        def request = VtrackRequest.getDefaultVtrackRequest(mapper.encodeXml(Vast.getDefaultVastModel(payload)))
+        def request = VtrackRequest.getDefaultVtrackRequest(encodeXml(Vast.getDefaultVastModel(payload)))
         def accountId = PBSUtils.randomNumber.toString()
 
         and: "Prepare default account response"

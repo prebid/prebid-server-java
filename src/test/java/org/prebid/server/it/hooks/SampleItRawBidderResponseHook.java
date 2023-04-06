@@ -10,7 +10,6 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SampleItRawBidderResponseHook implements RawBidderResponseHook {
 
@@ -41,6 +40,6 @@ public class SampleItRawBidderResponseHook implements RawBidderResponseHook {
                                 .build(),
                         bidderBid.getType(),
                         bidderBid.getBidCurrency()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

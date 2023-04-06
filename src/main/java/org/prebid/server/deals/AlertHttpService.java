@@ -84,9 +84,8 @@ public class AlertHttpService {
         final long period = alertTypes.get(alertType);
 
         alertTypesCounters.put(alertType, ++count);
-        final String formattedMessage =
-                String.format("Service %s failed to send request %s time(s) with error message : %s",
-                        serviceName, count, message);
+        final String formattedMessage = "Service %s failed to send request %s time(s) with error message : %s"
+                .formatted(serviceName, count, message);
         if (count == 1) {
             alert(alertType, alertPriority, formattedMessage);
         } else if (count % period == 0) {

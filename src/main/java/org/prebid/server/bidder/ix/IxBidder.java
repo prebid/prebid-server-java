@@ -2,6 +2,7 @@ package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -21,8 +22,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,7 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
@@ -88,7 +89,7 @@ public class IxBidder implements Bidder<BidRequest> {
         final List<BidRequest> modifiedRequests = Stream.of(prioritizedRequests, multiSizeRequests)
                 .flatMap(Collection::stream)
                 .limit(REQUEST_LIMIT)
-                .collect(Collectors.toList());
+                .toList();
 
         if (modifiedRequests.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
@@ -103,7 +104,7 @@ public class IxBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(httpRequests, errors);
     }
@@ -121,7 +122,7 @@ public class IxBidder implements Bidder<BidRequest> {
 
         return modifyImps(imp).stream()
                 .map(modifiedImp -> modifyBidRequest(bidRequest, modifiedSite, modifiedImp))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Site site, Imp imp) {
@@ -153,7 +154,7 @@ public class IxBidder implements Bidder<BidRequest> {
 
         return modifyBanners(impBanner).stream()
                 .map(banner -> imp.toBuilder().banner(banner).build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<Banner> modifyBanners(Banner banner) {
@@ -187,7 +188,7 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -212,13 +213,13 @@ public class IxBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
-            bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            bidType = getBidType(bid, bidRequest.getImp());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -279,20 +280,46 @@ public class IxBidder implements Bidder<BidRequest> {
         final List<EventTracker> impressionAndImageTrackers = eventTrackers.stream()
                 .filter(tracker -> Objects.equals(tracker.getMethod(), EventType.IMPRESSION.getValue())
                         || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue()))
-                .collect(Collectors.toList());
+                .toList();
         final List<String> impTrackers = Stream.concat(
                         impressionAndImageTrackers.stream().map(EventTracker::getUrl),
                         response.getImptrackers().stream())
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         return response.toBuilder()
                 .imptrackers(impTrackers)
                 .build();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        return getBidTypeFromMtype(bid.getMtype())
+                .or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
+                .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
+    }
+
+    private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
+        final BidType bidType = mType != null ? switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> null;
+        } : null;
+
+        return Optional.ofNullable(bidType);
+    }
+
+    private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText)
+                .map(BidType::fromString);
+    }
+
+    private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
+        for (Imp imp: imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
@@ -305,7 +332,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Unmatched impression id %s", impId));
+        throw new PreBidException("Unmatched impression id " + impId);
     }
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {

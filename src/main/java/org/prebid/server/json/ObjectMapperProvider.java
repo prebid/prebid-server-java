@@ -23,7 +23,6 @@ public final class ObjectMapperProvider {
                 .registerModule(new BlackbirdModule())
                 .registerModule(new ZonedDateTimeModule())
                 .registerModule(new MissingJsonNodeModule())
-                .registerModule(new ZonedDateTimeModule())
                 .registerModule(new LongAdderModule());
     }
 

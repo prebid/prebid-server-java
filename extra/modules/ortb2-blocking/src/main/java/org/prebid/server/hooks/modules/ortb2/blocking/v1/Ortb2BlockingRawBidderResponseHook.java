@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.BidsBlocker;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.ResponseUpdater;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.AnalyticsResult;
-import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedBids;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult;
 import org.prebid.server.hooks.modules.ortb2.blocking.model.ModuleContext;
@@ -29,7 +30,7 @@ import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook {
 
@@ -38,19 +39,26 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     private static final String ENFORCE_BLOCKING_ACTIVITY = "enforce-blocking";
     private static final String SUCCESS_STATUS = "success";
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
+
+    public Ortb2BlockingRawBidderResponseHook(ObjectMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
+    }
 
     @Override
-    public Future<InvocationResult<BidderResponsePayload>> call(
-            BidderResponsePayload bidderResponsePayload,
-            BidderInvocationContext invocationContext) {
+    public Future<InvocationResult<BidderResponsePayload>> call(BidderResponsePayload bidderResponsePayload,
+                                                                BidderInvocationContext invocationContext) {
+
+        final String bidder = invocationContext.bidder();
+        final ModuleContext moduleContext = moduleContext(invocationContext);
 
         final ExecutionResult<BlockedBids> blockedBidsResult = BidsBlocker
                 .create(
                         bidderResponsePayload.bids(),
-                        invocationContext.bidder(),
+                        bidder,
+                        ObjectUtils.defaultIfNull(moduleContext.ortbVersionOf(bidder), OrtbVersion.ORTB_2_5),
                         invocationContext.accountConfig(),
-                        blockedAttributesFrom(invocationContext),
+                        moduleContext.blockedAttributesFor(bidder),
                         invocationContext.debugEnabled())
                 .block();
 
@@ -60,14 +68,16 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                         .action(blockedBidsResult.hasValue()
                                 ? InvocationAction.update
                                 : InvocationAction.no_action)
+                        .moduleContext(moduleContext)
                         .errors(blockedBidsResult.getErrors())
                         .warnings(blockedBidsResult.getWarnings())
                         .debugMessages(blockedBidsResult.getDebugMessages())
                         .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()));
+
         if (blockedBidsResult.hasValue()) {
             final ResponseUpdater responseUpdater = ResponseUpdater.create(blockedBidsResult.getValue());
-            resultBuilder.payloadUpdate(payload ->
-                    BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
+            resultBuilder
+                    .payloadUpdate(payload -> BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
         }
 
         return Future.succeededFuture(resultBuilder.build());
@@ -78,11 +88,10 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
         return CODE;
     }
 
-    private static BlockedAttributes blockedAttributesFrom(BidderInvocationContext invocationContext) {
-        final Object moduleContext = invocationContext.moduleContext();
-        return moduleContext instanceof ModuleContext
-                ? ((ModuleContext) moduleContext).blockedAttributesFor(invocationContext.bidder())
-                : null;
+    private static ModuleContext moduleContext(BidderInvocationContext invocationContext) {
+        return invocationContext.moduleContext() instanceof ModuleContext moduleContext
+                ? moduleContext
+                : ModuleContext.create();
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
@@ -99,7 +108,7 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
                 .map(this::toResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Result toResult(AnalyticsResult analyticsResult) {

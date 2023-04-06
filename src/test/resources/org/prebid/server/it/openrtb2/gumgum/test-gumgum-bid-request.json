@@ -3,17 +3,22 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 500,
         "h": 400
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "zone": "first_zone"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "id": "first_zone",
     "domain": "www.example.com",
@@ -33,13 +38,23 @@
     "buyeruid": "GUM-UID"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }

@@ -14,8 +14,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdfBidder implements Bidder<BidRequest> {
 
@@ -113,7 +112,7 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
@@ -137,7 +136,7 @@ public class AdfBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, List<BidderError> errors) {
@@ -160,7 +159,6 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private void addMediaTypeParseError(List<BidderError> errors, String impId) {
-        final String errorMessage = String.format("Failed to parse impression %s mediatype", impId);
-        errors.add(BidderError.badServerResponse(errorMessage));
+        errors.add(BidderError.badServerResponse("Failed to parse impression %s mediatype".formatted(impId)));
     }
 }

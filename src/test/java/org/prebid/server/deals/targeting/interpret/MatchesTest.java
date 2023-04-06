@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +38,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "adunit");
 
-        willReturn("adunit").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("adunit")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -49,7 +50,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "adunit");
 
-        willReturn("notadunit").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("notadunit")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -60,7 +61,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "adunit*");
 
-        willReturn("adunitOne").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("adunitOne")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -71,7 +72,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "adunit");
 
-        willReturn("somedunit").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("somedunit")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -82,7 +83,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit");
 
-        willReturn("someadunit").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("someadunit")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -93,7 +94,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit");
 
-        willReturn("adunitOne").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("adunitOne")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -104,7 +105,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit*");
 
-        willReturn("someadunitOne").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("someadunitOne")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -115,7 +116,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit*");
 
-        willReturn("adunitOne").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("adunitOne")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -126,7 +127,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit*");
 
-        willReturn("someadunit").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("someadunit")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -137,7 +138,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "*adunit*");
 
-        willReturn("One").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("One")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -148,7 +149,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "AdUnIt");
 
-        willReturn("aDuNiT").given(context).lookupString(any());
+        willReturn(LookupResult.ofValue("aDuNiT")).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -159,7 +160,7 @@ public class MatchesTest {
         // given
         expression = new Matches(category, "adunit");
 
-        willReturn(null).given(context).lookupString(any());
+        willReturn(LookupResult.empty()).given(context).lookupString(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();

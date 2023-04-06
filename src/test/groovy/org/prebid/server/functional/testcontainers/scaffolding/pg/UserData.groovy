@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.deals.userdata.UserDetailsRequest
 import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.deals.userdata.WinEventNotification
 import org.prebid.server.functional.testcontainers.scaffolding.NetworkScaffolding
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
@@ -19,18 +18,18 @@ class UserData extends NetworkScaffolding {
     static final String USER_DETAILS_ENDPOINT_PATH = "/deals/user-details"
     static final String WIN_EVENT_ENDPOINT_PATH = "/deals/win-event"
 
-    UserData(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, WIN_EVENT_ENDPOINT_PATH, mapper)
+    UserData(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, WIN_EVENT_ENDPOINT_PATH)
     }
 
     UserDetailsRequest getRecordedUserDetailsRequest() {
         def body = getRecordedRequestsBody(userDetailsRequest).last()
-        mapper.decode(body, UserDetailsRequest)
+        decode(body, UserDetailsRequest)
     }
 
     WinEventNotification getRecordedWinEventRequest() {
         def body = getRecordedRequestsBody(request).last()
-        mapper.decode(body, WinEventNotification)
+        decode(body, WinEventNotification)
     }
 
     void setUserDataResponse(UserDetailsResponse userDataResponse, HttpStatusCode httpStatusCode = OK_200) {
@@ -44,6 +43,12 @@ class UserData extends NetworkScaffolding {
 
     void resetUserDetailsEndpoint() {
         reset(USER_DETAILS_ENDPOINT_PATH)
+    }
+
+    @Override
+    void reset() {
+        super.reset(USER_DETAILS_ENDPOINT_PATH)
+        super.reset(WIN_EVENT_ENDPOINT_PATH)
     }
 
     @Override

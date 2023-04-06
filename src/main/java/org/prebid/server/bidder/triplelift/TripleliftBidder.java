@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.triplelift.model.TripleliftInnerExt;
@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
 
@@ -99,7 +100,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBody(httpCall);
@@ -117,7 +118,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final ObjectNode bidExt = bid.getExt();
                 if (bidExt == null) {
-                    errors.add(BidderError.badServerResponse(String.format("Empty ext in bid %s", bid.getId())));
+                    errors.add(BidderError.badServerResponse("Empty ext in bid " + bid.getId()));
                     break;
                 }
 
@@ -135,7 +136,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         return Result.of(bidderBids, errors);
     }
 
-    private BidResponse decodeBody(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBody(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
@@ -144,12 +145,11 @@ public class TripleliftBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(TripleliftResponseExt tripleliftResponseExt) {
-        final TripleliftInnerExt tripleliftInnerExt = tripleliftResponseExt != null
-                ? tripleliftResponseExt.getTripleliftPb()
-                : null;
-
-        return tripleliftInnerExt != null && Objects.equals(tripleliftInnerExt.getFormat(), 11)
-                ? BidType.video
-                : BidType.banner;
+        return Optional.ofNullable(tripleliftResponseExt)
+                .map(TripleliftResponseExt::getTripleliftPb)
+                .map(TripleliftInnerExt::getFormat)
+                .filter(format -> format.equals(11) || format.equals(12) || format.equals(17))
+                .map(format -> BidType.video)
+                .orElse(BidType.banner);
     }
 }

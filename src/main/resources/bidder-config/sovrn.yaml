@@ -1,17 +1,24 @@
 adapters:
   sovrn:
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
+    modifyingVastXmlAllowed: true
     meta-info:
       maintainer-email: sovrnoss@sovrn.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 13
     usersync:
-      url: https://ap.lijit.com/pixel?redir=
-      redirect-url: /setuid?bidder=sovrn&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: sovrn
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ap.lijit.com/pixel?redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      iframe:
+        url: https://ap.lijit.com/beacon/prebid-server/?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -94,7 +94,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .map(accounts -> accounts.stream()
                         .findFirst()
                         .orElseThrow(() ->
-                                new PreBidException(String.format("Account with id : %s not found", accountId))));
+                                new PreBidException("Account with id : %s not found".formatted(accountId))));
     }
 
     private Future<Set<Account>> fetchAccountsByIds(Set<String> accountIds, Timeout timeout) {
@@ -129,16 +129,16 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private Set<Account> toAccountsResult(int statusCode, String body, Set<String> accountIds) {
         if (statusCode != HttpResponseStatus.OK.code()) {
-            throw new PreBidException(String.format("Error fetching accounts %s via http: "
-                    + "unexpected response status %d", accountIds, statusCode));
+            throw new PreBidException("Error fetching accounts %s via http: unexpected response status %d"
+                    .formatted(accountIds, statusCode));
         }
 
         final HttpAccountsResponse response;
         try {
             response = mapper.decodeValue(body, HttpAccountsResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Error fetching accounts %s "
-                    + "via http: failed to parse response: %s", accountIds, e.getMessage()));
+            throw new PreBidException("Error fetching accounts %s via http: failed to parse response: %s"
+                    .formatted(accountIds, e.getMessage()));
         }
         final Map<String, Account> accounts = response.getAccounts();
 
@@ -185,12 +185,12 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String url = StringUtils.isNotEmpty(publisher)
-                ? String.format("%s/%s/%s.json", categoryEndpoint, primaryAdServer, publisher)
-                : String.format("%s/%s.json", categoryEndpoint, primaryAdServer);
+                ? "%s/%s/%s.json".formatted(categoryEndpoint, primaryAdServer, publisher)
+                : "%s/%s.json".formatted(categoryEndpoint, primaryAdServer);
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return Future.failedFuture(new TimeoutException(String.format("Failed to fetch categories from url '%s'."
-                    + " Reason: Timeout exceeded", url)));
+            return Future.failedFuture(new TimeoutException(
+                    "Failed to fetch categories from url '%s'. Reason: Timeout exceeded".formatted(url)));
         }
         return httpClient.get(url, remainingTimeout)
                 .map(httpClientResponse -> processCategoryResponse(httpClientResponse, url));
@@ -199,8 +199,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private Map<String, String> processCategoryResponse(HttpClientResponse httpClientResponse, String url) {
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != 200) {
-            throw makeFailedCategoryFetchException(url, String.format("Response status code is '%s'",
-                    statusCode));
+            throw makeFailedCategoryFetchException(url, "Response status code is '%d'".formatted(statusCode));
         }
 
         final String body = httpClientResponse.getBody();
@@ -212,8 +211,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         try {
             categories = mapper.decodeValue(body, CATEGORY_RESPONSE_REFERENCE);
         } catch (DecodeException e) {
-            throw makeFailedCategoryFetchException(url, String.format("Failed to decode response body with error %s",
-                    e.getMessage()));
+            throw makeFailedCategoryFetchException(url, "Failed to decode response body with error " + e.getMessage());
         }
         return categories.entrySet().stream()
                 .filter(catToCategory -> catToCategory.getValue() != null)
@@ -222,7 +220,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private PreBidException makeFailedCategoryFetchException(String url, String reason) {
-        return new PreBidException(String.format("Failed to fetch categories from url '%s'. Reason: %s", url, reason));
+        return new PreBidException("Failed to fetch categories from url '%s'. Reason: %s".formatted(url, reason));
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
@@ -279,12 +277,12 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
                                                              String errorMessageFormat, Object... args) {
         final String errorRequests = requestIds.isEmpty() ? ""
-                : String.format("stored requests for ids %s", requestIds);
+                : "stored requests for ids " + requestIds;
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
-        final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
+        final String errorImps = impIds.isEmpty() ? "" : "stored imps for ids " + impIds;
 
-        final String error = String.format("Error fetching %s%s%s via HTTP: %s", errorRequests, separator, errorImps,
-                String.format(errorMessageFormat, args));
+        final String error = "Error fetching %s%s%s via HTTP: %s"
+                .formatted(errorRequests, separator, errorImps, errorMessageFormat.formatted(args));
 
         logger.info(error);
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
@@ -333,8 +331,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 try {
                     jsonAsString = mapper.mapper().writeValueAsString(entry.getValue());
                 } catch (JsonProcessingException e) {
-                    errors.add(String.format("Error parsing %s json for id: %s with message: %s", type, id,
-                            e.getMessage()));
+                    errors.add("Error parsing %s json for id: %s with message: %s".formatted(type, id, e.getMessage()));
                     notParsedIds.add(id);
                     continue;
                 }
@@ -349,8 +346,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
             missedIds.removeAll(notParsedIds);
 
             errors.addAll(missedIds.stream()
-                    .map(id -> String.format("Stored %s not found for id: %s", type, id))
-                    .collect(Collectors.toList()));
+                    .map(id -> "Stored %s not found for id: %s".formatted(type, id))
+                    .toList());
         }
 
         return result;

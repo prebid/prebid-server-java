@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.beans.factory.config.CustomScopeConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +14,9 @@ public class SpringConfiguration {
 
     @Bean
     ConversionService conversionService() {
-        return new DefaultConversionService();
+        final DefaultConversionService conversionService = new DefaultConversionService();
+        conversionService.addConverter(String.class, OrtbVersion.class, OrtbVersion::fromString);
+        return conversionService;
     }
 
     @Bean

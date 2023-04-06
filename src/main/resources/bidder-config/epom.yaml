@@ -13,9 +13,3 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 849
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: epom
-      type: iframe
-      support-cors: false

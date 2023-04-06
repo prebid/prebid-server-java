@@ -131,7 +131,7 @@ public class DeliveryStatsService implements Suspendable {
         reports.stream()
                 .reduce(Future.<Void>succeededFuture(),
                         (future, report) -> future.compose(v -> sendReport(report, headers, now)
-                                .map(aVoid -> sentReports.add(report)))
+                                        .map(aVoid -> sentReports.add(report)))
                                 .compose(aVoid -> reportIntervalMs > 0 && reportsCount > sentReports.size()
                                         ? setInterval(reportIntervalMs)
                                         : Future.succeededFuture()),
@@ -159,12 +159,12 @@ public class DeliveryStatsService implements Suspendable {
         if (deliveryStatsProperties.isRequestCompressionEnabled()) {
             headers.add(HttpHeaders.CONTENT_ENCODING, GZIP);
             httpClient.request(HttpMethod.POST, deliveryStatsProperties.getEndpoint(), headers, gzipBody(body),
-                    deliveryStatsProperties.getTimeoutMs())
+                            deliveryStatsProperties.getTimeoutMs())
                     .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         } else {
             httpClient.post(deliveryStatsProperties.getEndpoint(), headers, body,
-                    deliveryStatsProperties.getTimeoutMs())
+                            deliveryStatsProperties.getTimeoutMs())
                     .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         }
@@ -182,8 +182,8 @@ public class DeliveryStatsService implements Suspendable {
         metrics.updateRequestTimeMetric(MetricName.delivery_request_time, clock.millis() - startTime);
         if (result.failed()) {
             logger.warn("Cannot send delivery progress report to delivery stats service", result.cause());
-            promise.fail(new PreBidException(String.format("Sending report with id = %s failed in a reason: %s",
-                    deliveryProgressReport.getReportId(), result.cause().getMessage())));
+            promise.fail(new PreBidException("Sending report with id = %s failed in a reason: %s"
+                    .formatted(deliveryProgressReport.getReportId(), result.cause().getMessage())));
         } else {
             final int statusCode = result.result().getStatusCode();
             final String reportId = deliveryProgressReport.getReportId();
@@ -191,8 +191,9 @@ public class DeliveryStatsService implements Suspendable {
                 handleSuccessfulResponse(deliveryProgressReport, promise, statusCode, reportId);
             } else {
                 logger.warn("HTTP status code {0}", statusCode);
-                promise.fail(new PreBidException(String.format("Delivery stats service responded with status"
-                        + " code = %s for report with id = %s", statusCode, deliveryProgressReport.getReportId())));
+                promise.fail(new PreBidException(
+                        "Delivery stats service responded with status code = %s for report with id = %s"
+                                .formatted(statusCode, deliveryProgressReport.getReportId())));
             }
         }
     }
@@ -223,9 +224,11 @@ public class DeliveryStatsService implements Suspendable {
             logger.warn("Failed to send {0} report batches, {1} report batches left to send."
                             + " Reason is: {2}", reportBatchesNumber, reportBatchesNumber - sentBatches.size(),
                     result.cause().getMessage());
-            alertHttpService.alertWithPeriod(SERVICE_NAME, PBS_DELIVERY_CLIENT_ERROR, AlertPriority.MEDIUM,
-                    String.format("Report was not send to delivery stats service with a reason: %s",
-                            result.cause().getMessage()));
+            alertHttpService.alertWithPeriod(
+                    SERVICE_NAME,
+                    PBS_DELIVERY_CLIENT_ERROR,
+                    AlertPriority.MEDIUM,
+                    "Report was not send to delivery stats service with a reason: " + result.cause().getMessage());
             requiredBatches.removeAll(sentBatches);
             handleFailedReportDelivery();
         } else {
@@ -266,19 +269,19 @@ public class DeliveryStatsService implements Suspendable {
      * Creates Authorization header value from username and password.
      */
     private static String authHeader(String username, String password) {
-        return String.format(
-                BASIC_AUTH_PATTERN,
-                Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
+        return BASIC_AUTH_PATTERN
+                .formatted(Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
     }
 
     private static byte[] gzipBody(String body) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+        try (
+                ByteArrayOutputStream obj = new ByteArrayOutputStream();
                 GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
             gzip.write(body.getBytes(StandardCharsets.UTF_8));
             gzip.finish();
             return obj.toByteArray();
         } catch (IOException e) {
-            throw new PreBidException(String.format("Failed to gzip request with a reason : %s", e.getMessage()));
+            throw new PreBidException("Failed to gzip request with a reason : " + e.getMessage());
         }
     }
 

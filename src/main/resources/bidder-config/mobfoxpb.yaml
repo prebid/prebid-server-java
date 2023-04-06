@@ -4,16 +4,10 @@ adapters:
     meta-info:
       maintainer-email: platform@mobfox.com
       app-media-types:
-      - banner
-      - video
+        - banner
+        - video
       site-media-types:
-      - banner
-      - video
+        - banner
+        - video
       supported-vendors:
       vendor-id: 311
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: mobfoxpb
-      type: redirect
-      support-cors: false

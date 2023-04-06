@@ -1,11 +1,13 @@
 package org.prebid.server.functional.model.response.auction
 
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.BidRequest
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
+@EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
 class SeatBid {
 

@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.response.Debug
 class BidResponseExt {
 
     Debug debug
+    List<SeatNonBid> seatnonbid
     Map<ErrorType, List<BidderError>> errors
     Map<String, Integer> responsetimemillis
     Long tmaxrequest

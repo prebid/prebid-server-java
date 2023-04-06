@@ -208,7 +208,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     private static <T extends Annotation> List<T> getAnnotationsOnMethod(MethodInfo methodInfo, Class<T> clazz) {
         T annotation = methodInfo.getAnnotation(clazz)
         return Stream.concat(extractRepeatableAnnotations(methodInfo, clazz).stream(),
-                Objects.isNull(annotation) ? Stream.empty() : Stream.of(annotation)).collect(Collectors.toList())
+                Objects.isNull(annotation) ? Stream.empty() : Stream.of(annotation)).toList()
     }
 
     private static <T extends Annotation> List<T> extractRepeatableAnnotations(MethodInfo result, Class<T> clazz) {

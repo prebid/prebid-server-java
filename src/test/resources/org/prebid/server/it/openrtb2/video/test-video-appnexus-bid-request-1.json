@@ -276,7 +276,7 @@
     }
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -288,6 +288,12 @@
   },
   "ext": {
     "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/video"
+      },
       "targeting": {
         "pricegranularity": {
           "ranges": [
@@ -311,9 +317,6 @@
       },
       "channel": {
         "name": "web"
-      },
-      "pbs": {
-        "endpoint": "/openrtb2/video"
       }
     },
     "appnexus": {

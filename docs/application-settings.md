@@ -47,10 +47,12 @@ There are two ways to configure application settings: database and file. This do
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
+- `cookie-sync.default-timeout-ms` - overrides host level config
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
+- `cookie-sync.pri` - a comma-separated list of prioritized cookie families
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
-- `cookie-sync.default-coop-sync` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
+- `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
@@ -104,6 +106,8 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        price-floors:
+          enabled: false
         debug-allow: true
       metrics:
         verbosity-level: basic
@@ -264,6 +268,9 @@ example:
     },
     "events": {
       "enabled": true
+    },
+    "price-floors": {
+      "enabled": false
     },
     "debug-allow": true
   },

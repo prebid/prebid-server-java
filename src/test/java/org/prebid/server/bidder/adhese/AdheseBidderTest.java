@@ -23,8 +23,8 @@ import org.prebid.server.bidder.adhese.model.Cpm;
 import org.prebid.server.bidder.adhese.model.CpmValues;
 import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -249,7 +249,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("invalid");
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -264,7 +264,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyIsUnexpected() {
         // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("{}");
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall("{}");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -279,7 +279,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseIsEmptyArray() {
         // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[]");
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall("[]");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -292,7 +292,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseIsArrayWithEmptyObject() {
         // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[{}]");
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall("[{}]");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -330,7 +330,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -374,7 +374,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -433,7 +433,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -491,7 +491,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final BidderCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -517,8 +517,8 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
     }
 
-    private static HttpCall<AdheseRequestBody> givenHttpCall(String responseBody) {
-        return HttpCall.success(
+    private static BidderCall<AdheseRequestBody> givenHttpCall(String responseBody) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<AdheseRequestBody>builder().build(),
                 HttpResponse.of(200, null, responseBody), null);
     }

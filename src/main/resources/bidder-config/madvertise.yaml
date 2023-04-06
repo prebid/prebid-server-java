@@ -10,9 +10,3 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 153
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: madvertise
-      type: redirect
-      support-cors: false

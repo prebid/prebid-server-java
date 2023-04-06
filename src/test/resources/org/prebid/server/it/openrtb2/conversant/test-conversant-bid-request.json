@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 600
@@ -10,12 +11,16 @@
       "displaymanager": "prebid-s2s",
       "displaymanagerver": "2.0.0",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "site_id": "site_id"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "id": "site_id",
     "domain": "www.example.com",
@@ -32,13 +37,23 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }

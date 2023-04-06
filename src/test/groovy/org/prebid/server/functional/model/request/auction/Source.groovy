@@ -10,5 +10,12 @@ class Source {
     Fd fd
     String tid
     String pchain
+    SupplyChain schain
     SourceExt ext
+
+    static Source getDefaultSource(){
+        new Source().tap {
+            schain = SupplyChain.defaultSupplyChain
+        }
+    }
 }

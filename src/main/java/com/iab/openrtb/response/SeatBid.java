@@ -19,9 +19,9 @@ import java.util.List;
 public class SeatBid {
 
     /**
-     * Array of 1+ Bid objects (Section 4.2.3) each related to an impression.
+     * Array of 1+ {@link Bid} objects (Section 4.2.3) each related to an impression.
      * Multiple bids can relate to the same impression.
-     * (required)
+     * <p/> (required)
      */
     List<Bid> bid;
 
@@ -35,8 +35,10 @@ public class SeatBid {
      * 0 = impressions can be won individually; 1 = impressions must be won or
      * lost as a group.
      */
-    int group;
+    Integer group;
 
-    /** Placeholder for bidder-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for bidder-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

@@ -50,7 +50,7 @@ public class TracerLogHandler implements Handler<RoutingContext> {
             criteriaManager.addCriteria(accountId, bidderCode, lineItemId, loggerLevel, duration);
         } catch (IllegalArgumentException e) {
             routingContext.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end(String.format("Invalid parameter: %s", e.getMessage()));
+                    .end("Invalid parameter: " + e.getMessage());
             return;
         }
 
@@ -65,7 +65,7 @@ public class TracerLogHandler implements Handler<RoutingContext> {
             return Integer.parseInt(rawDuration);
         } catch (NumberFormatException e) {
             throw new InvalidRequestException(
-                    String.format("duration parameter should be defined as integer, but was %s", rawDuration));
+                    "duration parameter should be defined as integer, but was " + rawDuration);
         }
 
     }

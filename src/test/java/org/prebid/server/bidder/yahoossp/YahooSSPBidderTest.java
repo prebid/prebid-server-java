@@ -7,21 +7,29 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 
 import java.util.List;
@@ -35,6 +43,9 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -42,16 +53,25 @@ public class YahooSSPBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidRequestOrtbVersionConversionManager conversionManager;
+
     private YahooSSPBidder yahooSSPBidder;
 
     @Before
     public void setUp() {
-        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper);
+        when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
+                .thenAnswer(answer -> answer.getArgument(0));
+        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, conversionManager, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url",
+                conversionManager, jacksonMapper));
     }
 
     @Test
@@ -271,7 +291,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
@@ -286,7 +306,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -300,7 +320,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -314,7 +334,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
@@ -329,7 +349,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .banner(Banner.builder().build())
@@ -350,7 +370,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipNotBannerImpAndReturnBannerBidWhenBannerPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(asList(Imp.builder().id("123").build(),
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
@@ -375,7 +395,7 @@ public class YahooSSPBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipNotSupportedImpAndReturnVideoBidWhenVideoPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(asList(Imp.builder().id("123").build(),
                                 Imp.builder().video(Video.builder().build()).id("321").build()))
@@ -397,20 +417,69 @@ public class YahooSSPBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), video, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldRemoveTheOpenRTB26Regs() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                                .gdpr(1)
+                                .usPrivacy("1YNN")
+                                .gpp("gppconsent")
+                                .gppSid(List.of(6))
+                        .build()).device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        assertThat(regs.getGdpr()).isNull();
+        assertThat(regs.getUsPrivacy()).isNull();
+        assertThat(regs.getGpp()).isNull();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
+        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
+        assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
+    }
+
+    @Test
+    public void makeBidsShouldOverwriteRegsExtValues() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gdpr(1)
+                        .ext(ExtRegs.of(0, "1YNN"))
+                        .build()).device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        assertThat(regs.getGdpr()).isNull();
+        assertThat(regs.getUsPrivacy()).isNull();
+        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
+        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .site(Site.builder().id("123").build())
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .site(Site.builder().id("123").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .tagid("tagId")
-                .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
+                        .tagid("tagId")
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
                 .build();
     }
 
@@ -423,8 +492,8 @@ public class YahooSSPBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

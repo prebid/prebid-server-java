@@ -15,8 +15,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class MarsmediaBidder implements Bidder<BidRequest> {
 
@@ -58,7 +57,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = String.format("%s%s%s", endpointUrl, "&zone=", firstImpZone);
+        final String uri = "%s&zone=%s".formatted(endpointUrl, firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
@@ -132,7 +131,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
@@ -152,7 +151,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         return firstSeatBid != null ? firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .collect(Collectors.toList())
+                .toList()
                 : Collections.emptyList();
     }
 

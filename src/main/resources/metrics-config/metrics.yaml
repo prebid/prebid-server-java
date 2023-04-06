@@ -1,0 +1,4 @@
+metrics:
+  metricType: flushingCounter
+  accounts:
+    default-verbosity: none

@@ -14,7 +14,7 @@ public class ExtImpUnicorn {
     String placementId;
 
     @JsonProperty("publisherId")
-    Integer publisherId;
+    String publisherId;
 
     @JsonProperty("mediaId")
     String mediaId;

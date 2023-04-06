@@ -5,6 +5,6 @@ import com.codahale.metrics.MetricRegistry;
 public class PgMetrics extends UpdatableMetrics {
 
     PgMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(metricRegistry, counterType, metricName -> String.format("pg.%s", metricName.toString()));
+        super(metricRegistry, counterType, metricName -> "pg." + metricName);
     }
 }

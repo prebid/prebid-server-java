@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Convenient place to keep utilities for extracting parameters from HTTP request with intention to use them in auction.
@@ -35,7 +34,7 @@ public class ImplicitParametersExtractor {
                 : StringUtils.trimToNull(request.getHeaders().get(HttpUtil.REFERER_HEADER));
 
         return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
-                ? String.format("http://%s", url)
+                ? "http://" + url
                 : url;
     }
 
@@ -53,7 +52,7 @@ public class ImplicitParametersExtractor {
 
         if (domain == null) {
             // null means effective top level domain plus one couldn't be derived
-            throw new PreBidException(String.format("Cannot derive eTLD+1 for host %s", host));
+            throw new PreBidException("Cannot derive eTLD+1 for host " + host);
         }
 
         return domain;
@@ -83,7 +82,7 @@ public class ImplicitParametersExtractor {
         return candidates.stream()
                 .map(StringUtils::trimToNull)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

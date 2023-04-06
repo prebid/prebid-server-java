@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config.bidder.model;
 
 import lombok.Data;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
@@ -16,6 +17,9 @@ public class DefaultBidderConfigurationProperties {
     private Boolean enabled;
 
     @NotNull
+    private OrtbVersion ortbVersion;
+
+    @NotNull
     private Boolean pbsEnforcesCcpa;
 
     @NotNull
@@ -29,4 +33,6 @@ public class DefaultBidderConfigurationProperties {
     private final List<String> deprecatedNames = Collections.emptyList();
 
     private final Map<String, String> extraInfo = Collections.emptyMap();
+
+    private CompressionType endpointCompression = CompressionType.NONE;
 }
