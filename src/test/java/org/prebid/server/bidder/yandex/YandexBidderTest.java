@@ -110,15 +110,15 @@ public class YandexBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("blockA")),
-                        givenImp(impBuilder -> impBuilder.id("blockB")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(134001, null))))),
+                        givenImp(impBuilder -> impBuilder.id("blockB").ext(givenImpExt(0))),
                         givenImp(impBuilder -> impBuilder.id("blockC"))))
                 .build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("imp #blockB: missing param imp_id"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("imp #blockB: wrong value for imp_id param"));
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp).hasSize(2)
