@@ -8,6 +8,7 @@ import lombok.Value
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class ActivityRule {
+
     int priority = 10
     Condition condition
     boolean allow = false

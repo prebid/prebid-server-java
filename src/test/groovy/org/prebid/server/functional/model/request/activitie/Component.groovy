@@ -9,6 +9,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class Component {
+
     @JsonProperty("in")
     List<String> xIn
     @JsonProperty("notin")

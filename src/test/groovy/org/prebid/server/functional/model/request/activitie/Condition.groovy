@@ -7,6 +7,7 @@ import org.hibernate.type.ComponentType
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class Condition {
+
     Component componentType
     Component componentName
 
