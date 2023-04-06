@@ -1,29 +1,68 @@
 package org.prebid.server.functional.tests.privacy.activity
 
-import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
+import org.prebid.server.functional.model.bidder.AppNexus
+import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidder.Rubicon
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.activitie.AllowActivities
+import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.tests.BaseSpec
 
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
-import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 abstract class ActivityBaseSpec extends BaseSpec {
 
-    protected static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    protected static final boolean CORS_SUPPORT = false
-    protected static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync2"
-    protected static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-    protected static final Map<String, String> RUBICON_CONFIG = [
-            "adapters.${RUBICON.value}.enabled"                    : "true",
-            "adapters.${RUBICON.value}.usersync.cookie-family-name": RUBICON.value,]
-    protected static final Map<String, String> APPNEXUS_CONFIG = [
-            "adapters.${APPNEXUS.value}.enabled"                    : "true",
-            "adapters.${APPNEXUS.value}.usersync.cookie-family-name": APPNEXUS.value]
-    protected static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + GENERIC_CONFIG
-    protected PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+    private static final String IS_ENABLED = 'true'
+    private static final String ACTION_URL = "$networkServiceContainer.rootUri/auction"
+    private static final Map<String, String> GENERIC_CONFIG = [
+            "adapters.${GENERIC.value}.endpoint": ACTION_URL,
+            "adapters.${GENERIC.value}.enabled" : IS_ENABLED]
+    private static final Map<String, String> OPENX_CONFIG = [
+            "adapters.${OPENX.value}.endpoint": ACTION_URL,
+            "adapters.${OPENX.value}.enabled" : IS_ENABLED]
+    private static final Map<String, String> PBS_CONFIG = GENERIC_CONFIG + OPENX_CONFIG
+
+    protected PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG) 1
+
+    protected static BidRequest getBidRequestWithAccount(DistributionChannel channel = SITE,
+                                                         String accountId,
+                                                         BidderName bidderName = GENERIC) {
+
+        BidRequest.getDefaultBidRequest(channel).tap {
+            site.publisher.id = accountId
+            user = new User()
+            imp.first().ext.prebid.bidder.generic = null
+            switch (bidderName) {
+                case OPENX:
+                    return imp.first().ext.prebid.bidder.openx = Openx.defaultOpenx
+                case ALIAS:
+                    return imp.first().ext.prebid.bidder.alias = new Generic()
+                case APPNEXUS:
+                    return imp.first().ext.prebid.bidder.appNexus = AppNexus.default
+                case RUBICON:
+                    return imp.first().ext.prebid.bidder.rubicon = Rubicon.defaultRubicon
+                default:
+                    return imp.first().ext.prebid.bidder.generic = new Generic()
+            }
+        }
+    }
+
+    protected static Account getDefaultAccount(int accountId, AllowActivities activities) {
+        def privacy = new AccountPrivacyConfig(activities: activities)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        new Account(uuid: accountId, config: accountConfig)
+    }
 }

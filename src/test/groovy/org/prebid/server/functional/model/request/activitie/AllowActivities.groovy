@@ -7,6 +7,7 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class AllowActivities {
+
     Activity syncUser
     Activity fetchBid
     Activity enrichUfpd
