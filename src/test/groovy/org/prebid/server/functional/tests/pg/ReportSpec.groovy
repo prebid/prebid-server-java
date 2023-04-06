@@ -31,11 +31,7 @@ import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 class ReportSpec extends BasePgSpec {
 
     def cleanup() {
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
-        deliveryStatistics.reset()
-        PBSUtils.waitUntil { deliveryStatistics.requestCount == 0 }
-        deliveryStatistics.setResponse()
     }
 
     def "PBS shouldn't send delivery statistics when PBS doesn't have reports to send"() {
@@ -46,7 +42,7 @@ class ReportSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
 
         then: "Delivery Statistics Service request count is not changed"
-        assert deliveryStatistics.requestCount == initialRequestCount
+        PBSUtils.waitUntil { deliveryStatistics.requestCount == initialRequestCount }
     }
 
     def "PBS shouldn't send delivery statistics when delivery report batch is created but doesn't have reports to send"() {
@@ -60,7 +56,7 @@ class ReportSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
 
         then: "Delivery Statistics Service request count is not changed"
-        assert deliveryStatistics.requestCount == initialRequestCount
+        PBSUtils.waitUntil { deliveryStatistics.requestCount == initialRequestCount }
     }
 
     def "PBS should send a report request with appropriate headers"() {
