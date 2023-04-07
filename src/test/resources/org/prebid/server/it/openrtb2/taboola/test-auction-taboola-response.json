@@ -8,6 +8,7 @@
           "impid": "1",
           "price": 8.43,
           "crid": "crid14",
+          "adm": "some-test-ad",
           "w": 300,
           "h": 250,
           "ext": {
@@ -22,6 +23,7 @@
           "impid": "2",
           "price": 8.43,
           "crid": "crid14",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
           "w": 300,
           "h": 250,
           "ext": {

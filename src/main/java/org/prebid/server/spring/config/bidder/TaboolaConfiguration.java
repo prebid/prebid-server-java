@@ -35,7 +35,7 @@ public class TaboolaConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(taboolaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), externalUrl, mapper))
+                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
