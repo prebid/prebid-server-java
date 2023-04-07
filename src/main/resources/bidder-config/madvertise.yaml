@@ -2,7 +2,7 @@ adapters:
   madvertise:
     endpoint: https://mobile.mng-ads.com/bidrequest{{ZoneID}}
     meta-info:
-      maintainer-email: support@madvertise.com
+      maintainer-email: hb@azerion.com
       app-media-types:
         - banner
         - video
