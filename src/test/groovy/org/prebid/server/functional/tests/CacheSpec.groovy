@@ -13,7 +13,7 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue("prebid_cache.requests.ok")
+        def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
@@ -36,7 +36,7 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.json metric when json creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue("prebid_cache.requests.ok")
+        def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest
