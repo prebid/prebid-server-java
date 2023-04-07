@@ -25,7 +25,7 @@ public class VertxConfiguration {
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
                 @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics,
-                @Value("${metrics.jmxEnabled}") boolean jmxEnabled) {
+                @Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
         final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
                 .setEnabled(true)
                 .setJmxEnabled(jmxEnabled)

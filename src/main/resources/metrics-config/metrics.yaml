@@ -2,4 +2,5 @@ metrics:
   metricType: flushingCounter
   accounts:
     default-verbosity: none
-  jmxEnabled: true
+  jmx:
+    enabled: false

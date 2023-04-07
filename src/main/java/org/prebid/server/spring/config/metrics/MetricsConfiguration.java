@@ -108,7 +108,7 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    MetricRegistry metricRegistry(@Value("${metrics.jmxEnabled}") boolean jmxEnabled) {
+    MetricRegistry metricRegistry(@Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
         final boolean alreadyExists = SharedMetricRegistries.names().contains(METRIC_REGISTRY_NAME);
         final MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
 
