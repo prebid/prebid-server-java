@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -70,13 +69,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .build();
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl + accountId)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .build());
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl + accountId, mapper));
     }
 
     private ExtImpMgid parseImpExt(Imp imp) {

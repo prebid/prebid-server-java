@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -119,13 +118,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private Result<List<HttpRequest<BidRequest>>> createHttpRequests(List<BidderError> errors, BidRequest bidRequest) {
-        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .headers(HttpUtil.headers())
-                .build()), errors);
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper)), errors);
     }
 
     private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCurrency) {

@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -79,13 +79,10 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .headers(HttpUtil.headers())
-                                .uri(endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()))
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .payload(outgoingRequest)
-                                .build()),
+                        BidderUtil.defaultRequest(
+                                outgoingRequest,
+                                endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()),
+                                mapper)),
                 errors);
     }
 

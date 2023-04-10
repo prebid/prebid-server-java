@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -136,13 +135,7 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest modifiedBidRequest, String endpointUri) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUri)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(modifiedBidRequest))
-                .payload(modifiedBidRequest)
-                .build();
+        return BidderUtil.defaultRequest(modifiedBidRequest, endpointUri, mapper);
     }
 
     @Override
