@@ -14,6 +14,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -28,11 +29,13 @@ import org.prebid.server.proto.openrtb.ext.request.yandex.ExtImpYandex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class YandexBidder implements Bidder<BidRequest> {
@@ -57,14 +60,14 @@ public class YandexBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        final String cur = getCur(request);
         final String referer = getReferer(request);
+        final String currency = getCurrency(request);
 
         for (Imp imp : request.getImp()) {
             try {
-                ExtImpYandex extImpYandex = parseAndValidateImpExt(imp.getExt(), imp.getId());
+                final ExtImpYandex extImpYandex = parseAndValidateImpExt(imp.getExt(), imp.getId());
                 final Imp modifiedImp = modifyImp(imp);
-                final String modifiedUrl = modifyUrl(extImpYandex, referer, cur);
+                final String modifiedUrl = modifyUrl(extImpYandex, referer, currency);
                 final BidRequest modifiedRequest =
                         request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
                 bidRequests.add(buildHttpRequest(modifiedRequest, modifiedUrl));
@@ -75,14 +78,17 @@ public class YandexBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private String getReferer(BidRequest request) {
-        final Site site = request.getSite();
-        return site != null ? site.getPage() : null;
+    private static String getReferer(BidRequest request) {
+        return Optional.ofNullable(request.getSite())
+                .map(Site::getPage)
+                .orElse(null);
     }
 
-    private String getCur(BidRequest request) {
-        final List<String> curs = request.getCur();
-        return curs != null && !curs.isEmpty() ? curs.get(0) : "";
+    private static String getCurrency(BidRequest request) {
+        final List<String> currencies = request.getCur();
+        final String currency = CollectionUtils.isNotEmpty(currencies) ? currencies.get(0) : null;
+
+        return StringUtils.defaultString(currency);
     }
 
     private ExtImpYandex parseAndValidateImpExt(ObjectNode impExtNode, final String impId) {
@@ -115,34 +121,38 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private static Banner modifyBanner(Banner banner) {
-        if (banner == null) {
-            return null;
-        }
-        final Integer w = banner.getW();
-        final Integer h = banner.getH();
+        final Integer weight = banner.getW();
+        final Integer height = banner.getH();
         final List<Format> format = banner.getFormat();
-        if (w == null || h == null || w == 0 || h == 0) {
+        if (weight == null || height == null || weight == 0 || height == 0) {
             if (CollectionUtils.isNotEmpty(format)) {
                 final Format firstFormat = format.get(0);
                 return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
-            throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(w, h));
+            throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(weight, height));
         }
         return banner;
     }
 
-    private String modifyUrl(ExtImpYandex extImpYandex, String referer, String cur) {
+    private String modifyUrl(ExtImpYandex extImpYandex, String referer, String currency) {
         final String resolvedUrl = endpointUrl
                 .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getPageId().toString()))
                 .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getImpId().toString()));
-        final StringBuilder uri = new StringBuilder(resolvedUrl);
-        if (StringUtils.isNotBlank(referer)) {
-            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referer));
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(resolvedUrl);
+        } catch (URISyntaxException e) {
+            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
         }
-        if (StringUtils.isNotBlank(cur)) {
-            uri.append("&ssp-cur=").append(cur);
+        addParameterIfNotBlank(uriBuilder, "target-ref", referer);
+        addParameterIfNotBlank(uriBuilder, "ssp-cur", currency);
+        return uriBuilder.toString();
+    }
+
+    private static void addParameterIfNotBlank(URIBuilder uriBuilder, String parameter, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            uriBuilder.addParameter(parameter, value);
         }
-        return uri.toString();
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {

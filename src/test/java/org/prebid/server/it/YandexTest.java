@@ -22,7 +22,7 @@ public class YandexTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromYandex() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(
-                urlPathEqualTo("/yandex-exchange&target-ref=http%3A%2F%2Fwww.example.com&ssp-cur=USD"))
+                urlPathEqualTo("/yandex-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/yandex/test-yandex-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/yandex/test-yandex-bid-response.json"))));
 

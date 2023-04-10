@@ -2,12 +2,15 @@ package org.prebid.server.bidder.yandex;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -24,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yandex.ExtImpYandex;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -33,12 +37,14 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YandexBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
     private YandexBidder yandexBidder;
 
     @Before
@@ -317,6 +323,96 @@ public class YandexBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), xNative, "USD"),
                         BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoAndAudio() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(asList(Imp.builder().id("blockA").video(Video.builder().build()).build(),
+                                Imp.builder().id("blockB").audio(Audio.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(asList(Bid.builder().impid("blockA").build(),
+                                        Bid.builder().impid("blockB").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), video, "USD"),
+                        BidderBid.of(Bid.builder().impid("blockB").build(), audio, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnError() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("blockA").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().impid("blockA").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse(
+                        "Processing an invalid impression; cannot resolve impression type"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.site(null)
+                        .device(Device.builder().ua("UA").language("EN").ip("127.0.0.1").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getHeaders())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("Accept-Language", "EN"),
+                        tuple("User-Agent", "UA"),
+                        tuple("X-Forwarded-For", "127.0.0.1"),
+                        tuple("X-Real-Ip", "127.0.0.1"),
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURL() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.id("blockA").ext(givenImpExt(1)))))
+                .site(Site.builder().id("1").page("https://domain.com/").build())
+                .cur(asList("EUR", "USD"))
+                .build();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?"
+                        + "target-ref=https%3A%2F%2Fdomain.com%2F&ssp-cur=EUR");
     }
 
     private static BidRequest givenBidRequest(
