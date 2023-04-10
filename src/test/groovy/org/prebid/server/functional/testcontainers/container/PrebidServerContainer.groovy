@@ -38,6 +38,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.metricConfig
                 << PbsConfig.adminEndpointConfig
                 << PbsConfig.bidderConfig
+                << PbsConfig.bidderAliasConfig
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
@@ -93,6 +94,14 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 .replace("-", "")
                 .replace("[", "_")
                 .replace("]", "_")
+    }
+
+    // This is a workaround for cases when container is killed mid-test due to OOM
+    void refresh() {
+        if (!running) {
+            stop()
+            start()
+        }
     }
 
     @Override

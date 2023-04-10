@@ -15,6 +15,7 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
+import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
@@ -23,7 +24,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BAS
 class GdprAmpSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
-        cacheVendorList()
+        cacheVendorList(privacyPbsService)
     }
 
     @PendingFeature
@@ -42,7 +43,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain debug log"
         assert response.ext?.debug?.privacy
@@ -83,7 +84,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain debug log with error"
         assert response.ext?.debug?.privacy
@@ -118,7 +119,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
@@ -145,11 +146,37 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
+    }
+
+    def "PBS should emit error for amp request with consentString when consent_type is us_privacy"() {
+        given: "Default AmpRequest with invalid consent_type"
+        def consentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .build()
+        def ampRequest = getGdprAmpRequest(consentString).tap {
+            consentType = US_PRIVACY
+        }
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["CCPA consent $consentString has invalid format: " +
+                         "us_privacy must contain 4 characters"]
     }
 
     def "PBS should emit error for amp request with consentString when consent_type is bogus"() {
@@ -169,7 +196,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
@@ -191,7 +218,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         assert response.ext?.warnings[PREBID]*.code == [999]
@@ -249,7 +276,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)

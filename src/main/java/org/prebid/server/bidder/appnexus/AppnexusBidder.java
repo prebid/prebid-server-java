@@ -188,22 +188,25 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getLegacyPlacementId(), extImpAppnexus.getPlacementId());
+                extImpAppnexus.getPlacementId(), extImpAppnexus.getDeprecatedPlacementId());
         final String resolvedInvCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
         final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
+        final Boolean resolvedUsePaymentRule = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getUsePmtRule(), extImpAppnexus.getDeprecatedUsePaymentRule());
 
         return extImpAppnexus.toBuilder()
                 .placementId(resolvedPlacementId)
                 .invCode(resolvedInvCode)
                 .trafficSourceCode(resolvedTrafficSourceCode)
+                .usePmtRule(resolvedUsePaymentRule)
                 .build();
     }
 
     private static boolean shouldReplaceWithLegacyParameters(ExtImpAppnexus extImpAppnexus) {
         final boolean setPlacementId = extImpAppnexus.getPlacementId() == null
-                && extImpAppnexus.getLegacyPlacementId() != null;
+                && extImpAppnexus.getDeprecatedPlacementId() != null;
         final boolean setInvCode = extImpAppnexus.getInvCode() == null
                 && extImpAppnexus.getLegacyInvCode() != null;
         final boolean setTrafficSourceCode = extImpAppnexus.getTrafficSourceCode() == null

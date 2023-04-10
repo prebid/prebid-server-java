@@ -7,7 +7,12 @@
     "placementId": {
       "type": "integer",
       "minimum": 1,
-      "description": "An ID which identifies this placement of the impression"
+      "description": "The placement ID from Improve Digital"
+    },
+    "publisherId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The publisher ID from Improve Digital"
     },
     "keyValues": {
       "type": "object",

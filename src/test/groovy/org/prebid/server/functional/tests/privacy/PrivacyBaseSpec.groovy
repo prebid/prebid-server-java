@@ -93,7 +93,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         geo
     }
 
-    protected static void cacheVendorList(PrebidServerService pbsService = defaultPbsService) {
+    protected static void cacheVendorList(PrebidServerService pbsService) {
         def isVendorListCachedClosure = {
             def validConsentString = new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)

@@ -40,6 +40,7 @@ import java.util.Objects;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
+    private static final String URL_PATH_PREFIX_MACRO = "{{PathPrefix}}";
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -62,8 +63,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                parseAndValidateImpExt(imp);
-                httpRequests.add(resolveRequest(request, imp));
+                final ExtImpImprovedigital extImp = parseAndValidateImpExt(imp);
+                httpRequests.add(resolveRequest(request, imp, extImp.getPublisherId()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -115,7 +116,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY, arrayNode));
     }
 
-    private void parseAndValidateImpExt(Imp imp) {
+    private ExtImpImprovedigital parseAndValidateImpExt(Imp imp) {
         final ExtImpImprovedigital ext;
         try {
             ext = mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
@@ -127,9 +128,10 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         if (placementId == null) {
             throw new PreBidException("No placementId provided");
         }
+        return ext;
     }
 
-    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp) {
+    private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp, Integer publisherId) {
         final User user = bidRequest.getUser();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
@@ -138,6 +140,10 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                         : null)
                 .build();
 
+        final String pathPrefix = publisherId != null && publisherId > 0
+                ? String.format("%d/", publisherId) : "";
+
+        final String endpointUrl = this.endpointUrl.replace(URL_PATH_PREFIX_MACRO, pathPrefix);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)

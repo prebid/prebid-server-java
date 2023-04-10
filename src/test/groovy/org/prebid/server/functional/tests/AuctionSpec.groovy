@@ -80,7 +80,7 @@ class AuctionSpec extends BaseSpec {
         and: "Initial metric count is taken"
         def accountId = bidRequest.site.publisher.id
         def fullMetricName = "account.${accountId}.requests.rejected.$metricName" as String
-        def initialMetricCount = getCurrentMetricValue(fullMetricName)
+        def initialMetricCount = getCurrentMetricValue(defaultPbsService, fullMetricName)
 
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -92,7 +92,7 @@ class AuctionSpec extends BaseSpec {
                 "Invalid request format: Stored request processing failed: Id is not found in storedRequest"
 
         and: "Metric count is updated"
-        assert getCurrentMetricValue(fullMetricName) == initialMetricCount + 1
+        assert getCurrentMetricValue(defaultPbsService, fullMetricName) == initialMetricCount + 1
 
         where:
         metricName               | updateBidRequestClosure
