@@ -78,7 +78,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotAdditionalEurCurrencyEntry() {
+    public void makeHttpRequestsShouldNotAddAdditionalEurCurrencyEntry() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.cur(List.of("EUR")), identity());
