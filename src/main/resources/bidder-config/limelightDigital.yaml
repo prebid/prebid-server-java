@@ -1,0 +1,21 @@
+adapters:
+  limelightDigital:
+    endpoint: http://{{Host}}.ortb.net/openrtb/{{PublisherID}}
+    aliases:
+      iionads:
+        enabled: false
+        endpoint: http://{{Host}}.iionads.com/openrtb/{{PublisherID}}
+    meta-info:
+      maintainer-email: engineering@project-limelight.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 0

@@ -9,5 +9,5 @@ import groovy.transform.ToString
 class NonBid {
 
     String impId
-    ImpRejectionReason statusCode
+    BidRejectionReason statusCode
 }

@@ -15,14 +15,14 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer)
-    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(networkServiceContainer)
+    protected static final Bidder bidder = new Bidder(networkServiceContainer)
+    protected static final PrebidCache prebidCache = new PrebidCache(networkServiceContainer)
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
     protected static final AccountDao accountDao = repository.accountDao
@@ -33,6 +33,8 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final int MAX_TIMEOUT = MIN_TIMEOUT + 1000
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
+
+    protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
         prebidCache.setResponse()
@@ -49,12 +51,12 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 
-    protected static Number getCurrentMetricValue(PrebidServerService pbsService = defaultPbsService, String name) {
+    protected static Number getCurrentMetricValue(PrebidServerService pbsService, String name) {
         def response = pbsService.sendCollectedMetricsRequest()
         response[name] ?: 0
     }
 
-    protected static void flushMetrics(PrebidServerService pbsService = defaultPbsService) {
+    protected static void flushMetrics(PrebidServerService pbsService) {
         // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
         pbsService.sendCollectedMetricsRequest()
     }

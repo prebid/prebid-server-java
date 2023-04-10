@@ -192,7 +192,7 @@ class BidValidationSpec extends BaseSpec {
 
     def "PBS should update 'adapter.generic.requests.bid_validation' metric when bid validation error appears"() {
         given: "Initial 'adapter.generic.requests.bid_validation' metric value"
-        def initialMetricValue = getCurrentMetricValue("adapter.generic.requests.bid_validation")
+        def initialMetricValue = getCurrentMetricValue(defaultPbsService, "adapter.generic.requests.bid_validation")
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest

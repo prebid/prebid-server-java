@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.114.0-SNAPSHOT</version>
+        <version>1.116.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -56,6 +56,7 @@
         <log4j.version>2.19.0</log4j.version>
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
+        <protobuf.version>3.21.7</protobuf.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -89,6 +90,9 @@
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
+        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -365,6 +369,16 @@
             <artifactId>iabgpp-encoder</artifactId>
             <version>${gpp-encoder.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
@@ -631,7 +645,28 @@
         This is a jar that contains all the dependencies required to run it, so you can just run it with
         java -jar
         -->
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${os-maven-plugin.version}</version>
+            </extension>
+        </extensions>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>${build-helper-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>add-test-sources</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -645,10 +680,56 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>${protobuf-maven-plugin.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <additionalProtoPathElements>
+                        <additionalProtoPathElement>${project.basedir}/src/main/proto</additionalProtoPathElement>
+                        <additionalProtoPathElement>${project.basedir}/src/test/proto</additionalProtoPathElement>
+                    </additionalProtoPathElements>
+                    <protocArtifact>com.google.protobuf:protoc:3.17.0:exe:${os.detected.classifier}</protocArtifact>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
                 <version>${download-plugin.version}</version>
                 <executions>
+                    <execution>
+                        <id>iab_proto_file</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/IABTechLab/openrtb-proto-v2/master/openrtb-core/src/main/protobuf/openrtb.proto</url>
+                            <outputDirectory>${project.basedir}/src/main/proto</outputDirectory>
+                            <outputFileName>openrtb.proto</outputFileName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>xapi_proto_file</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/MagniteEngineering/xapi-proto/main/src/proto/com/magnite/openrtb/v2/openrtb-xapi.proto</url>
+                            <outputDirectory>${project.basedir}/src/main/proto</outputDirectory>
+                            <outputFileName>openrtb-xapi.proto</outputFileName>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>tld_names</id>
                         <phase>generate-resources</phase>
