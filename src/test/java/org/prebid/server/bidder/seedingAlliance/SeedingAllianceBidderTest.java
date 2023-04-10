@@ -78,6 +78,40 @@ public class SeedingAllianceBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotAdditionalEurCurrencyEntry() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.cur(List.of("EUR")), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getCur)
+                .containsExactly("EUR");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotRemoveOtherCurrencies() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.cur(List.of("USD", "YEN")), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getCur)
+                .containsExactlyInAnyOrder("USD", "YEN", "EUR");
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfBidResponseInvalid() {
         // given
         final BidderCall<BidRequest> response = givenHttpCall("invalid");

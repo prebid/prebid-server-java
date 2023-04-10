@@ -18,7 +18,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -26,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
@@ -103,8 +103,10 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, List<BidderError> errors) {
-        final JsonNode prebidNode = ObjectUtil.getIfNotNull(bid.getExt(), node -> node.get("prebid"));
-        final JsonNode typeNode = ObjectUtil.getIfNotNull(prebidNode, node -> node.get("type"));
+        final JsonNode typeNode = Optional.ofNullable(bid.getExt())
+                .map(extNode -> extNode.get("prebid"))
+                .map(extPrebidNode -> extPrebidNode.get("type"))
+                .orElse(null);
         final BidType bidType;
         try {
             bidType = mapper.mapper().convertValue(typeNode, BidType.class);
