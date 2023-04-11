@@ -212,7 +212,7 @@ public class YandexBidder implements Bidder<BidRequest> {
                 return resolveImpType(imp);
             }
         }
-        throw new PreBidException(("Invalid bid imp ID #%s does not match any imp IDs from the original bid request")
+        throw new PreBidException("Invalid bid imp ID #%s does not match any imp IDs from the original bid request"
                 .formatted(bidImpId));
     }
 
