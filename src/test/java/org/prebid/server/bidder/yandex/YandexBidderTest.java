@@ -276,7 +276,7 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yandexBidder.makeBids(bidderCall, null);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("SeatBids is empty"));
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -371,7 +371,7 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badServerResponse(
-                        "Processing an invalid impression; cannot resolve impression type"));
+                        "Processing an invalid impression; cannot resolve impression type for imp #blockA"));
         assertThat(result.getValue()).isEmpty();
     }
 

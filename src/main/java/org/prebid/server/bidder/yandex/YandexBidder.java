@@ -172,7 +172,7 @@ public class YandexBidder implements Bidder<BidRequest> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_REAL_IP_HEADER, device.getIp());
         }
 
         return headers;
@@ -182,21 +182,17 @@ public class YandexBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
-        if (seatBids == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
-        if (seatBids.isEmpty()) {
-            throw new PreBidException("SeatBids is empty");
-        }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
@@ -216,8 +212,8 @@ public class YandexBidder implements Bidder<BidRequest> {
                 return resolveImpType(imp);
             }
         }
-        throw new PreBidException(("Invalid bid imp ID #%s does not match any imp IDs from the original "
-                + "bid request").formatted(bidImpId));
+        throw new PreBidException(("Invalid bid imp ID #%s does not match any imp IDs from the original bid request")
+                .formatted(bidImpId));
     }
 
     private static BidType resolveImpType(Imp imp) {
@@ -233,6 +229,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (imp.getAudio() != null) {
             return BidType.audio;
         }
-        throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
+        throw new PreBidException("Processing an invalid impression; cannot resolve impression type for imp #%s"
+                .formatted(imp.getId()));
     }
 }
