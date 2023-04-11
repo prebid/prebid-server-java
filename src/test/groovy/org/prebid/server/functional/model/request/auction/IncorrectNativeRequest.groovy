@@ -7,7 +7,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
-class IncorrectNativeRequest implements NativeRequest{
+class IncorrectNativeRequest implements NativeRequest {
 
     Integer ver
     Boolean context
@@ -18,7 +18,7 @@ class IncorrectNativeRequest implements NativeRequest{
     List<Asset> assets
     Boolean aurlSupport
     String durlSupport
-    List<com.iab.openrtb.request.EventTracker> eventTrackers
+    List<EventTracker> eventTrackers
     List<Boolean> privacy
 
     static IncorrectNativeRequest getNativeRequest() {
