@@ -577,6 +577,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .adId("adId")
                 .creativeId("creativeId")
                 .lineItemId("lineItemId")
+                .dealId("dealId")
                 .destinationUrls(Map.of("key1", "https://www.domain1.com/uri",
                         "key2", "http://www.domain2.dt/uri")))));
 
@@ -595,6 +596,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getAdid).isEqualTo("adId");
                 assertThat(bid).extracting(Bid::getAdm).isEqualTo("html");
                 assertThat(bid).extracting(Bid::getCid).isEqualTo("lineItemId");
+                assertThat(bid).extracting(Bid::getDealid).isEqualTo("dealId");
                 assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
                 assertThat(bid).extracting(Bid::getAdomain).asList()
