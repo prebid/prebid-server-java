@@ -3,6 +3,7 @@ package org.prebid.server.activity;
 import org.prebid.server.activity.rule.Rule;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ActivityConfiguration {
 
@@ -11,7 +12,7 @@ public class ActivityConfiguration {
 
     private ActivityConfiguration(boolean allowByDefault, List<Rule> rules) {
         this.allowByDefault = allowByDefault;
-        this.rules = rules;
+        this.rules = Objects.requireNonNull(rules);
     }
 
     public static ActivityConfiguration of(boolean allowByDefault, List<Rule> rules) {
