@@ -4,14 +4,16 @@ import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.AssetImage
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.IncorrectNativeRequest
 import org.prebid.server.functional.model.request.auction.Native
-import org.prebid.server.functional.model.request.auction.NativeRequest
+import org.prebid.server.functional.model.request.auction.CorrectNativeRequest
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -25,7 +27,7 @@ class NativeSpec extends BaseSpec {
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp[0].banner = null
-            imp[0].nativeObj = new Native(request: new NativeRequest(assets: [asset]))
+            imp[0].nativeObj = new Native(request: new CorrectNativeRequest(assets: [asset]))
             imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
         }
 
@@ -53,7 +55,7 @@ class NativeSpec extends BaseSpec {
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp[0].banner = null
-            imp[0].nativeObj = new Native(request: new NativeRequest(assets: [asset]))
+            imp[0].nativeObj = new Native(request: new CorrectNativeRequest(assets: [asset]))
             imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
         }
 
@@ -71,5 +73,23 @@ class NativeSpec extends BaseSpec {
 
         then: "Response should not contain error"
         assert !response.ext?.errors
+    }
+
+    def "PBS should emit detail error message when native.request is invalid"() {
+        given: "BidRequest with generic bidder, incorrect native"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            imp[0].banner = null
+            imp[0].nativeObj = new Native(request: IncorrectNativeRequest.nativeRequest)
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("Invalid request format: " +
+                "Error while parsing request.imp[0].native.request: MismatchedInputException: " +
+                "Cannot deserialize value of type `java.lang.Integer` " +
+                "from Boolean value (token `JsonToken.VALUE_TRUE`)")
     }
 }

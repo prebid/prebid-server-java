@@ -14,7 +14,7 @@ class Native implements ObjectMapperWrapper {
     List<Integer> battr
 
     static Native getDefaultNative(){
-        new Native(request: NativeRequest.nativeRequest)
+        new Native(request: CorrectNativeRequest.nativeRequest)
     }
 
     @JsonGetter("request")
@@ -24,7 +24,7 @@ class Native implements ObjectMapperWrapper {
 
     @JsonSetter("request")
     void getRequest(String request) {
-        this.request = decode(request, NativeRequest)
+        this.request = decode(request, CorrectNativeRequest)
     }
 
 }
