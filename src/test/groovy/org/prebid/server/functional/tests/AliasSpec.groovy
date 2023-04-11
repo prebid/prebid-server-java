@@ -1,18 +1,20 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
 class AliasSpec extends BaseSpec {
 
-    def "PBS should apply aliases for bidder when aliases corresponding to bidder request"() {
+    def "PBS should be able to take alias from request"() {
         given: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
@@ -29,12 +31,16 @@ class AliasSpec extends BaseSpec {
 
         and: "Resolved request should contain aliases as in request"
         assert responseDebug.resolvedRequest.ext.prebid.aliases == bidRequest.ext.prebid.aliases
+
+        and: "Bidder request should contain request per-alies"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
     }
 
-    def "PBS shouldn't apply aliases for bidder when unknown aliases corresponding to bidder request"() {
+    def "PBS shouldn't apply aliases for bidder when aliases didn't provide proper config"() {
         given: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
+            ext.prebid.aliases = [(BOGUS.value): GENERIC]
         }
 
         when: "PBS processes auction request"
@@ -56,7 +62,7 @@ class AliasSpec extends BaseSpec {
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = [("alias"): GENERIC]
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
             imp[0].ext.prebid.bidder.alias = new Generic()
         }
 
@@ -65,7 +71,7 @@ class AliasSpec extends BaseSpec {
 
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
-                       ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+                ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
     def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {
