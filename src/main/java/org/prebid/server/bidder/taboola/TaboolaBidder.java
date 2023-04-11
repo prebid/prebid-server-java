@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
 public class TaboolaBidder implements Bidder<BidRequest> {
 
@@ -90,11 +89,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        String gvlId = extractGvlId(request);
+        final String gvlId = extractGvlId(request);
 
         final ExtImpTaboola lastExtImp = extImpTaboola != null ? extImpTaboola : ExtImpTaboola.empty();
         final List<HttpRequest<BidRequest>> httpRequests = mediaTypeToImps.entrySet().stream()
-                .map(entry -> createHttpRequest(entry.getKey(),
+                .map(entry -> createHttpRequest(
+                        entry.getKey(),
                         createRequest(request, entry.getValue(), lastExtImp),
                         gvlId))
                 .toList();
@@ -281,12 +281,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
     }
 
     private static String extractGvlId(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final ExtRequestPrebidServer server = getIfNotNull(prebid, ExtRequestPrebid::getServer);
-        return server != null ? server.getGvlId().toString() : "";
-    }
-
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getServer)
+                .map(ExtRequestPrebidServer::getGvlId)
+                .map(Object::toString)
+                .orElse("");
     }
 }
