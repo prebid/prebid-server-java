@@ -16,7 +16,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -312,13 +311,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .uri(endpointUrl)
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override
