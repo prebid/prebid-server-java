@@ -190,9 +190,9 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(extRequest, objectNode);
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest) {
+    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest, String gvlId) {
         return BidderUtil.defaultRequest(outgoingRequest,
-                buildEndpointUrl(outgoingRequest.getSite().getId(), type),
+                buildEndpointUrl(outgoingRequest.getSite().getId(), type, gvlId),
                 mapper);
     }
 
