@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -71,16 +70,9 @@ public class GridBidder implements Bidder<BidRequest> {
 
         final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
         final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
-        final HttpRequest<BidRequest> httpRequest =
-                HttpRequest.<BidRequest>builder()
-                        .uri(endpointUrl)
-                        .method(HttpMethod.POST)
-                        .headers(HttpUtil.headers())
-                        .payload(modifiedRequest)
-                        .body(mapper.encodeToBytes(modifiedRequest))
-                        .build();
 
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        return Result.of(Collections.singletonList(
+                BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper)), errors);
     }
 
     private List<Imp> modifyImps(List<Imp> imps, List<BidderError> errors) {

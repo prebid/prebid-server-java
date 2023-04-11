@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -191,14 +190,10 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(extRequest, objectNode);
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest, String gvlId) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(buildEndpointUrl(outgoingRequest.getSite().getId(), type, gvlId))
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
+    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest) {
+        return BidderUtil.defaultRequest(outgoingRequest,
+                buildEndpointUrl(outgoingRequest.getSite().getId(), type),
+                mapper);
     }
 
     private String buildEndpointUrl(String publisherId, MediaType mediaType, String gvlId) {

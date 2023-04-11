@@ -15,6 +15,7 @@
           "creativeHeight": "90",
           "creativeId": "some_creative_id",
           "lineItemId": "some_line_item_id",
+          "dealId": "some_deal_id",
           "destinationUrls": {
             "some_url": "https://www.domain.dm/uri"
           }

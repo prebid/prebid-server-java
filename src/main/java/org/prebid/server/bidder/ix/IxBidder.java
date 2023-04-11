@@ -17,7 +17,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -34,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -97,13 +97,7 @@ public class IxBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
-                .map(request -> HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encodeToBytes(request))
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build())
+                .map(request -> BidderUtil.defaultRequest(request, endpointUrl, mapper))
                 .toList();
 
         return Result.of(httpRequests, errors);

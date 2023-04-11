@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -20,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.engagebdr.ExtImpEngagebdr;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -53,13 +53,10 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
         for (Map.Entry<String, List<Imp>> sspidToImpsEntry : dispatchedRequest.entrySet()) {
             final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(sspidToImpsEntry.getValue()).build();
 
-            httpRequests.add(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(endpointUrl + "?zoneid=" + sspidToImpsEntry.getKey())
-                    .body(mapper.encodeToBytes(updatedBidRequest))
-                    .headers(HttpUtil.headers())
-                    .payload(updatedBidRequest)
-                    .build());
+            httpRequests.add(BidderUtil.defaultRequest(
+                    updatedBidRequest,
+                    endpointUrl + "?zoneid=" + sspidToImpsEntry.getKey(),
+                    mapper));
         }
 
         return Result.of(httpRequests, errors);

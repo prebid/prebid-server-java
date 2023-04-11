@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -23,6 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadserver;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.URI;
@@ -77,13 +77,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createSingleRequest(BidRequest request) {
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(getUri())
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(request))
-                .payload(request)
-                .build();
+        return BidderUtil.defaultRequest(request, getUri(), mapper);
     }
 
     private String getUri() {

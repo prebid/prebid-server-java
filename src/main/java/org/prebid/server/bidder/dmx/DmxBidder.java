@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -113,14 +112,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                 : "";
         final String uri = endpointUrl + urlParameter;
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(uri)
-                                .headers(HttpUtil.headers())
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, uri, mapper)),
                 errors);
     }
 

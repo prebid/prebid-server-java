@@ -1,31 +1,28 @@
 {
-  "id": "request_id",
+  "id": "tid",
   "imp": [
     {
-      "id": "imp_id",
-      "secure": 1,
+      "id": "impId001",
       "banner": {
-        "w": 300,
-        "h": 250
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
       },
-      "bidfloor": 20,
+      "secure": 1,
       "ext": {
-        "adtelligent": {
-          "aid": 1000,
-          "placementId": 10,
-          "siteId": 1234,
-          "bidFloor": 20
-        }
+        "tid": "${json-unit.any-string}",
+        "bidder": {}
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
+      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -33,14 +30,22 @@
     }
   },
   "device": {
+    "dnt": 2,
     "ua": "userAgent",
-    "ip": "193.168.244.1"
+    "ip": "193.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
@@ -48,6 +53,9 @@
   },
   "ext": {
     "prebid": {
+      "channel": {
+        "name": "web"
+      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
