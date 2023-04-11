@@ -2,19 +2,21 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "1",
       "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "tagid" : "tag-id",
       "bidfloor": 20,
       "ext": {
-        "adtelligent": {
-          "aid": 1000,
-          "placementId": 10,
-          "siteId": 1234,
-          "bidFloor": 20
+        "tid" : "${json-unit.any-string}",
+        "bidder": {
+          "publisherId": "publisher-id",
+          "tagid": "tag-id",
+          "bidfloor" : 20,
+          "publisherDomain": "http://domain.com"
         }
       }
     }
@@ -23,10 +25,12 @@
     "tid": "${json-unit.any-string}"
   },
   "site": {
-    "domain": "www.example.com",
+    "id" : "publisher-id",
+    "name" : "publisher-id",
+    "domain": "http://domain.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain": "example.com"
+      "id" : "publisher-id"
     },
     "ext": {
       "amp": 0

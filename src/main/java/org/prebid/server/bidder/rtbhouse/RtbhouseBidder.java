@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -78,13 +77,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .imp(modifiedImps)
                 .build();
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build());
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
 
     @Override

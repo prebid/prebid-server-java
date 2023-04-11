@@ -96,6 +96,14 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 .replace("]", "_")
     }
 
+    // This is a workaround for cases when container is killed mid-test due to OOM
+    void refresh() {
+        if (!running) {
+            stop()
+            start()
+        }
+    }
+
     @Override
     void close() {
         super.close()

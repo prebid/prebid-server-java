@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -20,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adman.ExtImpAdman;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -79,13 +79,7 @@ public class AdmanBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifyBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(modifyBidRequest)
-                .body(mapper.encodeToBytes(modifyBidRequest))
-                .build();
+        return BidderUtil.defaultRequest(modifyBidRequest, endpointUrl, mapper);
     }
 
     @Override

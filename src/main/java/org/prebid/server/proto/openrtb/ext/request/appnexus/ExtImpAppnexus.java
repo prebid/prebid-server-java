@@ -14,13 +14,16 @@ import java.util.List;
 public class ExtImpAppnexus {
 
     @JsonProperty("placementId")
-    Integer legacyPlacementId;
+    Integer deprecatedPlacementId;
 
     @JsonProperty("invCode")
     String legacyInvCode;
 
     @JsonProperty("trafficSourceCode")
     String legacyTrafficSourceCode;
+
+    @JsonProperty("use_payment_rule")
+    Boolean deprecatedUsePaymentRule;
 
     @JsonProperty("placement_id")
     Integer placementId;

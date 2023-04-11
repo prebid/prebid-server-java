@@ -8,11 +8,9 @@
         "h": 250
       },
       "ext": {
-        "oftmedia": {
-          "aid": 1000,
-          "siteId": 1234,
-          "bidFloor": 20,
-          "placementId": 10
+        "infytv": {
+          "publisherId": "publisherId",
+          "placementId": "placementId"
         }
       }
     }
