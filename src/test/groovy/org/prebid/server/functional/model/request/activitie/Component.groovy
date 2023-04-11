@@ -3,6 +3,7 @@ package org.prebid.server.functional.model.request.activitie
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -15,7 +16,7 @@ class Component {
     @JsonProperty("notin")
     List<String> notIn
 
-    static Component getDefaultComponent() {
-        new Component(xIn: [GENERIC.value], notIn: null)
+    static Component getBaseComponent(BidderName bidder = GENERIC) {
+        new Component(xIn: [bidder.value], notIn: null)
     }
 }

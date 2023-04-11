@@ -11,12 +11,8 @@ class Condition {
     Component componentType
     Component componentName
 
-    static Condition getDefaultCondition() {
-        new Condition(componentName: Component.defaultComponent)
-    }
-
-    static Condition getTypedCondition(Component componentName, ComponentType componentType) {
-        new Condition(componentName: componentName, componentType: new Component(xIn: [componentType.name]))
+    static Condition getBaseCondition(Component component = Component.baseComponent) {
+        new Condition(componentName: component)
     }
 
     enum ConditionType {

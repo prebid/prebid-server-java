@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.request.activitie.AllowActivities
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -26,8 +25,6 @@ class CookieSyncRequest {
     String account
     @JsonProperty("filterSettings")
     FilterSettings filterSettings
-    @JsonProperty("allowactivities")
-    AllowActivities allowActivities
 
     static CookieSyncRequest getDefaultCookieSyncRequest() {
         new CookieSyncRequest().tap {

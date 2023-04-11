@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.Format
-import org.prebid.server.functional.model.request.activitie.AllowActivities
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -19,8 +18,6 @@ class SetuidRequest {
     @JsonProperty("f")
     Format format
     String account
-    @JsonProperty("allowactivities")
-    AllowActivities allowActivities
 
     static SetuidRequest getDefaultSetuidRequest() {
         def request = new SetuidRequest()
