@@ -1,10 +1,13 @@
 adapters:
   limelightDigital:
-    endpoint: http://{{Host}}.ortb.net/openrtb/{{PublisherID}}
+    endpoint: http://ads-pbs.ortb.net/openrtb/{{PublisherID}}?host={{Host}}
     aliases:
       iionads:
         enabled: false
-        endpoint: http://{{Host}}.iionads.com/openrtb/{{PublisherID}}
+        endpoint: http://ads-pbs.iionads.com/openrtb/{{PublisherID}}?host={{Host}}
+      evtech:
+        enabled: false
+        endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
