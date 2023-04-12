@@ -35,7 +35,7 @@ abstract class ActivityBaseSpec extends BaseSpec {
             "adapters.${OPENX.value}.enabled" : IS_ENABLED]
     private static final Map<String, String> PBS_CONFIG = GENERIC_CONFIG + OPENX_CONFIG
 
-    protected PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG) 1
+    protected PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
     protected static BidRequest getBidRequestWithAccount(DistributionChannel channel = SITE,
                                                          String accountId,
@@ -60,7 +60,7 @@ abstract class ActivityBaseSpec extends BaseSpec {
         }
     }
 
-    protected static Account getDefaultAccount(int accountId, AllowActivities activities) {
+    protected static Account getDefaultAccount(String accountId, AllowActivities activities) {
         def privacy = new AccountPrivacyConfig(activities: activities)
         def accountConfig = new AccountConfig(privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
