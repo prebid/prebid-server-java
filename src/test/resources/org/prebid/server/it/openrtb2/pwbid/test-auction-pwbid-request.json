@@ -8,16 +8,14 @@
         "h": 250
       },
       "ext": {
-        "adtrgtme": {
-          "site_id": 123
+        "pwbid": {
+          "siteId": "site_id",
+          "bidFloor": 1,
+          "isTest": true
         }
       }
     }
   ],
-  "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com"
-  },
   "tmax": 5000,
   "regs": {
     "ext": {

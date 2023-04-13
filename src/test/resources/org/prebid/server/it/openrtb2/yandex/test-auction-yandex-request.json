@@ -5,19 +5,16 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 250
+        "h": 600
       },
       "ext": {
-        "adtrgtme": {
-          "site_id": 123
+        "yandex": {
+          "page_id": 134001,
+          "imp_id": 1
         }
       }
     }
   ],
-  "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com"
-  },
   "tmax": 5000,
   "regs": {
     "ext": {
