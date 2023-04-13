@@ -27,11 +27,6 @@
         "h": 250,
         "w": 300
       },
-      "ext": {
-        "bidder": {
-        },
-        "tid": "${json-unit.any-string}"
-      },
       "id": "imp_id",
       "secure": 1
     }
@@ -46,7 +41,6 @@
     "ext": {
       "amp": 0
     },
-    "id": "site_id",
     "page": "http://www.example.com",
     "publisher": {
       "domain": "example.com"
