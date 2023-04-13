@@ -2,34 +2,36 @@ package org.prebid.server.functional.tests.privacy.activity
 
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.activitie.Activity
-import org.prebid.server.functional.model.request.activitie.ActivityRule
-import org.prebid.server.functional.model.request.activitie.AllowActivities
-import org.prebid.server.functional.model.request.activitie.Component
-import org.prebid.server.functional.model.request.activitie.Condition
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Component
+import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.activitie.Activity.getActivityWithRules
-import static org.prebid.server.functional.model.request.activitie.Activity.getDefaultActivity
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.DEFAULT
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.INVALID
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.TOP
-import static org.prebid.server.functional.model.request.activitie.AllowActivities.getDefaultAllowActivities
-import static org.prebid.server.functional.model.request.activitie.Component.baseComponent
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.RTD_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.Activity.getActivityWithRules
+import static org.prebid.server.functional.model.request.auction.Activity.getDefaultActivity
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
+import static org.prebid.server.functional.model.request.auction.AllowActivities.getDefaultAllowActivities
+import static org.prebid.server.functional.model.request.auction.Component.baseComponent
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.ActivityType.*
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.util.PBSUtils.randomNumber
 
 class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
-    static final AllowActivities.ActivityType type = AllowActivities.ActivityType.FETCH_BID
+    static final ActivityType type = FETCH_BIDS
 
     def "PBS activity call with all bidders allowed in activities should call each bid adapter"() {
         given: "Activities set with all bidders allowed"
@@ -220,7 +222,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: baseCondition, allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)]
@@ -229,7 +231,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
     def "PBS activity call with specific reject hierarchy in activities should skip call to restricted bidder"() {
         given: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: TOP, condition: baseCondition, allow: false)
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: false)
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true)
         def activity = getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
         def activities = getDefaultAllowActivities(type, activity)
@@ -288,7 +290,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            account = accountId
+            it.account = accountId
         }
 
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
@@ -333,8 +335,8 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         accountDao.save(account)
 
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
+            it.tagId = PBSUtils.randomString
+            it.account = accountId
         }
 
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
@@ -376,7 +378,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            account = accountId
+            it.account = accountId
         }
 
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
@@ -436,7 +438,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: baseCondition, allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)]
@@ -445,7 +447,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
 
     def "PBS amp call with specific reject hierarchy in activities should skip call to restricted bidder"() {
         given: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: TOP, condition: baseCondition, allow: false)
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: false)
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true)
         def activity = getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
         def activities = getDefaultAllowActivities(type, activity)

@@ -1,8 +1,7 @@
-package org.prebid.server.functional.model.request.activitie
+package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.hibernate.type.ComponentType
 
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
