@@ -11,8 +11,8 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.activitie.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.tests.BaseSpec
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
