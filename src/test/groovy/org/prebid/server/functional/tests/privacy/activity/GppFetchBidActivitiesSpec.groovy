@@ -48,8 +48,8 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def openxBidRequest = getBidRequestWithAccount(SITE, accountId, OPENX)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
-        def openxResponse = prebidServerService.sendAuctionRequest(openxBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+        def openxResponse = pbsServerService.sendAuctionRequest(openxBidRequest)
 
         then: "Resolved response should contain seatbid for Generic request"
         assert genericResponse.seatbid.first().seat == GENERIC
@@ -92,8 +92,8 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def openxBidRequest = getBidRequestWithAccount(SITE, accountId, OPENX)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
-        def openxResponse = prebidServerService.sendAuctionRequest(openxBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+        def openxResponse = pbsServerService.sendAuctionRequest(openxBidRequest)
 
         then: "Resolved response should not contain any seatbid for Generic request"
         assert !genericResponse.seatbid
@@ -136,8 +136,8 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def openxBidRequest = getBidRequestWithAccount(SITE, accountId, OPENX)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
-        def openxResponse = prebidServerService.sendAuctionRequest(openxBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+        def openxResponse = pbsServerService.sendAuctionRequest(openxBidRequest)
 
         then: "Resolved response should contain seatbid for Openx request"
         assert openxResponse.seatbid.first().seat == OPENX
@@ -176,7 +176,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def generalBidRequest = getBidRequestWithAccount(accountId)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "Resolved response should contain seatbid for Generic request"
         assert genericResponse.seatbid
@@ -210,7 +210,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def generalBidRequest = getBidRequestWithAccount(accountId)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "Resolved response should contain seatbid for Generic request"
         assert genericResponse.seatbid.first().seat == GENERIC
@@ -243,7 +243,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def generalBidRequest = getBidRequestWithAccount(accountId)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "Resolved response should not contain any seatbid for Generic request"
         assert !genericResponse.seatbid
@@ -267,7 +267,7 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         def generalBidRequest = getBidRequestWithAccount(accountId)
 
         when: "PBS processes auction requests"
-        def genericResponse = prebidServerService.sendAuctionRequest(generalBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "Resolved response should contain seatbid for Generic request"
         assert genericResponse.seatbid
