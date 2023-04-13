@@ -18,6 +18,9 @@ public class ExtImpTaboola {
     String publisherDomain;
 
     @JsonProperty("tagid")
+    String lowerCaseTagId;
+
+    @JsonProperty("tagId")
     String tagId;
 
     @JsonProperty("bidfloor")

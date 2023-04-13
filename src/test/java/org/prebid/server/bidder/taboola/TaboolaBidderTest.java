@@ -29,6 +29,8 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.taboola.ExtImpTaboola;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -52,8 +54,8 @@ public class TaboolaBidderTest extends VertxTest {
     @Before
     public void setUp() {
         taboolaBidder = new TaboolaBidder(
-                "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}",
-                "http://localhost-test.com",
+                "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{GvlID}}/{{PublisherID}}",
+                1,
                 jacksonMapper);
     }
 
@@ -61,7 +63,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void createBidderWithWrongEndpointShouldThrowException() {
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TaboolaBidder("incorrect.endpoint", "http://localhost:8090", jacksonMapper));
+                .isThrownBy(() -> new TaboolaBidder("incorrect.endpoint", 1, jacksonMapper));
     }
 
     @Test
@@ -107,9 +109,10 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyImpTagIdIfExtImpTagIdIsEmpty() {
+    public void makeHttpRequestsShouldNotModifyExtTagIdIfExtTagIdIsNotEmpty() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenBannerImp(imp -> imp.tagid("tagId"), identity()));
+        final BidRequest bidRequest = givenBidRequest(givenBannerImp(imp -> imp.tagid("tagId"),
+                extImp -> extImp.tagId("extTagId").lowerCaseTagId("lowercaseTagId")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
@@ -120,7 +123,25 @@ public class TaboolaBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsExactly("tagId");
+                .containsExactly("extTagId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyExtTagIdIfExtTagIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenBannerImp(imp -> imp.tagid("tagId"),
+                extImp -> extImp.tagId("").lowerCaseTagId("lowercaseTagId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("lowercaseTagId");
     }
 
     @Test
@@ -337,7 +358,7 @@ public class TaboolaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/publisherId");
+                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/1/publisherId");
     }
 
     @Test
@@ -353,7 +374,7 @@ public class TaboolaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/not%2Fencoded");
+                .containsExactly("https://display.bidder.taboola.com/OpenRTB/PS/auction/1/not%2Fencoded");
     }
 
     @Test
@@ -369,7 +390,7 @@ public class TaboolaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://native.bidder.taboola.com/OpenRTB/PS/auction/localhost-test.com/publisherId");
+                .containsExactly("https://native.bidder.taboola.com/OpenRTB/PS/auction/1/publisherId");
     }
 
     @Test
@@ -579,7 +600,10 @@ public class TaboolaBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               Imp... imps) {
-        return bidRequestCustomizer.apply(BidRequest.builder().imp(List.of(imps))).build();
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .server(ExtRequestPrebidServer.of(null, 1, null, null))
+                        .build())).imp(List.of(imps))).build();
     }
 
     private static BidRequest givenBidRequest(Imp... imps) {

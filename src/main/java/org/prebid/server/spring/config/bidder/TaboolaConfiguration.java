@@ -29,13 +29,14 @@ public class TaboolaConfiguration {
 
     @Bean
     BidderDeps taboolaBidderDeps(BidderConfigurationProperties taboolaConfigurationProperties,
+                                 @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(taboolaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), externalUrl, mapper))
+                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), hostVendorId, mapper))
                 .assemble();
     }
 }

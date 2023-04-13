@@ -44,18 +44,19 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private static final String DISPLAY_ENDPOINT_PREFIX = "display";
     private static final String NATIVE_ENDPOINT_PREFIX = "native";
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTaboola>> TABOOLA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointTemplate;
-    private final String domain;
+    private final String gvlId;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, String externalUrl, JacksonMapper mapper) {
+    public TaboolaBidder(String endpointTemplate, Integer gvlId, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
-        this.domain = HttpUtil.getHostFromUrl(externalUrl);
+        this.gvlId = gvlId != null ? String.valueOf(gvlId) : "";
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -90,7 +91,9 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
         final ExtImpTaboola lastExtImp = extImpTaboola != null ? extImpTaboola : ExtImpTaboola.empty();
         final List<HttpRequest<BidRequest>> httpRequests = mediaTypeToImps.entrySet().stream()
-                .map(entry -> createHttpRequest(entry.getKey(), createRequest(request, entry.getValue(), lastExtImp)))
+                .map(entry -> createHttpRequest(
+                        entry.getKey(),
+                        createRequest(request, entry.getValue(), lastExtImp)))
                 .toList();
 
         return Result.withValues(httpRequests);
@@ -116,9 +119,9 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private static Imp modifyImp(Imp imp, ExtImpTaboola impExt) {
         final String impExtTagId = impExt.getTagId();
-        final UpdateResult<String> resolvedTagId = StringUtils.isNotEmpty(impExtTagId)
-                ? UpdateResult.updated(impExtTagId)
-                : UpdateResult.unaltered(imp.getTagid());
+        final UpdateResult<String> resolvedTagId = StringUtils.length(impExtTagId) < 1
+                ? UpdateResult.updated(impExt.getLowerCaseTagId())
+                : UpdateResult.updated(impExtTagId);
 
         final BigDecimal impExtBidFloor = impExt.getBidFloor();
         final UpdateResult<BigDecimal> resolvedBidFloor = BidderUtil.isValidPrice(impExtBidFloor)
@@ -200,7 +203,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         };
 
         return endpointTemplate
-                .replace("{{Host}}", domain)
+                .replace("{{GvlID}}", gvlId)
                 .replace("{{MediaType}}", type)
                 .replace("{{PublisherID}}", HttpUtil.encodeUrl(publisherId));
     }
@@ -244,7 +247,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
+            return BidderBid.of(resolveMacros(bid), resolveBidType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -262,5 +265,15 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException("Failed to find banner/native impression \"%s\"".formatted(impId));
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 }
