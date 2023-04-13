@@ -55,6 +55,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void setUp() {
         taboolaBidder = new TaboolaBidder(
                 "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{GvlID}}/{{PublisherID}}",
+                1,
                 jacksonMapper);
     }
 
@@ -62,7 +63,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void createBidderWithWrongEndpointShouldThrowException() {
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TaboolaBidder("incorrect.endpoint", jacksonMapper));
+                .isThrownBy(() -> new TaboolaBidder("incorrect.endpoint", 1, jacksonMapper));
     }
 
     @Test

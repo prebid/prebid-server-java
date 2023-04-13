@@ -53,10 +53,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointTemplate;
+    private final String gvlId;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, JacksonMapper mapper) {
+    public TaboolaBidder(String endpointTemplate, Integer gvlId, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+        this.gvlId = gvlId != null ? String.valueOf(gvlId) : "";
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -89,14 +91,11 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final String gvlId = extractGvlId(request);
-
         final ExtImpTaboola lastExtImp = extImpTaboola != null ? extImpTaboola : ExtImpTaboola.empty();
         final List<HttpRequest<BidRequest>> httpRequests = mediaTypeToImps.entrySet().stream()
                 .map(entry -> createHttpRequest(
                         entry.getKey(),
-                        createRequest(request, entry.getValue(), lastExtImp),
-                        gvlId))
+                        createRequest(request, entry.getValue(), lastExtImp)))
                 .toList();
 
         return Result.withValues(httpRequests);
@@ -190,13 +189,13 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(extRequest, objectNode);
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest, String gvlId) {
+    private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest) {
         return BidderUtil.defaultRequest(outgoingRequest,
-                buildEndpointUrl(outgoingRequest.getSite().getId(), type, gvlId),
+                buildEndpointUrl(outgoingRequest.getSite().getId(), type),
                 mapper);
     }
 
-    private String buildEndpointUrl(String publisherId, MediaType mediaType, String gvlId) {
+    private String buildEndpointUrl(String publisherId, MediaType mediaType) {
         final String type = switch (mediaType) {
             case BANNER -> DISPLAY_ENDPOINT_PREFIX;
             case NATIVE -> NATIVE_ENDPOINT_PREFIX;
@@ -278,15 +277,5 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
                 .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
-    }
-
-    private static String extractGvlId(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getServer)
-                .map(ExtRequestPrebidServer::getGvlId)
-                .map(Object::toString)
-                .orElse("");
     }
 }
