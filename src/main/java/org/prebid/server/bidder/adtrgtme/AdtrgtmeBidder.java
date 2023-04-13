@@ -53,8 +53,8 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                ExtImpAdtrgtme impAdtrgtme = parseImpExt(imp);
-                final BidRequest updatedRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+                final ExtImpAdtrgtme impAdtrgtme = parseImpExt(imp);
+                final BidRequest updatedRequest = createRequest(request, imp);
                 requests.add(makeHttpRequest(updatedRequest, impAdtrgtme.getSiteId()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -72,6 +72,14 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static BidRequest createRequest(BidRequest request, Imp imp) {
+        return request.toBuilder().imp(Collections.singletonList(prepareImp(imp))).build();
+    }
+
+    private static Imp prepareImp(Imp imp) {
+        return imp.toBuilder().ext(null).build();
+    }
+
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Integer siteId) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -84,7 +92,6 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
     private String makeUrl(Integer siteId) {
         return "%s?s=%d&prebid".formatted(endpointUrl, siteId);
-
     }
 
     private MultiMap makeRequestHeaders(Device device) {

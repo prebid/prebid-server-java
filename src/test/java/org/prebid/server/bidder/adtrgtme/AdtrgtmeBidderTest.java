@@ -28,12 +28,11 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -89,9 +88,11 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
 
         // then
+        final BidRequest expectedBidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(null).id("123"));
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
-            assertThat(httpRequest.getPayload()).isEqualTo(bidRequest);
-            assertThat(httpRequest.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest));
+            assertThat(httpRequest.getPayload()).isEqualTo(expectedBidRequest);
+            assertThat(httpRequest.getBody()).isEqualTo(jacksonMapper.encodeToBytes(expectedBidRequest));
         });
     }
 
@@ -252,7 +253,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                         String.format("Unsupported bidtype for bid: \"%s\"", "123")));
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
                         .banner(Banner.builder().h(150).w(300).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtrgtme.of(123)))))
@@ -275,13 +276,13 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 null);
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impModifier) {
         return givenBidRequest(impModifier, identity());
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {
+            UnaryOperator<Imp.ImpBuilder> impModifier,
+            UnaryOperator<BidRequest.BidRequestBuilder> requestModifier) {
 
         return requestModifier.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impModifier))))

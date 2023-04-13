@@ -27,12 +27,6 @@
         "h": 250,
         "w": 300
       },
-      "ext": {
-        "bidder": {
-          "site_id": 123
-        },
-        "tid": "${json-unit.any-string}"
-      },
       "id": "imp_id",
       "secure": 1
     }

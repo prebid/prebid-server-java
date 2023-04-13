@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -22,6 +23,8 @@ public class AdtrgtmeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdtrgtme() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtrgtme-exchange"))
+                .withQueryParam("s", equalTo("123"))
+                .withQueryParam("prebid", equalTo(""))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtrgtme/test-adtrgtme-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adtrgtme/test-adtrgtme-bid-response.json"))));
 
