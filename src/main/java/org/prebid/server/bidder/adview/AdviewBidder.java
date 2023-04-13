@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -69,13 +68,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(resolveEndpoint(extImpAdview.getAccountId()))
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(modifiedBidRequest))
-                        .payload(modifiedBidRequest)
-                        .build());
+                BidderUtil.defaultRequest(modifiedBidRequest, resolveEndpoint(extImpAdview.getAccountId()), mapper));
     }
 
     private ExtImpAdview parseExtImp(Imp imp) {

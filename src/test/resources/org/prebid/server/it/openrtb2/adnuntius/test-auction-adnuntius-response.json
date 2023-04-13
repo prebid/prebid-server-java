@@ -14,6 +14,7 @@
           ],
           "cid": "some_line_item_id",
           "crid": "some_creative_id",
+          "dealid": "some_deal_id",
           "w": 140,
           "h": 90,
           "ext": {

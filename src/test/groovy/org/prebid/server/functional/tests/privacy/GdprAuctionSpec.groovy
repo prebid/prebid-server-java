@@ -20,7 +20,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BAS
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
-        cacheVendorList()
+        cacheVendorList(privacyPbsService)
     }
 
     @PendingFeature
@@ -34,7 +34,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(validConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain debug log"
         assert response.ext?.debug?.privacy
@@ -70,7 +70,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(invalidConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.errors"
         assert !response.ext?.errors
@@ -153,7 +153,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -177,7 +177,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)

@@ -13,7 +13,6 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -175,13 +174,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(imp))
                 .build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveUrl(extImpOperaads))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, resolveUrl(extImpOperaads), mapper);
     }
 
     private String resolveUrl(ExtImpOperaads extImpOperaads) {

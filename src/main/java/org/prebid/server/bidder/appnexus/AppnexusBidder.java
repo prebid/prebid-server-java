@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -188,22 +187,25 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getLegacyPlacementId(), extImpAppnexus.getPlacementId());
+                extImpAppnexus.getPlacementId(), extImpAppnexus.getDeprecatedPlacementId());
         final String resolvedInvCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
         final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
+        final Boolean resolvedUsePaymentRule = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getUsePmtRule(), extImpAppnexus.getDeprecatedUsePaymentRule());
 
         return extImpAppnexus.toBuilder()
                 .placementId(resolvedPlacementId)
                 .invCode(resolvedInvCode)
                 .trafficSourceCode(resolvedTrafficSourceCode)
+                .usePmtRule(resolvedUsePaymentRule)
                 .build();
     }
 
     private static boolean shouldReplaceWithLegacyParameters(ExtImpAppnexus extImpAppnexus) {
         final boolean setPlacementId = extImpAppnexus.getPlacementId() == null
-                && extImpAppnexus.getLegacyPlacementId() != null;
+                && extImpAppnexus.getDeprecatedPlacementId() != null;
         final boolean setInvCode = extImpAppnexus.getInvCode() == null
                 && extImpAppnexus.getLegacyInvCode() != null;
         final boolean setTrafficSourceCode = extImpAppnexus.getTrafficSourceCode() == null
@@ -393,13 +395,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .ext(requestExt)
                 .build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
     }
 
     @Override

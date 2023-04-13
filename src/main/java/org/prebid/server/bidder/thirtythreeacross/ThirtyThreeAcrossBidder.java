@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -194,13 +193,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
                 .imp(requestImps)
                 .build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(modifiedRequest)
-                .body(mapper.encodeToBytes(modifiedRequest))
-                .build();
+        return BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper);
     }
 
     @Override
