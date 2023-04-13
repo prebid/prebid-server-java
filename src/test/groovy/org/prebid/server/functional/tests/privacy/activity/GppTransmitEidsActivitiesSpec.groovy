@@ -1,25 +1,27 @@
 package org.prebid.server.functional.tests.privacy.activity
 
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.activitie.Activity
-import org.prebid.server.functional.model.request.activitie.ActivityRule
-import org.prebid.server.functional.model.request.activitie.AllowActivities
-import org.prebid.server.functional.model.request.activitie.Component
-import org.prebid.server.functional.model.request.activitie.Condition
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Component
+import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.RTD_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
+// TODO due to deprecated status rework into transmitUfpd tests
 class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
 
-    final AllowActivities.ActivityType type = AllowActivities.ActivityType.TRANSMIT_EIDS
+    final ActivityType type = ActivityType.TRANSMIT_EIDS
 
     def "PBS should process user.eids in active request when allow activities settings allow for bidder"() {
         given: "Allow activities setup"

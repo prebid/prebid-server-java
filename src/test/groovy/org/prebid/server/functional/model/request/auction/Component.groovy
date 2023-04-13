@@ -1,4 +1,4 @@
-package org.prebid.server.functional.model.request.activitie
+package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode

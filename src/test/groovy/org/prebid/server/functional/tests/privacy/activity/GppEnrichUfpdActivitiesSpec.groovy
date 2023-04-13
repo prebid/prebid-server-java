@@ -3,11 +3,12 @@ package org.prebid.server.functional.tests.privacy.activity
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
-import org.prebid.server.functional.model.request.activitie.Activity
-import org.prebid.server.functional.model.request.activitie.ActivityRule
-import org.prebid.server.functional.model.request.activitie.AllowActivities
-import org.prebid.server.functional.model.request.activitie.Component
-import org.prebid.server.functional.model.request.activitie.Condition
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Component
+import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
@@ -21,27 +22,32 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.activitie.Activity.getActivityWithRules
-import static org.prebid.server.functional.model.request.activitie.Activity.getDefaultActivity
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.DEFAULT
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.INVALID
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.TOP
-import static org.prebid.server.functional.model.request.activitie.AllowActivities.getDefaultAllowActivities
-import static org.prebid.server.functional.model.request.activitie.Component.getBaseComponent
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.RTD_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.Activity.getActivityWithRules
+import static org.prebid.server.functional.model.request.auction.Activity.getDefaultActivity
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
+import static org.prebid.server.functional.model.request.auction.AllowActivities.getDefaultAllowActivities
+import static org.prebid.server.functional.model.request.auction.Component.getBaseComponent
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.ActivityType.*
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
-
-// TODO due to deprecated status rework into transmitUfpd tests
 class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
-    protected static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer)
-    protected static final UserData userData = new UserData(Dependencies.networkServiceContainer)
+    private static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer)
+    private static final UserData userData = new UserData(Dependencies.networkServiceContainer)
 
-    static final AllowActivities.ActivityType type = AllowActivities.ActivityType.ENRICH_UFPD
+    private static final ActivityType type = ENRICH_UFPD
+
+    private static final Device testDevice = new Device().tap {
+        it.os = PBSUtils.randomizeCase("iOS")
+        it.osv = "14.0"
+        it.ext = new DeviceExt(atts: randomAtts)
+    }
 
     def "PBS activities call when enrich UFDP activities is allowing should enhance user.data"() {
         given: "Activities set with bidder allowed"
@@ -227,7 +233,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: baseCondition, allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)]
@@ -236,7 +242,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
     def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance user.data"() {
         given: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: TOP, condition: baseCondition, allow: false)
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: false)
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true)
         def activity = getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
         def activities = getDefaultAllowActivities(type, activity)
@@ -318,21 +324,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, activities)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         and: "Openx bid request with account connection"
         def openxBidRequest = getBidRequestWithAccount(APP, accountId, OPENX).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -375,21 +374,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, activities)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         and: "Openx bid request with account connection"
         def openxBidRequest = getBidRequestWithAccount(APP, accountId, OPENX).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -432,21 +424,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         and: "Openx bid request with account connection"
         def openxBidRequest = getBidRequestWithAccount(APP, accountId, OPENX).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -491,16 +476,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -535,16 +513,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, activities)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -559,7 +530,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: baseCondition, allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)]
@@ -568,7 +539,7 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
 
     def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance request.device"() {
         given: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: TOP, condition: baseCondition, allow: false)
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: false)
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true)
         def activity = getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
         def activities = getDefaultAllowActivities(type, activity)
@@ -578,16 +549,9 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         Account account = getDefaultAccount(accountId, activities)
         accountDao.save(account)
 
-        and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
-
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -613,15 +577,11 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         accountDao.save(account)
 
         and: "Default device with device.os = iOS and any device.ext.atts"
-        def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
-            it.osv = "14.0"
-            it.ext = new DeviceExt(atts: randomAtts)
-        }
+
 
         and: "Generic bid request with account connection"
         def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = device
+            it.device = testDevice
         }
 
         when: "PBS processes auction requests"
@@ -634,8 +594,6 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         def genericBidderRequest =  bidder.getBidderRequest(generalBidRequest.id)
         assert genericBidderRequest.device.lmt == 1
     }
-
-
 
     private static getRandomAtts() {
         PBSUtils.getRandomElement(DeviceExt.Atts.values() as List<DeviceExt.Atts>)

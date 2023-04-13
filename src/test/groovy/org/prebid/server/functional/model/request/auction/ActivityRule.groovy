@@ -1,41 +1,41 @@
-package org.prebid.server.functional.model.request.activitie
+package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import lombok.Value
 
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.DEFAULT
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
 
-@Value(staticConstructor = "of")
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class ActivityRule {
 
-    Priory priority
+    Priority priority
     Condition condition
-    boolean allow = true
+    Boolean allow
+    Object privacyRegs
 
     static ActivityRule getDefaultActivityRule(
+            priority = DEFAULT,
             condition = Condition.baseCondition,
-            allow = true
-    ) {
+            allow = true) {
+
         new ActivityRule().tap {
-            it.priority = DEFAULT
+            it.priority = priority
             it.condition = condition
             it.allow = allow
         }
     }
 
-    enum Priory {
-        TOP(1),
+    enum Priority {
+        HIGHEST(1),
         DEFAULT(10),
-        LOW(15),
-        INVALID(-1)
+        LOWEST(Integer.MAX_VALUE),
+        INVALID(Integer.MIN_VALUE)
 
         final Integer value
 
-        Priory(Integer value) {
+        Priority(Integer value) {
             this.value = value
         }
 

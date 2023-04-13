@@ -8,7 +8,8 @@ import org.prebid.server.functional.model.bidder.Rubicon
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.request.activitie.AllowActivities
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Consent
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.service.PrebidServerService
@@ -62,7 +63,8 @@ abstract class ActivityBaseSpec extends BaseSpec {
 
 
     protected static Account getDefaultAccount(String accountId, AllowActivities activities) {
-        def privacy = new AccountPrivacyConfig(activities: activities)
+        def consent = new Consent (allowActivities: activities)
+        def privacy = new AccountPrivacyConfig(consent: consent)
         def accountConfig = new AccountConfig(privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
     }

@@ -7,10 +7,12 @@ import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.request.activitie.ActivityRule
-import org.prebid.server.functional.model.request.activitie.AllowActivities
-import org.prebid.server.functional.model.request.activitie.Component
-import org.prebid.server.functional.model.request.activitie.Condition
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Component
+import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.Consent
+import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
@@ -23,16 +25,17 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.activitie.Activity.getActivityWithRules
-import static org.prebid.server.functional.model.request.activitie.Activity.getDefaultActivity
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.DEFAULT
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.INVALID
-import static org.prebid.server.functional.model.request.activitie.ActivityRule.Priory.TOP
-import static org.prebid.server.functional.model.request.activitie.Component.getBaseComponent
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.BIDDER
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.ConditionType.RTD_MODULE
-import static org.prebid.server.functional.model.request.activitie.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.Activity.getActivityWithRules
+import static org.prebid.server.functional.model.request.auction.Activity.getDefaultActivity
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
+import static org.prebid.server.functional.model.request.auction.Component.getBaseComponent
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
+import static org.prebid.server.functional.model.request.auction.Condition.getBaseCondition
+import static org.prebid.server.functional.model.request.auction.ActivityType.*
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.getDefaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 
@@ -40,7 +43,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
-    private static final AllowActivities.ActivityType type = AllowActivities.ActivityType.SYNC_USER
+    private static final ActivityType type = SYNC_USER
     private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
@@ -237,7 +240,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: baseCondition, allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true),
                  new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: false)]
@@ -246,7 +249,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
     def "PBS cookie sync with specific reject hierarchy in activities should respond with proper warning"() {
         given: "Activities set for cookie sync with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: TOP, condition: baseCondition, allow: false)
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: baseCondition, allow: false)
 
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: baseCondition, allow: true)
 
@@ -489,7 +492,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
         where:
         rules << [
-                [new ActivityRule(priority: TOP, condition: getBaseCondition(getBaseComponent(OPENX)), allow: true),
+                [new ActivityRule(priority: HIGHEST, condition: getBaseCondition(getBaseComponent(OPENX)), allow: true),
                  new ActivityRule(priority: DEFAULT, condition: getBaseCondition(getBaseComponent(OPENX)), allow: false)],
                 [new ActivityRule(priority: DEFAULT, condition: getBaseCondition(getBaseComponent(OPENX)), allow: true),
                  new ActivityRule(priority: DEFAULT, condition: getBaseCondition(getBaseComponent(OPENX)), allow: false)]
@@ -498,7 +501,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
     def "PBS setuid request with specific reject hierarchy in activities should reject bidders with status code 451"() {
         given: "Activities set for cookie sync with Openx bidder rejected by hierarchy structure"
-        def topPriorityActivity = new ActivityRule(priority: TOP,
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST,
                 condition: getBaseCondition(getBaseComponent(OPENX)),
                 allow: false)
 
@@ -562,7 +565,9 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
     }
 
     Account getSyncAccount(String accountId, AllowActivities activities) {
-        def privacy = new AccountPrivacyConfig(activities: activities)
+
+        def consent = new Consent (allowActivities: activities)
+        def privacy = new AccountPrivacyConfig(consent: consent)
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(status: AccountStatus.INACTIVE, cookieSync: cookieSyncConfig, privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
