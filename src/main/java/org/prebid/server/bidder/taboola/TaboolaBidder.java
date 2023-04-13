@@ -24,8 +24,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.taboola.ExtImpTaboola;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
