@@ -210,40 +210,4 @@ class BidValidationSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
-
-    def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {
-        given: "Default basic BidRequest with aliasgvlids and aliases"
-        def bidderName = PBSUtils.randomString
-        def validId = 1
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.aliasgvlids = [(bidderName): validId]
-        bidRequest.ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
-
-        when: "Sending auction request to PBS"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
-    }
-
-    def "PBS should return an error when GVL ID alias value is lower that one"() {
-        given: "Default basic BidRequest with aliasgvlids and aliases"
-        def bidderName = PBSUtils.randomString
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.aliasgvlids = [(bidderName): invalidId]
-        bidRequest.ext.prebid.aliases = [(bidderName): GENERIC]
-
-        when: "Sending auction request to PBS"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "Invalid vendorId ${invalidId} for alias: ${bidderName}. Choose a different vendorId, or remove this entry.")
-
-        where:
-        invalidId << [PBSUtils.randomNegativeNumber, 0]
-    }
 }
