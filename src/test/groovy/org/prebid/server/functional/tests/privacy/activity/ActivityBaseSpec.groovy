@@ -34,16 +34,16 @@ abstract class ActivityBaseSpec extends BaseSpec {
             "adapters.${OPENX.value}.endpoint": ACTION_URL,
             "adapters.${OPENX.value}.enabled" : IS_ENABLED]
     private static final Map<String, String> PBS_CONFIG = GENERIC_CONFIG + OPENX_CONFIG
+    private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
-    protected PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+    protected PrebidServerService pbsServerService = pbsServiceFactory.getService(PBS_CONFIG + pgConfig.properties)
 
     protected static BidRequest getBidRequestWithAccount(DistributionChannel channel = SITE,
                                                          String accountId,
                                                          BidderName bidderName = GENERIC) {
 
         BidRequest.getDefaultBidRequest(channel).tap {
-            site.publisher.id = accountId
-            user = new User()
+            (channel == SITE ? site.publisher : app.publisher).id = accountId
             imp.first().ext.prebid.bidder.generic = null
             switch (bidderName) {
                 case OPENX:
@@ -59,6 +59,7 @@ abstract class ActivityBaseSpec extends BaseSpec {
             }
         }
     }
+
 
     protected static Account getDefaultAccount(String accountId, AllowActivities activities) {
         def privacy = new AccountPrivacyConfig(activities: activities)

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy.activity
 
-import org.junit.Ignore
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.activitie.Activity
 import org.prebid.server.functional.model.request.activitie.ActivityRule
@@ -28,17 +27,17 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def bidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def bidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         when: "PBS processes auction requests"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        pbsServerService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should include user.eids in request"
         def generalBidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -46,14 +45,14 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
 
         where:
         conditions                                                            | isAllowed
-        [new Condition(componentName: Component.defaultComponent)]            | true
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent)]               | true
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(xIn: [BIDDER.name]))]            | true
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.defaultComponent),
+        [new Condition(componentName: Component.baseComponent),
          new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
         [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
         [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
@@ -66,17 +65,17 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def bidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def bidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         when: "PBS processes auction requests"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        pbsServerService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should remove user.eids in request"
         def generalBidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -84,14 +83,14 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
 
         where:
         conditions                                                            | isAllowed
-        [new Condition(componentName: Component.defaultComponent)]            | false
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent)]               | false
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(xIn: [BIDDER.name]))]            | false
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(notIn: [RTD_MODULE.name]))]      | false
-        [new Condition(componentName: Component.defaultComponent),
+        [new Condition(componentName: Component.baseComponent),
          new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
         [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
     }
@@ -103,21 +102,21 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         and: "Default Openx BidRequest with user.eids and account id"
-        def openxBidRequest = getBidRequestWithAccount(SITE, accountId as String, OPENX)
+        def openxBidRequest = getBidRequestWithAccount(SITE, accountId, OPENX)
 
         when: "PBS processes auction requests"
-        prebidServerService.sendAuctionRequest(generalBidRequest)
-        prebidServerService.sendAuctionRequest(openxBidRequest)
+        pbsServerService.sendAuctionRequest(generalBidRequest)
+        pbsServerService.sendAuctionRequest(openxBidRequest)
 
         then: "General bidder request should remove user.eids from request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
@@ -144,17 +143,17 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(generalBidRequest)
+        pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "General bidder request should remove user.eids from request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
@@ -178,17 +177,17 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(generalBidRequest)
+        pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "General bidder request should remove user.eids from request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
@@ -213,17 +212,17 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId as String).tap {
+        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(generalBidRequest)
+        pbsServerService.sendAuctionRequest(generalBidRequest)
 
         then: "General bidder request should leave user.eids from request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
@@ -236,7 +235,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
@@ -246,7 +245,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         }
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId as String).tap {
+        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
@@ -264,14 +263,14 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
 
         where:
         conditions                                                            | isAllowed
-        [new Condition(componentName: Component.defaultComponent)]            | true
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent)]               | true
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(xIn: [BIDDER.name]))]            | true
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.defaultComponent),
+        [new Condition(componentName: Component.baseComponent),
          new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
         [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
         [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
@@ -284,7 +283,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
@@ -294,7 +293,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         }
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId as String).tap {
+        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
@@ -312,14 +311,14 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
 
         where:
         conditions                                                            | isAllowed
-        [new Condition(componentName: Component.defaultComponent)]            | false
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent)]               | false
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(xIn: [BIDDER.name]))]            | false
         [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
         [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.defaultComponent,
+        [new Condition(componentName: Component.baseComponent,
                 componentType: new Component(notIn: [RTD_MODULE.name]))]      | false
-        [new Condition(componentName: Component.defaultComponent),
+        [new Condition(componentName: Component.baseComponent),
          new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
         [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
     }
@@ -340,7 +339,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
@@ -350,7 +349,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         }
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId as String).tap {
+        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
@@ -384,7 +383,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
@@ -394,7 +393,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         }
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId as String).tap {
+        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
@@ -429,7 +428,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber
+        def accountId = PBSUtils.randomNumber as String
         def account = getDefaultAccount(accountId, allowSetup)
         accountDao.save(account)
 
@@ -439,7 +438,7 @@ class GppTransmitEidsActivitiesSpec extends ActivityBaseSpec {
         }
 
         and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId as String).tap {
+        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
             user.eids = [Eid.defaultEid]
         }
 
