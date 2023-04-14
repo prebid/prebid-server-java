@@ -1,6 +1,5 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
@@ -32,9 +31,6 @@ public class Account {
 
     @JsonProperty("allowactivities")
     Map<Activity, AccountActivityConfiguration> activities;
-
-    @JsonIgnore
-    AccountInternalCache internalCache;
 
     public static Account empty(String id) {
         return Account.builder()

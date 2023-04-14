@@ -22,13 +22,13 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class AccountActivityInfrastructureParser {
+public class AccountActivitiesConfigurationParser {
 
-    private AccountActivityInfrastructureParser() {
+    private AccountActivitiesConfigurationParser() {
     }
 
-    public static ActivityInfrastructure parse(Account account) {
-        final Map<Activity, ActivityConfiguration> activitiesConfigurations = Optional.ofNullable(account)
+    public static Map<Activity, ActivityConfiguration> parse(Account account) {
+        return Optional.ofNullable(account)
                 .map(Account::getActivities)
                 .orElse(Collections.emptyMap())
                 .entrySet().stream()
@@ -37,8 +37,6 @@ public class AccountActivityInfrastructureParser {
                         entry -> from(entry.getValue()),
                         mergeFunction(),
                         enumMapFactory()));
-
-        return new ActivityInfrastructure(activitiesConfigurations);
     }
 
     private static ActivityConfiguration from(AccountActivityConfiguration accountActivityConfiguration) {
@@ -52,7 +50,7 @@ public class AccountActivityInfrastructureParser {
 
         final List<Rule> rules = ListUtils.emptyIfNull(accountActivityConfiguration.getRules()).stream()
                 .filter(Objects::nonNull)
-                .map(AccountActivityInfrastructureParser::from)
+                .map(AccountActivitiesConfigurationParser::from)
                 .toList();
 
         return ActivityConfiguration.of(allow, rules);

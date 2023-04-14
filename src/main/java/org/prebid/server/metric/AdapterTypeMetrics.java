@@ -18,9 +18,12 @@ class AdapterTypeMetrics extends UpdatableMetrics {
     private final Function<String, BidTypeMetrics> bidTypeMetricsCreator;
     private final Map<String, BidTypeMetrics> bidTypeMetrics;
     private final ResponseMetrics responseMetrics;
+    private final ActivitiesMetrics activitiesMetrics;
 
     AdapterTypeMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+        super(
+                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(counterType),
                 nameCreator(createAdapterPrefix(Objects.requireNonNull(adapterType))));
 
         bidTypeMetricsCreator = bidType ->
@@ -31,17 +34,24 @@ class AdapterTypeMetrics extends UpdatableMetrics {
         requestMetrics = new RequestMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
         bidTypeMetrics = new HashMap<>();
         responseMetrics = new ResponseMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
+        activitiesMetrics = new ActivitiesMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
     }
 
     AdapterTypeMetrics(MetricRegistry metricRegistry,
                        CounterType counterType,
                        String accountAdapterPrefix,
                        String adapterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                nameCreator(createAdapterPrefix(Objects.requireNonNull(accountAdapterPrefix),
+
+        super(
+                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(counterType),
+                nameCreator(createAdapterPrefix(
+                        Objects.requireNonNull(accountAdapterPrefix),
                         Objects.requireNonNull(adapterType))));
 
-        requestMetrics = new RequestMetrics(metricRegistry, counterType,
+        requestMetrics = new RequestMetrics(
+                metricRegistry,
+                counterType,
                 createAdapterPrefix(accountAdapterPrefix, adapterType));
 
         // not used for account.adapter.adapters metrics
@@ -50,6 +60,7 @@ class AdapterTypeMetrics extends UpdatableMetrics {
         bidTypeMetricsCreator = null;
         bidTypeMetrics = null;
         responseMetrics = null;
+        activitiesMetrics = null;
     }
 
     private static String createAdapterPrefix(String adapterType) {
@@ -78,5 +89,9 @@ class AdapterTypeMetrics extends UpdatableMetrics {
 
     ResponseMetrics response() {
         return responseMetrics;
+    }
+
+    ActivitiesMetrics activities() {
+        return activitiesMetrics;
     }
 }

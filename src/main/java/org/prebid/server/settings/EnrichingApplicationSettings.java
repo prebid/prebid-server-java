@@ -2,15 +2,12 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivityInfrastructureParser;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountInternalCache;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -63,8 +60,7 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         return delegate.getAccountById(accountId, timeout)
                 .compose(priceFloorsConfigResolver::updateFloorsConfig)
                 .map(this::mergeAccounts)
-                .recover(throwable -> recoverIfNeeded(throwable, accountId))
-                .map(this::cacheAccountConfigs);
+                .recover(throwable -> recoverIfNeeded(throwable, accountId));
     }
 
     @Override
@@ -115,13 +111,5 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         return !enforceValidAccount
                 ? Future.succeededFuture(mergeAccounts(Account.empty(accountId)))
                 : Future.failedFuture(throwable);
-    }
-
-    private Account cacheAccountConfigs(Account account) {
-        final ActivityInfrastructure activityInfrastructure = AccountActivityInfrastructureParser.parse(account);
-
-        return account.toBuilder()
-                .internalCache(AccountInternalCache.of(activityInfrastructure))
-                .build();
     }
 }
