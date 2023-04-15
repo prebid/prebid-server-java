@@ -10,12 +10,14 @@ import org.prebid.server.functional.model.request.auction.CorrectNativeRequest
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidExt
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
+import static io.netty.handler.codec.http.HttpResponseStatus.*
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 
@@ -77,8 +79,7 @@ class NativeSpec extends BaseSpec {
 
     def "PBS should emit detail error message when native.request is invalid"() {
         given: "BidRequest with generic bidder, incorrect native"
-        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            imp[0].banner = null
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].nativeObj = new Native(request: IncorrectNativeRequest.nativeRequest)
         }
 
@@ -87,9 +88,32 @@ class NativeSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
         assert exception.responseBody.contains("Invalid request format: " +
-                "Error while parsing request.imp[0].native.request: MismatchedInputException: " +
-                "Cannot deserialize value of type `java.lang.Integer` " +
-                "from Boolean value (token `JsonToken.VALUE_TRUE`)")
+                "Error while parsing request.imp[0].native.request: " +
+                "MismatchedInputException: Cannot deserialize value of " +
+                "type `java.lang.Integer` from Boolean value (token `JsonToken.VALUE_TRUE`)")
+    }
+
+    def "PBS should successfully pass native when in request native is valid"() {
+        given: "BidRequest with generic bidder, valid native"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner = null
+            imp[0].nativeObj = new Native(request: CorrectNativeRequest.nativeRequest)
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain native"
+        assert response.seatbid[0].bid[0].ext.prebid.type == NATIVE
+
+        and: "Bidder request should contain native"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].nativeObj
     }
 }

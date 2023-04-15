@@ -25,10 +25,10 @@ class IncorrectNativeRequest implements NativeRequest {
         new IncorrectNativeRequest().tap {
             context = true
             plcmtType = PBSUtils.randomString
-            it.addAsset(Asset.titleAsset)
-            it.addAsset(Asset.imgAsset)
-            it.addAsset(Asset.dataAsset)
             privacy = [true, false]
+            addAsset(Asset.titleAsset)
+            addAsset(Asset.imgAsset)
+            addAsset(Asset.dataAsset)
         }
     }
 

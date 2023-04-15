@@ -24,9 +24,9 @@ class CorrectNativeRequest implements NativeRequest {
         new CorrectNativeRequest().tap {
             context = 1
             plcmtType = 1
-            it.addAsset(Asset.titleAsset)
-            it.addAsset(Asset.imgAsset)
-            it.addAsset(Asset.dataAsset)
+            addAsset(Asset.titleAsset)
+            addAsset(Asset.imgAsset)
+            addAsset(Asset.dataAsset)
         }
     }
 
