@@ -28,23 +28,21 @@ abstract class ActivityBaseSpec extends BaseSpec {
 
     private static final String IS_ENABLED = 'true'
     private static final String ACTION_URL = "$networkServiceContainer.rootUri/auction"
-    private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.endpoint": ACTION_URL,
-            "adapters.${GENERIC.value}.enabled" : IS_ENABLED]
     private static final Map<String, String> OPENX_CONFIG = [
             "adapters.${OPENX.value}.endpoint": ACTION_URL,
             "adapters.${OPENX.value}.enabled" : IS_ENABLED]
-    private static final Map<String, String> PBS_CONFIG = GENERIC_CONFIG + OPENX_CONFIG
-    private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
-    protected PrebidServerService pbsServerService = pbsServiceFactory.getService(PBS_CONFIG + pgConfig.properties)
+    private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
+    private static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + pgConfig.properties
+
+    protected PrebidServerService pbsServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
     protected static BidRequest getBidRequestWithAccount(DistributionChannel channel = SITE,
                                                          String accountId,
                                                          BidderName bidderName = GENERIC) {
 
         BidRequest.getDefaultBidRequest(channel).tap {
-            (channel == SITE ? site.publisher : app.publisher).id = accountId
+            setAccountId(accountId)
             imp.first().ext.prebid.bidder.generic = null
             switch (bidderName) {
                 case OPENX:
@@ -61,8 +59,7 @@ abstract class ActivityBaseSpec extends BaseSpec {
         }
     }
 
-
-    protected static Account getDefaultAccount(String accountId, AllowActivities activities) {
+    protected static Account getAccountWithAllowActivities(String accountId, AllowActivities activities) {
         def consent = new Consent (allowActivities: activities)
         def privacy = new AccountPrivacyConfig(consent: consent)
         def accountConfig = new AccountConfig(privacy: privacy)
