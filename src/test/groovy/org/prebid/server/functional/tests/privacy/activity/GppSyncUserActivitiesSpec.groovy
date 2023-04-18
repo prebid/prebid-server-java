@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Component
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Consent
 import org.prebid.server.functional.model.request.auction.ActivityType
@@ -32,25 +31,21 @@ import static org.prebid.server.functional.model.request.auction.ActivityRule.Pr
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.EMPTY
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 
 class GppSyncUserActivitiesSpec extends BaseSpec {
-
     private static final ActivityType type = SYNC_USER
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
-    private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-    private static final Map<String, String> OPENX_CONFIG = [
-            "adapters.${OPENX.value}.enabled"                    : "true",
-            "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
-
+    private static final Map<String, String> GENERIC_CONFIG = ["adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
+                                                               "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+    private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX.value}.enabled"                    : "true",
+                                                             "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
     private static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + GENERIC_CONFIG
-
     private PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
     def "PBS cookie sync with all bidder allowed in activities should include proper responded with all bidders URLs"() {
@@ -80,18 +75,14 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.getBidderUserSync(OPENX).userSync.url
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                                      | true
-        [new Condition(componentName: new Component(xIn: [OPENX.value]))]                  | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | true
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | true
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | false
-        [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]            | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | false
-        [new Condition(componentName: new Component(notIn: [GENERIC.value]))]              | false
-        [new Condition(componentName: new Component(notIn: [OPENX.value]))]                | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | false
+        conditions                                                                                    | isAllowed
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]                                  | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentName: [APPNEXUS.value])]                                              | false
+        [new Condition(componentType: [BIDDER])]                                                      | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                              | true
+        [new Condition(componentType: [RTD_MODULE])]                                                  | false
     }
 
     def "PBS cookie sync with all bidder rejected in activities should exclude all bidders URLs with proper message"() {
@@ -120,20 +111,17 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.bidderStatus.userSync.url
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | false
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]              | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | true
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]              | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS cookie sync with specific bidder requiring in activities should respond only with specific bidder URL"() {
         given: "Activities set for cookie sync with generic bidders rejected"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity(rules: activityRules)
         def activities = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
@@ -162,15 +150,10 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert !syncGenericStatus.userSync.url
 
         where:
-        conditions                                                                       | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                          | false
-        [new Condition(componentName: new Component(notIn: [GENERIC.value]))]            | true
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [GENERIC.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                       | true
-        [new Condition(componentName: new Component(xIn: [GENERIC.value], notIn: [OPENX.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                       | false
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [GENERIC.value]),
-                componentType: new Component(xIn: [GENERAL_MODULE.name]))]               | true
+        activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false),
+                           ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))]]
     }
 
     def "PBS cookie sync with invalid activities should be ignored in process"() {
@@ -199,15 +182,14 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.getBidderUserSync(OPENX).userSync.url
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS cookie sync with specific allow hierarchy in activities should respond with required bidder URL"() {
@@ -236,12 +218,14 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.getBidderUserSync(GENERIC).userSync.url
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS cookie sync with specific reject hierarchy in activities should respond with proper warning"() {
@@ -329,18 +313,14 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[OPENX]
 
         where:
-        conditions                                                                          | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                                       | true
-        [new Condition(componentName: new Component(xIn: [OPENX.value]))]                   | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                   | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value, OPENX.value]))]   | true
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]           | true
-        [new Condition(componentName: new Component(xIn: [GENERIC.value]))]                 | false
-        [new Condition(componentType: new Component(notIn: [RTD_MODULE.name]))]             | true
-        [new Condition(componentName: new Component(notIn: [APPNEXUS.value, OPENX.value]))] | false
-        [new Condition(componentName: new Component(notIn: [APPNEXUS.value]))]              | false
-        [new Condition(componentName: new Component(notIn: [OPENX.value]))]                 | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                 | false
+        conditions                                                                                    | isAllowed
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]                                  | true
+        [new Condition(componentName: [APPNEXUS.value])]                                              | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentType: [BIDDER])]                                                      | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                              | true
+        [new Condition(componentType: [RTD_MODULE])]                                                  | false
     }
 
     def "PBS setuid with all bidder restriction by activities should reject bidders with status code 451"() {
@@ -374,20 +354,17 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert exception.responseBody == "Bidder sync blocked for privacy reasons"
 
         where:
-        conditions                                                                          | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                   | false
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]           | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]               | true
-        [new Condition(componentName: new Component(xIn: [GENERIC.value]))]                 | true
-        [new Condition(componentName: new Component(notIn: [APPNEXUS.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [APPNEXUS.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                 | true
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]              | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS setuid request with targeting bidder restriction in activities should respond only with this bidder"() {
         given: "Activities set for cookie sync with only Openx bidder allowed"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity(rules: activityRules)
         def activities = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
@@ -413,15 +390,8 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[OPENX]
 
         where:
-        conditions                                                                        | isAllowed
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]              | false
-        [new Condition(componentName: new Component(notIn: [APPNEXUS.value]))]            | true
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [APPNEXUS.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                        | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value], notIn: [OPENX.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                        | false
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [APPNEXUS.value]),
-                componentType: new Component(xIn: [GENERAL_MODULE.name]))]                | true
+        activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(APPNEXUS), false)],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))]]
     }
 
     def "PBS setuid request with invalid activities should be ignored in process"() {
@@ -451,15 +421,14 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[OPENX]
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS setuid request with specific allow hierarchy in activities should respond with required UIDs cookies"() {
@@ -488,22 +457,24 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[OPENX]
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)), allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)), allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)), allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)), allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.getBaseCondition(OPENX), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(OPENX), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(OPENX), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.getBaseCondition(OPENX), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS setuid request with specific reject hierarchy in activities should reject bidders with status code 451"() {
         given: "Activities set for cookie sync with Openx bidder rejected by hierarchy structure"
         def topPriorityActivity = new ActivityRule(priority: HIGHEST,
-                condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)),
+                condition: Condition.getBaseCondition(OPENX),
                 allow: false)
 
         def defaultPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)),
+                condition: Condition.getBaseCondition(OPENX),
                 allow: true)
 
         def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
@@ -536,7 +507,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
 
     def "PBS setuid request with invalid hierarchy in activities should ignore activities and respond with UIDs cookies"() {
         given: "Activities set for cookie sync with invalid priority"
-        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.getBaseCondition(Component.getBaseComponent(OPENX)), allow: false)
+        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.getBaseCondition(OPENX), allow: false)
         def invalidActivity = Activity.getDefaultActivity([invalidRule])
         def activities = AllowActivities.getDefaultAllowActivities(type, invalidActivity)
 
@@ -562,8 +533,7 @@ class GppSyncUserActivitiesSpec extends BaseSpec {
     }
 
     Account getSyncAccount(String accountId, AllowActivities activities) {
-
-        def consent = new Consent (allowActivities: activities)
+        def consent = new Consent(allowActivities: activities)
         def privacy = new AccountPrivacyConfig(consent: consent)
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(status: AccountStatus.INACTIVE, cookieSync: cookieSyncConfig, privacy: privacy)
