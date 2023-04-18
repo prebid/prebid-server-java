@@ -1431,11 +1431,12 @@ public class HookStageExecutorTest extends VertxTest {
         accountModulesConfiguration.put("module-beta", moduleBetaConfiguration);
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
                 AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build())
+                        .bidRequest(bidRequest)
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
                                 .build())
@@ -1456,6 +1457,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(1)).satisfies(invocationContext -> {
@@ -1463,6 +1465,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(2)).satisfies(invocationContext -> {
@@ -1470,6 +1473,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(3)).satisfies(invocationContext -> {
@@ -1477,6 +1481,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             async.complete();
@@ -1717,12 +1722,13 @@ public class HookStageExecutorTest extends VertxTest {
         accountModulesConfiguration.put("module-beta", moduleBetaConfiguration);
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
                         AuctionContext.builder()
-                                .bidRequest(BidRequest.builder().build())
+                                .bidRequest(bidRequest)
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
                                         .build())
@@ -1743,6 +1749,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(1)).satisfies(invocationContext -> {
@@ -1750,6 +1757,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(2)).satisfies(invocationContext -> {
@@ -1757,6 +1765,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             assertThat(capturedContexts.get(3)).satisfies(invocationContext -> {
@@ -1764,6 +1773,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.debugEnabled()).isFalse();
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             async.complete();
@@ -2487,6 +2497,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
         final Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> future =
@@ -2497,7 +2508,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
                                 0)),
                         AuctionContext.builder()
-                                .bidRequest(BidRequest.builder().build())
+                                .bidRequest(bidRequest)
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(
                                                 null, singletonMap("module-alpha", mapper.createObjectNode())))
@@ -2517,6 +2528,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.endpoint()).isNotNull();
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.accountConfig()).isNotNull();
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             async.complete();
@@ -2644,12 +2656,13 @@ public class HookStageExecutorTest extends VertxTest {
                                 Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
                 BidResponse.builder().build(),
                 AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build())
+                        .bidRequest(bidRequest)
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
                                         null, singletonMap("module-alpha", mapper.createObjectNode())))
@@ -2669,6 +2682,7 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.endpoint()).isNotNull();
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.accountConfig()).isNotNull();
+                assertThat(invocationContext.bidRequest()).isSameAs(bidRequest);
             });
 
             async.complete();

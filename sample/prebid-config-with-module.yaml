@@ -1,0 +1,64 @@
+status-response: "ok"
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: sample/sample-app-settings.yaml
+    stored-requests-dir: sample/stored
+    stored-imps-dir: sample/stored
+    stored-responses-dir: sample/stored
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false
+hooks:
+  confiant-ad-quality:
+    enabled: true
+  host-execution-plan: >
+    {
+      "endpoints": {
+        "/openrtb2/auction": {
+          "stages": {
+            "all-processed-bid-responses": {
+              "groups": [
+                {
+                  "timeout": 5,
+                  "hook-sequence": [
+                    {
+                      "module-code": "confiant-ad-quality",
+                      "hook-impl-code": "confiant-ad-quality-bid-responses-scan-hook"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }

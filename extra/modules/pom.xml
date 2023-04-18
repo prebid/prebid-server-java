@@ -18,6 +18,7 @@
 
     <modules>
         <module>ortb2-blocking</module>
+        <module>confiant-ad-quality</module>
     </modules>
 
     <properties>

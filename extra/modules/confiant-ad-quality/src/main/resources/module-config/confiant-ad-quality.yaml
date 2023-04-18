@@ -1,0 +1,8 @@
+hooks:
+  modules:
+    confiant-ad-quality:
+      api-key: ""
+      redis-host: ""
+      redis-port: 8000
+      redis-password: ""
+      scan-state-check-delay: 600000
