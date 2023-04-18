@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Component
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.ActivityType
@@ -18,12 +17,12 @@ import static org.prebid.server.functional.model.request.auction.ActivityRule.Pr
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.EMPTY
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
-
     static final ActivityType type = ActivityType.FETCH_BIDS
 
     def "PBS activity call with all bidders allowed in activities should call each bid adapter"() {
@@ -59,15 +58,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(openxBidRequest.id)
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | false
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]              | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | true
+        conditions                                                                                    | isAllowed
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]                                  | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentName: [APPNEXUS.value])]                                              | false
+        [new Condition(componentType: [BIDDER])]                                                      | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                              | true
+        [new Condition(componentType: [RTD_MODULE])]                                                  | false
     }
 
     def "PBS activity call with all bidders reject setup in activities should skip call to each restricted bidders"() {
@@ -103,15 +101,12 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert !bidder.getBidderRequests(openxBidRequest.id)
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | false
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]              | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | true
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]              | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS activity call with specific bidder in activities should respond only with specific bidder"() {
@@ -147,15 +142,10 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert !bidder.getBidderRequests(generalBidRequest.id)
 
         where:
-        conditions                                                                       | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                                    | false
-        [new Condition(componentName: new Component(notIn: [GENERIC.value]))]            | true
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [GENERIC.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                       | true
-        [new Condition(componentName: new Component(xIn: [GENERIC.value], notIn: [OPENX.value]),
-                componentType: new Component(xIn: [BIDDER.name]))]                       | false
-        [new Condition(componentName: new Component(xIn: [OPENX.value], notIn: [GENERIC.value]),
-                componentType: new Component(xIn: [GENERAL_MODULE.name]))]               | true
+        activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false),
+                           ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))]]
     }
 
     def "PBS activity call with empty activities should be ignored in process"() {
@@ -180,15 +170,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(generalBidRequest.id)
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS activity call with specific allow hierarchy in activities should call each bid adapter"() {
@@ -214,12 +203,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(generalBidRequest.id)
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS activity call with specific reject hierarchy in activities should skip call to restricted bidder"() {
@@ -301,20 +292,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(requestId)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                         | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [RTD_MODULE.name]))]        | false
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | false
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        conditions                                                                       | isAllowed
+        [new Condition(componentName: [GENERIC.value])]                                  | true
+        [new Condition(componentName: [GENERIC.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentName: [APPNEXUS.value])]                                 | false
+        [new Condition(componentType: [BIDDER])]                                         | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                 | true
+        [new Condition(componentType: [RTD_MODULE])]                                     | false
     }
 
     def "PBS amp call with reject bidder in activities setup should skip call to restricted bidders"() {
@@ -346,18 +331,12 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert !bidder.getBidderRequest(ampStoredRequest.id)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]                         | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | false
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [RTD_MODULE.name]))]        | true
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value])]                           | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS amp call with empty activities settings should be ignored in process"() {
@@ -389,15 +368,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(requestId)
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS amp call with specific allow hierarchy in activities should call each bid adapter"() {
@@ -430,12 +408,14 @@ class GppFetchBidActivitiesSpec extends ActivityBaseSpec {
         assert bidder.getBidderRequest(requestId)
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS amp call with specific reject hierarchy in activities should skip call to restricted bidder"() {

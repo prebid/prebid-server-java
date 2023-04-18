@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Component
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.model.request.auction.Device
@@ -26,6 +25,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityRule.Pr
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.EMPTY
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -76,20 +76,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert !generalBidRequest?.user?.data
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [RTD_MODULE.name]))]        | false
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | false
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        conditions                                                                                    | isAllowed
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]                                  | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentName: [APPNEXUS.value])]                                              | false
+        [new Condition(componentType: [BIDDER])]                                                      | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                              | true
+        [new Condition(componentType: [RTD_MODULE])]                                                  | false
     }
 
     def "PBS activities call when enrich UFDP activities is rejecting should not enhance user.data"() {
@@ -127,18 +121,12 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert generalBidderRequest?.user?.data == generalBidRequest?.user?.data
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | false
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [RTD_MODULE.name]))]        | true
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]              | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS activities call when activities settings set to empty should enhance user.data"() {
@@ -176,15 +164,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert !generalBidRequest?.user?.data
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS activities call when specific allow hierarchy in enrich UFDP activities should enhance user.data"() {
@@ -223,12 +210,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert !generalBidRequest?.user?.data
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance user.data"() {
@@ -344,15 +333,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert openxBidderRequest.device.lmt == 1
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | false
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]              | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | true
+        conditions                                                                                    | isAllowed
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [BIDDER])]         | true
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]                                  | true
+        [new Condition(componentName: [APPNEXUS.value])]                                              | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value], componentType: [GENERAL_MODULE])] | true
+        [new Condition(componentType: [BIDDER])]                                                      | true
+        [new Condition(componentType: [GENERAL_MODULE])]                                              | true
+        [new Condition(componentType: [RTD_MODULE])]                                                  | false
     }
 
     def "PBS activities call when enrich UFDP activities is restricting should not enhance request.device"() {
@@ -394,20 +382,17 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert !openxBidderRequest.device.lmt
 
         where:
-        conditions                                                                         | isAllowed
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]                  | false
-        [new Condition(componentName: new Component(xIn: [GENERIC.value, OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))]          | false
-        [new Condition(componentType: new Component(xIn: [RTD_MODULE.name]))]              | true
-        [new Condition(componentName: new Component(xIn: [APPNEXUS.value]))]               | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentName: new Component(notIn: [GENERIC.value, OPENX.value]))] | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]                | true
+        conditions                                                                | isAllowed
+        [new Condition(componentType: [BIDDER])]                                  | false
+        [new Condition(componentName: [GENERIC.value, OPENX.value])]              | false
+        [new Condition(componentType: [GENERAL_MODULE])]                          | false
+        [new Condition(componentType: [RTD_MODULE])]                              | true
+        [new Condition(componentName: [APPNEXUS.value], componentType: [BIDDER])] | true
     }
 
     def "PBS activities call when specific bidder in enrich UFDP activities should enhance request.device only bidder"() {
         given: "Reject activities setup"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity(rules: activityRules)
         def allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
 
         and: "Existed account with allow activities setup"
@@ -444,18 +429,10 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert openxBidderRequest.device.lmt == 1
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | false
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [RTD_MODULE.name]))]        | true
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
+        activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))],
+                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false),
+                           ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX))]]
     }
 
     def "PBS activities call when activities settings set to empty should enhance request.device"() {
@@ -483,15 +460,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert genericBidderRequest.device.lmt == 1
 
         where:
-        activity << [
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], true),
-                Activity.getActivityWithRules([new Condition(componentName: new Component(xIn: null, notIn: null))], false),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], true),
-                Activity.getActivityWithRules([new Condition(componentType: new Component(xIn: [""], notIn: [""]))], false),
-                Activity.getDefaultActivity(null)
-        ]
+        activity << [Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                     Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                     Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                     Activity.getDefaultActivity(rules: []),
+                     Activity.getDefaultActivity(null, null)]
     }
 
     def "PBS activities call when specific allow hierarchy in enrich UFDP activities should enhance request.device"() {
@@ -520,12 +496,14 @@ class GppEnrichUfpdActivitiesSpec extends ActivityBaseSpec {
         assert genericBidderRequest.device.lmt == 1
 
         where:
-        rules << [
-                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
-                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
-                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)]
-        ]
+        rules << [[new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                  [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                   new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]]
     }
 
     def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance request.device"() {
