@@ -1,0 +1,12 @@
+adapters:
+  adsinteractive:
+    endpoint: http://bid.adsinteractive.com/prebid
+    modifying-vast-xml-allowed: false
+    meta-info:
+      maintainer-email: it@adsinteractive.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
