@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -28,14 +27,14 @@ public class AccountActivitiesConfigurationParser {
     }
 
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
-        return Optional.ofNullable(account)
+        return Optional.of(account)
                 .map(Account::getActivities)
                 .orElse(Collections.emptyMap())
                 .entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> from(entry.getValue()),
-                        mergeFunction(),
+                        (oldValue, newValue) -> newValue,
                         enumMapFactory()));
     }
 
@@ -77,10 +76,6 @@ public class AccountActivitiesConfigurationParser {
                 condition.map(AccountActivityConditionRuleConfig.Condition::getComponentTypes).orElse(null),
                 condition.map(AccountActivityConditionRuleConfig.Condition::getComponentNames).orElse(null),
                 allow);
-    }
-
-    private static <V> BinaryOperator<V> mergeFunction() {
-        return (m1, m2) -> m2;
     }
 
     private static Supplier<Map<Activity, ActivityConfiguration>> enumMapFactory() {

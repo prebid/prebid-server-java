@@ -99,6 +99,9 @@ public class AuctionRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
+                .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
+                        .map(auctionContext::with))
+
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
