@@ -37,3 +37,28 @@ admin-endpoints:
     path: /logging/changelevel
     on-application-port: true
     protected: false
+hooks:
+  confiant-ad-quality:
+    enabled: true
+  host-execution-plan: >
+    {
+      "endpoints": {
+        "/openrtb2/auction": {
+          "stages": {
+            "all-processed-bid-responses": {
+              "groups": [
+                {
+                  "timeout": 5,
+                  "hook-sequence": [
+                    {
+                      "module-code": "confiant-ad-quality",
+                      "hook-impl-code": "confiant-ad-quality-bid-responses-scan-hook"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }

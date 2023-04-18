@@ -27,6 +27,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidResponsesInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
@@ -37,6 +38,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
+import org.prebid.server.hooks.v1.bidder.BidResponsesInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
@@ -228,7 +230,7 @@ public class HookStageExecutor {
                 StageWithHookType.ALL_PROCESSED_BID_RESPONSES, ENTITY_ALL_PROCESSED_BID_RESPONSES,
                 context, account, endpoint)
                 .withInitialPayload(AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
+                .withInvocationContextProvider(bidResponsesInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
                 .execute();
     }
@@ -398,6 +400,15 @@ public class HookStageExecutor {
         return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
                 auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
                 bidder);
+    }
+
+    private InvocationContextProvider<BidResponsesInvocationContext> bidResponsesInvocationContextProvider(
+            Endpoint endpoint,
+            AuctionContext auctionContext) {
+
+        return (timeout, hookId, moduleContext) -> BidResponsesInvocationContextImpl.of(
+                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
+                auctionContext.getBidRequest());
     }
 
     private Timeout createTimeout(Long timeout) {

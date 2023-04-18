@@ -67,6 +67,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!-- Override Confiant conflict between 3.6 / 4.3 -->
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>4.3.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -74,6 +81,11 @@
         <dependency>
             <groupId>org.prebid</groupId>
             <artifactId>prebid-server</artifactId>
+            <version>1.117.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>confiant-ad-quality</artifactId>
             <version>1.117.0-SNAPSHOT</version>
         </dependency>
         <dependency>

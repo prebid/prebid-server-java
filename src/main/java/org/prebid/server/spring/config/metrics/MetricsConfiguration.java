@@ -48,7 +48,7 @@ public class MetricsConfiguration {
     public static final String METRIC_REGISTRY_NAME = "metric-registry";
 
     @Autowired(required = false)
-    private List<ScheduledReporter> reporters = Collections.emptyList();
+    private final List<ScheduledReporter> reporters = Collections.emptyList();
 
     @Autowired
     private Vertx vertx;

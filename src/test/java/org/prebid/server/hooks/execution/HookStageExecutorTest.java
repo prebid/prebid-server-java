@@ -68,6 +68,7 @@ import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
+import org.prebid.server.hooks.v1.bidder.BidResponsesInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
@@ -2509,8 +2510,8 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         final Async async = context.async();
         future.onComplete(context.asyncAssertSuccess(result -> {
-            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
-                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            final ArgumentCaptor<BidResponsesInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(BidResponsesInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
 
             assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
@@ -3041,7 +3042,7 @@ public class HookStageExecutorTest extends VertxTest {
         @Override
         public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
                 AllProcessedBidResponsesPayload payload,
-                AuctionInvocationContext invocationContext) {
+                BidResponsesInvocationContext invocationContext) {
 
             return delegate.apply(payload, invocationContext);
         }

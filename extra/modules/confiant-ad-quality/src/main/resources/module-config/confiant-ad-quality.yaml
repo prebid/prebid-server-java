@@ -1,0 +1,7 @@
+hooks:
+  modules:
+    confiant-ad-quality:
+      api-key: "999000999"
+      redis-host: "127.0.0.1"
+      redis-port: 8890
+      redis-password: "password-master"
