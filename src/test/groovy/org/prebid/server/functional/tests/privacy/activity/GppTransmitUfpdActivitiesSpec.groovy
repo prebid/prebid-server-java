@@ -1,358 +1,271 @@
 package org.prebid.server.functional.tests.privacy.activity
 
+import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Component
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
-import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.ActivityType
+import org.prebid.server.functional.model.request.auction.Data
+import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.UserExtData
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
+import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.EMPTY
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-// TODO due to deprecated status rework into transmitUfpd tests
 class GppTransmitUfpdActivitiesSpec extends ActivityBaseSpec {
 
-    final ActivityType type = ActivityType.TRANSMIT_UFPD
+    final static Map<String, Object> ufpdData = [
+            "ext"     : new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString)),
+            "data"    : [new Data(name: PBSUtils.randomString)],
+            "buyeruid": PBSUtils.randomString,
+            "yob"     : PBSUtils.randomNumber,
+            "gender"  : PBSUtils.randomString,
+            "eids"    : [Eid.defaultEid],
+            "device"  : new Device(os: PBSUtils.randomizeCase("iOS"), devicetype: PBSUtils.randomNumber)
+    ]
 
-    def "PBS should process user.eids in active request when allow activities settings allow for bidder"() {
-        given: "Allow activities setup"
-        Activity activity = Activity.getActivityWithRules(conditions, isAllowed)
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+    def "PBS action call when transmit UFPD activities is allowing requests should leave #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Allow activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def bidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
 
         when: "PBS processes auction requests"
-        pbsServerService.sendAuctionRequest(bidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
-        then: "Bidder request should include user.eids in request"
-        def generalBidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert generalBidderRequest.user.eids
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([new Condition(componentType: [BIDDER])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value], componentType: [BIDDER])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])], true)
+        ]].combinations()
     }
 
-    def "PBS should remove user.eids before sending to component in active request when allow activities settings decline for bidder"() {
-        given: "Reject activities setup"
-        Activity activity = Activity.getActivityWithRules(conditions, isAllowed)
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+    def "PBS action call when transmit UFPD activities is rejecting requests should remove #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Allow activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def bidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
 
         when: "PBS processes auction requests"
-        pbsServerService.sendAuctionRequest(bidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
-        then: "Bidder request should remove user.eids in request"
-        def generalBidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !generalBidderRequest.user.eids
+        then: "Generic bidder request should remove #ufpdField field in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert !isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | false
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | false
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([new Condition(componentType: [BIDDER])], false),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value])], false),
+                Activity.getActivityWithRules([new Condition(componentType: [GENERAL_MODULE])], false),
+                Activity.getActivityWithRules([new Condition(componentType: [RTD_MODULE])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [APPNEXUS.value])], true),
+        ]].combinations()
     }
 
-    def "PBS should remove user.eids before sending to component in active request when allow activities settings decline for requested module"() {
-        given: "Reject activities setup"
-        Condition condition = new Condition(componentType: new Component(xIn: [GENERAL_MODULE.name]))
-        Activity activity = Activity.getActivityWithRules([condition], false)
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+    def "PBS action call when transmit UFPD activities is allowing specific bidder should remove #ufpdField in specific bidder"() {
+        given: "Default Generic and Openx BidRequests with #ufpdField and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+        def openxBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String, OPENX)
+
+        and: "Activities set for cookie sync with generic bidders rejected"
+        def activity = Activity.getDefaultActivity(rules)
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
         and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        and: "Default Openx BidRequest with user.eids and account id"
-        def openxBidRequest = getBidRequestWithAccount(SITE, accountId, OPENX)
 
         when: "PBS processes auction requests"
-        pbsServerService.sendAuctionRequest(generalBidRequest)
-        pbsServerService.sendAuctionRequest(openxBidRequest)
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+        def openxResponse = pbsServerService.sendAuctionRequest(openxBidRequest)
 
-        then: "General bidder request should remove user.eids from request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert !generalBidderRequest.user.eids
+        then: "Generic bidder request should remove #ufpdField field in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert !isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
-        then: "Openx bidder request should remove user.eids from request"
-        def openxBidderRequest = bidder.getBidderRequest(openxBidRequest.id)
-        assert !openxBidderRequest.user.eids
-    }
-
-    def "PBS should remove user.eids in active request when activities component with restricted condition have higher priority"() {
-        given: "Activity rules with different priority"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
-
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = true
-        }
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
-
-        and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
-        def account = getAccountWithAllowActivities(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        when: "PBS processes auction request"
-        pbsServerService.sendAuctionRequest(generalBidRequest)
-
-        then: "General bidder request should remove user.eids from request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert !generalBidderRequest.user.eids
-    }
-
-    def "PBS should process user.eids in active request when activities component with allow condition have higher priority"() {
-        given: "Activity rules with different priority"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentType: new Component(xIn: [GENERIC.value]))
-            allow = true
-        }
-
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
-
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
-
-        and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
-        def account = getAccountWithAllowActivities(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        when: "PBS processes auction request"
-        pbsServerService.sendAuctionRequest(generalBidRequest)
-
-        then: "General bidder request should remove user.eids from request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest.user.eids
-    }
-
-    def "PBS should process user.eids in active request when activities component with conflict condition have same priority"() {
-        given: "Activity rules with different priority"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
-            allow = true
-        }
-
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
-
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
-
-        and: "Save account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
-        def account = getAccountWithAllowActivities(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def generalBidRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        when: "PBS processes auction request"
-        pbsServerService.sendAuctionRequest(generalBidRequest)
-
-        then: "General bidder request should leave user.eids from request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest.user.eids
-    }
-
-    def "PBS should process user.eids in AMP request when allow activities settings allowing for bidder"() {
-        given: "Allow activities setup"
-        Activity activity = Activity.getActivityWithRules(conditions, isAllowed)
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
-        def account = getAccountWithAllowActivities(accountId, allowSetup)
-        accountDao.save(account)
-
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
-        }
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should include user.eids in request"
-        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
-
-        assert resolvedRequest.user.eids
+        then: "Openx bidder request should leave #ufpdField field in request"
+        def openxBidderRequest = bidder.getBidderRequest(openxResponse.id)
+        assert isUfpdFieldPresent(openxBidderRequest, ufpdField as String)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | true
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | true
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | true
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | true
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | true
-        [new Condition(componentType: new Component(notIn: [OPENX.value]))]   | false
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        [ufpdField, rules] << [ufpdData.keySet(), [
+                [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
+                [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX.value), true)],
+                [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false),
+                 ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX.value))]
+        ]].combinations()
     }
 
-    def "PBS should remove user.eids in AMP request when allow activities settings allowing for bidder"() {
-        given: "Reject activities setup"
-        Activity activity = Activity.getActivityWithRules(conditions, isAllowed)
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+    def "PBS action call when transmit UFPD activities is empty should leave #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
 
-        and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
+        and: "Empty activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
+
+        and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
 
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
-        }
+        when: "PBS processes auction requests"
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
-        and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
-        }
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should include user.eids in request"
-        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
-
-        assert !resolvedRequest.user.eids
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
         where:
-        conditions                                                            | isAllowed
-        [new Condition(componentName: Component.baseComponent)]               | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(xIn: [BIDDER.name]))]            | false
-        [new Condition(componentType: new Component(xIn: [BIDDER.name]))]     | false
-        [new Condition(componentType: new Component(notIn: [BIDDER.name]))]   | false
-        [new Condition(componentName: Component.baseComponent,
-                componentType: new Component(notIn: [RTD_MODULE.name]))]      | false
-        [new Condition(componentName: Component.baseComponent),
-         new Condition(componentName: new Component(notIn: [GENERIC.value]))] | true
-        [new Condition(componentType: new Component(xIn: [OPENX.value]))]     | false
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                Activity.getDefaultActivity(rules: []),
+                Activity.getDefaultActivity(null, null)]
+        ].combinations()
     }
 
-    def "PBS should remove user.eids in AMP request when activities component with restricted condition have higher priority"() {
-        given: "Allow activity rules with different priority"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
+    def "PBS action call when transmit UFPD activities has specific allow hierarchy should leave #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
 
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = true
-        }
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+        and: "Activities set with with generic bidders allowed by hierarchy config"
+        def activity = Activity.getDefaultActivity(rules)
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
-        and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
+        and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
 
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
-        }
+        when: "PBS processes auction requests"
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
 
-        and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        [ufpdField, rules] << [ufpdData.keySet(), [
+                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]
+        ]].combinations()
+    }
+
+    def "PBS action call when transmit UFPD activities has specific reject hierarchy should remove #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: false)
+        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true)
+
+        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder request should remove #ufpdField in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert !isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        ufpdField << ufpdData.keySet()
+    }
+
+    def "PBS action call when transmit UFPD activities has invalid hierarchy should ignore activities and leave #ufpdField in active request"() {
+        given: "Default Generic BidRequests with #ufpdField and account id"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Activities set for cookie sync with invalid priority setup"
+        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.baseCondition, allow: false)
+        def invalidActivity = Activity.getDefaultActivity([invalidRule])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, invalidActivity)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def genericResponse = pbsServerService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder request should leave #ufpdField in request"
+        def generalBidderRequest = bidder.getBidderRequest(genericResponse.id)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        ufpdField << ufpdData.keySet()
+    }
+
+    def "PBS amp call when transmit UFPD activities is allowing all requests should leave #ufpdField field in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Allow activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
         }
 
         and: "Stored request in DB"
@@ -362,41 +275,35 @@ class GppTransmitUfpdActivitiesSpec extends ActivityBaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should include user.eids in request"
-        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
-        assert !resolvedRequest.user.eids
+        where:
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([new Condition(componentType: [BIDDER])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value], componentType: [BIDDER])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])], true)
+        ]].combinations()
     }
 
-    def "PBS should process user.eids in AMP request when activities component with allow condition have higher priority"() {
-        given: "Default bid request with allowed conditions and priority settings"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentType: new Component(xIn: [GENERIC.value]))
-            allow = true
-        }
+    def "PBS amp call when transmit UFPD activities is rejecting all requests should remove #ufpdField field in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
 
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
-
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+        and: "Allow activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
 
+        and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
-        }
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
+            it.account = accountId
         }
 
         and: "Stored request in DB"
@@ -406,42 +313,37 @@ class GppTransmitUfpdActivitiesSpec extends ActivityBaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should include user.eids in request"
-        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
+        then: "Generic bidder request should remove #ufpdField in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
 
-        assert resolvedRequest.user.eids
+        assert !isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([Condition.baseCondition], false),
+                Activity.getActivityWithRules([new Condition(componentType: [BIDDER])], false),
+                Activity.getActivityWithRules([new Condition(componentType: [GENERAL_MODULE])], false),
+                Activity.getActivityWithRules([new Condition(componentType: [RTD_MODULE])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [APPNEXUS.value])], true),
+        ]].combinations()
     }
 
-    def "PBS should process user.eids in AMP request when activities component with conflict condition have same priority"() {
-        given: "Default bid request with conditions collision and same priority settings"
-        def topPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentType: new Component(xIn: [BIDDER.name]))
-            allow = true
-        }
+    def "PBS amp call when transmit UFPD activities is empty should leave #ufpdField field in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
 
-        def defaultPriorityActivity = ActivityRule.defaultActivityRule.tap {
-            priority = 1
-            condition = new Condition(componentName: new Component(xIn: [GENERIC.value]))
-            allow = false
-        }
-
-        Activity activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(type, activity)
+        and: "Empty activities setup"
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Saved account config with allow activities into DB"
-        def accountId = PBSUtils.randomNumber as String
         def account = getAccountWithAllowActivities(accountId, allowSetup)
         accountDao.save(account)
 
+        and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            tagId = PBSUtils.randomString
-            account = accountId
-        }
-
-        and: "Default Generic BidRequest with user.eids and account id"
-        def ampStoredRequest = getBidRequestWithAccount(accountId).tap {
-            user.eids = [Eid.defaultEid]
+            it.account = accountId
         }
 
         and: "Stored request in DB"
@@ -451,9 +353,160 @@ class GppTransmitUfpdActivitiesSpec extends ActivityBaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should include user.eids in request"
-        def resolvedRequest = ampResponse.ext.debug.resolvedRequest
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
 
-        assert resolvedRequest.user.eids
+        where:
+        [ufpdField, activity] << [ufpdData.keySet(), [
+                Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], true),
+                Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], true),
+                Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], true),
+                Activity.getActivityWithRules([new Condition(componentName: null, componentType: null)], false),
+                Activity.getActivityWithRules([new Condition(componentName: [null], componentType: [null])], false),
+                Activity.getActivityWithRules([new Condition(componentName: [""], componentType: [EMPTY])], false),
+                Activity.getDefaultActivity(rules: []),
+                Activity.getDefaultActivity(null, null)]
+        ].combinations()
+    }
+
+    def "PBS amp call when transmit UFPD activities has specific allow hierarchy should leave #ufpdField in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Activities set for cookie sync with all bidders allowed by hierarchy config"
+        def activity = Activity.getDefaultActivity(rules)
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        [ufpdField, rules] << [ufpdData.keySet(), [
+                [new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [BIDDER]), allow: false)],
+                [new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: true),
+                 new ActivityRule(priority: DEFAULT, condition: new Condition(componentType: [GENERAL_MODULE]), allow: false)]
+        ]].combinations()
+    }
+
+    def "PBS amp call when transmit UFPD activities has specific reject hierarchy should remove #ufpdField in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Activities set for cookie sync with Generic bidder rejected by hierarchy setup"
+        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: false)
+        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true)
+
+        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should remove #ufpdField field in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
+
+        assert !isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        ufpdField << ufpdData.keySet()
+    }
+
+    def "PBS amp call when transmit UFPD activities has invalid hierarchy should ignore activities and leave #ufpdField in active request"() {
+        given: "Default Generic BidRequest with #ufpdField field and account id"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId, ufpdField as String)
+
+        and: "Activities set for cookie sync with invalid priority setup"
+        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.baseCondition, allow: false)
+        def invalidActivity = Activity.getDefaultActivity([invalidRule])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, invalidActivity)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should leave #ufpdField field in request"
+        def requestId = ampResponse.ext?.debug?.resolvedRequest?.id
+        def generalBidderRequest = bidder.getBidderRequest(requestId)
+        assert isUfpdFieldPresent(generalBidderRequest, ufpdField as String)
+
+        where:
+        ufpdField << ufpdData.keySet()
+    }
+
+    private boolean isUfpdFieldPresent(BidderRequest request, String ufpdField) {
+        switch (ufpdField as String) {
+            case "device":
+                return request.device
+            case "data":
+                return request.user."$ufpdField" || request.user.ext?.rp?.target?.iab
+            case "eids":
+                return request.user."$ufpdField" || request.user.ext?.eids
+            default:
+                request.user."$ufpdField"
+        }
+    }
+
+    private BidRequest generateBidRequestWithAccountAndUfpdData(String accountId, String ufpdField, BidderName bidder = GENERIC) {
+        getBidRequestWithAccount(SITE, accountId, bidder).tap {
+            if (ufpdField == "device") {
+                it.device = ufpdData."$ufpdField"
+            } else {
+                it.user = new User("$ufpdField": ufpdData."$ufpdField")
+            }
+        }
     }
 }
