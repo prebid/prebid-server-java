@@ -108,14 +108,18 @@ class AmpFpdSpec extends BaseSpec {
     }
 
     def "PBS should populate all FPD via targeting when targeting is present"() {
-        given: "AMP request"
+        given: "Init targeting"
         def targeting = new Targeting().tap {
             site = Site.configFPDSite
             user = User.configFPDUser
             keywords = [PBSUtils.randomString]
             bidders = [GENERIC]
         }
+
+        and: "Encode targeting to String"
         def encodeTargeting = HttpUtil.encodeUrl(encode(targeting))
+
+        and: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: encodeTargeting)
 
         and: "Stored request with FPD fields"
@@ -320,7 +324,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.site.domain == bidderRequest.site.domain
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.user.keywords == bidderRequest.user.keywords
 
@@ -516,10 +519,12 @@ class AmpFpdSpec extends BaseSpec {
         then: "Bidder request should contain certain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
-        assert bidderRequest.user.ext.data.geo.country == fpdGeo.country
-        assert bidderRequest.user.ext.data.geo.zip == fpdGeo.zip
-        assert bidderRequest.user.geo.country == ampStoredRequest.user.geo.country
-        assert bidderRequest.user.geo.zip == ampStoredRequest.user.geo.zip
+        verifyAll(bidderRequest) {
+            user.ext.data.geo.country == fpdGeo.country
+            user.ext.data.geo.zip == fpdGeo.zip
+            user.geo.country == ampStoredRequest.user.geo.country
+            user.geo.zip == ampStoredRequest.user.geo.zip
+        }
     }
 
     def "PBS shouldn't pass gam adSlot to XAPI without leading slash dropped when adSlot specified"() {
@@ -546,6 +551,7 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain gpid and rp"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
         assert !bidderRequest.imp[0].ext.gpid
         assert !bidderRequest.imp[0].ext.rp
     }
