@@ -103,6 +103,8 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD data field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        assert bidderRequest.user.data.size() == 1
         assert ampStoredRequest.user.data[0].id == bidderRequest.user.data[0].id
         assert ampStoredRequest.user.data[0].name == bidderRequest.user.data[0].name
     }
@@ -206,14 +208,18 @@ class AmpFpdSpec extends BaseSpec {
     }
 
     def "PBS should take precedence target from request when stored request contain site/user"() {
-        given: "AMP request"
+        given: "Init targeting"
         def targeting = new Targeting().tap {
             site = Site.configFPDSite
             user = User.configFPDUser
             keywords = [PBSUtils.randomString]
             bidders = [GENERIC]
         }
+
+        and: "Encode targeting to String"
         def encodeTargeting = HttpUtil.encodeUrl(encode(targeting))
+
+        and: "Amp request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: encodeTargeting)
 
         and: "Stored request with FPD fields"
@@ -229,7 +235,7 @@ class AmpFpdSpec extends BaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain FPD field from the stored request"
+        then: "Bidder request should contain FPD field from the targeting"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll(bidderRequest) {
@@ -324,6 +330,7 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.site.domain == bidderRequest.site.domain
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.user.keywords == bidderRequest.user.keywords
 
@@ -392,7 +399,7 @@ class AmpFpdSpec extends BaseSpec {
         }
     }
 
-    def "PBS should not send certain FPD data when bidder was not defined in bidders section"() {
+    def "PBS shouldn't send certain FPD data when bidder was not defined in bidders section"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
@@ -466,7 +473,7 @@ class AmpFpdSpec extends BaseSpec {
         }
     }
 
-    def "PBS should not send certain FPD data when allowed in bidder config and bidder was not defined in bidders section"() {
+    def "PBS shouldn't send certain FPD data when allowed in bidder config and bidder was not defined in bidders section"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
@@ -495,7 +502,7 @@ class AmpFpdSpec extends BaseSpec {
         }
     }
 
-    def "PBS should merge unknown FPD to target when unknown FPD data present"() {
+    def "PBS should fill unknown FPD when unknown FPD data present"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
@@ -506,7 +513,6 @@ class AmpFpdSpec extends BaseSpec {
             user = User.rootFPDUser
             ext.prebid.bidderConfig = [new ExtPrebidBidderConfig(bidders: [GENERIC], config: new BidderConfig(ortb2:
                     new BidderConfigOrtb(user: new User(geo: fpdGeo))))]
-
         }
 
         and: "Save stored request in DB"
@@ -527,7 +533,7 @@ class AmpFpdSpec extends BaseSpec {
         }
     }
 
-    def "PBS shouldn't pass gam adSlot to XAPI without leading slash dropped when adSlot specified"() {
+    def "PBS shouldn't pass gam adSlot without leading slash dropped when adSlot specified"() {
         given: "AMP request"
         def ampRequest = AmpRequest.defaultAmpRequest
 
