@@ -19,6 +19,7 @@ class Prebid {
     Targeting targeting
     PrebidStoredRequest storedRequest
     PrebidCache cache
+    ExtRequestPrebidData data
     List<ExtPrebidBidderConfig> bidderConfig
     List<PrebidSchain> schains
     Amp amp
