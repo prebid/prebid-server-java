@@ -47,7 +47,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

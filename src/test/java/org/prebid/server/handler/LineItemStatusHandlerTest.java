@@ -14,6 +14,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.deals.DeliveryProgressService;
 import org.prebid.server.deals.proto.report.LineItemStatusReport;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.handler.admin.LineItemStatusHandler;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;

@@ -15,8 +15,8 @@ import org.prebid.server.deals.model.DeploymentProperties;
 import org.prebid.server.deals.model.PlannerProperties;
 import org.prebid.server.deals.proto.LineItemMetaData;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;

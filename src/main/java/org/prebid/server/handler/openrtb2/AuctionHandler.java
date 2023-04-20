@@ -5,7 +5,7 @@ import com.iab.openrtb.request.Imp;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -32,6 +32,8 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -39,7 +41,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class AuctionHandler implements Handler<RoutingContext> {
+public class AuctionHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
@@ -73,6 +75,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, "/openrtb2/auction"));
     }
 
     @Override
@@ -206,7 +213,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
                 tcfContext);
-
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 

@@ -13,8 +13,8 @@ import org.prebid.server.deals.model.DeploymentProperties;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;

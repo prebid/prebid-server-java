@@ -33,7 +33,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;

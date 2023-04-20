@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.handler.admin.HttpInteractionLogHandler;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.model.HttpLogSpec;
 

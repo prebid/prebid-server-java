@@ -33,7 +33,7 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;

@@ -19,14 +19,16 @@ server:
   http:
     enabled: true
     port: 8080
-    server-instances: 1
+    server-instances: 10
 admin:
   port: 8060
 admin-endpoints:
+  credentials:
+    admin: admin
   version:
-    enabled: false
+    enabled: true
     path: /version
-    on-application-port: false
+    on-application-port: true
     protected: true
   currency-rates:
     enabled: false

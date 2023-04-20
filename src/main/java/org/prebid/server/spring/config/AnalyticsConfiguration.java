@@ -12,7 +12,7 @@ import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProp
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

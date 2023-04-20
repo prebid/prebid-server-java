@@ -11,7 +11,7 @@ import org.prebid.server.deals.model.UserDetailsProperties;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.time.Clock;
 

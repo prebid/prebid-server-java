@@ -16,7 +16,7 @@ import org.prebid.server.deals.model.AlertPriority;
 import org.prebid.server.deals.model.AlertProxyProperties;
 import org.prebid.server.deals.model.AlertSource;
 import org.prebid.server.deals.model.DeploymentProperties;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.time.Clock;
 import java.time.Instant;

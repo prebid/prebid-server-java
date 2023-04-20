@@ -16,6 +16,7 @@ import org.prebid.server.deals.LineItemService;
 import org.prebid.server.deals.PlannerService;
 import org.prebid.server.deals.RegisterService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.handler.admin.ForceDealsUpdateHandler;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;

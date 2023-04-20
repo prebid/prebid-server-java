@@ -19,8 +19,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Set;

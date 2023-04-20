@@ -15,8 +15,8 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.concurrent.TimeoutException;
 

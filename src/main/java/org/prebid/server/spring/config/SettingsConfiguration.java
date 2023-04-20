@@ -27,7 +27,7 @@ import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;

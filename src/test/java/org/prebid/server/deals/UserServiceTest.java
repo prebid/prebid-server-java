@@ -35,8 +35,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.time.Clock;

@@ -25,8 +25,8 @@ import org.prebid.server.deals.proto.Status;
 import org.prebid.server.deals.proto.report.DeliveryProgressReport;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.health.HealthMonitor;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.time.Clock;

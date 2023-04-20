@@ -11,7 +11,7 @@ import org.prebid.server.deals.model.DeploymentProperties;
 import org.prebid.server.deals.model.PlannerProperties;
 import org.prebid.server.health.HealthMonitor;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;

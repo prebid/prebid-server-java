@@ -11,7 +11,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.io.IOException;
 import java.util.Collection;

@@ -10,7 +10,7 @@ import org.prebid.server.deals.model.DeliveryStatsProperties;
 import org.prebid.server.deals.proto.report.DeliveryProgressReport;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;

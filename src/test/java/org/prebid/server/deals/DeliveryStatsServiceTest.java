@@ -20,8 +20,8 @@ import org.prebid.server.deals.proto.report.DeliveryProgressReport;
 import org.prebid.server.deals.proto.report.DeliveryProgressReportBatch;
 import org.prebid.server.deals.proto.report.LineItemStatus;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.BufferedReader;

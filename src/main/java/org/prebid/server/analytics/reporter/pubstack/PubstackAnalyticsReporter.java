@@ -22,8 +22,8 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.Arrays;
 import java.util.Collections;

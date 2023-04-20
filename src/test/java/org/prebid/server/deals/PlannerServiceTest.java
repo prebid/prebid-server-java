@@ -21,8 +21,8 @@ import org.prebid.server.deals.proto.Price;
 import org.prebid.server.deals.proto.Token;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.time.Clock;

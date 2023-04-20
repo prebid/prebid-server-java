@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.deals.DeliveryProgressService;
 import org.prebid.server.deals.proto.report.DeliveryProgressReport;
+import org.prebid.server.handler.admin.DealsStatusHandler;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;

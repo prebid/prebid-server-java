@@ -3,7 +3,7 @@ package org.prebid.server.handler.openrtb2;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -32,6 +32,8 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -41,7 +43,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class VideoHandler implements Handler<RoutingContext> {
+public class VideoHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(VideoHandler.class);
 
@@ -74,6 +76,11 @@ public class VideoHandler implements Handler<RoutingContext> {
         this.clock = Objects.requireNonNull(clock);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, "/openrtb2/video"));
     }
 
     @Override

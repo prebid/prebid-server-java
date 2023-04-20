@@ -12,8 +12,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -55,6 +55,8 @@ import org.prebid.server.proto.response.ExtAmpVideoPrebid;
 import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -66,7 +68,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class AmpHandler implements Handler<RoutingContext> {
+public class AmpHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
@@ -110,6 +112,11 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/openrtb2/amp"));
+}
 
     @Override
     public void handle(RoutingContext routingContext) {
