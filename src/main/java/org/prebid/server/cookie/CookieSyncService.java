@@ -7,6 +7,9 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -255,6 +258,7 @@ public class CookieSyncService {
         return tcfDefinerService.isAllowedForHostVendorId(tcfContext)
                 .compose(hostTcfResponse -> filterWithTcfResponse(hostTcfResponse, cookieSyncContext))
                 .onSuccess(updatedContext -> updateCookieSyncTcfMetrics(updatedContext.getBiddersContext()))
+                .compose(this::filterWithActivityInfrastructure)
                 .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext));
     }
 
@@ -453,6 +457,8 @@ public class CookieSyncService {
             case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
+            case REJECTED_BY_ACTIVITY_INFRASTRUCTURE -> builder.conditionalError(
+                    requested || coopSync, "Rejected by Activity Infrastructure");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
             case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
@@ -508,6 +514,20 @@ public class CookieSyncService {
                 .map(Map.Entry::getKey)
                 .forEach(bidder -> metrics.updateCookieSyncTcfBlockedMetric(
                         bidderCatalog.isValidName(bidder) ? bidder : "unknown"));
+    }
+
+    private Future<CookieSyncContext> filterWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
+        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
+        final ActivityInfrastructure activityInfrastructure = cookieSyncContext.getActivityInfrastructure();
+
+        final Set<String> rejectedBidders = biddersContext.allowedBidders().stream()
+                .filter(bidder -> !activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder))
+                .collect(Collectors.toSet());
+
+        return Future
+                .succeededFuture(biddersContext.withRejectedBidders(
+                        rejectedBidders, RejectionReason.REJECTED_BY_ACTIVITY_INFRASTRUCTURE))
+                .map(cookieSyncContext::with);
     }
 
     private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {

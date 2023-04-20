@@ -10,6 +10,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationParser;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -31,6 +33,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.settings.ApplicationSettings;
@@ -88,6 +91,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         cookieSyncContext(routingContext)
                 .compose(this::fillWithAccount)
+                .map(this::fillWithActivityInfrastructure)
                 .map(this::processGpp)
                 .compose(this::fillWithPrivacyContext)
                 .compose(cookieSyncService::processContext)
@@ -148,6 +152,19 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
                 .otherwise(Account.empty(accountId));
+    }
+
+    private CookieSyncContext fillWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
+        final Account account = cookieSyncContext.getAccount();
+
+        return cookieSyncContext.toBuilder()
+                .activityInfrastructure(
+                        new ActivityInfrastructure(
+                                account.getId(),
+                                AccountActivitiesConfigurationParser.parse(account),
+                                TraceLevel.basic,
+                                metrics))
+                .build();
     }
 
     private CookieSyncContext processGpp(CookieSyncContext cookieSyncContext) {
