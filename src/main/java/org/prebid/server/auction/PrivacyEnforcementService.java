@@ -12,6 +12,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -236,7 +239,9 @@ public class PrivacyEnforcementService {
                         bidderToEnforcement, aliases, requestType, bidderToUser, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
                         bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
-                .map(gdprResult -> merge(ccpaResult, gdprResult));
+                .map(gdprResult -> merge(ccpaResult, gdprResult))
+                .map(bidderPrivacyResults -> applyRestrictions(
+                        bidderPrivacyResults, auctionContext.getActivityInfrastructure()));
     }
 
     public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
@@ -670,6 +675,68 @@ public class PrivacyEnforcementService {
 
     private static boolean isLmtEnabled(Device device) {
         return device != null && Objects.equals(device.getLmt(), 1);
+    }
+
+    private List<BidderPrivacyResult> applyRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
+                                                        ActivityInfrastructure activityInfrastructure) {
+
+        return bidderPrivacyResults.stream()
+                .map(bidderPrivacyResult -> applyRestrictions(bidderPrivacyResult, activityInfrastructure))
+                .toList();
+    }
+
+    private BidderPrivacyResult applyRestrictions(BidderPrivacyResult bidderPrivacyResult,
+                                                  ActivityInfrastructure activityInfrastructure) {
+
+        final String bidder = bidderPrivacyResult.getRequestBidder();
+        final User user = bidderPrivacyResult.getUser();
+        final Device device = bidderPrivacyResult.getDevice();
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, ComponentType.BIDDER, bidder);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, ComponentType.BIDDER, bidder);
+
+        final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskUserForActivity(user, disallowTransmitUfpd, disallowTransmitGeo)
+                : user;
+        final Device resolvedDevice = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskDeviceForActivity(device, disallowTransmitUfpd, disallowTransmitGeo)
+                : device;
+
+        return bidderPrivacyResult.toBuilder()
+                .user(resolvedUser)
+                .device(resolvedDevice)
+                .build();
+    }
+
+    public User maskUserForActivity(User user, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+        if (user == null) {
+            return null;
+        }
+
+        final User.UserBuilder userBuilder = user.toBuilder();
+
+        if (disallowTransmitUfpd) {
+            final ExtUser extUser = user.getExt();
+            userBuilder
+                    .buyeruid(null)
+                    .yob(null)
+                    .gender(null)
+                    .data(null)
+                    .eids(null)
+                    .ext(extUser != null ? extUser.toBuilder().data(null).build() : null);
+        }
+
+        if (disallowTransmitGeo) {
+            userBuilder.geo(maskGeoDefault(user.getGeo()));
+        }
+
+        return userBuilder.build();
+    }
+
+    public Device maskDeviceForActivity(Device device, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+        return maskTcfDevice(device, disallowTransmitGeo, disallowTransmitGeo, disallowTransmitUfpd);
     }
 
     private static List<BidderPrivacyResult> merge(
