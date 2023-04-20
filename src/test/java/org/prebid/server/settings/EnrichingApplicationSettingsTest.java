@@ -111,6 +111,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
                                 .build(),
+                        null,
                         null))
                 .build()));
 
@@ -129,6 +130,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
                                 .build(),
+                        null,
                         null))
                 .build());
     }

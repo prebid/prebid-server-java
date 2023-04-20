@@ -8,6 +8,7 @@ import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.rule.ConditionalRule;
 import org.prebid.server.activity.rule.Rule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
@@ -27,8 +28,8 @@ public class AccountActivitiesConfigurationParser {
     }
 
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
-        return Optional.of(account)
-                .map(Account::getActivities)
+        return Optional.ofNullable(account.getPrivacy())
+                .map(AccountPrivacyConfig::getActivities)
                 .orElse(Collections.emptyMap())
                 .entrySet().stream()
                 .collect(Collectors.toMap(
