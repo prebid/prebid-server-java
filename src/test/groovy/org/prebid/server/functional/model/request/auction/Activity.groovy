@@ -12,16 +12,14 @@ class Activity {
     Boolean defaultAction
     List<ActivityRule> rules
 
-    static Activity getDefaultActivity(isDefaultAction = true, rules = [ActivityRule.defaultActivityRule] ) {
+    static Activity getDefaultActivity(isDefaultAction = true, rules = [ActivityRule.defaultActivityRule]) {
         new Activity().tap {
             it.defaultAction = isDefaultAction
             it.rules = rules
         }
     }
 
-    static Activity getActivityWithRules(List<Condition> conditions, Boolean isAllowed) {
-        getDefaultActivity(true, conditions.collect { singleCondition ->
-            ActivityRule.getDefaultActivityRule(DEFAULT, singleCondition,isAllowed)
-        })
+    static Activity getActivityWithRules(Condition conditions, Boolean isAllowed) {
+        getDefaultActivity(true, [ActivityRule.getDefaultActivityRule(DEFAULT, conditions, isAllowed)])
     }
 }

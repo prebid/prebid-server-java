@@ -23,7 +23,7 @@ class ActivityRule {
 
     enum Priority {
         HIGHEST(1),
-        DEFAULT(Integer.MAX_VALUE/2 as Integer),
+        DEFAULT(Integer.MAX_VALUE / 2 as Integer),
         LOWEST(Integer.MAX_VALUE),
         INVALID(Integer.MIN_VALUE)
 
