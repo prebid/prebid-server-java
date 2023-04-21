@@ -14,18 +14,12 @@ class Condition {
         new Condition(componentName: [componentName], componentType: [ConditionType.BIDDER])
     }
 
-    static Condition getBaseCondition(BidderName componentName) {
-        getBaseCondition(componentName.value)
-    }
-
-
     enum ConditionType {
         BIDDER("bidder"),
         GENERAL_MODULE("general"),
         RTD_MODULE("rtd"),
         USER_ID_MODULE("userid"),
-        ANALYTICS("analytics"),
-        EMPTY("")
+        ANALYTICS("analytics")
 
         final String name
 

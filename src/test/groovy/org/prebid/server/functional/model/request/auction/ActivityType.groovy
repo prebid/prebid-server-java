@@ -1,8 +1,13 @@
 package org.prebid.server.functional.model.request.auction
 
-import groovy.transform.ToString
+import com.fasterxml.jackson.annotation.JsonValue
+import org.apache.commons.text.CaseUtils
 
-@ToString(includeNames = true, ignoreNulls = true)
 enum ActivityType {
     SYNC_USER, FETCH_BIDS, ENRICH_UFPD, REPORT_ANALYTICS, TRANSMIT_UFPD, TRANSMIT_PRECISE_GEO
+
+    @JsonValue
+    String getValue() {
+        CaseUtils.toCamelCase(name(), false, '_' as char)
+    }
 }
