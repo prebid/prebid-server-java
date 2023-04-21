@@ -384,8 +384,8 @@ public class HookStageExecutor {
                                                                   Object moduleContext) {
 
         return AuctionInvocationContextImpl.of(
-                auctionContext,
                 invocationContext(endpoint, timeout),
+                auctionContext,
                 auctionContext.getDebugContext().isDebugEnabled(),
                 accountConfigFor(auctionContext.getAccount(), hookId),
                 moduleContext);
