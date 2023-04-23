@@ -18,22 +18,16 @@ public class AdSlot30 {
 
     Integer test;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer totalDuration;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer orientation;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer w;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer h;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     List<Format> format;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     List<String> detailedCreativeTypeList;
 
 }

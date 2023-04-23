@@ -7,9 +7,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class CellInfo {
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String mcc;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String mnc;
 }

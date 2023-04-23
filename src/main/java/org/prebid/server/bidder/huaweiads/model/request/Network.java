@@ -12,9 +12,7 @@ public class Network {
 
     Integer type;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer carrier;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     List<CellInfo> cellInfo;
 }

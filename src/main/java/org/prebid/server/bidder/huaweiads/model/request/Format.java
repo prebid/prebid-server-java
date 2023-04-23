@@ -7,10 +7,8 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class Format {
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer w;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer h;
 
 }

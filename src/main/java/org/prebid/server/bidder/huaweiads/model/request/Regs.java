@@ -6,7 +6,6 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class Regs {
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     Integer coppa;
 
 }
