@@ -1,21 +1,24 @@
 package org.prebid.server.vertx.verticles;
 
-import io.vertx.core.DeploymentOptions;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class VerticleDeployer {
 
-    private static final int TIMEOUT_MILLIS = 5000;
-
+    private final long timeoutMillis;
     private final Vertx vertx;
 
-    public VerticleDeployer(Vertx vertx) {
+    public VerticleDeployer(Vertx vertx, long timeoutMillis) {
+        this.timeoutMillis = timeoutMillis;
         this.vertx = Objects.requireNonNull(vertx);
     }
 
@@ -26,40 +29,42 @@ public class VerticleDeployer {
         }
 
         final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicReference<Throwable> failureThrowable = new AtomicReference<>();
-        final AtomicBoolean failed = new AtomicBoolean();
-
-        final DeploymentOptions deploymentOptions = new DeploymentOptions();
-        deploymentOptions.setInstances(amount);
-
-        vertx.deployVerticle(definition.getFactory(), deploymentOptions, result -> {
-            if (result.failed()) {
-                failureThrowable.set(result.cause());
-                failed.set(true);
-            }
-
-            latch.countDown();
-        });
-
+        final List<InitializableVerticle> verticles = toVerticles(definition);
+        final CompositeFuture initializationMarker = toInitializationMarker(verticles);
+        verticles.forEach(vertx::deployVerticle);
+        initializationMarker.onComplete(result -> latch.countDown());
 
         try {
-            if (!latch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            if (!latch.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException(
-                        "Action has not completed within defined timeout %d ms".formatted(TIMEOUT_MILLIS));
+                        "Action has not completed within defined timeout %d ms".formatted(timeoutMillis));
             }
 
-            if (failed.get()) {
-                final Throwable cause = failureThrowable.get();
+            if (initializationMarker.failed()) {
+                final Throwable cause = initializationMarker.cause();
                 if (cause != null) {
                     throw new RuntimeException(cause);
                 } else {
                     throw new RuntimeException("Action failed");
                 }
             }
-        } catch (
-                InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while waiting for action to complete", e);
         }
+    }
+
+    private static List<InitializableVerticle> toVerticles(VerticleDefinition definition) {
+        return IntStream.range(0, definition.getAmount())
+                .mapToObj(i -> definition.getFactory().get())
+                .toList();
+    }
+
+    private static CompositeFuture toInitializationMarker(List<InitializableVerticle> verticles) {
+        final List<Future> initializationFutures = verticles.stream()
+                .map(InitializableVerticle::getInitializationMarker)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        return CompositeFuture.all(initializationFutures);
     }
 }

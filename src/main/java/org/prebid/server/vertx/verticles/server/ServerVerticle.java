@@ -1,6 +1,5 @@
 package org.prebid.server.vertx.verticles.server;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -12,11 +11,12 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.ExceptionHandler;
+import org.prebid.server.vertx.verticles.InitializableVerticle;
 
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public class ServerVerticle extends AbstractVerticle {
+public class ServerVerticle extends InitializableVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerVerticle.class);
 
@@ -62,13 +62,14 @@ public class ServerVerticle extends AbstractVerticle {
 
     private void onServerStarted(AsyncResult<HttpServer> result) {
         if (result.succeeded()) {
+            signalInitializationSuccess();
             logger.info(
                     "Successfully started {0} instance on address: {1}, thread: {2}",
                     name,
                     address,
                     Thread.currentThread().getName());
         } else {
-            throw new RuntimeException(result.cause());
+            signalInitializationFailure(result.cause());
         }
     }
 }
