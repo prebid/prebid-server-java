@@ -5,7 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
 /**
- * Base class for server Verticles, is made for making asynchronous verticles initialization synchronous,
+ * Base class for server Verticles, exists for making asynchronous verticles initialization synchronous,
  * so that server bootstrap will crash if verticle can't init.
  */
 public abstract class InitializableVerticle extends AbstractVerticle {

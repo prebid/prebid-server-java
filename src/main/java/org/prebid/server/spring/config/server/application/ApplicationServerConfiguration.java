@@ -110,8 +110,7 @@ public class ApplicationServerConfiguration {
                 instances);
     }
 
-    @Bean
-        // TODO: remove support for properties with http prefix after transition period
+    @Bean // TODO: remove support for properties with http prefix after transition period
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
