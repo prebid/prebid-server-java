@@ -7,7 +7,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
 /**
- * Base class for server Verticles, exists for making asynchronous verticles initialization synchronous,
+ * Base class for pbs Verticles, exists for making asynchronous verticles initialization synchronous,
  * so that server bootstrap will crash if verticle can't init. Every child class should do initialization
  * in {@link #initialize(Vertx, Context)} method
  */
