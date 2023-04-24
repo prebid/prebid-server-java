@@ -2,6 +2,8 @@ package org.prebid.server.vertx.verticles.server;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -48,7 +50,8 @@ public class ServerVerticle extends InitializableVerticle {
     }
 
     @Override
-    public void init(Vertx vertx, Context context) {
+    public Future<Void> initialize(Vertx vertx, Context context) {
+        final Promise<Void> completionPromise = Promise.promise();
         final HttpServerOptions httpServerOptions = ObjectUtils.defaultIfNull(serverOptions, new HttpServerOptions());
         final HttpServer server = vertx.createHttpServer(httpServerOptions)
                 .requestHandler(router);
@@ -57,19 +60,20 @@ public class ServerVerticle extends InitializableVerticle {
             server.exceptionHandler(exceptionHandler);
         }
 
-        server.listen(address, this::onServerStarted);
+        server.listen(address, result -> onServerStarted(result, completionPromise));
+        return completionPromise.future();
     }
 
-    private void onServerStarted(AsyncResult<HttpServer> result) {
+    private void onServerStarted(AsyncResult<HttpServer> result, Promise<Void> completionPromise) {
         if (result.succeeded()) {
-            signalInitializationSuccess();
+            completionPromise.tryComplete();
             logger.info(
                     "Successfully started {0} instance on address: {1}, thread: {2}",
                     name,
                     address,
                     Thread.currentThread().getName());
         } else {
-            signalInitializationFailure(result.cause());
+            completionPromise.tryFail(result.cause());
         }
     }
 }
