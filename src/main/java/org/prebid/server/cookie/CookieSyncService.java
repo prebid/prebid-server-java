@@ -258,7 +258,7 @@ public class CookieSyncService {
         return tcfDefinerService.isAllowedForHostVendorId(tcfContext)
                 .compose(hostTcfResponse -> filterWithTcfResponse(hostTcfResponse, cookieSyncContext))
                 .onSuccess(updatedContext -> updateCookieSyncTcfMetrics(updatedContext.getBiddersContext()))
-                .compose(this::filterWithActivityInfrastructure)
+                .compose(this::filterDisallowedActivities)
                 .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext));
     }
 
@@ -457,8 +457,7 @@ public class CookieSyncService {
             case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
-            case REJECTED_BY_ACTIVITY_INFRASTRUCTURE -> builder.conditionalError(
-                    requested || coopSync, "Rejected by Activity Infrastructure");
+            case DISALLOWED_ACTIVITY -> builder.conditionalError(requested || coopSync, "Disallowed activity");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
             case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
@@ -516,7 +515,7 @@ public class CookieSyncService {
                         bidderCatalog.isValidName(bidder) ? bidder : "unknown"));
     }
 
-    private Future<CookieSyncContext> filterWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
+    private Future<CookieSyncContext> filterDisallowedActivities(CookieSyncContext cookieSyncContext) {
         final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
         final ActivityInfrastructure activityInfrastructure = cookieSyncContext.getActivityInfrastructure();
 
@@ -524,9 +523,8 @@ public class CookieSyncService {
                 .filter(bidder -> !activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder))
                 .collect(Collectors.toSet());
 
-        return Future
-                .succeededFuture(biddersContext.withRejectedBidders(
-                        rejectedBidders, RejectionReason.REJECTED_BY_ACTIVITY_INFRASTRUCTURE))
+        return Future.succeededFuture(
+                        biddersContext.withRejectedBidders(rejectedBidders, RejectionReason.DISALLOWED_ACTIVITY))
                 .map(cookieSyncContext::with);
     }
 

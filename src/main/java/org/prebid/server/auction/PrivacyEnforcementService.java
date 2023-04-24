@@ -240,7 +240,7 @@ public class PrivacyEnforcementService {
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
                         bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
                 .map(gdprResult -> merge(ccpaResult, gdprResult))
-                .map(bidderPrivacyResults -> applyRestrictions(
+                .map(bidderPrivacyResults -> applyActivityRestrictions(
                         bidderPrivacyResults, auctionContext.getActivityInfrastructure()));
     }
 
@@ -677,16 +677,16 @@ public class PrivacyEnforcementService {
         return device != null && Objects.equals(device.getLmt(), 1);
     }
 
-    private List<BidderPrivacyResult> applyRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
-                                                        ActivityInfrastructure activityInfrastructure) {
+    private List<BidderPrivacyResult> applyActivityRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
+                                                                ActivityInfrastructure activityInfrastructure) {
 
         return bidderPrivacyResults.stream()
-                .map(bidderPrivacyResult -> applyRestrictions(bidderPrivacyResult, activityInfrastructure))
+                .map(bidderPrivacyResult -> applyActivityRestrictions(bidderPrivacyResult, activityInfrastructure))
                 .toList();
     }
 
-    private BidderPrivacyResult applyRestrictions(BidderPrivacyResult bidderPrivacyResult,
-                                                  ActivityInfrastructure activityInfrastructure) {
+    private BidderPrivacyResult applyActivityRestrictions(BidderPrivacyResult bidderPrivacyResult,
+                                                          ActivityInfrastructure activityInfrastructure) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
         final User user = bidderPrivacyResult.getUser();
