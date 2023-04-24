@@ -81,6 +81,10 @@ public class AnalyticsReporterDelegator {
 
     public <T> void processEvent(T event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
+            if (!isAllowedActivity(event, analyticsReporter.name())) {
+                continue;
+            }
+
             vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, event));
         }
     }
@@ -100,7 +104,7 @@ public class AnalyticsReporterDelegator {
             checkUnknownAdaptersForAuctionEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
                 final String name = analyticsReporter.name();
-                if (!isAllowed(event, name)) {
+                if (!isAllowedActivity(event, name)) {
                     continue;
                 }
 
@@ -153,19 +157,20 @@ public class AnalyticsReporterDelegator {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private static <T> boolean isAllowed(T event, String adapter) {
+    private static <T> boolean isAllowedActivity(T event, String adapter) {
+        final ActivityInfrastructure activityInfrastructure;
         if (event instanceof AuctionEvent auctionEvent) {
             final AuctionContext auctionContext = auctionEvent.getAuctionContext();
-            final ActivityInfrastructure activityInfrastructure = auctionContext != null
-                    ? auctionContext.getActivityInfrastructure()
-                    : null;
-
-            return activityInfrastructure != null
-                    ? activityInfrastructure.isAllowed(Activity.REPORT_ANALYTICS, ComponentType.ANALYTICS, adapter)
-                    : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+        } else if (event instanceof NotificationEvent notificationEvent) {
+            activityInfrastructure = notificationEvent.getActivityInfrastructure();
+        } else {
+            activityInfrastructure = null;
         }
 
-        return ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+        return activityInfrastructure != null
+                ? activityInfrastructure.isAllowed(Activity.REPORT_ANALYTICS, ComponentType.ANALYTICS, adapter)
+                : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
     private <T> T updateEvent(T event, String adapter) {

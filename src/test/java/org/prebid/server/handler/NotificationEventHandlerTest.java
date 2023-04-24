@@ -23,6 +23,7 @@ import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
@@ -60,6 +61,8 @@ public class NotificationEventHandlerTest extends VertxTest {
     private TimeoutFactory timeoutFactory;
     @Mock
     private ApplicationSettings applicationSettings;
+    @Mock
+    private Metrics metrics;
 
     private NotificationEventHandler notificationHandler;
 
@@ -89,7 +92,8 @@ public class NotificationEventHandlerTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 1000,
-                true);
+                true,
+                metrics);
     }
 
     @Test
@@ -397,7 +401,8 @@ public class NotificationEventHandlerTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 1000,
-                false);
+                false,
+                metrics);
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
