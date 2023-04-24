@@ -1,15 +1,12 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
 
-@Data
-@NoArgsConstructor
+@Builder(toBuilder = true)
+@Value
 public class HuaweiAdsRequest {
 
     String version;

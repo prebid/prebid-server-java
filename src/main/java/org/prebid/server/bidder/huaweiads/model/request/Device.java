@@ -1,11 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
 
-@Data
-@NoArgsConstructor
+@Builder(toBuilder = true)
+@Value
 public class Device {
 
     Integer type;

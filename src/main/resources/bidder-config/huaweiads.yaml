@@ -1,0 +1,12 @@
+adapters:
+  huaweiads:
+    endpoint: https://acd.op.hicloud.com/ppsadx/getResult
+    meta-info:
+      maintainer-email: hwads@huawei.com
+      site-media-types:
+      app-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 856

@@ -1,10 +1,11 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
+
 import java.util.Optional;
 
-import static org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
-
 public enum CountryCode {
+
     AND("AD"), AGO("AO"), AUT("AT"), BGD("BD"), BLR("BY"), CAF("CF"), CHD("TD"), CHL("CL"), CHN("CN"), COG("CG"),
     COD("CD"), DNK("DK"), GNQ("GQ"), EST("EE"), GIN("GN"), GNB("GW"), GUY("GY"), IRQ("IQ"), IRL("IE"), ISR("IL"),
     KAZ("KZ"), LBY("LY"), MDG("MG"), MDV("MV"), MEX("MX"), MNE("ME"), MOZ("MZ"), PAK("PK"), PNG("PG"), PRY("PY"),
@@ -17,26 +18,26 @@ public enum CountryCode {
         this.code = code;
     }
 
-    public String getCode() {
-        return code;
-    }
-
     public static String convertCountryCode(String country) {
         if (country == null || country.isEmpty()) {
-            return DEFAULT_COUNTRY_NAME;
+            return HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
         }
         return Optional.of(CountryCode.valueOf(country).name())
-                .orElse(country.length() >= 3 ? country.substring(0, 2) : DEFAULT_COUNTRY_NAME);
+                .orElse(country.length() >= 3 ? country.substring(0, 2) : HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
     }
 
-    public static String getCountryCodeFromMCC(String MCC) {
-        String countryCode = Optional.ofNullable(MCC)
+    public static String getCountryCodeFromMCC(String mccValue) {
+        String countryCode = Optional.ofNullable(mccValue)
                 .map(mcc -> mcc.split("-")[0])
                 .filter(mcc -> mcc.matches("\\d+"))
                 .map(Integer::parseInt)
                 .flatMap(mcc -> Optional.of(Mcc.fromCode(mcc)))
-                .orElse(DEFAULT_COUNTRY_NAME);
+                .orElse(HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
 
         return countryCode.toUpperCase();
+    }
+
+    public String getCode() {
+        return code;
     }
 }

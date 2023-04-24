@@ -3,6 +3,7 @@ package org.prebid.server.bidder.huaweiads.model.request;
 import java.util.Arrays;
 
 public enum EuropeanSiteCountryCode {
+
     AX, AL, AD, AU, AT, BE, BA, BG, CA, HR, CY, CZ,
     DK, EE, FO, FI, FR, DE, GI, GR, GL, GG, VA, HU,
     IS, IE, IM, IL, IT, JE, YK, LV, LI, LT, LU, MT,

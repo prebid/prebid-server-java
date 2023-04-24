@@ -3,6 +3,7 @@ package org.prebid.server.bidder.huaweiads.model.request;
 import java.util.Arrays;
 
 public enum Mcc {
+
     GR(202), NL(204), BE(206), FR(208), MC(212), AD(213), ES(214), HU(216),
     BA(218), HR(219), RS(220), IT(222), VA(225), RO(226), CH(228), CZ(230),
     SK(231), AT(232), GB(234), DK(238), SE(240), NO(242), FI(244), LT(246),
@@ -32,15 +33,10 @@ public enum Mcc {
     CR(712), PA(714), PE(716), AR(722), BR(724), CL(730), CO(732), VE(734),
     BO(736), GY(738), EC(740), GF(742), PY(744), SR(746), UY(748), FK(750);
 
-
     private final int code;
 
     Mcc(int code) {
         this.code = code;
-    }
-
-    public int getCode() {
-        return code;
     }
 
     public static String fromCode(int countryCode) {
@@ -49,6 +45,10 @@ public enum Mcc {
                 .findFirst()
                 .map(Enum::name)
                 .orElse(null);
+    }
+
+    public int getCode() {
+        return code;
     }
 
 }

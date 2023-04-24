@@ -1,20 +1,25 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
+
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
-import static org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants.DEFAULT_TIME_ZONE;
-
 public class ClientTimeConverter {
 
+    private ClientTimeConverter() {
+
+    }
+
     private static final String TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final Pattern CLIENT_TIME_PATTERN_1 = Pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}[+-]{1}\\d{4}$");
-    private static final Pattern CLIENT_TIME_PATTERN_2 = Pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$");
+    private static final Pattern CLIENT_TIME_PATTERN_1 =
+            Pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}[+-]{1}\\d{4}$");
+    private static final Pattern CLIENT_TIME_PATTERN_2 =
+            Pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$");
 
     public static String getClientTime(String clientTime) {
-        String zone = DEFAULT_TIME_ZONE;
+        String zone = HuaweiAdsConstants.DEFAULT_TIME_ZONE;
         String t = LocalDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         int index = t.contains("+") ? t.indexOf("+") : t.indexOf("-");
         if (index > 0 && t.length() - index == 6) {
