@@ -103,9 +103,11 @@ LIMIT 1
 
     // due to a config validation we'll need to circumvent all future aliases this way
     static Map<String, String> getBidderAliasConfig() {
-        ["adapters.generic.aliases.cwire.meta-info.site-media-types": "",
-         "adapters.generic.aliases.blue.meta-info.app-media-types"  : "",
-         "adapters.generic.aliases.blue.meta-info.site-media-types" : ""]
+        ["adapters.generic.aliases.cwire.meta-info.site-media-types"         : "",
+         "adapters.generic.aliases.blue.meta-info.app-media-types"           : "",
+         "adapters.generic.aliases.blue.meta-info.site-media-types"          : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types" : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": ""]
     }
 
     private PbsConfig() {}
