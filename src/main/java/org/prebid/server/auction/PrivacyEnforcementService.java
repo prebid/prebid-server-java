@@ -711,12 +711,8 @@ public class PrivacyEnforcementService {
     }
 
     public User maskUserForActivity(User user, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
-        if (!disallowTransmitGeo && !disallowTransmitUfpd) {
+        if (!(disallowTransmitGeo || disallowTransmitUfpd) || user == null) {
             return user;
-        }
-
-        if (user == null) {
-            return null;
         }
 
         final User.UserBuilder userBuilder = user.toBuilder();
@@ -740,7 +736,7 @@ public class PrivacyEnforcementService {
     }
 
     public Device maskDeviceForActivity(Device device, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
-        if (!disallowTransmitUfpd && !disallowTransmitGeo) {
+        if (!(disallowTransmitGeo || disallowTransmitUfpd)) {
             return device;
         }
 

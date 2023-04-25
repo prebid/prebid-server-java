@@ -48,7 +48,9 @@ public class ActivityInfrastructure {
         final int processedRulesCount = result.getProcessedRulesCount();
         if (processedRulesCount > 0) {
             metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);
-            metrics.updateAccountActivityProcessedRulesCount(accountId, processedRulesCount);
+            if (traceLevel == TraceLevel.verbose) {
+                metrics.updateAccountActivityProcessedRulesCount(accountId, processedRulesCount);
+            }
         }
 
         if (!result.isAllowed()) {
