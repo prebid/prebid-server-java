@@ -711,6 +711,10 @@ public class PrivacyEnforcementService {
     }
 
     public User maskUserForActivity(User user, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+        if (!disallowTransmitGeo && !disallowTransmitUfpd) {
+            return user;
+        }
+
         if (user == null) {
             return null;
         }
@@ -736,6 +740,10 @@ public class PrivacyEnforcementService {
     }
 
     public Device maskDeviceForActivity(Device device, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+        if (!disallowTransmitUfpd && !disallowTransmitGeo) {
+            return device;
+        }
+
         return maskTcfDevice(device, disallowTransmitGeo, disallowTransmitGeo, disallowTransmitUfpd);
     }
 

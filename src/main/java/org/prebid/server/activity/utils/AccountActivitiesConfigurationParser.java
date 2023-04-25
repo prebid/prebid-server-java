@@ -1,7 +1,6 @@
 package org.prebid.server.activity.utils;
 
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityConfiguration;
 import org.prebid.server.activity.ActivityInfrastructure;
@@ -44,16 +43,17 @@ public class AccountActivitiesConfigurationParser {
             return ActivityConfiguration.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, Collections.emptyList());
         }
 
-        final boolean allow = ObjectUtils.defaultIfNull(
-                accountActivityConfiguration.getAllow(),
-                ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT);
-
+        final boolean allow = allowFromConfig(accountActivityConfiguration.getAllow());
         final List<Rule> rules = ListUtils.emptyIfNull(accountActivityConfiguration.getRules()).stream()
                 .filter(Objects::nonNull)
                 .map(AccountActivitiesConfigurationParser::from)
                 .toList();
 
         return ActivityConfiguration.of(allow, rules);
+    }
+
+    private static boolean allowFromConfig(Boolean configValue) {
+        return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
     private static Rule from(AccountActivityRuleConfig accountActivityRuleConfig) {
@@ -66,10 +66,7 @@ public class AccountActivitiesConfigurationParser {
     }
 
     private static Rule from(AccountActivityConditionRuleConfig conditionalRuleConfig) {
-        final Boolean allow = ObjectUtils.defaultIfNull(
-                conditionalRuleConfig.getAllow(),
-                ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT);
-
+        final boolean allow = allowFromConfig(conditionalRuleConfig.getAllow());
         final Optional<AccountActivityConditionRuleConfig.Condition> condition =
                 Optional.ofNullable(conditionalRuleConfig.getCondition());
 

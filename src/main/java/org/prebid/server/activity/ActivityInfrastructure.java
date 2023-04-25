@@ -1,3 +1,4 @@
+
 package org.prebid.server.activity;
 
 import org.prebid.server.metric.Metrics;
@@ -43,8 +44,10 @@ public class ActivityInfrastructure {
 
     private void updateMetrics(Activity activity, ActivityPayload activityPayload, ActivityContextResult result) {
         final int processedRulesCount = result.getProcessedRulesCount();
-        metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);
-        metrics.updateAccountActivityProcessedRulesCount(accountId, processedRulesCount);
+        if (processedRulesCount > 0) {
+            metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);
+            metrics.updateAccountActivityProcessedRulesCount(accountId, processedRulesCount);
+        }
 
         if (!result.isAllowed()) {
             metrics.updateRequestsActivityDisallowedCount(activity);

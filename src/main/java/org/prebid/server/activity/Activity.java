@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public enum Activity {
 
     @JsonProperty("syncUser")
-    SYNC_USER, // TODO: rename
+    SYNC_USER,
 
     @JsonProperty("fetchBids")
     CALL_BIDDER,

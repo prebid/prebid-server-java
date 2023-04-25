@@ -202,15 +202,11 @@ public class AnalyticsReporterDelegator {
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest,
-                                        String adapterName,
-                                        ActivityInfrastructure activityInfrastructure) {
+                                        String adapter,
+                                        ActivityInfrastructure infrastructure) {
 
-        final boolean disallowTransmitUfpd = activityInfrastructure != null
-                ? !activityInfrastructure.isAllowed(Activity.TRANSMIT_UFPD, ComponentType.ANALYTICS, adapterName)
-                : !ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
-        final boolean disallowTransmitGeo = activityInfrastructure != null
-                ? !activityInfrastructure.isAllowed(Activity.TRANSMIT_GEO, ComponentType.ANALYTICS, adapterName)
-                : !ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+        final boolean disallowTransmitUfpd = !isAllowedActivity(infrastructure, Activity.TRANSMIT_UFPD, adapter);
+        final boolean disallowTransmitGeo = !isAllowedActivity(infrastructure, Activity.TRANSMIT_GEO, adapter);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
         final User resolvedUser = privacyEnforcementService
@@ -221,7 +217,7 @@ public class AnalyticsReporterDelegator {
                 .maskDeviceForActivity(device, disallowTransmitUfpd, disallowTransmitGeo);
 
         final ExtRequest requestExt = bidRequest != null ? bidRequest.getExt() : null;
-        final ExtRequest updatedExtRequest = updateExtRequest(requestExt, adapterName);
+        final ExtRequest updatedExtRequest = updateExtRequest(requestExt, adapter);
 
         return resolvedUser != null || resolvedDevice != null || updatedExtRequest != null
                 ? bidRequest.toBuilder()
@@ -230,6 +226,15 @@ public class AnalyticsReporterDelegator {
                 .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
                 .build()
                 : null;
+    }
+
+    private static boolean isAllowedActivity(ActivityInfrastructure activityInfrastructure,
+                                             Activity activity,
+                                             String adapterName) {
+
+        return activityInfrastructure != null
+                ? activityInfrastructure.isAllowed(activity, ComponentType.ANALYTICS, adapterName)
+                : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
     private static ExtRequest updateExtRequest(ExtRequest requestExt, String adapterName) {
