@@ -1,9 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.bidder.AppNexus
-import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
@@ -62,6 +58,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
             device = new Device(geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
+            user = User.defaultUser.tap {
+                geo = new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90))
+            }
         }
     }
 
