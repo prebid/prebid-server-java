@@ -12,6 +12,7 @@ import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class AccountActivitiesConfigurationParser {
@@ -27,13 +29,15 @@ public class AccountActivitiesConfigurationParser {
     }
 
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
-        return Optional.ofNullable(account.getPrivacy())
-                .map(AccountPrivacyConfig::getActivities)
-                .orElse(Collections.emptyMap())
-                .entrySet().stream()
+        final Map<Activity, AccountActivityConfiguration> activitiesConfiguration =
+                Optional.ofNullable(account.getPrivacy())
+                        .map(AccountPrivacyConfig::getActivities)
+                        .orElse(Collections.emptyMap());
+
+        return Arrays.stream(Activity.values())
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> from(entry.getValue()),
+                        UnaryOperator.identity(),
+                        activity -> from(activitiesConfiguration.get(activity)),
                         (oldValue, newValue) -> newValue,
                         enumMapFactory()));
     }

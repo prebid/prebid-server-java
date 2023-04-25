@@ -10,8 +10,6 @@ import java.util.Objects;
 public class ActivityInfrastructure {
 
     public static final boolean ALLOW_ACTIVITY_BY_DEFAULT = true;
-    private static final ActivityContextResult ALLOW_ACTIVITY_BY_DEFAULT_RESULT =
-            ActivityContextResult.of(ALLOW_ACTIVITY_BY_DEFAULT, 0);
 
     private final String accountId;
     private final Map<Activity, ActivityConfiguration> activitiesConfigurations;
@@ -23,19 +21,23 @@ public class ActivityInfrastructure {
                                   TraceLevel traceLevel,
                                   Metrics metrics) {
 
+        validate(activitiesConfigurations);
+
         this.accountId = Objects.requireNonNull(accountId);
-        this.activitiesConfigurations = Objects.requireNonNull(activitiesConfigurations);
+        this.activitiesConfigurations = activitiesConfigurations;
         this.traceLevel = Objects.requireNonNull(traceLevel);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
+    private static void validate(Map<Activity, ActivityConfiguration> activitiesConfigurations) {
+        if (activitiesConfigurations == null || activitiesConfigurations.size() != Activity.values().length) {
+            throw new AssertionError("Activities configuration must include all possible activities.");
+        }
+    }
+
     public boolean isAllowed(Activity activity, ComponentType componentType, String componentName) {
         final ActivityPayload activityPayload = ActivityPayload.of(componentType, componentName);
-
-        final ActivityConfiguration activityConfiguration = activitiesConfigurations.get(activity);
-        final ActivityContextResult result = activityConfiguration != null
-                ? activityConfiguration.isAllowed(activityPayload)
-                : ALLOW_ACTIVITY_BY_DEFAULT_RESULT;
+        final ActivityContextResult result = activitiesConfigurations.get(activity).isAllowed(activityPayload);
 
         updateMetrics(activity, activityPayload, result);
 
