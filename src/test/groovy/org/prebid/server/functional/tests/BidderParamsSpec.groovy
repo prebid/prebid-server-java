@@ -22,9 +22,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
@@ -514,7 +512,6 @@ class BidderParamsSpec extends BaseSpec {
         assert !response.seatbid.isEmpty()
     }
 
-    @IgnoreRest
     def "PBS should return empty seatBit when filter-imp-media-type = true, request.imp doesn't contain supported media type"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(
