@@ -40,6 +40,7 @@ adapters:
           supported-vendors:
           vendor-id: 0
         usersync:
+          enabled: true
           cookie-family-name: adsinteractive
           redirect:
             url: http://pb.adsinteractive.com/getuid?{{redirect_url}}
