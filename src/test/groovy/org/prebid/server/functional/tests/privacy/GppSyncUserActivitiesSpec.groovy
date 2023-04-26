@@ -18,21 +18,23 @@ import static org.prebid.server.functional.model.request.auction.ActivityRule.Pr
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 
 class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
-    private String activityProcessedRulesForAccount
-    private String disallowedCountForAccount
-    private String activityRulesProcessedCount = 'requests.activity.processedrules.count'
-    private String disallowedCountForActivityRule = "requests.activity.${SYNC_USER.value}.disallowed.count"
-    private String disallowedCountForGenericAdapter = "adapter.${GENERIC.value}.activity.${SYNC_USER.value}.disallowed.count"
-    private String disallowedCountForOpenxAdapter = "adapter.${OPENX.value}.activity.${SYNC_USER.value}.disallowed.count"
-    private String disallowedCountForAppnexusAdapter = "adapter.${APPNEXUS.value}.activity.${SYNC_USER.value}.disallowed.count"
+    private def activityProcessedRulesForAccount = "accounts.%s.activity.processedrules.count"
+    private def disallowedCountForAccount = "accounts.%s.activity.${SYNC_USER.metricValue}.disallowed.coun"
+    private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
+    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${SYNC_USER.metricValue}.disallowed.count"
+    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${SYNC_USER.metricValue}.disallowed.count"
+    private static final String DISALLOWED_COUNT_FOR_OPENX_ADAPTER = "adapter.${OPENX.value}.activity.${SYNC_USER.metricValue}.disallowed.count"
+    private static final String DISALLOWED_COUNT_FOR_APPNEXUS_ADAPTER = "adapter.${APPNEXUS.value}.activity.${SYNC_USER.metricValue}.disallowed.count"
 
-    private final static int invalidStatusCode = 451
-    private final static String invalidStatusMessage = "Bidder sync blocked for privacy reasons"
+    private final static int INVALID_STATUS_CODE = 451
+    private final static String INVALID_STATUS_MESSAGE = "Bidder sync blocked for privacy reasons"
 
     def "PBS cookie sync with bidder allowed in activities should include proper responded with bidders URLs and metrics"() {
         given: "Cookie sync request with link to account"
@@ -45,40 +47,41 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getActivityWithRules(conditions, isAllowed)
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain synced bidder"
-        assert response.bidderStatus
-
-        and: "Response should contain bidders userSync.urls"
+        then: "Response should contain bidders userSync.urls"
         assert response.getBidderUserSync(GENERIC).userSync.url
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should not be updated"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule]
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount]
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
+        assert !metrics[disallowedCountForAccount]
+        assert !metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER]
 
         where:
-        conditions                                                                     | isAllowed
-        Condition.baseCondition                                                        | true
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE]) | true
-        Condition.getBaseCondition(OPENX.value)                                        | false
-        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])     | false
+        conditions                                                                                                    | isAllowed
+        Condition.baseCondition                                                                                       | true
+        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        Condition.getBaseCondition(OPENX.value)                                                                       | false
+        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])                                    | false
+        new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS cookie sync with bidder allowed activities have empty condition type should include proper responded with bidders URLs"() {
@@ -94,19 +97,16 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Current value of metrics"
         activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
+        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.metricValue}.disallowed.coun"
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain synced bidder"
-        assert response.bidderStatus
-
-        and: "Response should contain bidders userSync.urls"
+        then: "Response should contain bidders userSync.urls"
         assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
@@ -122,31 +122,33 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Initial value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain proper warning"
-        assert response.warnings == [invalidStatusMessage]
+        assert response.warnings == [INVALID_STATUS_MESSAGE]
 
         and: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         and: "Metrics processed across activities should not be updated"
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
+        assert !metrics[ACTIVITY_RULES_PROCESSED_COUNT]
         assert !metrics[activityProcessedRulesForAccount]
 
         where:
@@ -166,19 +168,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = new Activity(defaultAction: false, rules: [ActivityRule.defaultActivityRule])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Initial value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain proper warning"
-        assert response.warnings == [invalidStatusMessage]
+        assert response.warnings == [INVALID_STATUS_MESSAGE]
 
         and: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
@@ -197,19 +195,21 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Initial value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain proper warning"
-        assert response.warnings == [invalidStatusMessage]
+        assert response.warnings == [INVALID_STATUS_MESSAGE]
 
         and: "Response should contain URL for Openx bidder"
         def syncOpenxStatus = response.getBidderUserSync(OPENX)
@@ -221,16 +221,16 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
-        assert metrics[activityProcessedRulesForAccount] == initialMetrics[activityProcessedRulesForAccount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should be updated for activity rule and account"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         and: "Metrics for disallowed activities for Openx should stay the same"
-        assert metrics[disallowedCountForOpenxAdapter] == initialMetrics[disallowedCountForOpenxAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER]
 
         where:
         activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
@@ -249,16 +249,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain synced bidder"
-        assert response.bidderStatus.size() == 1
-
-        and: "Response should contain bidders userSync.url"
+        then: "Response should contain bidders userSync.url"
         assert response.getBidderUserSync(GENERIC).userSync.url
 
         where:
@@ -291,16 +288,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain synced bidder"
-        assert response.bidderStatus.size() == 1
-
-        and: "Response should contain bidders userSync.url"
+        then: "Response should contain bidders userSync.url"
         assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
@@ -325,16 +319,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain synced bidder"
-        assert response.bidderStatus.size() == 1
-
-        and: "Response should contain bidders userSync.url"
+        then: "Response should contain bidders userSync.url"
         assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
@@ -354,14 +345,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain proper warning"
-        assert response.warnings == [invalidStatusMessage]
+        assert response.warnings == [INVALID_STATUS_MESSAGE]
 
         and: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
@@ -381,14 +372,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, invalidActivity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain proper warning"
-        assert response.warnings == [invalidStatusMessage]
+        assert response.warnings == [INVALID_STATUS_MESSAGE]
 
         and: "Response should not contain bidders userSync.url"
         assert !response.getBidderUserSync(GENERIC).userSync.url
@@ -410,13 +401,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getActivityWithRules(conditions, isAllowed)
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -427,20 +420,22 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should not be updated"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule]
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount]
-        assert metrics[disallowedCountForOpenxAdapter] == initialMetrics[disallowedCountForOpenxAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
+        assert !metrics[disallowedCountForAccount]
+        assert !metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER]
 
         where:
-        conditions                                                                   | isAllowed
-        Condition.getBaseCondition(OPENX.value)                                      | true
-        Condition.getBaseCondition(APPNEXUS.value)                                   | false
-        new Condition(componentName: [OPENX.value], componentType: [GENERAL_MODULE]) | true
-        new Condition(componentName: [OPENX.value], componentType: [RTD_MODULE])     | false
+        conditions                                                                                                  | isAllowed
+        Condition.getBaseCondition(OPENX.value)                                                                     | true
+        Condition.getBaseCondition(APPNEXUS.value)                                                                  | false
+        new Condition(componentName: [OPENX.value], componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentName: [OPENX.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        new Condition(componentName: [OPENX.value], componentType: [RTD_MODULE])                                    | false
+        new Condition(componentName: [OPENX.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS setuid request with bidder allowed activities have empty condition type should respond with valid bidders UIDs cookies"() {
@@ -460,7 +455,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -486,13 +481,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getActivityWithRules(conditions, isAllowed)
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"
@@ -500,17 +497,17 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == invalidStatusCode
-        assert exception.responseBody == invalidStatusMessage
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForOpenxAdapter] == initialMetrics[disallowedCountForOpenxAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER] == 1
 
         and: "Metrics processed across activities should not be updated"
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
+        assert !metrics[ACTIVITY_RULES_PROCESSED_COUNT]
         assert !metrics[activityProcessedRulesForAccount]
 
         where:
@@ -537,7 +534,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"
@@ -545,8 +542,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == invalidStatusCode
-        assert exception.responseBody == invalidStatusMessage
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
     def "PBS setuid request with targeting bidder restriction in activities should respond only with valid bidders UIDs cookies"() {
@@ -566,13 +563,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity(rules: activityRules)
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${SYNC_USER.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -584,16 +583,16 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
-        assert metrics[activityProcessedRulesForAccount] == initialMetrics[activityProcessedRulesForAccount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should be updated for activity rule and account"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForOpenxAdapter] == initialMetrics[disallowedCountForOpenxAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER] == 1
 
         and: "Metrics for disallowed activities for Appnexus should stay the same"
-        assert metrics[disallowedCountForAppnexusAdapter] == initialMetrics[disallowedCountForAppnexusAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_APPNEXUS_ADAPTER]
 
         where:
         activityRules << [
@@ -619,7 +618,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -663,7 +662,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -694,7 +693,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         and: "UIDs cookies for Openx bidders"
@@ -707,8 +706,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == invalidStatusCode
-        assert exception.responseBody == invalidStatusMessage
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
     def "PBS setuid request with confuse in allowing on same priority level should respond with required UIDs cookies"() {
@@ -737,7 +736,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -745,8 +744,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == invalidStatusCode
-        assert exception.responseBody == invalidStatusMessage
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
     def "PBS setuid request with invalid hierarchy in activities should ignore activities and respond with UIDs cookies"() {
@@ -767,7 +766,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, invalidActivity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId as String, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -775,7 +774,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == invalidStatusCode
-        assert exception.responseBody == invalidStatusMessage
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 }

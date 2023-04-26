@@ -22,18 +22,20 @@ import static org.prebid.server.functional.model.request.auction.ActivityRule.Pr
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
 import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
+import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
 class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
-    private String activityProcessedRulesForAccount
-    private String disallowedCountForAccount
-    private String activityRulesProcessedCount = 'requests.activity.processedrules.count'
-    private String disallowedCountForActivityRule = "requests.activity.${ENRICH_UFPD.value}.disallowed.count"
-    private String disallowedCountForGenericAdapter = "adapter.${GENERIC.value}.activity.${ENRICH_UFPD.value}.disallowed.count"
-    private String disallowedCountForOpenxAdapter = "adapter.${OPENX.value}.activity.${ENRICH_UFPD.value}.disallowed.count"
+    private def activityProcessedRulesForAccount = "accounts.%s.activity.processedrules.count"
+    private def disallowedCountForAccount = "accounts.%s.activity.${ENRICH_UFPD.metricValue}.disallowed.coun"
+    private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
+    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
+    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
+    private static final String DISALLOWED_COUNT_FOR_OPENX_ADAPTER = "adapter.${OPENX.value}.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
 
     private static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer)
     private static final UserData userData = new UserData(Dependencies.networkServiceContainer)
@@ -66,10 +68,12 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getActivityWithRules(conditions, isAllowed)
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -81,24 +85,25 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should not be updated"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule]
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount]
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
+        assert !metrics[disallowedCountForAccount]
+        assert !metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER]
 
         where:
-        conditions                                                                     | isAllowed
-        Condition.baseCondition                                                        | true
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE]) | true
-        Condition.getBaseCondition(OPENX.value)                                        | false
-        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])     | false
+        conditions                                                                                                    | isAllowed
+        Condition.baseCondition                                                                                       | true
+        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        Condition.getBaseCondition(OPENX.value)                                                                       | false
+        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])                                    | false
+        new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS activities call when bidder allowed activities have empty condition type should enhance user.data"() {
@@ -134,7 +139,6 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
     }
 
     def "PBS activities call when enrich UFDP activities is rejecting should not enhance user.data and update disallowed metrics"() {
@@ -161,9 +165,11 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Initial value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -178,12 +184,12 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         and: "Metrics processed across activities should not be updated"
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
+        assert !metrics[ACTIVITY_RULES_PROCESSED_COUNT]
         assert !metrics[activityProcessedRulesForAccount]
 
         where:
@@ -259,7 +265,6 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
 
         where:
         activity << [Activity.getActivityWithRules(new Condition(componentName: null, componentType: null), true),
@@ -312,7 +317,6 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
     }
 
     def "PBS activities call when specific allow hierarchy in enrich UFDP activities should enhance user.data"() {
@@ -357,7 +361,6 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
     }
 
     def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance user.data"() {
@@ -431,7 +434,6 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain additional user.data from processed request"
         def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert generalBidderRequest?.user?.data
-        assert !generalBidRequest?.user?.data
     }
 
     def "PBS activities call when enrich UFDP activities is allowing should enhance request.device and provide proper metrics"() {
@@ -445,10 +447,12 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getActivityWithRules(conditions, isAllowed)
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        and: "Initial value of metrics"
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -466,20 +470,22 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should not be updated"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule]
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount]
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
+        assert !metrics[disallowedCountForAccount]
+        assert !metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER]
 
         where:
-        conditions                                                                     | isAllowed
-        Condition.baseCondition                                                        | true
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE]) | true
-        Condition.getBaseCondition(OPENX.value)                                        | false
-        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])     | false
+        conditions                                                                                                    | isAllowed
+        Condition.baseCondition                                                                                       | true
+        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        Condition.getBaseCondition(OPENX.value)                                                                       | false
+        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])                                    | false
+        new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS activities call when bidder allowed activities have empty condition type should enhance request.device"() {
@@ -495,7 +501,7 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Current value of metrics"
         activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.value}.disallowed.coun"
+        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.metricValue}.disallowed.coun"
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -584,9 +590,11 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Initial value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.value}.disallowed.coun"
-        def initialMetrics = activityPbsService.sendCollectedMetricsRequest()
+        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
+        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -612,16 +620,16 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[activityRulesProcessedCount] == initialMetrics[activityRulesProcessedCount]
-        assert metrics[activityProcessedRulesForAccount] == initialMetrics[activityProcessedRulesForAccount] + 1
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[activityProcessedRulesForAccount] == 1
 
         and: "Metrics for disallowed activities should be updated for activity rule and account"
-        assert metrics[disallowedCountForActivityRule] == initialMetrics[disallowedCountForActivityRule] + 1
-        assert metrics[disallowedCountForAccount] == initialMetrics[disallowedCountForAccount] + 1
-        assert metrics[disallowedCountForGenericAdapter] == initialMetrics[disallowedCountForGenericAdapter] + 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         and: "Metrics for disallowed activities for Openx should stay the same"
-        assert metrics[disallowedCountForOpenxAdapter] == initialMetrics[disallowedCountForOpenxAdapter]
+        assert !metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER]
 
         where:
         activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
