@@ -23,7 +23,7 @@ public class ActivityInfrastructure {
 
         validate(activitiesConfigurations);
 
-        this.accountId = Objects.requireNonNull(accountId);
+        this.accountId = accountId;
         this.activitiesConfigurations = activitiesConfigurations;
         this.traceLevel = Objects.requireNonNull(traceLevel);
         this.metrics = Objects.requireNonNull(metrics);

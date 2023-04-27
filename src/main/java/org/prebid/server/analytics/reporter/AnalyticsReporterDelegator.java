@@ -81,7 +81,7 @@ public class AnalyticsReporterDelegator {
 
     public <T> void processEvent(T event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
-            if (!isAllowedActivity(event, analyticsReporter.name())) {
+            if (!isAllowedAdapter(event, analyticsReporter.name())) {
                 continue;
             }
 
@@ -104,7 +104,7 @@ public class AnalyticsReporterDelegator {
             checkUnknownAdaptersForAuctionEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
                 final String name = analyticsReporter.name();
-                if (!isAllowedActivity(event, name)) {
+                if (!isAllowedAdapter(event, name)) {
                     continue;
                 }
 
@@ -157,7 +157,7 @@ public class AnalyticsReporterDelegator {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private static <T> boolean isAllowedActivity(T event, String adapter) {
+    private static <T> boolean isAllowedAdapter(T event, String adapter) {
         final ActivityInfrastructure activityInfrastructure;
         if (event instanceof AuctionEvent auctionEvent) {
             final AuctionContext auctionContext = auctionEvent.getAuctionContext();

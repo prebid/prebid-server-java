@@ -30,7 +30,8 @@ public class AccountActivitiesConfigurationParser {
 
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration =
-                Optional.ofNullable(account.getPrivacy())
+                Optional.ofNullable(account)
+                        .map(Account::getPrivacy)
                         .map(AccountPrivacyConfig::getActivities)
                         .orElse(Collections.emptyMap());
 
@@ -56,10 +57,6 @@ public class AccountActivitiesConfigurationParser {
         return ActivityConfiguration.of(allow, rules);
     }
 
-    private static boolean allowFromConfig(Boolean configValue) {
-        return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
-    }
-
     private static Rule from(AccountActivityRuleConfig accountActivityRuleConfig) {
         if (accountActivityRuleConfig instanceof AccountActivityConditionRuleConfig conditionalRuleConfig) {
             return from(conditionalRuleConfig);
@@ -78,6 +75,10 @@ public class AccountActivitiesConfigurationParser {
                 condition.map(AccountActivityConditionRuleConfig.Condition::getComponentTypes).orElse(null),
                 condition.map(AccountActivityConditionRuleConfig.Condition::getComponentNames).orElse(null),
                 allow);
+    }
+
+    private static boolean allowFromConfig(Boolean configValue) {
+        return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
     private static Supplier<Map<Activity, ActivityConfiguration>> enumMapFactory() {

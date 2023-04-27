@@ -41,6 +41,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -292,6 +293,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
+
     private Clock clock;
 
     private ExchangeService exchangeService;
@@ -402,6 +406,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(ortbVersionConversionManager.convertFromAuctionSupportedVersion(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(activityInfrastructure.isAllowed(any(), any(), any()))
+                .willReturn(true);
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
@@ -4493,6 +4500,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .txnLog(TxnLog.create())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .bidRejectionTrackers(new HashMap<>())
+                .activityInfrastructure(activityInfrastructure)
                 .build();
     }
 
