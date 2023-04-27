@@ -57,6 +57,7 @@
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
+        <protoc.version>3.17.0</protoc.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -698,7 +699,7 @@
                         <additionalProtoPathElement>${project.basedir}/src/main/proto</additionalProtoPathElement>
                         <additionalProtoPathElement>${project.basedir}/src/test/proto</additionalProtoPathElement>
                     </additionalProtoPathElements>
-                    <protocArtifact>com.google.protobuf:protoc:3.17.0:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
                 </configuration>
             </plugin>
             <plugin>
@@ -953,6 +954,20 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <!-- This profile will make sure that when you have Apple M-family CPU, you will fall back to Intel protoc
+            as Google doesn't provide ARM-based one for Mac. This requires Rosetta to be installed. -->
+            <id>Apple M silicon</id>
+            <activation>
+                <os>
+                    <family>Mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <os.detected.classifier>osx-x86_64</os.detected.classifier>
+            </properties>
         </profile>
     </profiles>
 </project>
