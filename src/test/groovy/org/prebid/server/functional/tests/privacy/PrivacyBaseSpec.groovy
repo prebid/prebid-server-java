@@ -84,17 +84,6 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static BidRequest getBidRequestWithAccount(DistributionChannel channel = SITE,
-                                                         String accountId,
-                                                         BidderName bidderName = GENERIC) {
-        BidRequest.getDefaultBidRequest(channel).tap {
-            it.setAccountId(accountId)
-            it.imp.first().ext.prebid.bidder."${bidderName?.value}" = [OPENX   : Openx.defaultOpenx,
-                                                                       APPNEXUS: AppNexus.default,
-                                                                       GENERIC : new Generic()]["$bidderName"]
-        }
-    }
-
     protected static AmpRequest getCcpaAmpRequest(ConsentString consentStringVal) {
         AmpRequest.defaultAmpRequest.tap {
             consentString = consentStringVal
