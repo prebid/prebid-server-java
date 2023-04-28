@@ -1,6 +1,8 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -8,6 +10,7 @@ import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
@@ -18,37 +21,31 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.DEFAULT
-import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.INVALID
-import static org.prebid.server.functional.model.request.auction.ActivityRule.Priority.HIGHEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
 
-    private def activityProcessedRulesForAccount = "accounts.%s.activity.processedrules.count"
-    private def disallowedCountForAccount = "accounts.%s.activity.${ENRICH_UFPD.metricValue}.disallowed.coun"
+    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "accounts.%s.activity.processedrules.count"
+    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "accounts.%s.activity.${ENRICH_UFPD.metricValue}.disallowed.coun"
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_OPENX_ADAPTER = "adapter.${OPENX.value}.activity.${ENRICH_UFPD.metricValue}.disallowed.count"
 
     private static final GeneralPlanner generalPlanner = new GeneralPlanner(Dependencies.networkServiceContainer)
     private static final UserData userData = new UserData(Dependencies.networkServiceContainer)
-    private static final Device testDevice = new Device().tap {
-        it.os = PBSUtils.randomizeCase("iOS")
-        it.osv = "14.0"
-        it.ext = new DeviceExt(atts: randomAttribute)
-    }
 
-    def "PBS activities call when enrich UFDP activities is allowing should enhance user.data and provide proper metrics"() {
+    def "PBS auction call when enrich UFDP activities is allowing should enhance user.data and update processed metrics"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -65,12 +62,8 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         and: "Activities set with bidder allowed"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Initial value of metrics"
-        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
-        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -83,18 +76,13 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[activityProcessedRulesForAccount] == 1
-
-        and: "Metrics for disallowed activities should not be updated"
-        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
-        assert !metrics[disallowedCountForAccount]
-        assert !metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER]
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
         conditions                                                                                                    | isAllowed
@@ -106,45 +94,12 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
-    def "PBS activities call when bidder allowed activities have empty condition type should enhance user.data"() {
+    def "PBS auction call when enrich UFDP activities is rejecting should preserve data for the user.data as is and update disallowed metrics"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
-
-        and: "User Service Response is set to return default response"
-        userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
-
-        and: "Planner Mock line items"
-        def plansGeneralResponse = PlansResponse.getDefaultPlansResponse(generalBidRequest.site.publisher.id)
-        generalPlanner.initPlansResponse(plansGeneralResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        and: "Cookies with user ids"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
-
-        and: "Activities set for enrich ufpd with bidder allowed without type"
-        def activity = Activity.getActivityWithRules(new Condition(componentName: [GENERIC.value], componentType: null), true)
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "Sending auction request to PBS"
-        activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
-
-        then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
-    }
-
-    def "PBS activities call when enrich UFDP activities is rejecting should not enhance user.data and update disallowed metrics"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -161,12 +116,8 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         and: "Activities set with bidder allowed"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Initial value of metrics"
-        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
-        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -179,29 +130,28 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Processed bidder request should contain exactly the same user.data"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data == generalBidRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data == generalBidRequest?.user?.data
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
-        and: "Metrics processed across activities should not be updated"
-        assert !metrics[ACTIVITY_RULES_PROCESSED_COUNT]
-        assert !metrics[activityProcessedRulesForAccount]
-
         where:
-        conditions                                                                     | isAllowed
-        Condition.baseCondition                                                        | false
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE]) | false
+        conditions                                                                                                    | isAllowed
+        Condition.baseCondition                                                                                       | false
+        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | false
+        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | false
     }
 
-    def "PBS activities call when default activity setting off should not enhance user.data"() {
+    def "PBS auction call when default activity setting set to false should preserve data for the user.data as is"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -229,14 +179,16 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Processed bidder request should contain exactly the same user.data"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data == generalBidRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data == generalBidRequest?.user?.data
     }
 
-    def "PBS activities call when activities settings set to empty should enhance user.data"() {
+    def "PBS auction call when enrich UFDP activities with proper condition type only should enhance user.data"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -252,8 +204,12 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
-        and: "Activities set with empty configurations"
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -263,22 +219,25 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data
 
         where:
-        activity << [Activity.getActivityWithRules(new Condition(componentName: null, componentType: null), true),
-                     Activity.getActivityWithRules(new Condition(componentName: [null], componentType: [null]), true),
-                     Activity.getActivityWithRules(new Condition(componentName: null, componentType: null), false),
-                     Activity.getActivityWithRules(new Condition(componentName: [null], componentType: [null]), false),
-                     Activity.getDefaultActivity(rules: []),
-                     Activity.getDefaultActivity(null, null)]
+        conditions                                                                    | isAllowed
+        new Condition(componentName: [], componentType: [BIDDER])                     | true
+        new Condition(componentType: [BIDDER])                                        | true
+        new Condition(componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        new Condition(componentType: [RTD_MODULE])                                    | false
+        new Condition(componentType: [ANALYTICS])                                     | false
     }
 
-    def "PBS activities call when higher priority allow hierarchy in activities should enhance user.data"() {
+    def "PBS auction call when bidder allowed activities have invalid condition type should skip this rule for user.data and emit an error"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -294,17 +253,8 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
-        and: "Activity rules with different priority"
-        def topPriorityActivity = new ActivityRule(priority: HIGHEST,
-                condition: Condition.baseCondition,
-                allow: true)
-
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.baseCondition,
-                allow: false)
-
-        and: "Activities set for bidder allowed by hierarchy structure"
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        and: "Activities set for enrich ufpd with invalid input"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -312,17 +262,100 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "Sending auction request to PBS"
-        activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
+        def response = activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
-        then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
+        then: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message == ["Invalid condition type param passed"]
+
+        where:
+        conditions                           | isAllowed
+        new Condition(componentType: [])     | true
+        new Condition(componentType: null)   | false
+        new Condition(componentType: [null]) | true
+        new Condition(componentType: [])     | false
+        new Condition(componentType: null)   | false
+        new Condition(componentType: [null]) | false
     }
 
-    def "PBS activities call when specific allow hierarchy in enrich UFDP activities should enhance user.data"() {
+    def "PBS auction call when specific bidder in enrich UFDP activities should enhance user.data only for required bidder"() {
+        given: "Generic and Openx bid requests with account connection"
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.openx = Openx.defaultOpenx
+            })
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
+        }
+
+        and: "User Service Response is set to return default response"
+        userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
+
+        and: "Planner Mock line items"
+        def plansGeneralResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id)
+        generalPlanner.initPlansResponse(plansGeneralResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        and: "Cookies with user ids"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity(activityRules)
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "Sending auction request to PBS"
+        activityPbsService.sendAuctionRequest(bidRequest, cookieHeader)
+
+        then: "Bidder was called two times"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
+
+        and: "Generic bidder request should preserve data for the device as is"
+        def genericBidderRequest = bidderRequests.find { it.imp.first().ext.bidder }
+        assert genericBidderRequest?.user?.data == bidRequest?.user?.data
+
+        and: "Openx bidder request should be enhance with data for device"
+        def openxBidderRequest = bidderRequests.find { !it.imp.first().ext.bidder }
+        assert openxBidderRequest?.user?.data
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+
+        and: "Metrics for disallowed activities should be updated for activity rule and account"
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        activityRules << [[ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)],
+                          [ActivityRule.getDefaultActivityRule(Condition.baseCondition, false),
+                           ActivityRule.getDefaultActivityRule(Condition.getBaseCondition(OPENX.value), true)]]
+    }
+
+    def "PBS auction call when first rule allowing in activities should enhance user.data"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -339,16 +372,11 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         and: "Activity rules with same priority"
-        def topPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.baseCondition,
-                allow: false)
-
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.baseCondition,
-                allow: true)
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
 
         and: "Activities set for bidder allowed by hierarchy structure"
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -359,14 +387,16 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data
     }
 
-    def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance user.data"() {
+    def "PBS auction call when first rule disallowing in activities should preserve data for the user.data as is"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
+        def generalBidRequest = BidderRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "User Service Response is set to return default response"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
@@ -383,9 +413,11 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: false)
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true)
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
+
+        and: "Activities set for bidder disallowing by hierarchy structure"
+        def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -396,60 +428,26 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
 
         then: "Processed bidder request should contain exactly the same user.data"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data == generalBidRequest?.user?.data
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest?.user?.data == generalBidRequest?.user?.data
     }
 
-    def "PBS activities call when invalid hierarchy in enrich UFDP activities should enhance user.data"() {
+    def "PBS auction call when enrich UFDP activities is allowing should enhance request.device and provide processed metrics"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(accountId)
-
-        and: "User Service Response is set to return default response"
-        userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
-
-        and: "Planner Mock line items"
-        def plansGeneralResponse = PlansResponse.getDefaultPlansResponse(generalBidRequest.site.publisher.id)
-        generalPlanner.initPlansResponse(plansGeneralResponse)
-
-        and: "Line items are fetched by PBS"
-        updateLineItemsAndWait()
-
-        and: "Cookies with user ids"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
-
-        and: "Activities set for activities with invalid priority setup"
-        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.baseCondition, allow: false)
-        def invalidActivity = Activity.getDefaultActivity([invalidRule])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, invalidActivity)
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "Sending auction request to PBS"
-        activityPbsService.sendAuctionRequest(generalBidRequest, cookieHeader)
-
-        then: "Bidder request should contain additional user.data from processed request"
-        def generalBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert generalBidderRequest?.user?.data
-    }
-
-    def "PBS activities call when enrich UFDP activities is allowing should enhance request.device and provide proper metrics"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
         and: "Activities set with all bidders allowed"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
 
-        and: "Initial value of metrics"
-        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
-        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -459,24 +457,16 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
+        then: "Generic bidder request should be enhance with data for device"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert genericBidderRequest.device.lmt == 1
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[activityProcessedRulesForAccount] == 1
-
-        and: "Metrics for disallowed activities should not be updated"
-        assert !metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE]
-        assert !metrics[disallowedCountForAccount]
-        assert !metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER]
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
         conditions                                                                                                    | isAllowed
@@ -488,45 +478,20 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
-    def "PBS activities call when bidder allowed activities have empty condition type should enhance request.device"() {
+    def "PBS auction call when enrich UFDP activities is restricting should preserve data for the request.device as is and update disallowed metrics"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
         and: "Activities set with all bidders allowed"
-        def activity = Activity.getActivityWithRules(new Condition(componentName: [GENERIC.value], componentType: null), true)
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Current value of metrics"
-        activityProcessedRulesForAccount = "accounts.${accountId}.activity.processedrules.count"
-        disallowedCountForAccount = "accounts.${accountId}.activity.${ENRICH_UFPD.metricValue}.disallowed.coun"
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
-
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert genericBidderRequest.device.lmt == 1
-    }
-
-    def "PBS activities call when enrich UFDP activities is restricting should not enhance request.device and update disallowed metrics"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
-        }
-
-        and: "Activities set with all bidders allowed"
-        def activity = Activity.getActivityWithRules(conditions, isAllowed)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -534,26 +499,29 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
+        then: "Generic bidder request should preserve data for the device as is"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert !genericBidderRequest.device.lmt
 
         where:
-        conditions                                                                     | isAllowed
-        Condition.baseCondition                                                        | false
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE]) | false
+        conditions                                                                                                    | isAllowed
+        Condition.baseCondition                                                                                       | false
+        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | false
+        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | false
     }
 
-    def "PBS activity call when default activity setting off should skip call to restricted bidder"() {
+    def "PBS auction call when default activity setting set to false should preserve data for the user.device as is"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
         and: "Activities set with all bidders allowed"
@@ -565,33 +533,28 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
+        then: "Generic bidder request should preserve data for the device as is"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert !genericBidderRequest.device.lmt
     }
 
-    def "PBS activities call when specific bidder in enrich UFDP activities should enhance request.device only bidder"() {
-        given: "Generic and Openx bid requests with account connection"
+    def "PBS auction call when enrich UFDP activities with proper condition type only should enhance user.device"() {
+        given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
-        }
-        def openxBidRequest = getBidRequestWithAccount(APP, accountId, OPENX).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
-        and: "Reject activities setup"
-        def activity = Activity.getDefaultActivity(rules: activityRules)
+        and: "Activities set with all bidders allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Initial value of metrics"
-        activityProcessedRulesForAccount = activityProcessedRulesForAccount.formatted(accountId)
-        disallowedCountForAccount = disallowedCountForAccount.formatted(accountId)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -601,94 +564,135 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
-        def openxResponse = activityPbsService.sendAuctionRequest(openxBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Resolved response should contain seatbid for Openx request"
-        assert openxResponse.seatbid.first().seat == OPENX
-
-        and: "Generic bidder should not enhance device in request"
+        then: "Generic bidder request should be enhance with data for device"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        assert genericBidderRequest.device.lmt == 1
+
+        where:
+        conditions                                                                    | isAllowed
+        new Condition(componentName: [], componentType: [BIDDER])                     | true
+        new Condition(componentType: [BIDDER])                                        | true
+        new Condition(componentType: [GENERAL_MODULE])                                | true
+        new Condition(componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
+        new Condition(componentType: [RTD_MODULE])                                    | false
+        new Condition(componentType: [ANALYTICS])                                     | false
+    }
+
+    def "PBS auction call when bidder allowed activities have invalid condition type should skip this rule for request.device and emit an error"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
+        }
+
+        and: "Activities set with all bidders allowed"
+        def activity = new Activity(defaultAction: false, rules: [ActivityRule.defaultActivityRule])
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def response = activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message == ["Invalid condition type param passed"]
+
+        where:
+        conditions                           | isAllowed
+        new Condition(componentType: [])     | true
+        new Condition(componentType: null)   | false
+        new Condition(componentType: [null]) | true
+        new Condition(componentType: [])     | false
+        new Condition(componentType: null)   | false
+        new Condition(componentType: [null]) | false
+    }
+
+    def "PBS auction call when specific bidder in enrich UFDP activities should enhance request.device only for required bidder"() {
+        given: "Generic and Openx bid requests with account connection"
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.openx = Openx.defaultOpenx
+            })
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
+        }
+
+        and: "Reject activities setup"
+        def activity = Activity.getDefaultActivity(activityRules)
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder was called two times"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
+
+        and: "Generic bidder request should preserve data for the device as is"
+        def genericBidderRequest = bidderRequests.find { it.imp.first().ext.bidder }
         assert !genericBidderRequest.device.lmt
 
-        then: "Openx bidder should not enhance device in request"
-        def openxBidderRequest = bidder.getBidderRequest(openxBidRequest.id)
+        and: "Openx bidder request should be enhance with data for device"
+        def openxBidderRequest = bidderRequests.find { !it.imp.first().ext.bidder }
         assert openxBidderRequest.device.lmt == 1
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[activityProcessedRulesForAccount] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         and: "Metrics for disallowed activities should be updated for activity rule and account"
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[disallowedCountForAccount] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
-        and: "Metrics for disallowed activities for Openx should stay the same"
-        assert !metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER]
-
         where:
-        activityRules << [[ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false)],
-                          [ActivityRule.getDefaultActivityRule(DEFAULT, Condition.baseCondition, false),
-                           ActivityRule.getDefaultActivityRule(DEFAULT, Condition.getBaseCondition(OPENX.value), true)]]
+        activityRules << [[ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)],
+                          [ActivityRule.getDefaultActivityRule(Condition.baseCondition, false),
+                           ActivityRule.getDefaultActivityRule(Condition.getBaseCondition(OPENX.value), true)]]
     }
 
-    def "PBS activities call when activities settings set to empty should enhance request.device"() {
+    def "PBS auction call when first rule allowing in activities should enhance user.device"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
-        }
-
-        and: "Empty activities setup"
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-
-        when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
-
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert genericBidderRequest.device.lmt == 1
-
-        where:
-        activity << [Activity.getActivityWithRules(new Condition(componentName: null, componentType: null), true),
-                     Activity.getActivityWithRules(new Condition(componentName: [null], componentType: [null]), true),
-                     Activity.getActivityWithRules(new Condition(componentName: null, componentType: null), false),
-                     Activity.getActivityWithRules(new Condition(componentName: [null], componentType: [null]), false),
-                     Activity.getDefaultActivity(rules: []),
-                     Activity.getDefaultActivity(null, null)]
-    }
-
-    def "PBS activities call when higher priority allow hierarchy in enrich UFDP activities should enhance request.device"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
         and: "Activity rules with different priority"
-        def topPriorityActivity = new ActivityRule(priority: HIGHEST,
-                condition: Condition.baseCondition,
-                allow: true)
-
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.baseCondition,
-                allow: false)
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
 
         and: "Activities set for bidder allowed by hierarchy structure"
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -696,34 +700,31 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
+        then: "Generic bidder request should be enhance with data for device"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert genericBidderRequest.device.lmt == 1
     }
 
-    def "PBS activities call when confuse in allowing on same priority level in enrich UFDP activities should enhance request.device"() {
+    def "PBS auction call when first rule disallowing in activities should preserve data for the user.device as is"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
+        def generalBidRequest = BidderRequest.getDefaultBidRequest(APP).tap {
+            setAccountId(accountId)
+            it.device = new Device().tap {
+                it.os = PBSUtils.randomizeCase("iOS")
+                it.osv = "14.0"
+                it.ext = new DeviceExt(atts: randomAttribute)
+            }
         }
 
-        and: "Activity rules with higher priority"
-        def topPriorityActivity = new ActivityRule(priority: HIGHEST,
-                condition: Condition.baseCondition,
-                allow: true)
-
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT,
-                condition: Condition.baseCondition,
-                allow: false)
+        and: "Activity rules with different priority"
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
 
         and: "Activities set for bidder allowed by hierarchy structure"
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
+        def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
 
         and: "Existed account with allow activities setup"
@@ -731,71 +732,11 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert genericBidderRequest.device.lmt == 1
-    }
-
-    def "PBS activities call when specific reject hierarchy in enrich UFDP activities should not enhance request.device"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
-        }
-
-        and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def topPriorityActivity = new ActivityRule(priority: HIGHEST, condition: Condition.baseCondition, allow: false)
-        def defaultPriorityActivity = new ActivityRule(priority: DEFAULT, condition: Condition.baseCondition, allow: true)
-        def activity = Activity.getDefaultActivity([topPriorityActivity, defaultPriorityActivity])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
-
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
+        then: "Generic bidder request should preserve data for the device as is"
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         assert !genericBidderRequest.device.lmt
-    }
-
-    def "PBS activities call when invalid hierarchy in enrich UFDP activities should enhance request.device"() {
-        given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
-        def generalBidRequest = getBidRequestWithAccount(APP, accountId, GENERIC).tap {
-            it.device = testDevice
-        }
-
-        and: "Activities set for activities with invalid priority setup"
-        def invalidRule = new ActivityRule(priority: INVALID, condition: Condition.baseCondition, allow: false)
-        def invalidActivity = Activity.getDefaultActivity([invalidRule])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, invalidActivity)
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        and: "Default device with device.os = iOS and any device.ext.atts"
-
-        when: "PBS processes auction requests"
-        def genericResponse = activityPbsService.sendAuctionRequest(generalBidRequest)
-
-        then: "Resolved response should contain seatbid for Generic request"
-        assert genericResponse.seatbid.first().seat == GENERIC
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert genericBidderRequest.device.lmt == 1
     }
 
     private static getRandomAttribute() {
