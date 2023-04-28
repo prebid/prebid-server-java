@@ -11,7 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationParser;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -161,7 +161,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .activityInfrastructure(
                         new ActivityInfrastructure(
                                 account.getId(),
-                                AccountActivitiesConfigurationParser.parse(account),
+                                AccountActivitiesConfigurationUtils.parse(account),
                                 TraceLevel.basic,
                                 metrics))
                 .build();

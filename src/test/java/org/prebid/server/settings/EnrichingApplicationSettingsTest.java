@@ -51,7 +51,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
-                true, null, delegate, priceFloorsConfigResolver, jsonMerger, jacksonMapper);
+                true, 0, null, delegate, priceFloorsConfigResolver, jsonMerger, jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -71,6 +71,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
+                0,
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
@@ -95,6 +96,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
+                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100},"
                         + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
@@ -140,6 +142,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 false,
+                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
@@ -165,6 +168,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
+                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
@@ -185,6 +189,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
+                0,
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,

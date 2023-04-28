@@ -356,13 +356,16 @@ public class SettingsConfiguration {
         @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
                 @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+                @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
                 PriceFloorsConfigResolver priceFloorsConfigResolver,
                 JsonMerger jsonMerger,
                 JacksonMapper jacksonMapper) {
 
-            return new EnrichingApplicationSettings(enforceValidAccount,
+            return new EnrichingApplicationSettings(
+                    enforceValidAccount,
+                    logSamplingRate,
                     defaultAccountConfig,
                     compositeApplicationSettings,
                     priceFloorsConfigResolver,

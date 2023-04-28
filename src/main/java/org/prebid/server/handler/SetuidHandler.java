@@ -16,7 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationParser;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -136,7 +136,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .privacyContext(privacyContext)
                                 .activityInfrastructure(new ActivityInfrastructure(
                                         account.getId(),
-                                        AccountActivitiesConfigurationParser.parse(account),
+                                        AccountActivitiesConfigurationUtils.parse(account),
                                         TraceLevel.basic,
                                         metrics))
                                 .build()));

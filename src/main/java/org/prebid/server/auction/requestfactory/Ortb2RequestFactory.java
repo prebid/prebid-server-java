@@ -15,7 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationParser;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -178,7 +178,7 @@ public class Ortb2RequestFactory {
 
         final ActivityInfrastructure activityInfrastructure = new ActivityInfrastructure(
                 account.getId(),
-                AccountActivitiesConfigurationParser.parse(account),
+                AccountActivitiesConfigurationUtils.parse(account),
                 ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic),
                 metrics);
 

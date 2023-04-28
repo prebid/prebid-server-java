@@ -13,7 +13,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationParser;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -197,7 +197,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private ActivityInfrastructure activityInfrastructure(Account account) {
         return new ActivityInfrastructure(
                 account.getId(),
-                AccountActivitiesConfigurationParser.parse(account),
+                AccountActivitiesConfigurationUtils.parse(account),
                 TraceLevel.basic,
                 metrics);
     }

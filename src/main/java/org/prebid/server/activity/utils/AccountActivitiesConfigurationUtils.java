@@ -13,6 +13,7 @@ import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRu
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -23,9 +24,9 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-public class AccountActivitiesConfigurationParser {
+public class AccountActivitiesConfigurationUtils {
 
-    private AccountActivitiesConfigurationParser() {
+    private AccountActivitiesConfigurationUtils() {
     }
 
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
@@ -51,7 +52,7 @@ public class AccountActivitiesConfigurationParser {
         final boolean allow = allowFromConfig(accountActivityConfiguration.getAllow());
         final List<Rule> rules = ListUtils.emptyIfNull(accountActivityConfiguration.getRules()).stream()
                 .filter(Objects::nonNull)
-                .map(AccountActivitiesConfigurationParser::from)
+                .map(AccountActivitiesConfigurationUtils::from)
                 .toList();
 
         return ActivityConfiguration.of(allow, rules);
@@ -68,12 +69,11 @@ public class AccountActivitiesConfigurationParser {
 
     private static Rule from(AccountActivityConditionRuleConfig conditionalRuleConfig) {
         final boolean allow = allowFromConfig(conditionalRuleConfig.getAllow());
-        final Optional<AccountActivityConditionRuleConfig.Condition> condition =
-                Optional.ofNullable(conditionalRuleConfig.getCondition());
+        final AccountActivityConditionRuleConfig.Condition condition = conditionalRuleConfig.getCondition();
 
         return ConditionalRule.of(
-                condition.map(AccountActivityConditionRuleConfig.Condition::getComponentTypes).orElse(null),
-                condition.map(AccountActivityConditionRuleConfig.Condition::getComponentNames).orElse(null),
+                condition != null ? condition.getComponentTypes() : null,
+                condition != null ? condition.getComponentNames() : null,
                 allow);
     }
 
@@ -83,5 +83,62 @@ public class AccountActivitiesConfigurationParser {
 
     private static Supplier<Map<Activity, ActivityConfiguration>> enumMapFactory() {
         return () -> new EnumMap<>(Activity.class);
+    }
+
+    public static boolean isInvalidActivitiesConfiguration(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getPrivacy)
+                .map(AccountPrivacyConfig::getActivities)
+                .stream()
+                .map(Map::values)
+                .flatMap(Collection::stream)
+                .anyMatch(AccountActivitiesConfigurationUtils::containsInvalidRule);
+    }
+
+    private static boolean containsInvalidRule(AccountActivityConfiguration accountActivityConfiguration) {
+        return Optional.ofNullable(accountActivityConfiguration)
+                .map(AccountActivityConfiguration::getRules)
+                .stream()
+                .flatMap(Collection::stream)
+                .anyMatch(AccountActivitiesConfigurationUtils::isInvalidConditionRule);
+    }
+
+    private static boolean isInvalidConditionRule(AccountActivityRuleConfig rule) {
+        if (rule instanceof AccountActivityConditionRuleConfig conditionRule) {
+            final AccountActivityConditionRuleConfig.Condition condition = conditionRule.getCondition();
+            return condition != null && isInvalidCondition(condition);
+        }
+
+        return false;
+    }
+
+    private static boolean isInvalidCondition(AccountActivityConditionRuleConfig.Condition condition) {
+        return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
+    }
+
+    private static <E> boolean isEmptyNotNull(Collection<E> collection) {
+        return collection != null && collection.isEmpty();
+    }
+
+    public static Map<Activity, AccountActivityConfiguration> removeInvalidRules(
+            Map<Activity, AccountActivityConfiguration> activitiesConfiguration) {
+
+        return activitiesConfiguration.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> AccountActivitiesConfigurationUtils.removeInvalidRules(entry.getValue())));
+    }
+
+    private static AccountActivityConfiguration removeInvalidRules(AccountActivityConfiguration activityConfiguration) {
+        if (!containsInvalidRule(activityConfiguration)) {
+            return activityConfiguration;
+        }
+
+        return AccountActivityConfiguration.of(
+                activityConfiguration.getAllow(),
+                activityConfiguration.getRules().stream()
+                        .map(rule -> !isInvalidConditionRule(rule) ? rule : null)
+                        .filter(Objects::nonNull)
+                        .toList());
     }
 }
