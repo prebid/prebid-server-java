@@ -7,9 +7,9 @@ public class MediaFile {
 
     String mime;
 
-    Long width;
+    Integer width;
 
-    Long height;
+    Integer height;
 
     Long fileSize;
 

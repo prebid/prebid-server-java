@@ -50,5 +50,4 @@ public enum Mcc {
     public int getCode() {
         return code;
     }
-
 }

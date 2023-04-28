@@ -3,6 +3,8 @@ package org.prebid.server.bidder.huaweiads.model.request;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Builder(toBuilder = true)
 @Value
 public class Device {
@@ -29,7 +31,7 @@ public class Device {
 
     Integer dpi;
 
-    Float pxratio;
+    BigDecimal pxratio;
 
     String imei;
 

@@ -7,7 +7,7 @@ public class Icon {
 
     String url;
 
-    Long height;
+    Integer height;
 
     Long fileSize;
 
@@ -15,6 +15,6 @@ public class Icon {
 
     String imageType;
 
-    Long width;
+    Integer width;
 
 }

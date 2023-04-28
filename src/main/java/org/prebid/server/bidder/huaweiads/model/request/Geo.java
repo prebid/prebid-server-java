@@ -2,12 +2,14 @@ package org.prebid.server.bidder.huaweiads.model.request;
 
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Value(staticConstructor = "of")
 public class Geo {
 
-    Float lon;
+    BigDecimal lon;
 
-    Float lat;
+    BigDecimal lat;
 
     Integer accuracy;
 

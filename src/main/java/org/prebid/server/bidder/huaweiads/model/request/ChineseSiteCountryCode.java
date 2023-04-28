@@ -7,7 +7,7 @@ public enum ChineseSiteCountryCode {
     CN;
 
     public static boolean isContainsByName(String name) {
-        return Arrays.stream(EuropeanSiteCountryCode.values())
+        return Arrays.stream(ChineseSiteCountryCode.values())
                 .anyMatch(code -> code.name().equalsIgnoreCase(name));
     }
 

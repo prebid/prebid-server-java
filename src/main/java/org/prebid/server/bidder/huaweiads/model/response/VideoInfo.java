@@ -2,6 +2,8 @@ package org.prebid.server.bidder.huaweiads.model.response;
 
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Value(staticConstructor = "of")
 public class VideoInfo {
 
@@ -13,7 +15,7 @@ public class VideoInfo {
 
     String sha256;
 
-    Float videoRatio;
+    BigDecimal videoRatio;
 
     Integer width;
 
