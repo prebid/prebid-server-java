@@ -168,9 +168,7 @@ public class AnalyticsReporterDelegator {
             activityInfrastructure = null;
         }
 
-        return activityInfrastructure != null
-                ? activityInfrastructure.isAllowed(Activity.REPORT_ANALYTICS, ComponentType.ANALYTICS, adapter)
-                : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+        return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, adapter);
     }
 
     private <T> T updateEvent(T event, String adapter) {
