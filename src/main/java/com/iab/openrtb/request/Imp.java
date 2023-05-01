@@ -153,6 +153,18 @@ public class Imp {
     Integer exp;
 
     /**
+     * Details about ad slots being refreshed automatically.
+     */
+    Refresh refresh;
+
+    /**
+     * A means of passing a multiplier in the bid request,
+     * representing the total quantity of impressions for
+     * adverts that display to more than one person.
+     */
+    Qty qty;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;
