@@ -229,11 +229,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "BidRequests with Generic and Openx imps, UFPD fields field and account id"
         def accountId = PBSUtils.randomString
         def bidRequest = generateBidRequestWithAccountAndUfpdData(accountId).tap {
-            addImp(Imp.defaultImpression.tap {
+            def imp = Imp.defaultImpression.tap {
                 ext.prebid.bidder.generic = null
                 ext.prebid.bidder.openx = Openx.defaultOpenx
             }
-            )
+            addImp(imp)
         }
 
         and: "Activities set with generic bidders rejected"
