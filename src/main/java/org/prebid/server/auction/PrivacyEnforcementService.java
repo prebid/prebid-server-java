@@ -725,7 +725,7 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .data(null)
                     .eids(null)
-                    .ext(extUser != null ? extUser.toBuilder().data(null).build() : null);
+                    .ext(extUser != null ? nullIfEmpty(extUser.toBuilder().data(null).build()) : null);
         }
 
         if (disallowTransmitGeo) {

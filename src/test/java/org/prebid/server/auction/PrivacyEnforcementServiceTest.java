@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
@@ -1657,6 +1658,121 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updatePrivacyCcpaMetrics(eq(false), eq(false));
         verify(metrics).updateAuctionTcfMetrics(
                 eq(BIDDER_NAME), eq(MetricName.openrtb2web), eq(true), eq(true), eq(false), eq(false));
+    }
+
+    @Test
+    public void shouldMaskForCorrespondingToActivitiesRestrictions() {
+        // given
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any(), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any(), any())).willReturn(false);
+        given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000::"))).willReturn("2001:0db8:85a3:0000::");
+
+        final User user = User.builder()
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .data(emptyList())
+                .eids(emptyList())
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
+                .build();
+        final Device device = notMaskedDevice();
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device));
+
+        final PrivacyContext privacyContext = givenPrivacyContext(null, Ccpa.EMPTY, 0);
+
+        final AuctionContext context = auctionContext(bidRequest, privacyContext);
+
+        // when
+        final List<BidderPrivacyResult> result = privacyEnforcementService
+                .mask(context, bidderToUser, singletonList(BIDDER_NAME), aliases)
+                .result();
+
+        // then
+        final BidderPrivacyResult expected = BidderPrivacyResult.builder()
+                .requestBidder(BIDDER_NAME)
+                .user(User.builder()
+                        .buyeruid(null)
+                        .yob(null)
+                        .gender(null)
+                        .data(null)
+                        .eids(null)
+                        .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
+                        .ext(null)
+                        .build())
+                .device(deviceTcfMasked())
+                .build();
+        assertThat(result).isEqualTo(singletonList(expected));
+    }
+
+    @Test
+    public void maskUserForActivityShouldReturnSameIfNoRestrictionsApplied() {
+        // given
+        final User user = User.builder().build();
+
+        // when
+        final User result = privacyEnforcementService.maskUserForActivity(user, false, false);
+
+        // then
+        assertThat(result).isSameAs(user);
+    }
+
+    @Test
+    public void maskUserForActivityShouldReturnMaskedUser() {
+        // given
+        final User user = User.builder()
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .data(emptyList())
+                .eids(emptyList())
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
+                .build();
+
+        // when
+        final User result = privacyEnforcementService.maskUserForActivity(user, true, true);
+
+        // then
+        assertThat(result).isEqualTo(User.builder()
+                .buyeruid(null)
+                .yob(null)
+                .gender(null)
+                .data(null)
+                .eids(null)
+                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
+                .ext(null)
+                .build());
+    }
+
+    @Test
+    public void maskDeviceForActivityShouldReturnSameIfNoRestrictionsApplied() {
+        // given
+        final Device device = Device.builder().build();
+
+        // when
+        final Device result = privacyEnforcementService.maskDeviceForActivity(device, false, false);
+
+        // then
+        assertThat(result).isSameAs(device);
+    }
+
+    @Test
+    public void maskDeviceForActivityShouldReturnMaskedUser() {
+        // given
+        final Device device = notMaskedDevice();
+
+        // when
+        final Device result = privacyEnforcementService.maskDeviceForActivity(device, true, true);
+
+        // then
+        assertThat(result).isEqualTo(deviceTcfMasked());
     }
 
     private AuctionContext auctionContext(BidRequest bidRequest, PrivacyContext privacyContext) {

@@ -4,6 +4,7 @@ import org.prebid.server.activity.ActivityPayload;
 import org.prebid.server.activity.ComponentType;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 public final class ConditionalRule implements Rule {
@@ -22,7 +23,7 @@ public final class ConditionalRule implements Rule {
     }
 
     private static <V> Set<V> setOf(Collection<V> collection) {
-        return collection != null ? Set.copyOf(collection) : null;
+        return collection != null ? new HashSet<>(collection) : null;
     }
 
     public static ConditionalRule of(Collection<ComponentType> componentTypes,

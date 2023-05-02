@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
@@ -16,7 +18,14 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRuleConfig;
 
+import java.util.Map;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -203,5 +212,53 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).isFailed();
+    }
+
+    @Test
+    public void getAccountByIdShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
+        // given
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true,
+                0,
+                "{}",
+                delegate,
+                priceFloorsConfigResolver,
+                jsonMerger,
+                jacksonMapper);
+
+        given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
+                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
+                                AccountActivityConditionRuleConfig.of(null, null),
+                                AccountActivityConditionRuleConfig.of(
+                                        AccountActivityConditionRuleConfig.Condition.of(null, null),
+                                        null),
+                                AccountActivityConditionRuleConfig.of(
+                                        AccountActivityConditionRuleConfig.Condition.of(emptyList(), emptyList()),
+                                        null),
+                                AccountActivityConditionRuleConfig.of(
+                                        AccountActivityConditionRuleConfig.Condition.of(
+                                                singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                        null))))))
+                .build()));
+
+        // when
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
+
+        // then
+        assertThat(accountFuture).succeededWith(Account.builder()
+                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
+                                AccountActivityConditionRuleConfig.of(null, null),
+                                AccountActivityConditionRuleConfig.of(
+                                        AccountActivityConditionRuleConfig.Condition.of(null, null),
+                                        null),
+                                AccountActivityConditionRuleConfig.of(
+                                        AccountActivityConditionRuleConfig.Condition.of(
+                                                singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                        null))))))
+                .build());
     }
 }

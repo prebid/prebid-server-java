@@ -41,7 +41,9 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -506,6 +508,22 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidderCatalog, times(2)).isValidName(eq("invalid"));
+        verifyNoInteractions(httpBidderRequester);
+        assertThat(result).extracting(AuctionContext::getBidResponse).isNotNull();
+    }
+
+    @Test
+    public void shouldSkipBidderDisallowedByActivityInfrastructure() {
+        // given
+        given(activityInfrastructure.isAllowed(eq(Activity.CALL_BIDDER), eq(ComponentType.BIDDER), eq("invalid")))
+                .willReturn(false);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
+
+        // when
+        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
         verifyNoInteractions(httpBidderRequester);
         assertThat(result).extracting(AuctionContext::getBidResponse).isNotNull();
     }
@@ -1342,7 +1360,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallBidResponseCreatorWithExpectedParamsAndUpdateDebugErrors() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenEmptySeatBid());
@@ -2949,7 +2966,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).isEmpty();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid() {
         // given
@@ -2993,7 +3009,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldRespondWithOneBidAndErrorWhenBidResponseContainsOneUnsupportedCurrency() {
         // given
@@ -3046,7 +3061,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
         // given
@@ -3083,7 +3097,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionForMultipleBid() {
         // given
@@ -4282,7 +4295,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactly(pmp);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBidWithTopDeal() {
         // given
@@ -4320,7 +4332,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly("bidId2");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBids() {
         // given
