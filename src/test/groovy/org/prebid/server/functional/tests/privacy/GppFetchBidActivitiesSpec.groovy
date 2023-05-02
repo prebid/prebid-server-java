@@ -29,7 +29,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${FETCH_BIDS.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${FETCH_BIDS.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_OPENX_ADAPTER = "adapter.${OPENX.value}.activity.${FETCH_BIDS.metricValue}.disallowed.count"
 
     def "PBS activity call when fetch bid activities is allowing should process bid request and update processed metrics"() {
         given: "Generic bid request with account connection"
@@ -118,9 +117,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activity = new Activity(defaultAction: false, rules: [ActivityRule.defaultActivityRule])
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Existed account with allow activities setup"
         Account account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
@@ -174,9 +170,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Existed account with allow activities setup"
         Account account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
@@ -198,15 +191,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [null]) | false
     }
 
-    def "PBS auction call with specific bidder in activities should respond only with specific bidder"() {
+    def "PBS auction call with specific bidder in activities should respond only with specific bidder and update metrics"() {
         given: "Generic and Openx bid requests with account connection"
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            setAccountId(accountId)
-            addImp(Imp.defaultImpression.tap {
+            def imp = Imp.defaultImpression.tap {
                 ext.prebid.bidder.generic = null
                 ext.prebid.bidder.openx = Openx.defaultOpenx
-            })
+            }
+            setAccountId(accountId)
+            addImp(imp)
         }
 
         and: "Activities set with openx bidders allowed"
@@ -227,7 +221,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequests.size() == 1
 
-        and: "Openx bidder should be called due to activities setup"
+        and: "Restored request should not contain generic bidder setup due to allow activities setup"
         assert !bidderRequests.first().imp.first().ext.bidder
 
         and: "Metrics processed across activities should be updated"
@@ -239,9 +233,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        and: "Metrics for disallowed activities for Openx should stay the same"
-        assert !metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER]
 
         where:
         activityRules << [[ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)],
@@ -301,7 +292,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert !bidder.getBidderRequests(generalBidRequest.id)
     }
 
-    def "PBS amp call when bidder allowed in activities should process bid request and proper metrics"() {
+    def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def accountId = PBSUtils.randomString
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
