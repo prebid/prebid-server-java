@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -102,13 +102,7 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override

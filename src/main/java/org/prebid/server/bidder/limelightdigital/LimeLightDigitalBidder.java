@@ -6,9 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -86,14 +84,8 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(ExtImpLimeLightDigital extImp) {
-        final String host = extImp.getHost();
-        final int firstDotIndex = StringUtils.indexOf(host, ".");
-        if (firstDotIndex < 1 || firstDotIndex == StringUtils.length(host) - 1) {
-            throw new PreBidException("Hostname is invalid: " + host);
-        }
-
         final String publisherId = String.valueOf(extImp.getPublisherId());
-        return endpointUrl.replace(URL_HOST_MACRO, HttpUtil.encodeUrl(host))
+        return endpointUrl.replace(URL_HOST_MACRO, HttpUtil.encodeUrl(extImp.getHost()))
                 .replace(URL_PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(publisherId));
     }
 
@@ -136,13 +128,7 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest modifiedBidRequest, String endpointUri) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUri)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(modifiedBidRequest))
-                .payload(modifiedBidRequest)
-                .build();
+        return BidderUtil.defaultRequest(modifiedBidRequest, endpointUri, mapper);
     }
 
     @Override

@@ -7,7 +7,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.admixer.ExtImpAdmixer;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -63,14 +63,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(HttpUtil.headers())
-                                .payload(outgoingRequest)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 errors);
     }
 

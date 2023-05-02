@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -20,6 +19,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -48,13 +48,7 @@ public class VisxBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
         final BidRequest outgoingRequest = modifyRequest(bidRequest);
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest) {

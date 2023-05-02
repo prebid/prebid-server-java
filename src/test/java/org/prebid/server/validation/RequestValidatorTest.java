@@ -2245,7 +2245,10 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.imp[0].native.request");
+                .allSatisfy(error -> {
+                    assertThat(error)
+                            .startsWith("Error while parsing request.imp[0].native.request: JsonParseException:");
+                });
     }
 
     @Test

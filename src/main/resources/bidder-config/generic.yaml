@@ -4,6 +4,48 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+      blue:
+        enabled: false
+        endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
+        meta-info:
+          maintainer-email: prebid@getblue.io
+          site-media-types:
+            - banner
+          app-media-types:
+            - banner
+          supported-vendors:
+          vendor-id: 620
+      cwire:
+        enabled: false
+        endpoint: https://ortb.cwi.re/v1/bid
+        modifying-vast-xml-allowed: false
+        endpoint-compression: gzip
+        meta-info:
+          maintainer-email: devs@cwire.com
+          app-media-types:
+          site-media-types:
+            - banner
+          supported-vendors:
+          vendor-id: 1081
+      adsinteractive:
+        enabled: false
+        endpoint: http://bid.adsinteractive.com/prebid
+        modifying-vast-xml-allowed: false
+        meta-info:
+          maintainer-email: it@adsinteractive.com
+          app-media-types:
+            - banner
+          site-media-types:
+            - banner
+          supported-vendors:
+          vendor-id: 0
+        usersync:
+          enabled: true
+          cookie-family-name: adsinteractive
+          redirect:
+            url: http://pb.adsinteractive.com/getuid?{{redirect_url}}
+            support-cors: false
+            uid-macro: '$AUID'
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:

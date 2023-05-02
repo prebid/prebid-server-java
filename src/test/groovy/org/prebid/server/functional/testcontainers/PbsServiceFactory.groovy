@@ -19,9 +19,11 @@ class PbsServiceFactory {
         this.networkServiceContainer = networkServiceContainer
     }
 
-    PrebidServerService getService(Map<String, String> config) {
+    static PrebidServerService getService(Map<String, String> config) {
         if (containers.containsKey(config)) {
-            return new PrebidServerService(containers.get(config))
+            def container = containers.get(config)
+            container.refresh()
+            return new PrebidServerService(container)
         } else {
             if (containers.size() == 1 && MAX_CONTAINER_COUNT == 1) {
                 def container = containers.entrySet().first()

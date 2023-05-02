@@ -287,7 +287,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
-    PrebidServerService withWarmup(){
+    PrebidServerService withWarmup() {
         sendAuctionRequest(BidRequest.defaultBidRequest)
         this
     }
@@ -352,18 +352,16 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    List<String> getLogsByTime(Instant testStart,
-                               Instant testEnd = Instant.now()) {
-        if (!testEnd.isAfter(testStart)) {
+    List<String> getLogsByTime(Instant testStart, Instant testEnd = Instant.now()) {
+        if (testEnd.isBefore(testStart)) {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                                       .withZone(ZoneId.from(UTC))
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                         .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
-        def deltaTime = Duration.between(testStart, testEnd).seconds
+        def deltaTime = Duration.between(testStart, testEnd).plusSeconds(1).seconds
 
         for (int i = 0; i <= deltaTime; i++) {
             def time = testStart.plusSeconds(i)

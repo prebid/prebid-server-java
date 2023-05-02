@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adrino;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -14,6 +13,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -33,14 +33,7 @@ public class AdrinoBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(request))
-                        .payload(request)
-                        .build());
+        return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
     }
 
     @Override
