@@ -1,6 +1,5 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.annotation.JsonValue
 import org.apache.commons.text.CaseUtils
 
 enum ActivityType {

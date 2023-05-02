@@ -34,7 +34,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     private final static int INVALID_STATUS_CODE = 451
     private final static String INVALID_STATUS_MESSAGE = "Bidder sync blocked for privacy reasons"
 
-    def "PBS cookie sync call when bidder allowed in activities should include proper responded with bidders URLs and provide processed metrics"() {
+    def "PBS cookie sync call when bidder allowed in activities should include proper responded with bidders URLs and update processed metrics"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -148,9 +148,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
@@ -160,11 +157,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain bidders userSync.urls"
         assert response.getBidderUserSync(GENERIC).userSync.url
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
         conditions                                                                    | isAllowed
@@ -313,7 +305,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert !response.bidderStatus.userSync.url
     }
 
-    def "PBS setuid request when bidder allowed in activities should respond with valid bidders UIDs cookies"() {
+    def "PBS setuid request when bidder allowed in activities should respond with valid bidders UIDs cookies and update processed metrics"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -362,7 +354,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentName: [OPENX.value], componentType: [ANALYTICS])                                     | false
     }
 
-    def "PBS setuid request when bidder restriction by activities should reject bidders with status code invalidStatusCode"() {
+    def "PBS setuid request when bidder restriction by activities should reject bidders with status code invalidStatusCode and update disallowed metrics"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -487,9 +479,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
@@ -502,12 +491,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.statusCode == INVALID_STATUS_CODE
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
-        and: "Metrics for disallowed activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_OPENX_ADAPTER] == 1
-
         where:
         conditions                           | isAllowed
         new Condition(componentType: [])     | true
@@ -518,7 +501,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [null]) | false
     }
 
-    def "PBS setuid request when specific bidder requiring in activities should respond only with valid bidders UIDs cookies"() {
+    def "PBS setuid request when specific bidder requiring in activities should respond only with valid bidders UIDs cookies and update metrics"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
