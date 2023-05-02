@@ -1,11 +1,13 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
@@ -112,7 +114,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorMin,
-                bidRequest.ext.prebid.floors.floorMinCur, floorProviderCur)
+                requestFloorMinCur, floorProviderCur)
 
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].values = [(rule): convertedMinFloorValue - 0.1]
@@ -129,7 +131,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond floorMin"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0].bidFloor == getRoundedFloorValue(convertedMinFloorValue)
+            imp[0].bidFloor == convertedMinFloorValue
             imp[0].bidFloorCur == floorProviderCur
             ext?.prebid?.floors?.floorMin == floorMin
             ext?.prebid?.floors?.floorMinCur == requestFloorMinCur
@@ -260,6 +262,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
     }
 
+    @RepeatUntilFailure
     def "PBS should make FP enforcement with currency conversion when request.cur, floor cur, bidResponse cur are different"() {
         given: "Default BidRequest with cur"
         def requestCur = EUR
@@ -282,6 +285,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Set currency rate"
+        def currencyResponse = CurrencyConversionRatesResponse
+                .getDefaultCurrencyConversionRatesResponse(
+                        (GBP): [(EUR): 1.2486995069435023],
+                        (EUR): [(GBP): 0.8008331823944936])
+        currencyConversion.setCurrencyConversionRatesResponse(currencyResponse)
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP
