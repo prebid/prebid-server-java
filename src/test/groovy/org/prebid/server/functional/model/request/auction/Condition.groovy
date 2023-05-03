@@ -9,7 +9,7 @@ class Condition {
     List<ConditionType> componentType
     List<String> componentName
 
-    static Condition getBaseCondition(String componentName = BidderName.GENERIC) {
+    static Condition getBaseCondition(String componentName = BidderName.GENERIC.value) {
         new Condition(componentName: [componentName], componentType: [ConditionType.BIDDER])
     }
 
