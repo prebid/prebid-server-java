@@ -197,7 +197,7 @@ public class AccountActivitiesConfigurationUtilsTest {
                 .removeInvalidRules(configuration);
 
         // then
-        assertThat(result).containsExactlyEntriesOf(Map.of(
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(Map.of(
                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                         AccountActivityConditionRuleConfig.of(null, null),
