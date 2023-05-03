@@ -7,6 +7,4 @@ class BidRequestExt {
 
     Prebid prebid
     SupplyChain schain
-    String bc
-    String platform
 }
