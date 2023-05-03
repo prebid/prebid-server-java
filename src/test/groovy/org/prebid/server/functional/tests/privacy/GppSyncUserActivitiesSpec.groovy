@@ -14,7 +14,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
@@ -177,7 +176,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for enrich ufpd with invalid input"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -199,6 +198,31 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [])     | false
         new Condition(componentType: null)   | false
         new Condition(componentType: [null]) | false
+    }
+
+    def "PBS cookie sync call when bidder allowed activities have empty rules should skip this rule and emit an warning"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain proper warning"
+        assert response.warnings == ["Invalid rules setup passed"]
+
+        and: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
     def "PBS cookie sync call when specific bidder requiring in activities should respond only with specific bidder URL and metrics"() {
@@ -463,7 +487,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [ANALYTICS])                                     | false
     }
 
-    def "PBS setuid request when sync user allowed activities have invalid condition type should respond with valid bidders UIDs cookies"() {
+    def "PBS setuid request when sync user allowed activities have invalid condition type should reject bidders with status code invalidStatusCode"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -499,6 +523,35 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [])     | false
         new Condition(componentType: null)   | false
         new Condition(componentType: [null]) | false
+    }
+
+    def "PBS setuid request call when bidder allowed activities have empty rules should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Openx uids Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            tempUIDs = [(OPENX): UidWithExpiry.defaultUidWithExpiry]
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request without cookies"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
     def "PBS setuid request when specific bidder requiring in activities should respond only with valid bidders UIDs cookies and update metrics"() {
