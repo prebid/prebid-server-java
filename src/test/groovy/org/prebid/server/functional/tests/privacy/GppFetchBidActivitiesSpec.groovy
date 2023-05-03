@@ -14,7 +14,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
@@ -191,6 +190,31 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [null]) | false
     }
 
+    def "PBS auction call when bidder allowed activities have empty rules should skip this rule and emit an warning"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomString
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
+
+        and: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(generalBidRequest.id)
+    }
+
     def "PBS auction call with specific bidder in activities should respond only with specific bidder and update metrics"() {
         given: "Generic and Openx bid requests with account connection"
         def accountId = PBSUtils.randomString
@@ -279,7 +303,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for bidder disallowing by hierarchy structure"
         def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Existed account with allow activities setup"
         Account account = getAccountWithAllowActivities(accountId, activities)
@@ -466,7 +490,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for enrich ufpd with invalid input"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Saved account config with allow activities into DB"
         def account = getAccountWithAllowActivities(accountId, activities)
@@ -496,6 +520,40 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [])     | false
         new Condition(componentType: null)   | false
         new Condition(componentType: [null]) | false
+    }
+
+    def "PBS amp call when bidder allowed activities have empty rules should skip this rule and emit an warning"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomString
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
+
+        and: "Bidder request should be present"
+        assert bidder.getBidderRequest(ampStoredRequest.id)
     }
 
     def "PBS auction call when first rule allowing in activities should call each bid adapter"() {
@@ -551,7 +609,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for bidder disallowing by hierarchy structure"
         def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
-        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Existed account with allow activities setup"
         Account account = getAccountWithAllowActivities(accountId, activities)

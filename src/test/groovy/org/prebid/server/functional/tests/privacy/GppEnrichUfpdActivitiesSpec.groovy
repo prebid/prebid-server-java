@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
@@ -273,6 +274,32 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [])     | false
         new Condition(componentType: null)   | false
         new Condition(componentType: [null]) | false
+    }
+
+    def "PBS auction call when bidder allowed activities have empty rules should skip this rule for user.data and emit an warning"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
+
+        and: "Bidder request should contain additional user.data from processed request"
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest?.user?.data
     }
 
     def "PBS auction call when specific bidder in enrich UFDP activities should enhance user.data only for required bidder"() {
@@ -597,6 +624,32 @@ class GppEnrichUfpdActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentType: [])     | false
         new Condition(componentType: null)   | false
         new Condition(componentType: [null]) | false
+    }
+
+    def "PBS auction call when bidder allowed activities have empty rules should skip this rule for request.device and emit an warning"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set with empty rules setup"
+        def activity = new Activity(defaultAction: false, rules: [])
+        def activities = AllowActivities.getDefaultAllowActivities(ENRICH_UFPD, activity)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
+
+        and: "Generic bidder request should be enhance with data for device"
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.device.lmt == 1
     }
 
     def "PBS auction call when specific bidder in enrich UFDP activities should enhance request.device only for required bidder"() {
