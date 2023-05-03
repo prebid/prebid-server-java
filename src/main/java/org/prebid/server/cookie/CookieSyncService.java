@@ -8,7 +8,6 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
@@ -112,6 +111,7 @@ public class CookieSyncService {
                 .map(this::filterBiddersWithDisabledUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
+                .map(this::filterDisallowedActivities)
                 .map(this::filterInSyncBidders);
     }
 
@@ -211,6 +211,14 @@ public class CookieSyncService {
                 RejectionReason.ALREADY_IN_SYNC);
     }
 
+    private CookieSyncContext filterDisallowedActivities(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !cookieSyncContext.getActivityInfrastructure()
+                        .isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder),
+                RejectionReason.DISALLOWED_ACTIVITY);
+    }
+
     private boolean isBidderInSync(CookieSyncContext cookieSyncContext, String bidder) {
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
@@ -258,7 +266,6 @@ public class CookieSyncService {
         return tcfDefinerService.isAllowedForHostVendorId(tcfContext)
                 .compose(hostTcfResponse -> filterWithTcfResponse(hostTcfResponse, cookieSyncContext))
                 .onSuccess(updatedContext -> updateCookieSyncTcfMetrics(updatedContext.getBiddersContext()))
-                .compose(this::filterDisallowedActivities)
                 .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext));
     }
 
@@ -513,19 +520,6 @@ public class CookieSyncService {
                 .map(Map.Entry::getKey)
                 .forEach(bidder -> metrics.updateCookieSyncTcfBlockedMetric(
                         bidderCatalog.isValidName(bidder) ? bidder : "unknown"));
-    }
-
-    private Future<CookieSyncContext> filterDisallowedActivities(CookieSyncContext cookieSyncContext) {
-        final BiddersContext biddersContext = cookieSyncContext.getBiddersContext();
-        final ActivityInfrastructure activityInfrastructure = cookieSyncContext.getActivityInfrastructure();
-
-        final Set<String> rejectedBidders = biddersContext.allowedBidders().stream()
-                .filter(bidder -> !activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder))
-                .collect(Collectors.toSet());
-
-        return Future.succeededFuture(
-                        biddersContext.withRejectedBidders(rejectedBidders, RejectionReason.DISALLOWED_ACTIVITY))
-                .map(cookieSyncContext::with);
     }
 
     private static <T> T rethrowAsCookieSyncException(Throwable error, TcfContext tcfContext) {

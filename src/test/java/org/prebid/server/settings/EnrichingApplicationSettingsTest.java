@@ -19,7 +19,7 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
-import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 
 import java.util.Map;
 
@@ -230,15 +230,15 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(null, null, Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                AccountActivityConditionRuleConfig.of(null, null),
-                                AccountActivityConditionRuleConfig.of(
-                                        AccountActivityConditionRuleConfig.Condition.of(null, null),
+                                AccountActivityComponentRuleConfig.of(null, null),
+                                AccountActivityComponentRuleConfig.of(
+                                        AccountActivityComponentRuleConfig.Condition.of(null, null),
                                         null),
-                                AccountActivityConditionRuleConfig.of(
-                                        AccountActivityConditionRuleConfig.Condition.of(emptyList(), emptyList()),
+                                AccountActivityComponentRuleConfig.of(
+                                        AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),
                                         null),
-                                AccountActivityConditionRuleConfig.of(
-                                        AccountActivityConditionRuleConfig.Condition.of(
+                                AccountActivityComponentRuleConfig.of(
+                                        AccountActivityComponentRuleConfig.Condition.of(
                                                 singletonList(ComponentType.BIDDER), singletonList("bidder")),
                                         null))))))
                 .build()));
@@ -251,12 +251,12 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(null, null, Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                AccountActivityConditionRuleConfig.of(null, null),
-                                AccountActivityConditionRuleConfig.of(
-                                        AccountActivityConditionRuleConfig.Condition.of(null, null),
+                                AccountActivityComponentRuleConfig.of(null, null),
+                                AccountActivityComponentRuleConfig.of(
+                                        AccountActivityComponentRuleConfig.Condition.of(null, null),
                                         null),
-                                AccountActivityConditionRuleConfig.of(
-                                        AccountActivityConditionRuleConfig.Condition.of(
+                                AccountActivityComponentRuleConfig.of(
+                                        AccountActivityComponentRuleConfig.Condition.of(
                                                 singletonList(ComponentType.BIDDER), singletonList("bidder")),
                                         null))))))
                 .build());

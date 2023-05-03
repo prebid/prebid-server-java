@@ -4,6 +4,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION, include = JsonTypeInfo.As.EXISTING_PROPERTY)
-@JsonSubTypes({@JsonSubTypes.Type(value = AccountActivityConditionRuleConfig.class)})
-public sealed interface AccountActivityRuleConfig permits AccountActivityConditionRuleConfig {
+@JsonSubTypes({@JsonSubTypes.Type(value = AccountActivityComponentRuleConfig.class)})
+public sealed interface AccountActivityRuleConfig permits AccountActivityComponentRuleConfig {
 }

@@ -4,12 +4,12 @@ import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityConfiguration;
 import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.rule.ConditionalRule;
+import org.prebid.server.activity.rule.ComponentRule;
 import org.prebid.server.activity.rule.Rule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
-import org.prebid.server.settings.model.activity.rule.AccountActivityConditionRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Arrays;
@@ -59,7 +59,7 @@ public class AccountActivitiesConfigurationUtils {
     }
 
     private static Rule from(AccountActivityRuleConfig accountActivityRuleConfig) {
-        if (accountActivityRuleConfig instanceof AccountActivityConditionRuleConfig conditionalRuleConfig) {
+        if (accountActivityRuleConfig instanceof AccountActivityComponentRuleConfig conditionalRuleConfig) {
             return from(conditionalRuleConfig);
         }
 
@@ -67,11 +67,11 @@ public class AccountActivitiesConfigurationUtils {
         throw new AssertionError();
     }
 
-    private static Rule from(AccountActivityConditionRuleConfig conditionalRuleConfig) {
+    private static Rule from(AccountActivityComponentRuleConfig conditionalRuleConfig) {
         final boolean allow = allowFromConfig(conditionalRuleConfig.getAllow());
-        final AccountActivityConditionRuleConfig.Condition condition = conditionalRuleConfig.getCondition();
+        final AccountActivityComponentRuleConfig.Condition condition = conditionalRuleConfig.getCondition();
 
-        return ConditionalRule.of(
+        return ComponentRule.of(
                 condition != null ? condition.getComponentTypes() : null,
                 condition != null ? condition.getComponentNames() : null,
                 allow);
@@ -104,15 +104,15 @@ public class AccountActivitiesConfigurationUtils {
     }
 
     private static boolean isInvalidConditionRule(AccountActivityRuleConfig rule) {
-        if (rule instanceof AccountActivityConditionRuleConfig conditionRule) {
-            final AccountActivityConditionRuleConfig.Condition condition = conditionRule.getCondition();
+        if (rule instanceof AccountActivityComponentRuleConfig conditionRule) {
+            final AccountActivityComponentRuleConfig.Condition condition = conditionRule.getCondition();
             return condition != null && isInvalidCondition(condition);
         }
 
         return false;
     }
 
-    private static boolean isInvalidCondition(AccountActivityConditionRuleConfig.Condition condition) {
+    private static boolean isInvalidCondition(AccountActivityComponentRuleConfig.Condition condition) {
         return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
     }
 

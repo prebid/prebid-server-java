@@ -531,7 +531,7 @@ public class ExchangeService {
         final List<String> bidders = imps.stream()
                 .map(imp -> bidderNamesFromImpExt(imp, aliases))
                 .flatMap(Collection::stream)
-                .filter(bidder -> isAllowedActivity(bidder, context.getActivityInfrastructure()))
+                .filter(bidder -> isBidderCallActivityAllowed(bidder, context.getActivityInfrastructure()))
                 .distinct()
                 .toList();
 
@@ -560,7 +560,7 @@ public class ExchangeService {
         return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
 
-    private static boolean isAllowedActivity(String bidder, ActivityInfrastructure activityInfrastructure) {
+    private static boolean isBidderCallActivityAllowed(String bidder, ActivityInfrastructure activityInfrastructure) {
         return activityInfrastructure.isAllowed(
                 org.prebid.server.activity.Activity.CALL_BIDDER,
                 ComponentType.BIDDER,

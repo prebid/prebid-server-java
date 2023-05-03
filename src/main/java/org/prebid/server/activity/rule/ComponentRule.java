@@ -7,15 +7,15 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class ConditionalRule implements Rule {
+public final class ComponentRule implements Rule {
 
     private final Set<ComponentType> componentTypes;
     private final Set<String> componentNames;
     private final boolean allowed;
 
-    private ConditionalRule(Collection<ComponentType> componentTypes,
-                            Collection<String> componentNames,
-                            boolean allowed) {
+    private ComponentRule(Collection<ComponentType> componentTypes,
+                          Collection<String> componentNames,
+                          boolean allowed) {
 
         this.componentTypes = setOf(componentTypes);
         this.componentNames = setOf(componentNames);
@@ -26,11 +26,11 @@ public final class ConditionalRule implements Rule {
         return collection != null ? new HashSet<>(collection) : null;
     }
 
-    public static ConditionalRule of(Collection<ComponentType> componentTypes,
-                                     Collection<String> componentNames,
-                                     boolean allowed) {
+    public static ComponentRule of(Collection<ComponentType> componentTypes,
+                                   Collection<String> componentNames,
+                                   boolean allowed) {
 
-        return new ConditionalRule(componentTypes, componentNames, allowed);
+        return new ComponentRule(componentTypes, componentNames, allowed);
     }
 
     @Override

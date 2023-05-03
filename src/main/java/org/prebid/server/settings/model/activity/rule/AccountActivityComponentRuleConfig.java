@@ -7,7 +7,7 @@ import org.prebid.server.activity.ComponentType;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class AccountActivityConditionRuleConfig implements AccountActivityRuleConfig {
+public class AccountActivityComponentRuleConfig implements AccountActivityRuleConfig {
 
     Condition condition;
 

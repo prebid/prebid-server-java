@@ -7,12 +7,12 @@ import org.prebid.server.activity.ComponentType;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConditionalRuleTest {
+public class ComponentRuleTest {
 
     @Test
     public void allowedShouldReturnExpectedResult() {
         // given
-        final Rule rule = ConditionalRule.of(null, null, true);
+        final Rule rule = ComponentRule.of(null, null, true);
 
         // when
         final boolean allowed = rule.allowed();
@@ -24,7 +24,7 @@ public class ConditionalRuleTest {
     @Test
     public void matchesShouldReturnTrueIfComponentTypesIsNull() {
         // given
-        final Rule rule = ConditionalRule.of(null, null, true);
+        final Rule rule = ComponentRule.of(null, null, true);
 
         // when
         final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, null));
@@ -36,7 +36,7 @@ public class ConditionalRuleTest {
     @Test
     public void matchesShouldReturnFalseIfComponentTypesDoesNotContainsArgument() {
         // given
-        final Rule rule = ConditionalRule.of(singletonList(ComponentType.ANALYTICS), null, true);
+        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), null, true);
 
         // when
         final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, null));
@@ -48,7 +48,7 @@ public class ConditionalRuleTest {
     @Test
     public void matchesShouldReturnTrueIfComponentNamesIsNull() {
         // given
-        final Rule rule = ConditionalRule.of(singletonList(ComponentType.ANALYTICS), null, true);
+        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), null, true);
 
         // when
         final boolean matches = rule.matches(ActivityPayload.of(ComponentType.ANALYTICS, "componentName"));
@@ -60,7 +60,7 @@ public class ConditionalRuleTest {
     @Test
     public void matchesShouldReturnFalseIfComponentNamesDoesNotContainsArgument() {
         // given
-        final Rule rule = ConditionalRule.of(singletonList(ComponentType.ANALYTICS), singletonList("other"), true);
+        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), singletonList("other"), true);
 
         // when
         final boolean matches = rule.matches(ActivityPayload.of(ComponentType.ANALYTICS, "componentName"));
@@ -72,7 +72,7 @@ public class ConditionalRuleTest {
     @Test
     public void matchesShouldReturnExpectedResult() {
         // given
-        final Rule rule = ConditionalRule.of(singletonList(ComponentType.BIDDER), singletonList("bidder"), true);
+        final Rule rule = ComponentRule.of(singletonList(ComponentType.BIDDER), singletonList("bidder"), true);
 
         // when
         final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, "bidder"));

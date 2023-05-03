@@ -4,7 +4,7 @@ import org.prebid.server.activity.rule.Rule;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
 
 public class ActivityConfiguration {
 
@@ -21,14 +21,21 @@ public class ActivityConfiguration {
     }
 
     public ActivityContextResult isAllowed(ActivityPayload activityPayload) {
-        final AtomicInteger processedRulesCounter = new AtomicInteger();
-        final boolean allowed = rules.stream()
-                .peek(rule -> processedRulesCounter.incrementAndGet())
-                .filter(rule -> rule.matches(activityPayload))
-                .findFirst()
-                .map(Rule::allowed)
-                .orElse(allowByDefault);
+        int processedRulesCount = 0;
+        Rule matchedRule = null;
 
-        return ActivityContextResult.of(allowed, processedRulesCounter.get());
+        for (Rule rule : rules) {
+            processedRulesCount++;
+            if (rule.matches(activityPayload)) {
+                matchedRule = rule;
+                break;
+            }
+        }
+
+        return ActivityContextResult.of(
+                Optional.ofNullable(matchedRule)
+                        .map(Rule::allowed)
+                        .orElse(allowByDefault),
+                processedRulesCount);
     }
 }
