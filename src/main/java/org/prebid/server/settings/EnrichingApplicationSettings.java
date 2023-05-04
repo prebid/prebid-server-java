@@ -11,7 +11,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.AccountConsentConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -124,13 +124,9 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                             .formatted(account.getId()),
                     logSamplingRate);
 
-            final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
             return account.toBuilder()
-                    .privacy(AccountPrivacyConfig.of(
-                            accountPrivacyConfig.getGdpr(),
-                            accountPrivacyConfig.getCcpa(),
-                            AccountActivitiesConfigurationUtils
-                                    .removeInvalidRules(accountPrivacyConfig.getActivities())))
+                    .consent(AccountConsentConfig.of(AccountActivitiesConfigurationUtils
+                            .removeInvalidRules(account.getConsent().getActivities())))
                     .build();
         }
 

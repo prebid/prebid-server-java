@@ -39,6 +39,7 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountConsentConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
@@ -231,7 +232,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(emptyUidsCookie());
         given(applicationSettings.getAccountById(eq("accountId"), any()))
                 .willReturn(Future.succeededFuture(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                        .consent(AccountConsentConfig.of(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(false, null))))
                         .build()));
 
@@ -353,7 +354,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null))
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);

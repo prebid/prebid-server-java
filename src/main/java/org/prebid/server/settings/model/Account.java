@@ -16,6 +16,8 @@ public class Account {
 
     AccountPrivacyConfig privacy;
 
+    AccountConsentConfig consent;
+
     AccountAnalyticsConfig analytics;
 
     AccountMetricsConfig metrics;

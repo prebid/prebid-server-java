@@ -170,7 +170,6 @@ public class FileApplicationSettingsTest extends VertxTest {
                                         .build())
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                                 .build(),
-                        null,
                         null))
                 .analytics(AccountAnalyticsConfig.of(
                         expectedEventsConfig,

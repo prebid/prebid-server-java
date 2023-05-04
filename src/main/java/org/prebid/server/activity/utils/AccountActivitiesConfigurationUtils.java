@@ -7,7 +7,7 @@ import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.rule.ComponentRule;
 import org.prebid.server.activity.rule.Rule;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.AccountConsentConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
@@ -32,8 +32,8 @@ public class AccountActivitiesConfigurationUtils {
     public static Map<Activity, ActivityConfiguration> parse(Account account) {
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration =
                 Optional.ofNullable(account)
-                        .map(Account::getPrivacy)
-                        .map(AccountPrivacyConfig::getActivities)
+                        .map(Account::getConsent)
+                        .map(AccountConsentConfig::getActivities)
                         .orElse(Collections.emptyMap());
 
         return Arrays.stream(Activity.values())
@@ -87,8 +87,8 @@ public class AccountActivitiesConfigurationUtils {
 
     public static boolean isInvalidActivitiesConfiguration(Account account) {
         return Optional.ofNullable(account)
-                .map(Account::getPrivacy)
-                .map(AccountPrivacyConfig::getActivities)
+                .map(Account::getConsent)
+                .map(AccountConsentConfig::getActivities)
                 .stream()
                 .map(Map::values)
                 .flatMap(Collection::stream)

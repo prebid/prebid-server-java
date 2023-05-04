@@ -8,7 +8,7 @@ import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ActivityPayload;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.AccountConsentConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 
@@ -43,9 +43,9 @@ public class AccountActivitiesConfigurationUtilsTest {
     }
 
     @Test
-    public void parseShouldReturnExpectedResultIfAccountPrivacyActivitiesNull() {
+    public void parseShouldReturnExpectedResultIfAccountConsentActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null)).build();
+        final Account account = Account.builder().consent(AccountConsentConfig.of(null)).build();
 
         // when
         final Map<Activity, ActivityConfiguration> configuration = AccountActivitiesConfigurationUtils.parse(account);
@@ -58,7 +58,7 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void parseShouldReturnExpectedResult() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                .consent(AccountConsentConfig.of(Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(
                                 !ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT,
@@ -122,7 +122,7 @@ public class AccountActivitiesConfigurationUtilsTest {
     @Test
     public void isInvalidActivitiesConfigurationShouldReturnFalseIfAccountPrivacyActivitiesNull() {
         //given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null)).build();
+        final Account account = Account.builder().consent(AccountConsentConfig.of(null)).build();
 
         // when
         final boolean result = AccountActivitiesConfigurationUtils.isInvalidActivitiesConfiguration(account);
@@ -135,7 +135,7 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void isInvalidActivitiesConfigurationShouldReturnFalseIfConfigurationValid() {
         //given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                .consent(AccountConsentConfig.of(Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                 null,
@@ -160,7 +160,7 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidConditionalRule() {
         //given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                .consent(AccountConsentConfig.of(Map.of(
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityComponentRuleConfig.of(
                                         AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),

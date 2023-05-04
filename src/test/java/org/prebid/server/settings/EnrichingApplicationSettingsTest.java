@@ -15,6 +15,7 @@ import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountConsentConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
@@ -122,7 +123,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
                                 .build(),
-                        null,
                         null))
                 .build()));
 
@@ -141,7 +141,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
                                 .build(),
-                        null,
                         null))
                 .build());
     }
@@ -227,7 +226,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                .consent(AccountConsentConfig.of(Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                 AccountActivityComponentRuleConfig.of(null, null),
@@ -248,7 +247,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                .consent(AccountConsentConfig.of(Map.of(
                         Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                 AccountActivityComponentRuleConfig.of(null, null),
