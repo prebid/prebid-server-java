@@ -39,7 +39,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -70,14 +70,14 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(generalBidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert !bidder.getBidderRequests(generalBidRequest.id)
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -98,14 +98,14 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(generalBidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert !bidder.getBidderRequests(generalBidRequest.id)
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
     }
 
     def "PBS auction call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
@@ -123,7 +123,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -157,7 +157,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -190,7 +190,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAuctionRequest(generalBidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert !bidder.getBidderRequests(generalBidRequest.id)
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
     }
 
     def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
@@ -261,7 +261,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should not contain bidRequest from amp request"
-        assert !bidder.getBidderRequests(ampStoredRequest.id)
+        assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -297,7 +297,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should not contain bidRequest from amp request"
-        assert !bidder.getBidderRequests(ampStoredRequest.id)
+        assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
     }
 
     def "PBS amp call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
@@ -410,6 +410,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should not contain bidRequest from amp request"
-        assert !bidder.getBidderRequests(ampStoredRequest.id)
+        assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
     }
 }

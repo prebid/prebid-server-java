@@ -362,7 +362,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
             it.account = accountId
         }
 
-        and: "UIDs cookies for Openx bidders"
+        and: "UIDs cookies"
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Activity rules with different priority"
