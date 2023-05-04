@@ -47,6 +47,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
             bidderRequests.device.geo.lat == bidRequest.device.geo.lat
             bidderRequests.device.geo.lon == bidRequest.device.geo.lon
             bidderRequests.user.geo.lat == bidRequest.user.geo.lat
@@ -85,6 +87,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
             bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
             bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
             bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
@@ -123,6 +127,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
             bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
             bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
             bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
@@ -190,6 +196,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
             bidderRequests.device.geo.lat == bidRequest.device.geo.lat
             bidderRequests.device.geo.lon == bidRequest.device.geo.lon
             bidderRequests.user.geo.lat == bidRequest.user.geo.lat
@@ -223,10 +231,12 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
-            bidderRequests.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidderRequests.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidderRequests.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidderRequests.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
         }
     }
 
@@ -264,6 +274,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
             bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
             bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
             bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
@@ -309,10 +321,12 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            bidderRequests.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidderRequests.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidderRequests.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidderRequests.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -352,6 +366,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
             ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
             ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
             ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
@@ -437,6 +453,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
             bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
             bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
             bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
@@ -479,10 +497,12 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            bidderRequests.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidderRequests.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidderRequests.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidderRequests.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
         }
     }
 }

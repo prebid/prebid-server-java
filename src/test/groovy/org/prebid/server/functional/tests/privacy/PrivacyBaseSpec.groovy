@@ -57,7 +57,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
-            device = new Device(geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
+            device = new Device(ip: "43.77.114.227", ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
             user = User.defaultUser.tap {
                 geo = new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90))
             }
