@@ -1,22 +1,10 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.config.AccountCcpaConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountCookieSyncConfig
-import org.prebid.server.functional.model.config.AccountCoopSyncConfig
-import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.*
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
-import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.*
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.tests.BaseSpec
@@ -27,9 +15,7 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
-import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
-import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
+import static org.prebid.server.functional.model.request.amp.ConsentType.*
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -145,9 +131,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     protected static Account getAccountWithAllowActivities(String accountId, AllowActivities activities) {
-        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities)
+        def consent = new AccountConsentConfig(allowActivities: activities)
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
-        def accountConfig = new AccountConfig(cookieSync: cookieSyncConfig, privacy: privacy)
+        def accountConfig = new AccountConfig(cookieSync: cookieSyncConfig, consent: consent)
         new Account(uuid: accountId, config: accountConfig)
     }
 }

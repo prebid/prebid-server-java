@@ -15,6 +15,7 @@ class AccountConfig {
     AccountStatus status
     AccountAuctionConfig auction
     AccountPrivacyConfig privacy
+    AccountConsentConfig consent
     AccountAnalyticsConfig analytics
     AccountMetricsConfig metrics
     AccountCookieSyncConfig cookieSync
