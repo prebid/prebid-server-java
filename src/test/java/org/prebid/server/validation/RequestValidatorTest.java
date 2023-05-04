@@ -2035,7 +2035,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidsIsEmpty() {
+    public void validateShouldNotReturnValidationMessageWhenEidsIsEmpty() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
