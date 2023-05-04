@@ -142,6 +142,9 @@ public class AmpRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
+                .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
+                        .map(auctionContext::with))
+
                 .compose(auctionContext -> updateBidRequest(auctionContext)
                         .map(auctionContext::with))
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
@@ -37,6 +38,8 @@ public class CookieSyncContext {
     Account account;
 
     PrivacyContext privacyContext;
+
+    ActivityInfrastructure activityInfrastructure;
 
     @JsonIgnore
     int limit;

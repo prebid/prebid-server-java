@@ -107,7 +107,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .priceGranularity("testPriceGranularity")
                         .build())
-                .privacy(AccountPrivacyConfig.of(null, null))
+                .privacy(AccountPrivacyConfig.of(null, null, null))
                 .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));

@@ -7,6 +7,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -109,6 +111,7 @@ public class CookieSyncService {
                 .map(this::filterBiddersWithDisabledUsersync)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
+                .map(this::filterDisallowedActivities)
                 .map(this::filterInSyncBidders);
     }
 
@@ -206,6 +209,14 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> isBidderInSync(cookieSyncContext, bidder),
                 RejectionReason.ALREADY_IN_SYNC);
+    }
+
+    private CookieSyncContext filterDisallowedActivities(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !cookieSyncContext.getActivityInfrastructure()
+                        .isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder),
+                RejectionReason.DISALLOWED_ACTIVITY);
     }
 
     private boolean isBidderInSync(CookieSyncContext cookieSyncContext, String bidder) {
@@ -453,6 +464,7 @@ public class CookieSyncService {
             case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
+            case DISALLOWED_ACTIVITY -> builder.conditionalError(requested || coopSync, "Disallowed activity");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
             case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");

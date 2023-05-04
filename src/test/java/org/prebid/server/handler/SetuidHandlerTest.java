@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -41,6 +42,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
+import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -221,6 +223,27 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithUnavailableForLegalReasonsStatusIfDisallowedActivity() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("account")).willReturn("accountId");
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(emptyUidsCookie());
+        given(applicationSettings.getAccountById(eq("accountId"), any()))
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                                Activity.SYNC_USER, AccountActivityConfiguration.of(false, null))))
+                        .build()));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(451));
+        verify(httpResponse).end(eq("Unavailable For Legal Reasons."));
+    }
+
+    @Test
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfUidMissingInRequest() {
         // given
         final UidsCookie uidsCookie = emptyUidsCookie();
@@ -330,7 +353,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null))
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);

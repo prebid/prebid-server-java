@@ -12,6 +12,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -22,8 +24,10 @@ import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -53,6 +57,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private final ApplicationSettings applicationSettings;
     private final long defaultTimeoutMillis;
     private final boolean dealsEnabled;
+    private final Metrics metrics;
     private final TrackingPixel trackingPixel;
 
     public NotificationEventHandler(UidsCookieService uidsCookieService,
@@ -62,7 +67,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings,
                                     long defaultTimeoutMillis,
-                                    boolean dealsEnabled) {
+                                    boolean dealsEnabled,
+                                    Metrics metrics) {
 
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationEventService = applicationEventService;
@@ -72,6 +78,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.defaultTimeoutMillis = defaultTimeoutMillis;
         this.dealsEnabled = dealsEnabled;
+        this.metrics = Objects.requireNonNull(metrics);
 
         trackingPixel = createTrackingPixel();
     }
@@ -170,10 +177,10 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .integration(eventRequest.getIntegration())
                         .httpContext(HttpRequestContext.from(routingContext))
                         .lineItemId(lineItemId)
+                        .activityInfrastructure(activityInfrastructure(account))
                         .build();
 
                 analyticsDelegator.processEvent(notificationEvent);
-
             }
             respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
         }
@@ -185,6 +192,14 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
 
         return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
+    }
+
+    private ActivityInfrastructure activityInfrastructure(Account account) {
+        return new ActivityInfrastructure(
+                account.getId(),
+                AccountActivitiesConfigurationUtils.parse(account),
+                TraceLevel.basic,
+                metrics);
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

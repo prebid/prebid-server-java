@@ -377,7 +377,8 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
-            @Value("${deals.enabled}") boolean dealsEnabled) {
+            @Value("${deals.enabled}") boolean dealsEnabled,
+            Metrics metrics) {
 
         return new NotificationEventHandler(
                 uidsCookieService,
@@ -387,7 +388,8 @@ public class WebConfiguration {
                 timeoutFactory,
                 applicationSettings,
                 defaultTimeoutMillis,
-                dealsEnabled);
+                dealsEnabled,
+                metrics);
     }
 
     @Bean

@@ -13,6 +13,10 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -26,6 +30,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
+import org.prebid.server.cookie.exception.UnavailableForLegalReasonsException;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -37,6 +42,7 @@ import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
@@ -128,6 +134,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .cookieName(cookieName)
                                 .syncType(cookieNameToSyncType.get(cookieName))
                                 .privacyContext(privacyContext)
+                                .activityInfrastructure(new ActivityInfrastructure(
+                                        account.getId(),
+                                        AccountActivitiesConfigurationUtils.parse(account),
+                                        TraceLevel.basic,
+                                        metrics))
                                 .build()));
     }
 
@@ -140,6 +151,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
                                            RoutingContext routingContext) {
+
         if (setuidContextResult.succeeded()) {
             final SetuidContext setuidContext = setuidContextResult.result();
             final String bidder = setuidContext.getCookieName();
@@ -147,7 +159,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
             try {
                 validateSetuidContext(setuidContext, bidder);
-            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+            } catch (InvalidRequestException | UnauthorizedUidsException | UnavailableForLegalReasonsException e) {
                 handleErrors(e, routingContext, tcfContext);
                 return;
             }
@@ -177,6 +189,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
             throw new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext);
+        }
+
+        final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
+        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder)) {
+            throw new UnavailableForLegalReasonsException();
         }
     }
 
@@ -297,6 +314,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED;
             body = "Unauthorized: " + message;
+        } else if (error instanceof UnavailableForLegalReasonsException) {
+            status = HttpResponseStatus.valueOf(451);
+            body = "Unavailable For Legal Reasons.";
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = "Unexpected setuid processing error: " + message;

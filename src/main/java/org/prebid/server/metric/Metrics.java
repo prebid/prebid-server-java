@@ -2,6 +2,7 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -41,6 +42,7 @@ public class Metrics extends UpdatableMetrics {
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
+    private final RequestsMetrics requestsMetrics;
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterTypeMetrics> adapterMetrics;
@@ -59,8 +61,10 @@ public class Metrics extends UpdatableMetrics {
     private final HooksMetrics hooksMetrics;
     private final PgMetrics pgMetrics;
 
-    public Metrics(MetricRegistry metricRegistry, CounterType counterType,
+    public Metrics(MetricRegistry metricRegistry,
+                   CounterType counterType,
                    AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
+
         super(metricRegistry, counterType, MetricName::toString);
 
         this.accountMetricsVerbosityResolver = Objects.requireNonNull(accountMetricsVerbosityResolver);
@@ -78,6 +82,8 @@ public class Metrics extends UpdatableMetrics {
                 metricRegistry, counterType, account);
         circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
+
+        requestsMetrics = new RequestsMetrics(metricRegistry, counterType);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
@@ -95,6 +101,10 @@ public class Metrics extends UpdatableMetrics {
         settingsCacheMetrics = new HashMap<>();
         hooksMetrics = new HooksMetrics(metricRegistry, counterType);
         pgMetrics = new PgMetrics(metricRegistry, counterType);
+    }
+
+    RequestsMetrics requests() {
+        return requestsMetrics;
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -691,5 +701,25 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateUserDetailsRequestPreparationFailed() {
         incCounter(MetricName.user_details_request_preparation_failed);
+    }
+
+    public void updateRequestsActivityDisallowedCount(Activity activity) {
+        requests().activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateAccountActivityDisallowedCount(String account, Activity activity) {
+        forAccount(account).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateAdapterActivityDisallowedCount(String adapter, Activity activity) {
+        forAdapter(adapter).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateRequestsActivityProcessedRulesCount(int count) {
+        requests().activities().incCounter(MetricName.processed_rules_count, count);
+    }
+
+    public void updateAccountActivityProcessedRulesCount(String account, int count) {
+        forAccount(account).activities().incCounter(MetricName.processed_rules_count, count);
     }
 }

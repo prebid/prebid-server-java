@@ -14,14 +14,16 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -169,6 +171,18 @@ public class Ortb2RequestFactory {
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
                 .map(this::validateIfAccountBlacklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
+    }
+
+    public Future<ActivityInfrastructure> activityInfrastructureFrom(AuctionContext auctionContext) {
+        final Account account = auctionContext.getAccount();
+
+        final ActivityInfrastructure activityInfrastructure = new ActivityInfrastructure(
+                account.getId(),
+                AccountActivitiesConfigurationUtils.parse(account),
+                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic),
+                metrics);
+
+        return Future.succeededFuture(activityInfrastructure);
     }
 
     public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
