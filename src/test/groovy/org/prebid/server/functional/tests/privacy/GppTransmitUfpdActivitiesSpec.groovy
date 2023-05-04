@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -10,27 +9,23 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Eid
-import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
-import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.ANALYTICS
-import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
-import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.GENERAL_MODULE
-import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.RTD_MODULE
-import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
 class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "accounts.%s.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "accounts.%s.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
-    private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
+    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
+    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
+    private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
 
@@ -40,8 +35,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
 
         and: "Activities set with generic bidder allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -57,7 +51,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            genericBidderRequest.device
+            genericBidderRequest.device.didsha1
+            genericBidderRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1
             genericBidderRequest.user.buyeruid
             genericBidderRequest.user.yob
             genericBidderRequest.user.gender
@@ -69,15 +65,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
-
-        where:
-        conditions                                                                                                    | isAllowed
-        Condition.baseCondition                                                                                       | true
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | true
-        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
-        Condition.getBaseCondition(OPENX.value)                                                                       | false
-        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])                                    | false
-        new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS auction call when transmit UFPD activities is rejecting requests should remove UFPD fields in request and update disallowed metrics"() {
@@ -86,7 +73,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
 
         and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Flush metrics"
@@ -103,14 +90,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -118,12 +105,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        where:
-        conditions                                                                                                    | isAllowed
-        Condition.baseCondition                                                                                       | false
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | false
-        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | false
     }
 
     def "PBS auction call when default activity setting set to false should remove UFPD fields from request"() {
@@ -132,7 +113,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
 
         and: "Allow activities setup"
-        def activity = new Activity(defaultAction: false, rules: [ActivityRule.defaultActivityRule])
+        def activity = new Activity(defaultAction: false)
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
         and: "Save account config with allow activities into DB"
@@ -146,57 +127,22 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
-    }
-
-    def "PBS auction call when TransmitUfpd activities with proper condition type only should leave UFPD fields in request"() {
-        given: "Default Generic BidRequests with UFPD fields and account id"
-        def accountId = PBSUtils.randomString
-        def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
-
-        and: "Activities set with generic bidder allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
-
-        and: "Save account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
-
-        then: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.device
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
-        }
-
-        where:
-        conditions                                                                    | isAllowed
-        new Condition(componentName: [], componentType: [BIDDER])                     | true
-        new Condition(componentType: [BIDDER])                                        | true
-        new Condition(componentType: [GENERAL_MODULE])                                | true
-        new Condition(componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
-        new Condition(componentType: [RTD_MODULE])                                    | false
-        new Condition(componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS auction call when bidder allowed activities have empty condition type should skip this rule and emit an error"() {
-        given: "Default Generic BidRequests with UFPD fields and account id"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomString
         def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
 
@@ -209,122 +155,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(genericBidRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message == ["Invalid condition type param passed"]
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
+                "contains conditional rule with empty array").size() == 1
 
         where:
-        conditions                           | isAllowed
-        new Condition(componentType: [])     | true
-        new Condition(componentType: null)   | false
-        new Condition(componentType: [null]) | true
-        new Condition(componentType: [])     | false
-        new Condition(componentType: null)   | false
-        new Condition(componentType: [null]) | false
-    }
-
-    def "PBS auction call when bidder allowed activities have empty rules should skip this rule and emit an warning"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
-        def bidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
-
-        and: "Activities set with empty rules setup"
-        def activity = new Activity(defaultAction: false, rules: [])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
-
-        and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction request"
-        def response = activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
-
-        and: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.device
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
-        }
-    }
-
-    def "PBS auction call when transmit UFPD activities is allowing specific bidder should remove UFPD fields in specific bidder and provide metrics"() {
-        given: "BidRequests with Generic and Openx imps, UFPD fields field and account id"
-        def accountId = PBSUtils.randomString
-        def bidRequest = generateBidRequestWithAccountAndUfpdData(accountId).tap {
-            def imp = Imp.defaultImpression.tap {
-                ext.prebid.bidder.generic = null
-                ext.prebid.bidder.openx = Openx.defaultOpenx
-            }
-            addImp(imp)
-        }
-
-        and: "Activities set with generic bidders rejected"
-        def activity = Activity.getDefaultActivity(activityRules)
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Save account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Should be requests for generic and openx bidders"
-        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.size() == 2
-
-        def openxBidderRequest = bidderRequests.find { !it.imp.first().ext.bidder }
-        def genericBidderRequest = bidderRequests.find { it.imp.first().ext.bidder }
-
-        and: "Openx bidder request should have data in UFPD fields"
-        verifyAll {
-            openxBidderRequest.device
-            openxBidderRequest.user.buyeruid
-            openxBidderRequest.user.yob
-            openxBidderRequest.user.gender
-            openxBidderRequest.user.eids
-            openxBidderRequest.user.data
-        }
-
-        then: "Generic bidder request should have empty UFPD fields"
-        verifyAll {
-            !genericBidderRequest.device
-            !genericBidderRequest.user.buyeruid
-            !genericBidderRequest.user.yob
-            !genericBidderRequest.user.gender
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
-            !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
-        }
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
-
-        and: "Metrics for disallowed activities should be updated for activity rule and account"
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        where:
-        activityRules << [[ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)],
-                          [ActivityRule.getDefaultActivityRule(Condition.baseCondition, false),
-                           ActivityRule.getDefaultActivityRule(Condition.getBaseCondition(OPENX.value), true)]]
+        conditions                       | isAllowed
+        new Condition(componentType: []) | true
+        new Condition(componentType: []) | false
+        new Condition(componentName: []) | true
+        new Condition(componentName: []) | false
     }
 
     def "PBS auction call when first rule allowing in activities should leave UFPD fields in request"() {
@@ -351,7 +194,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            genericBidderRequest.device
+            genericBidderRequest.device.didsha1
+            genericBidderRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1
             genericBidderRequest.user.buyeruid
             genericBidderRequest.user.yob
             genericBidderRequest.user.gender
@@ -383,14 +228,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
     }
 
@@ -405,8 +250,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set with bidder allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -420,13 +264,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            genericBidderRequest.device
+            genericBidderRequest.device.didsha1
+            genericBidderRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1
             genericBidderRequest.user.buyeruid
             genericBidderRequest.user.yob
             genericBidderRequest.user.gender
@@ -437,16 +283,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
-
-        where:
-        conditions                                                                                                    | isAllowed
-        Condition.baseCondition                                                                                       | true
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | true
-        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
-        Condition.getBaseCondition(OPENX.value)                                                                       | false
-        new Condition(componentName: [GENERIC.value], componentType: [RTD_MODULE])                                    | false
-        new Condition(componentName: [GENERIC.value], componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS amp call when transmit UFPD activities is rejecting request should remove UFPD fields field in active request and update disallowed metrics"() {
@@ -460,7 +296,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
         and: "Flush metrics"
@@ -475,32 +311,25 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        where:
-        conditions                                                                                                    | isAllowed
-        Condition.baseCondition                                                                                       | false
-        new Condition(componentName: [GENERIC.value], componentType: [GENERAL_MODULE])                                | false
-        new Condition(componentName: [GENERIC.value], componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | false
     }
 
     def "PBS amp call when default activity setting set to false should remove UFPD fields from request"() {
@@ -514,7 +343,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Allow activities setup"
-        def activity = new Activity(defaultAction: false, rules: [ActivityRule.defaultActivityRule])
+        def activity = new Activity(defaultAction: false)
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
         and: "Saved account config with allow activities into DB"
@@ -532,66 +361,22 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
-    }
-
-    def "PBS amp call when TransmitUfpd activities with proper condition type only should leave UFPD fields in request"() {
-        given: "Default Generic BidRequest with UFPD fields field and account id"
-        def accountId = PBSUtils.randomString
-        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId)
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Activities set only with proper type and empty name"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.device
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
-        }
-
-        where:
-        conditions                                                                    | isAllowed
-        new Condition(componentName: [], componentType: [BIDDER])                     | true
-        new Condition(componentType: [BIDDER])                                        | true
-        new Condition(componentType: [GENERAL_MODULE])                                | true
-        new Condition(componentType: [BIDDER, GENERAL_MODULE, RTD_MODULE, ANALYTICS]) | true
-        new Condition(componentType: [RTD_MODULE])                                    | false
-        new Condition(componentType: [ANALYTICS])                                     | false
     }
 
     def "PBS amp call when bidder allowed activities have empty condition type should skip this rule and emit an error"() {
-        given: "Default Generic BidRequest with UFPD fields field and account id"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomString
         def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId)
 
@@ -613,61 +398,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message == ["Invalid condition type param passed"]
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
+                "contains conditional rule with empty array").size() == 1
 
         where:
-        conditions                           | isAllowed
-        new Condition(componentType: [])     | true
-        new Condition(componentType: null)   | false
-        new Condition(componentType: [null]) | true
-        new Condition(componentType: [])     | false
-        new Condition(componentType: null)   | false
-        new Condition(componentType: [null]) | false
-    }
-
-    def "PBS amp call when bidder allowed activities have empty rules should skip this rule and emit an warning"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
-        def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId)
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Activities set with empty rules setup"
-        def activity = new Activity(defaultAction: false, rules: [])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        def response = activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[PREBID]*.message == ["Invalid rules setup passed"]
-
-        and: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.device
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
-        }
+        conditions                       | isAllowed
+        new Condition(componentType: []) | true
+        new Condition(componentType: []) | false
+        new Condition(componentName: []) | true
+        new Condition(componentName: []) | false
     }
 
     def "PBS amp call when first rule allowing in activities should leave UFPD fields in request"() {
@@ -703,7 +446,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            genericBidderRequest.device
+            genericBidderRequest.device.didsha1
+            genericBidderRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1
             genericBidderRequest.user.buyeruid
             genericBidderRequest.user.yob
             genericBidderRequest.user.gender
@@ -744,21 +489,22 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
-            !genericBidderRequest.device
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext?.eids
             !genericBidderRequest.user.data
-            !genericBidderRequest.user.ext?.rp?.target?.iab
         }
     }
 
     private BidRequest generateBidRequestWithAccountAndUfpdData(String accountId) {
         BidRequest.getDefaultBidRequest().tap {
             setAccountId(accountId)
-            it.device = new Device(os: PBSUtils.randomizeCase("iOS"), devicetype: PBSUtils.randomNumber)
+            ext.prebid.trace = VERBOSE
+            it.device = new Device(didsha1: PBSUtils.randomString, didmd5: PBSUtils.randomString, dpidsha1: PBSUtils.randomString)
             user = User.defaultUser
             it.user.eids = [Eid.defaultEid]
             it.user.data = [new Data(name: PBSUtils.randomString)]

@@ -9,5 +9,4 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 class BidderRequest extends BidRequest {
 
     List<BidderImp> imp
-    BidderUser user
 }

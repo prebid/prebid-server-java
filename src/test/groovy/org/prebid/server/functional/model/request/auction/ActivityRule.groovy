@@ -7,7 +7,6 @@ class ActivityRule {
 
     Condition condition
     Boolean allow
-    List<String> privacyRegs
 
     static ActivityRule getDefaultActivityRule(condition = Condition.baseCondition, allow = true) {
         new ActivityRule().tap {
