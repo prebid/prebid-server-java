@@ -324,9 +324,9 @@ public class AnalyticsReporterDelegatorTest {
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any(), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any(), any())).willReturn(false);
 
-        given(privacyEnforcementService.maskUserForActivity(any(), eq(true), eq(true)))
+        given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());
-        given(privacyEnforcementService.maskDeviceForActivity(any(), eq(true), eq(true)))
+        given(privacyEnforcementService.maskDeviceConsideringActivityRestrictions(any(), eq(true), eq(true)))
                 .willReturn(Device.builder().model("masked").build());
 
         final AuctionEvent auctionEvent = AuctionEvent.builder()

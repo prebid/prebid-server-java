@@ -698,10 +698,10 @@ public class PrivacyEnforcementService {
                 Activity.TRANSMIT_GEO, ComponentType.BIDDER, bidder);
 
         final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
-                ? maskUserForActivity(user, disallowTransmitUfpd, disallowTransmitGeo)
+                ? maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo)
                 : user;
         final Device resolvedDevice = disallowTransmitUfpd || disallowTransmitGeo
-                ? maskDeviceForActivity(device, disallowTransmitUfpd, disallowTransmitGeo)
+                ? maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo)
                 : device;
 
         return bidderPrivacyResult.toBuilder()
@@ -710,7 +710,10 @@ public class PrivacyEnforcementService {
                 .build();
     }
 
-    public User maskUserForActivity(User user, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+    public User maskUserConsideringActivityRestrictions(User user,
+                                                        boolean disallowTransmitUfpd,
+                                                        boolean disallowTransmitGeo) {
+
         if (!(disallowTransmitGeo || disallowTransmitUfpd) || user == null) {
             return user;
         }
@@ -735,7 +738,10 @@ public class PrivacyEnforcementService {
         return userBuilder.build();
     }
 
-    public Device maskDeviceForActivity(Device device, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {
+    public Device maskDeviceConsideringActivityRestrictions(Device device,
+                                                            boolean disallowTransmitUfpd,
+                                                            boolean disallowTransmitGeo) {
+
         if (!(disallowTransmitGeo || disallowTransmitUfpd)) {
             return device;
         }

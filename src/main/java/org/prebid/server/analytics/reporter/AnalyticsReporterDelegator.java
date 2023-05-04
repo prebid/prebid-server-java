@@ -208,11 +208,11 @@ public class AnalyticsReporterDelegator {
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
         final User resolvedUser = privacyEnforcementService
-                .maskUserForActivity(user, disallowTransmitUfpd, disallowTransmitGeo);
+                .maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo);
 
         final Device device = bidRequest != null ? bidRequest.getDevice() : null;
         final Device resolvedDevice = privacyEnforcementService
-                .maskDeviceForActivity(device, disallowTransmitUfpd, disallowTransmitGeo);
+                .maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo);
 
         final ExtRequest requestExt = bidRequest != null ? bidRequest.getExt() : null;
         final ExtRequest updatedExtRequest = updateExtRequest(requestExt, adapter);

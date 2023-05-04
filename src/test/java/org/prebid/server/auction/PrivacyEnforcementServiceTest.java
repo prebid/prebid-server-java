@@ -1661,7 +1661,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForCorrespondingToActivitiesRestrictions() {
+    public void shouldMaskCorrespondingToActivitiesRestrictions() {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any(), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any(), any())).willReturn(false);
@@ -1712,19 +1712,19 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void maskUserForActivityShouldReturnSameIfNoRestrictionsApplied() {
+    public void maskUserConsideringActivityRestrictionsShouldReturnSameIfNoRestrictionsApplied() {
         // given
         final User user = User.builder().build();
 
         // when
-        final User result = privacyEnforcementService.maskUserForActivity(user, false, false);
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, false, false);
 
         // then
         assertThat(result).isSameAs(user);
     }
 
     @Test
-    public void maskUserForActivityShouldReturnMaskedUser() {
+    public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUser() {
         // given
         final User user = User.builder()
                 .buyeruid("buyeruid")
@@ -1737,7 +1737,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         // when
-        final User result = privacyEnforcementService.maskUserForActivity(user, true, true);
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, true, true);
 
         // then
         assertThat(result).isEqualTo(User.builder()
@@ -1752,24 +1752,24 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void maskDeviceForActivityShouldReturnSameIfNoRestrictionsApplied() {
+    public void maskDeviceConsideringActivityRestrictionsShouldReturnSameIfNoRestrictionsApplied() {
         // given
         final Device device = Device.builder().build();
 
         // when
-        final Device result = privacyEnforcementService.maskDeviceForActivity(device, false, false);
+        final Device result = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(device, false, false);
 
         // then
         assertThat(result).isSameAs(device);
     }
 
     @Test
-    public void maskDeviceForActivityShouldReturnMaskedUser() {
+    public void maskDeviceConsideringActivityRestrictionsShouldReturnMaskedUser() {
         // given
         final Device device = notMaskedDevice();
 
         // when
-        final Device result = privacyEnforcementService.maskDeviceForActivity(device, true, true);
+        final Device result = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(device, true, true);
 
         // then
         assertThat(result).isEqualTo(deviceTcfMasked());
