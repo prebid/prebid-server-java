@@ -51,14 +51,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            genericBidderRequest.device.didsha1
-            genericBidderRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
+            genericBidderRequest.device.didsha1 == genericBidRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == genericBidRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == genericBidRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == genericBidRequest.device.ifa
+            genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
+            genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
+            genericBidderRequest.user.yob == genericBidRequest.user.yob
+            genericBidderRequest.user.gender == genericBidRequest.user.gender
+            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+            genericBidderRequest.user.data == genericBidRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == genericBidRequest.user.ext.data.buyeruid
         }
 
         and: "Metrics processed across activities should be updated"
@@ -93,6 +98,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -130,11 +139,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
             !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -194,14 +208,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
 
         verifyAll {
-            genericBidderRequest.device.didsha1
-            genericBidderRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
+            genericBidderRequest.device.didsha1 == genericBidRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == genericBidRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == genericBidRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == genericBidRequest.device.ifa
+            genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
+            genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
+            genericBidderRequest.user.yob == genericBidRequest.user.yob
+            genericBidderRequest.user.gender == genericBidRequest.user.gender
+            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+            genericBidderRequest.user.data == genericBidRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == genericBidRequest.user.ext.data.buyeruid
         }
     }
 
@@ -231,11 +250,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
             !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -270,14 +294,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            genericBidderRequest.device.didsha1
-            genericBidderRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
+            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
+            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            genericBidderRequest.user.yob == ampStoredRequest.user.yob
+            genericBidderRequest.user.gender == ampStoredRequest.user.gender
+            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+            genericBidderRequest.user.data == ampStoredRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
         and: "Metrics processed across activities should be updated"
@@ -319,11 +348,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
             !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -364,11 +398,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
             !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -446,14 +485,19 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            genericBidderRequest.device.didsha1
-            genericBidderRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1
-            genericBidderRequest.user.buyeruid
-            genericBidderRequest.user.yob
-            genericBidderRequest.user.gender
-            genericBidderRequest.user.eids
-            genericBidderRequest.user.data
+            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
+            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            genericBidderRequest.user.yob == ampStoredRequest.user.yob
+            genericBidderRequest.user.gender == ampStoredRequest.user.gender
+            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+            genericBidderRequest.user.data == ampStoredRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
     }
 
@@ -492,11 +536,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.didsha1
             !genericBidderRequest.device.didmd5
             !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
             !genericBidderRequest.user.eids
             !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -504,8 +553,16 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         BidRequest.getDefaultBidRequest().tap {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
-            it.device = new Device(didsha1: PBSUtils.randomString, didmd5: PBSUtils.randomString, dpidsha1: PBSUtils.randomString)
-            user = User.defaultUser
+            it.device = new Device().tap {
+                didsha1 = PBSUtils.randomString
+                didmd5 = PBSUtils.randomString
+                dpidsha1 = PBSUtils.randomString
+                ifa = PBSUtils.randomString
+                macsha1 = PBSUtils.randomString
+                macmd5 = PBSUtils.randomString
+                dpidmd5 = PBSUtils.randomString
+            }
+            it.user = User.defaultUser
             it.user.eids = [Eid.defaultEid]
             it.user.data = [new Data(name: PBSUtils.randomString)]
             it.user.buyeruid = PBSUtils.randomString
