@@ -301,7 +301,7 @@ public class AnalyticsReporterDelegatorTest {
         verify(vertx, never()).runOnContext(any());
     }
 
-        @Test
+    @Test
     public void shouldNotPassAmpEventToDisallowedDelegates() {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), eq(ComponentType.ANALYTICS), any()))
