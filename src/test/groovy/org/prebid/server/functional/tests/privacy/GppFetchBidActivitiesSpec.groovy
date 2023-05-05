@@ -26,7 +26,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when fetch bid activities is allowing should process bid request and update processed metrics"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
@@ -56,7 +56,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when fetch bid activities is rejecting should skip call to restricted bidder and update disallowed metrics"() {
         given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
@@ -88,7 +88,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when default activity setting set to false should skip call to restricted bidder"() {
         given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -113,7 +113,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -143,7 +143,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when first rule allowing in activities should call bid adapter"() {
         given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -169,7 +169,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when first rule disallowing in activities should skip call to restricted bidder"() {
         given: "Generic bid request with account connection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -195,7 +195,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -232,7 +232,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when bidder rejected in activities should skip call to restricted bidders and update disallowed metrics"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -271,7 +271,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when default activity setting set to false should skip call to restricted bidder"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -305,7 +305,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -345,7 +345,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when first rule allowing in activities should call each bid adapter"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
@@ -380,7 +380,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS amp call with specific reject hierarchy in activities should skip call to restricted bidder"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
