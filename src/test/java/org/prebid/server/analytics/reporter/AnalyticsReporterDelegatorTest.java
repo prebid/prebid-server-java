@@ -24,6 +24,7 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -295,6 +296,25 @@ public class AnalyticsReporterDelegatorTest {
 
         // when
         target.processEvent(auctionEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, never()).runOnContext(any());
+    }
+
+        @Test
+    public void shouldNotPassAmpEventToDisallowedDelegates() {
+        // given
+        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), eq(ComponentType.ANALYTICS), any()))
+                .willReturn(false);
+
+        final AmpEvent ampEvent = AmpEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .activityInfrastructure(activityInfrastructure)
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(ampEvent, TcfContext.empty());
 
         // then
         verify(vertx, never()).runOnContext(any());
