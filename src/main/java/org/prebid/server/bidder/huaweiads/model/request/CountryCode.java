@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import org.apache.commons.lang3.EnumUtils;
 import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
 
 import java.util.Optional;
@@ -19,10 +20,10 @@ public enum CountryCode {
     }
 
     public static String convertCountryCode(String country) {
-        if (country == null || country.isEmpty()) {
+        if (country == null || country.isEmpty() || !EnumUtils.isValidEnum(CountryCode.class, country)) {
             return HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
         }
-        return Optional.of(CountryCode.valueOf(country).name())
+        return Optional.of(CountryCode.valueOf(country).getCode())
                 .orElse(country.length() >= 3 ? country.substring(0, 2) : HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
     }
 

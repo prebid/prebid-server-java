@@ -2,15 +2,17 @@ package org.prebid.server.proto.openrtb.ext.request.huaweiads;
 
 import lombok.Value;
 
+import java.util.List;
+
 @Value(staticConstructor = "of")
 public class ExtUserDataDeviceIdHuaweiAds {
 
-    String[] imei;
+    List<String> imei;
 
-    String[] oaid;
+    List<String> oaid;
 
-    String[] gaid;
+    List<String> gaid;
 
-    String[] clientTime;
+    List<String> clientTime;
 
 }
