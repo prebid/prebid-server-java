@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
@@ -265,7 +264,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
     }
 
-    @RepeatUntilFailure
     def "PBS should make FP enforcement with currency conversion when request.cur, floor cur, bidResponse cur are different"() {
         given: "Default BidRequest with cur"
         def requestCur = EUR
