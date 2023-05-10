@@ -1085,9 +1085,10 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "BidResponse shouldn't contain the imp[0].refresh/qty as on request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.imp[0].refresh
-        assert !bidderRequest.imp[0].qty
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !imp[0].refresh
+            !imp[0].qty
+        }
     }
 
     def "PBS shouldn't remove imp[0].refresh/qty when we support ortb 2.6"() {
@@ -1107,12 +1108,13 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should contain the imp[0].refresh/qty as on request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].refresh.count == bidRequest.imp[0].refresh.count
-        assert bidderRequest.imp[0].refresh.refSettings[0].refType == bidRequest.imp[0].refresh.refSettings[0].refType
-        assert bidderRequest.imp[0].refresh.refSettings[0].minInt == bidRequest.imp[0].refresh.refSettings[0].minInt
-        assert bidderRequest.imp[0].qty.multiplier == bidRequest.imp[0].qty.multiplier
-        assert bidderRequest.imp[0].qty.sourceType == bidRequest.imp[0].qty.sourceType
-        assert bidderRequest.imp[0].qty.vendor == bidRequest.imp[0].qty.vendor
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].refresh.count == bidRequest.imp[0].refresh.count
+            imp[0].refresh.refSettings[0].refType == bidRequest.imp[0].refresh.refSettings[0].refType
+            imp[0].refresh.refSettings[0].minInt == bidRequest.imp[0].refresh.refSettings[0].minInt
+            imp[0].qty.multiplier == bidRequest.imp[0].qty.multiplier
+            imp[0].qty.sourceType == bidRequest.imp[0].qty.sourceType
+            imp[0].qty.vendor == bidRequest.imp[0].qty.vendor
+        }
     }
 }
