@@ -6,6 +6,8 @@ import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.BOGUS
@@ -21,6 +23,12 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
+
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(Dependencies.networkServiceContainer).tap {
+        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
+            conversions.putAll([(GBP): [(EUR): 1.163223525], (USD): [(GBP): 0.7552314855]])
+        })
+    }
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -109,9 +117,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
-
-        and: "Set currency response"
-        currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse)
 
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
@@ -274,13 +279,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
-
-        and: "Set currency response"
-        def ratesResponse = new CurrencyConversionRatesResponse().tap {
-            conversions = [(GBP): [(EUR): 1.163223525],
-                           (USD): [(GBP): 0.7552314855]]
-        }
-        currencyConversion.setCurrencyConversionRatesResponse(ratesResponse)
 
         and: "Set Floors Provider response with a currency different from the request.cur"
         def floorValue = PBSUtils.randomFloorValue

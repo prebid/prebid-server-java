@@ -39,7 +39,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
-    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(Dependencies.networkServiceContainer)
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
