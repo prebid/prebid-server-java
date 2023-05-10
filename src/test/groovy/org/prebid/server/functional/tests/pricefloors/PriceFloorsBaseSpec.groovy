@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -38,6 +39,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(Dependencies.networkServiceContainer)
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
