@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 
@@ -19,14 +18,19 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.NON
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(Dependencies.networkServiceContainer).tap {
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
-            conversions.putAll([(GBP): [(EUR): 1.163223525], (USD): [(GBP): 0.7552314855]])
+            conversions = [(USD): [(EUR): 0.9124920156948626,
+                                   (GBP): 0.793776804452961],
+                           (GBP): [(USD): 1.2597999770088517,
+                                   (EUR): 1.1495574203931487],
+                           (EUR): [(USD): 1.3429368029739777]]
         })
     }
 
@@ -138,7 +142,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond floorMin"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0].bidFloor == convertedMinFloorValue
+            imp[0].bidFloor == getRoundedFloorValue(convertedMinFloorValue)
             imp[0].bidFloorCur == floorProviderCur
             ext?.prebid?.floors?.floorMin == floorMin
             ext?.prebid?.floors?.floorMinCur == requestFloorMinCur
