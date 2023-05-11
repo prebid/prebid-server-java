@@ -24,16 +24,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
-            conversions = [(USD): [(EUR): 0.9124920156948626,
-                                   (GBP): 0.793776804452961],
-                           (GBP): [(USD): 1.2597999770088517,
-                                   (EUR): 1.1495574203931487],
-                           (EUR): [(USD): 1.3429368029739777]]
-        })
-    }
-
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
         def bidRequest = bidRequestWithFloors.tap {

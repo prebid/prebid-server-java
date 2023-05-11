@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -18,12 +19,18 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.GBP
+import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
@@ -48,6 +55,15 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
+        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
+            conversions = [(USD): [(EUR): 0.9124920156948626,
+                                   (GBP): 0.793776804452961],
+                           (GBP): [(USD): 1.2597999770088517,
+                                   (EUR): 1.1495574203931487],
+                           (EUR): [(USD): 1.3429368029739777]]
+        })
+    }
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
@@ -56,6 +72,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     def setupSpec() {
         floorsProvider.setResponse()
+        currencyConversion.setResponse()
     }
 
     protected static AccountConfig getDefaultAccountConfigSettings() {
