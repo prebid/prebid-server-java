@@ -164,7 +164,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
         def response = floorsPbsService.sendCurrencyRatesRequest()
+        println "-------------------------------------------------------------------"
         println response
+        println "-------------------------------------------------------------------"
         response.rates[currencyFrom.value][currencyTo.value]
     }
 }
