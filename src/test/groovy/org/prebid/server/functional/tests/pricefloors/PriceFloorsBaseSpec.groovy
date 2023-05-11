@@ -27,9 +27,6 @@ import org.prebid.server.functional.util.PBSUtils
 import java.math.RoundingMode
 
 import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -167,6 +164,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
         def response = floorsPbsService.sendCurrencyRatesRequest()
+        println(response)
         response.rates[currencyFrom.value][currencyTo.value]
     }
 }
