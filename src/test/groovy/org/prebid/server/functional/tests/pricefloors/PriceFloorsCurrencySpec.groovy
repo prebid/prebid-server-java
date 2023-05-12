@@ -74,7 +74,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
-        and: "Get currency reties"
+        and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
@@ -112,7 +112,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
-        and: "Get currency reties"
+        and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
 
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
@@ -289,7 +289,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
-        and: "Get currency reties"
+        and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
