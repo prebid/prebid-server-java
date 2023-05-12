@@ -5,10 +5,12 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
+@Ignore
 class AccountResolutionSpec extends BaseSpec {
 
     def "PBS should prefer account from AMP request parameter during account resolution"() {

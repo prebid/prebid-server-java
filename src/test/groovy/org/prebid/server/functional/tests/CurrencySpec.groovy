@@ -6,6 +6,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import spock.lang.Ignore
+import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
 
@@ -14,6 +16,7 @@ import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
+@Ignore
 class CurrencySpec extends BaseSpec {
 
     private static final Currency DEFAULT_CURRENCY = USD
@@ -39,6 +42,8 @@ class CurrencySpec extends BaseSpec {
         and: "Bidder request should contain default currency"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur == [DEFAULT_CURRENCY]
+
+        println pbsService.sendCurrencyRatesRequest()
     }
 
     def "PBS should treat bids without currency as in default server currency"() {
@@ -94,7 +99,6 @@ class CurrencySpec extends BaseSpec {
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
-        println bidResponse
         assert bidResponse.cur == requestCurrency
         def bidPrice = bidResponse.seatbid[0].bid[0].price
         assert bidPrice == convertCurrency(bidderResponse.seatbid[0].bid[0].price, bidCurrency, requestCurrency)

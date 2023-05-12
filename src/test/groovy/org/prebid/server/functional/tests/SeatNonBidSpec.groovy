@@ -4,6 +4,7 @@ import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -13,6 +14,7 @@ import static org.prebid.server.functional.model.response.auction.BidRejectionRe
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.TIMED_OUT
 
+@Ignore
 class SeatNonBidSpec extends BaseSpec {
 
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid"() {

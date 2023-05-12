@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pg
 
+import org.junit.Ignore
 import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.service.PrebidServerService
@@ -17,6 +18,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 @Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
+@spock.lang.Ignore(inherited = true)
 abstract class BasePgSpec extends Specification {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)

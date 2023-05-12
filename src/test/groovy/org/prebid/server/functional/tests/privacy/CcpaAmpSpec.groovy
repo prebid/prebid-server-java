@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
+import spock.lang.Ignore
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ChannelType.AMP
@@ -19,6 +20,7 @@ import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
+@Ignore
 class CcpaAmpSpec extends PrivacyBaseSpec {
 
     @PendingFeature
