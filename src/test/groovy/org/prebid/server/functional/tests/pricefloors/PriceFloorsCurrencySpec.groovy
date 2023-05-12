@@ -75,10 +75,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(bidRequest)
 
         and: "Get currency reties"
-
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
-        println "------------------currencyRatesResponse-------------------------"
-        println currencyRatesResponse
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorValue,
@@ -117,9 +114,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Get currency reties"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
-        println "------------------currencyRatesResponse-------------------------"
-        println currencyRatesResponse
-
 
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
@@ -297,8 +291,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Get currency reties"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
-        println "------------------currencyRatesResponse-------------------------"
-        println currencyRatesResponse
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP

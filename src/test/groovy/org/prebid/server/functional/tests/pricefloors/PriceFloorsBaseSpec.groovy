@@ -40,7 +40,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
-    private static final Map<String, String> getExternalCurrencyConverterConfig() {
+    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG() {
         ["auction.ad-server-currency"                          : USD as String,
          "currency-converter.external-rates.enabled"           : "true",
          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
@@ -54,7 +54,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                                                                                                     (EUR): 1.1495574203931487],
                                                                                             (EUR): [(USD): 1.3429368029739777]]
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + externalCurrencyConverterConfig)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + CURRENCY_CONVERTER_CONFIG())
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
