@@ -16,7 +16,6 @@ import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-@Ignore
 class CurrencySpec extends BaseSpec {
 
     private static final Currency DEFAULT_CURRENCY = USD
