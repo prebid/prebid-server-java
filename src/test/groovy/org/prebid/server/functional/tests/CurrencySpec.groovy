@@ -32,11 +32,11 @@ class CurrencySpec extends BaseSpec {
         given: "Default BidRequest without currency"
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = null }
 
-        when: "PBS processes auction request"
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
-
         println "-------------Currency spec-------------------------------------"
         println pbsService.sendCurrencyRatesRequest()
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain default currency"
         assert bidResponse.cur == DEFAULT_CURRENCY
