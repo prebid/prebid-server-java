@@ -6,8 +6,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
-import spock.lang.Ignore
-import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
 
@@ -31,9 +29,6 @@ class CurrencySpec extends BaseSpec {
     def "PBS should use default server currency if not specified in the request"() {
         given: "Default BidRequest without currency"
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = null }
-
-        println "-------------Currency spec-------------------------------------"
-        println pbsService.sendCurrencyRatesRequest()
 
         when: "PBS processes auction request"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)

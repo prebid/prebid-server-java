@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -17,18 +16,15 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
-import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.GBP
-import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -40,27 +36,11 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
 
-    private static Map<String, String> getExternalCurrencyConverterConfig() {
-        ["auction.ad-server-currency"                          : USD as String,
-         "currency-converter.external-rates.enabled"           : "true",
-         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-         "currency-converter.external-rates.default-timeout-ms": "4000",
-         "currency-converter.external-rates.refresh-period-ms" : "900000"]
-    }
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + externalCurrencyConverterConfig)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
-    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
-            conversions = [(USD): [(EUR): 0.9124920156948626,
-                                   (GBP): 0.793776804452961],
-                           (GBP): [(USD): 1.2597999770088517,
-                                   (EUR): 1.1495574203931487],
-                           (EUR): [(USD): 1.3429368029739777]]
-        })
-    }
 
     protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
@@ -154,18 +134,10 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     }
 
     protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value,
-                                                         Currency currencyFrom,
-                                                         Currency currencyTo) {
-        def currencyRate = getCurrencyRate(currencyFrom, currencyTo)
+                                                         Currency currencyFrom, Currency currencyTo,
+                                                         CurrencyRatesResponse currencyRatesResponse) {
+        def currencyRate = currencyRatesResponse.rates[currencyFrom.value][currencyTo.value]
         def convertedValue = value * currencyRate
         convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
-        def response = floorsPbsService.sendCurrencyRatesRequest()
-        println "-------------------------------------------------------------------"
-        println response
-        println "-------------------------------------------------------------------"
-        response.rates[currencyFrom.value][currencyTo.value]
     }
 }
