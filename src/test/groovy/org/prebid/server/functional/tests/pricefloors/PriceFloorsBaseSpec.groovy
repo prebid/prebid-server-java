@@ -51,7 +51,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse.tap {
             conversions = [(USD): [(EUR): 0.9124920156948626,
@@ -69,7 +69,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     def setupSpec() {
         floorsProvider.setResponse()
-        currencyConversion.setResponse()
     }
 
     protected static AccountConfig getDefaultAccountConfigSettings() {
