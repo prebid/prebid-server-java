@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -19,12 +20,16 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.GBP
+import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -35,8 +40,21 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
+    private static final Map<String, String> getExternalCurrencyConverterConfig() {
+        ["auction.ad-server-currency"                          : USD as String,
+         "currency-converter.external-rates.enabled"           : "true",
+         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+         "currency-converter.external-rates.default-timeout-ms": "4000",
+         "currency-converter.external-rates.refresh-period-ms" : "900000"]
+    }
 
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
+    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
+                                                                                                    (GBP): 0.793776804452961],
+                                                                                            (GBP): [(USD): 1.2597999770088517,
+                                                                                                    (EUR): 1.1495574203931487],
+                                                                                            (EUR): [(USD): 1.3429368029739777]]
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + externalCurrencyConverterConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
@@ -48,6 +66,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     private static final int FLOOR_VALUE_PRECISION = 4
 
     def setupSpec() {
+        currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
         floorsProvider.setResponse()
     }
 
