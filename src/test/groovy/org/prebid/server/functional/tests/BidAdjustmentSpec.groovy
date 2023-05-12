@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -16,7 +15,6 @@ import static org.prebid.server.functional.model.request.auction.BidAdjustmentMe
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {

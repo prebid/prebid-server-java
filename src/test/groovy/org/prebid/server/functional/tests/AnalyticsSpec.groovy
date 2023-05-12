@@ -7,10 +7,8 @@ import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Shared
 
-@Ignore
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()

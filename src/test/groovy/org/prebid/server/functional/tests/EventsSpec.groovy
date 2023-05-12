@@ -5,12 +5,10 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore
 class EventsSpec extends BaseSpec {
 
     def "PBS should generate event tracker URLs when events are enabled for account"() {
