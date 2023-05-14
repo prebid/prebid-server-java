@@ -72,6 +72,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -340,15 +341,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     private App getAppInfo(BidRequest openRTBRequest) {
         final App.AppBuilder app = App.builder();
         if (openRTBRequest.getApp() != null) {
-            if (!openRTBRequest.getApp().getVer().isEmpty()) {
+            if (openRTBRequest.getApp().getVer() != null && !openRTBRequest.getApp().getVer().isEmpty()) {
                 app.version(openRTBRequest.getApp().getVer());
             }
-            if (!openRTBRequest.getApp().getName().isEmpty()) {
+            if (openRTBRequest.getApp().getName() != null && !openRTBRequest.getApp().getName().isEmpty()) {
                 app.name(openRTBRequest.getApp().getName());
             }
 
             // bundle cannot be empty, we need package name.
-            if (!openRTBRequest.getApp().getBundle().isEmpty()) {
+            if (openRTBRequest.getApp().getBundle() != null && !openRTBRequest.getApp().getBundle().isEmpty()) {
                 app.pkgname(getFinalPackageName(openRTBRequest.getApp().getBundle()));
             } else {
                 throw new PreBidException("generate HuaweiAds AppInfo failed: openrtb BidRequest.App.Bundle is empty.");
@@ -423,20 +424,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                     deviceBuilder.gaid(deviceData.getIfa());
                 });
 
-        Device device = getDeviceIdFromUserExt(deviceBuilder.build(), openRTBRequest);
-
-        Optional.ofNullable(openRTBRequest.getDevice())
-                .map(com.iab.openrtb.request.Device::getDnt)
-                .ifPresent(dnt -> {
-                    if (!device.getOaid().isEmpty()) {
-                        deviceBuilder.isTrackingEnabled(dnt == 1 ? "0" : "1");
-                    }
-                    if (!device.getGaid().isEmpty()) {
-                        deviceBuilder.gaidTrackingEnabled(dnt == 1 ? "0" : "1");
-                    }
-                });
-
-        return device;
+        return getDeviceIdFromUserExt(deviceBuilder.build(), openRTBRequest);
     }
 
     private String getCountryCode(BidRequest openRTBRequest) {
@@ -461,8 +449,10 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private Device getDeviceIdFromUserExt(Device device, BidRequest bidRequest) {
+
         Device.DeviceBuilder deviceBuilder = device.toBuilder();
         final Optional<User> userOptional = Optional.ofNullable(bidRequest.getUser());
+
         if (userOptional.isPresent() && userOptional.get().getExt() != null) {
             final ExtUserDataHuaweiAds extUserDataHuaweiAds = mapper.mapper()
                     .convertValue(userOptional.get().getExt().getData(), ExtUserDataHuaweiAds.class);
@@ -488,6 +478,17 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             if (CollectionUtils.isNotEmpty(deviceId.getClientTime())) {
                 deviceBuilder.clientTime(ClientTimeConverter.getClientTime(deviceId.getClientTime().get(0)));
             }
+
+            Optional.ofNullable(bidRequest.getDevice())
+                    .map(com.iab.openrtb.request.Device::getDnt)
+                    .ifPresent(dnt -> {
+                        if (deviceId.getOaid() != null && !deviceId.getOaid().isEmpty()) {
+                            deviceBuilder.isTrackingEnabled(dnt == 1 ? "0" : "1");
+                        }
+                        if (deviceId.getGaid() != null && !deviceId.getGaid().isEmpty()) {
+                            deviceBuilder.gaidTrackingEnabled(dnt == 1 ? "0" : "1");
+                        }
+                    });
         } else {
             if (device.getGaid() == null || device.getGaid().isEmpty()) {
                 throw new PreBidException(
@@ -507,7 +508,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 network.type(HuaweiAdsConstants.DEFAULT_UNKNOWN_NETWORK_TYPE);
             }
 
-            List<CellInfo> cellInfos = new ArrayList<>();
+            final List<CellInfo> cellInfos = new ArrayList<>();
             if (StringUtils.isNotEmpty(openRTBRequest.getDevice().getMccmnc())) {
                 String[] arr = openRTBRequest.getDevice().getMccmnc().split("-");
                 network.carrier(0);
@@ -538,8 +539,11 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     private Geo getGeoInfo(BidRequest openRTBRequest) {
         if (openRTBRequest.getDevice() != null && openRTBRequest.getDevice().getGeo() != null) {
 
-            return Geo.of(BigDecimal.valueOf(openRTBRequest.getDevice().getGeo().getLon()),
-                    BigDecimal.valueOf(openRTBRequest.getDevice().getGeo().getLat()),
+            Float lon = openRTBRequest.getDevice().getGeo().getLon();
+            Float lat = openRTBRequest.getDevice().getGeo().getLat();
+
+            return Geo.of(lon != null ? BigDecimal.valueOf(lon) : null,
+                    lat != null ? BigDecimal.valueOf(lat) : null,
                     openRTBRequest.getDevice().getGeo().getAccuracy(),
                     openRTBRequest.getDevice().getGeo().getLastfix());
         }
@@ -635,12 +639,16 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final HuaweiAdsResponse huaweiAdsResponse = parseBidResponse(httpCall.getResponse());
-        checkHuaweiAdsResponseRetcode(huaweiAdsResponse);
+        try {
+            final HuaweiAdsResponse huaweiAdsResponse = parseBidResponse(httpCall.getResponse());
+            checkHuaweiAdsResponseRetcode(huaweiAdsResponse);
 
-        final List<BidderBid> bidderBids = convertHuaweiAdsResponse(huaweiAdsResponse, bidRequest);
+            final List<BidderBid> bidderBids = convertHuaweiAdsResponse(huaweiAdsResponse, bidRequest);
 
-        return Result.withValues(bidderBids);
+            return Result.withValues(bidderBids);
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private HuaweiAdsResponse parseBidResponse(HttpResponse response) {
@@ -652,22 +660,27 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private void checkHuaweiAdsResponseRetcode(HuaweiAdsResponse response) {
-        if (response.getRetcode() == 200
-                || response.getRetcode() == 204
-                || response.getRetcode() == 206) {
-            return;
+        if (response != null) {
+            if (response.getRetcode() == 200
+                    || response.getRetcode() == 204
+                    || response.getRetcode() == 206) {
+                return;
+            }
+            if ((response.getRetcode() < 600
+                    && response.getRetcode() >= 400)
+                    || (response.getRetcode() < 300
+                    && response.getRetcode() > 200)) {
+                throw new PreBidException(String.format("HuaweiAdsResponse retcode: %d, reason: %s",
+                        response.getRetcode(), response.getReason()));
+            }
         }
-        if ((response.getRetcode() < 600
-                && response.getRetcode() >= 400)
-                || (response.getRetcode() < 300
-                && response.getRetcode() > 200)) {
-            throw new PreBidException(String.format("HuaweiAdsResponse retcode: %d, reason: %s",
-                    response.getRetcode(), response.getReason()));
-        }
+
     }
 
     private List<BidderBid> convertHuaweiAdsResponse(HuaweiAdsResponse huaweiAdsResponse, BidRequest bidRequest) {
-        if (huaweiAdsResponse.getMultiad().size() == 0) {
+        if (huaweiAdsResponse == null) {
+            return Collections.emptyList();
+        } else if (huaweiAdsResponse.getMultiad().size() == 0) {
             throw new PreBidException("convert huaweiads response to bidder response failed: multiad length is 0, "
                     + "get no ads from huawei side.");
         }

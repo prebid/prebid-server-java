@@ -20,11 +20,13 @@ public enum CountryCode {
     }
 
     public static String convertCountryCode(String country) {
-        if (country == null || country.isEmpty() || !EnumUtils.isValidEnum(CountryCode.class, country)) {
+        if (country == null || country.isEmpty()) {
             return HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
+        } else if (country.length() >= 3 && !EnumUtils.isValidEnum(CountryCode.class, country)) {
+            return country.substring(0, 2);
         }
         return Optional.of(CountryCode.valueOf(country).getCode())
-                .orElse(country.length() >= 3 ? country.substring(0, 2) : HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
+                .orElse(HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
     }
 
     public static String getCountryCodeFromMCC(String mccValue) {
