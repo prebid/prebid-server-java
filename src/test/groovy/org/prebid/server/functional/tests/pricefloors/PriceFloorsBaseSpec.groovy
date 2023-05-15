@@ -40,8 +40,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
 
-
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + CURRENCY_CONVERTER_CONFIG)
     protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
@@ -55,6 +53,8 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                                                                           "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
                                                                           "currency-converter.external-rates.default-timeout-ms": "4000",
                                                                           "currency-converter.external-rates.refresh-period-ms" : "900000"]
+
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + CURRENCY_CONVERTER_CONFIG)
 
     def setupSpec() {
         currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse().tap {
