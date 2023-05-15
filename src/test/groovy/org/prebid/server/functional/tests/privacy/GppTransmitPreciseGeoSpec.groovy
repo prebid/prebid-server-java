@@ -24,7 +24,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS auction call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
@@ -63,7 +63,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS auction call with bidder rejected in activities should round lat/lon data to 2 digits and update disallowed metrics"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
@@ -104,7 +104,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when default activity setting set to false should round lat/lon data to 2 digits"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -141,7 +141,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -172,7 +172,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when first rule allowing in activities should not round lat/lon data"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -207,7 +207,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS auction call when first rule disallowing in activities should round lat/lon data to 2 digits"() {
         given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -242,7 +242,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS amp call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -289,7 +289,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS amp call with bidder rejected in activities should round lat/lon data to 2 digits and update disallowed metrics"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -337,7 +337,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when default activity setting set to false should round lat/lon data to 2 digits"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -380,7 +380,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -420,7 +420,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when first rule allowing in activities should not round lat/lon data"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
@@ -464,7 +464,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
     def "PBS amp call when first rule disallowing in activities should round lat/lon data to 2 digits"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomString
+        def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
         }
