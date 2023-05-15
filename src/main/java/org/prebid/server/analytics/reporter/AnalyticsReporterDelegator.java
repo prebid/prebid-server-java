@@ -162,6 +162,9 @@ public class AnalyticsReporterDelegator {
         if (event instanceof AuctionEvent auctionEvent) {
             final AuctionContext auctionContext = auctionEvent.getAuctionContext();
             activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+        } else if (event instanceof AmpEvent ampEvent) {
+            final AuctionContext auctionContext = ampEvent.getAuctionContext();
+            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
         } else if (event instanceof NotificationEvent notificationEvent) {
             activityInfrastructure = notificationEvent.getActivityInfrastructure();
         } else {
