@@ -192,14 +192,17 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(String kadfloor, BigDecimal existingFloor) {
-        if (StringUtils.isBlank(kadfloor)) {
-            return existingFloor;
-        }
+        final BigDecimal kadFloor = parseKadFloor(kadfloor);
+        return ObjectUtils.allNotNull(kadFloor, existingFloor)
+                ? kadFloor.max(existingFloor)
+                : ObjectUtils.firstNonNull(kadFloor, existingFloor);
+    }
 
+    private static BigDecimal parseKadFloor(String kadFloorString) {
         try {
-            return new BigDecimal(StringUtils.trim(kadfloor));
+            return new BigDecimal(StringUtils.trimToEmpty(kadFloorString));
         } catch (NumberFormatException e) {
-            return existingFloor;
+            return null;
         }
     }
 

@@ -143,6 +143,26 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnMaxOfBidfloorAndKadfloorIfImpExtKadfloorIsValid() {
+        // given
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder
+                        .ext(givenExtImpWithKadfloor("12.5"))
+                        .bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(12.5));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfBidRequestExtWrapperIsInvalid() {
         // given
         final ObjectNode pubmaticNode = mapper.createObjectNode();
