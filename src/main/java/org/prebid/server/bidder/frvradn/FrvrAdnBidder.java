@@ -115,28 +115,39 @@ public class FrvrAdnBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
+        return bidsFromResponse(bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, String cur, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, getBidType(bid), cur);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
     }
 
     private static BidType getBidType(Bid bid) {
