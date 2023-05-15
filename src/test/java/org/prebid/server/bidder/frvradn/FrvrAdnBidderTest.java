@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.GenericBidder;
 import org.prebid.server.bidder.frvradn.model.ExtImpFrvrAdn;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -27,12 +26,12 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.BDDAssertions.tuple;
@@ -60,13 +59,14 @@ public class FrvrAdnBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new GenericBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new FrvrAdnBidder(
+                "invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
     public void makeHttpRequestsShouldCreateExpectedUrl() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
@@ -101,12 +101,37 @@ public class FrvrAdnBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldCreateRequestPerImp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("123"),
+                impBuilder -> impBuilder.id("456"));
 
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2);
     }
 
     @Test
     public void makeHttpRequestsShouldOverrideImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
 
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(ExtImpFrvrAdn.of("publisher_id", "ad_unit_id")));
     }
 
     @Test
@@ -154,11 +179,10 @@ public class FrvrAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithTypeFromBidExt()
-            throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithTypeFromBidExt() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
+                givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder.impid("123").ext(givenBidExt("video")))));
 
@@ -172,11 +196,10 @@ public class FrvrAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenBidTypeCouldNotBeParsed()
-            throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidTypeCouldNotBeParsed() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
+                givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder.impid("123").ext(givenBidExt("invalid")))));
 
@@ -189,20 +212,25 @@ public class FrvrAdnBidderTest extends VertxTest {
                 BidderError.badServerResponse("unable to deserialize imp 123 bid.ext"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private BidRequest givenBidRequest() {
+        return givenBidRequest(impBuilder -> impBuilder.id("123"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        final List<Imp> imps = Arrays.stream(impCustomizers)
+                .map(this::givenImp)
+                .toList();
+        return BidRequest.builder().imp(imps).build();
+    }
 
-        final ObjectNode impExt = mapper.valueToTree(
-                ExtPrebid.of(null, ExtImpFrvrAdn.of("publisher_id", "ad_unit_id")));
+    private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(
+                Imp.builder().ext(givenImpExt("publisher_id", "ad_unit_id"))).build();
+    }
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123").ext(impExt)).build())))
-                .build();
+    private ObjectNode givenImpExt(String publisherId, String adUnitId) {
+        return mapper.valueToTree(
+                ExtPrebid.of(null, ExtImpFrvrAdn.of(publisherId, adUnitId)));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
