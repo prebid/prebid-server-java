@@ -562,10 +562,6 @@ public class RequestValidator {
 
             final List<Eid> eids = user.getEids();
             if (eids != null) {
-                if (eids.isEmpty()) {
-                    throw new ValidationException(
-                            "request.user.eids must contain at least one element or be undefined");
-                }
                 for (int index = 0; index < eids.size(); index++) {
                     final Eid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
