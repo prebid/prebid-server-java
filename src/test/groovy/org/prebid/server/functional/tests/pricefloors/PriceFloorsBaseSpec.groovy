@@ -19,7 +19,6 @@ import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
@@ -40,33 +39,31 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
-    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG() {
-        ["auction.ad-server-currency"                          : USD as String,
-         "currency-converter.external-rates.enabled"           : "true",
-         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-         "currency-converter.external-rates.default-timeout-ms": "4000",
-         "currency-converter.external-rates.refresh-period-ms" : "900000"]
-    }
 
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
-                                                                                                    (GBP): 0.793776804452961],
-                                                                                            (GBP): [(USD): 1.2597999770088517,
-                                                                                                    (EUR): 1.1495574203931487],
-                                                                                            (EUR): [(USD): 1.3429368029739777]]
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + CURRENCY_CONVERTER_CONFIG())
 
-    protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
-            FloorsProvider.FLOORS_ENDPOINT
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig + CURRENCY_CONVERTER_CONFIG)
+    protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
-
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
     protected static final int MAX_MODEL_WEIGHT = 100
+
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
+    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : USD as String,
+                                                                          "currency-converter.external-rates.enabled"           : "true",
+                                                                          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+                                                                          "currency-converter.external-rates.default-timeout-ms": "4000",
+                                                                          "currency-converter.external-rates.refresh-period-ms" : "900000"]
 
     def setupSpec() {
-        currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
+        currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse().tap {
+            conversions = [(USD): [(EUR): 0.9124920156948626,
+                                   (GBP): 0.793776804452961],
+                           (GBP): [(USD): 1.2597999770088517,
+                                   (EUR): 1.1495574203931487],
+                           (EUR): [(USD): 1.3429368029739777]]
+        })
         floorsProvider.setResponse()
     }
 
