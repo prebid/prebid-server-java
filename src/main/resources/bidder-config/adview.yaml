@@ -1,6 +1,8 @@
 adapters:
   adview:
     endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: partner@adview.com
       site-media-types:
