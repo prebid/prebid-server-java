@@ -3,14 +3,18 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.RemoteFileSyncer;
+import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
+import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
+import org.prebid.server.spring.config.model.ExponentialBackoffProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -83,7 +87,7 @@ public class GeoLocationConfiguration {
                     properties.getDownloadUrl(),
                     properties.getSaveFilepath(),
                     properties.getTmpFilepath(),
-                    FixedIntervalRetryPolicy.limited(properties.getRetryIntervalMs(), properties.getRetryCount()),
+                    toRetryPolicy(properties),
                     properties.getTimeoutMs(),
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),
@@ -92,6 +96,28 @@ public class GeoLocationConfiguration {
 
             remoteFileSyncer.sync(maxMindGeoLocationService);
             return maxMindGeoLocationService;
+        }
+
+        // TODO: remove after transition period
+        private static RetryPolicy toRetryPolicy(RemoteFileSyncerProperties properties) {
+            final Long retryIntervalMs = properties.getRetryIntervalMs();
+            final Integer retryCount = properties.getRetryCount();
+            final boolean fixedRetryPolicyDefined = ObjectUtils.anyNotNull(retryIntervalMs, retryCount);
+            final boolean fixedRetryPolicyValid = ObjectUtils.allNotNull(retryIntervalMs, retryCount)
+                    || !fixedRetryPolicyDefined;
+
+            if (!fixedRetryPolicyValid) {
+                throw new IllegalArgumentException("fixed interval retry policy is invalid");
+            }
+
+            final ExponentialBackoffProperties exponentialBackoffProperties = properties.getRetry();
+            return fixedRetryPolicyDefined
+                    ? FixedIntervalRetryPolicy.limited(retryIntervalMs, retryCount)
+                    : ExponentialBackoffRetryPolicy.of(
+                    exponentialBackoffProperties.getDelayMillis(),
+                    exponentialBackoffProperties.getMaxDelayMillis(),
+                    exponentialBackoffProperties.getFactor(),
+                    exponentialBackoffProperties.getJitter());
         }
     }
 
