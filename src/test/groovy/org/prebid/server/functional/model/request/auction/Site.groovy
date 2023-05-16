@@ -22,6 +22,7 @@ class Site {
     Content content
     String keywords
     List<String> kwarray
+    String inventorypartnerdomain
     SiteExt ext
 
     static Site getDefaultSite() {

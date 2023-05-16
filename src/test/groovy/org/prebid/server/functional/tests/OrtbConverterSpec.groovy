@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Network
 import org.prebid.server.functional.model.request.auction.Producer
@@ -1053,7 +1054,122 @@ class OrtbConverterSpec extends BaseSpec {
         then: "BidderRequest should contain the regs.gpp and regs.gppSid as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             regs.gpp == bidRequest.regs.gpp
-            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value}
+            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value }
+        }
+    }
+
+    def "PBS should remove site.inventoryPartnerDomain when PBS don't support ortb 2.6"() {
+        given: "Default bid request with site.inventoryPartnerDomain"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site.inventorypartnerdomain = PBSUtils.randomString
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest shouldn't contain the app.inventoryPartnerDomain as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !site.inventorypartnerdomain
+        }
+    }
+
+    def "PBS shouldn't remove site.inventoryPartnerDomain when PBS support ortb 2.6"() {
+        given: "Default bid request with site.inventoryPartnerDomain"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site.inventorypartnerdomain = PBSUtils.randomString
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain the site.inventoryPartnerDomain as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            site.inventorypartnerdomain == bidRequest.site.inventorypartnerdomain
+        }
+    }
+
+    def "PBS should remove app.inventoryPartnerDomain when PBS don't support ortb 2.6"() {
+        given: "Default bid request with app.inventoryPartnerDomain"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            app.inventorypartnerdomain = PBSUtils.randomString
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest shouldn't contain the app.inventoryPartnerDomain as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !app.inventorypartnerdomain
+        }
+    }
+
+    def "PBS shouldn't remove app.inventoryPartnerDomain when PBS support ortb 2.6"() {
+        given: "Default bid request with app.inventoryPartnerDomain"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            app.inventorypartnerdomain = PBSUtils.randomString
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain the app.inventoryPartnerDomain as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            app.inventorypartnerdomain == bidRequest.app.inventorypartnerdomain
+        }
+    }
+
+    def "PBS should remove bidRequest.dooh when PBS don't support ortb 2.6"() {
+        given: "Default bid request with bidRequest.dooh"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            dooh = new Dooh().tap {
+                id = PBSUtils.randomString
+                name = PBSUtils.randomString
+                venuetype = [PBSUtils.randomString]
+                venuetypetax = PBSUtils.randomNumber
+                publisher = Publisher.defaultPublisher
+                domain = PBSUtils.randomString
+                keywords = PBSUtils.randomString
+                content = Content.defaultContent
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest shouldn't contain the bidRequest.dooh as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !dooh
+        }
+    }
+
+    def "PBS shouldn't remove bidRequest.dooh when PBS support ortb 2.6"() {
+        given: "Default bid request with bidRequest.dooh"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            dooh = new Dooh().tap {
+                id = PBSUtils.randomString
+                name = PBSUtils.randomString
+                venuetype = [PBSUtils.randomString]
+                venuetypetax = PBSUtils.randomNumber
+                publisher = Publisher.defaultPublisher
+                domain = PBSUtils.randomString
+                keywords = PBSUtils.randomString
+                content = Content.defaultContent
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain the bidRequest.dooh as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            dooh.id == bidRequest.dooh.id
+            dooh.name == bidRequest.dooh.name
+            dooh.venuetype == bidRequest.dooh.venuetype
+            dooh.venuetypetax == bidRequest.dooh.venuetypetax
+            dooh.publisher.id == bidRequest.dooh.publisher.id
+            dooh.domain == bidRequest.dooh.domain
+            dooh.keywords == bidRequest.dooh.keywords
+            dooh.content.id == bidRequest.dooh.content.id
         }
     }
 }

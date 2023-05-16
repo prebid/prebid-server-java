@@ -22,6 +22,7 @@ class App {
     Content content
     String keywords
     List<String> kwarray
+    String inventorypartnerdomain
     AppExt ext
 
     static App getDefaultApp() {
