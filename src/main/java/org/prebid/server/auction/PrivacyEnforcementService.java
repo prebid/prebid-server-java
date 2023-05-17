@@ -723,6 +723,7 @@ public class PrivacyEnforcementService {
         if (disallowTransmitUfpd) {
             final ExtUser extUser = user.getExt();
             userBuilder
+                    .id(null)
                     .buyeruid(null)
                     .yob(null)
                     .gender(null)

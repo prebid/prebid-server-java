@@ -58,6 +58,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
             genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
             genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
+            genericBidderRequest.user.id == genericBidRequest.user.id
             genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
             genericBidderRequest.user.yob == genericBidRequest.user.yob
             genericBidderRequest.user.gender == genericBidRequest.user.gender
@@ -102,6 +103,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -143,6 +145,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -215,6 +218,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
             genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
             genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
+            genericBidderRequest.user.id == genericBidRequest.user.id
             genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
             genericBidderRequest.user.yob == genericBidRequest.user.yob
             genericBidderRequest.user.gender == genericBidRequest.user.gender
@@ -254,6 +258,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -301,6 +306,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
             genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.id == ampStoredRequest.user.id
             genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
             genericBidderRequest.user.yob == ampStoredRequest.user.yob
             genericBidderRequest.user.gender == ampStoredRequest.user.gender
@@ -352,6 +358,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -402,6 +409,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
@@ -492,6 +500,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
             genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.id == ampStoredRequest.user.id
             genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
             genericBidderRequest.user.yob == ampStoredRequest.user.yob
             genericBidderRequest.user.gender == ampStoredRequest.user.gender
@@ -540,6 +549,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
             !genericBidderRequest.user.buyeruid
             !genericBidderRequest.user.yob
             !genericBidderRequest.user.gender
