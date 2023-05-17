@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
@@ -25,6 +26,14 @@ import org.prebid.server.bidder.huaweiads.model.request.HuaweiAdsRequest;
 import org.prebid.server.bidder.huaweiads.model.request.Network;
 import org.prebid.server.bidder.huaweiads.model.request.PkgNameConvert;
 import org.prebid.server.bidder.huaweiads.model.request.RussianSiteCountryCode;
+import org.prebid.server.bidder.huaweiads.model.response.Ad30;
+import org.prebid.server.bidder.huaweiads.model.response.HuaweiAdsResponse;
+import org.prebid.server.bidder.huaweiads.model.response.Icon;
+import org.prebid.server.bidder.huaweiads.model.response.ImageInfo;
+import org.prebid.server.bidder.huaweiads.model.response.MediaFile;
+import org.prebid.server.bidder.huaweiads.model.response.MetaData;
+import org.prebid.server.bidder.huaweiads.model.response.Monitor;
+import org.prebid.server.bidder.huaweiads.model.response.VideoInfo;
 import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -37,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuaweiAds;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtUserDataDeviceIdHuaweiAds;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtUserDataHuaweiAds;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -737,6 +747,26 @@ public class HuaweiAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfErrorRetcode() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(400)
+                        .reason("test")
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("HuaweiAdsResponse retcode: 400, reason: test"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseisEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
@@ -750,8 +780,696 @@ public class HuaweiAdsBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
+    @Test
+    public void makeBidsShouldReturnErrorIfMultiadEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("convert huaweiads response to bidder response failed:"
+                + " multiad length is 0, get no ads from huawei side."));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImpEmpty() throws JsonProcessingException {
+        // given
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        Ad30 ad30 = givenAd30(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("convert huaweiads response to bidder response failed: "
+                + "openRTBRequest.imp is null"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImpHasBannerAdtypeSplash() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "banner", "publisherId", "signkey", "keyId", "false")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.adType(1));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("openrtb banner should correspond to huaweiads adtype:"
+                + " banner or interstitial"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImpHasAudio() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .audio(Audio.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "banner", "publisherId", "signkey", "keyId", "false")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.adType(1));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("no support bidtype: audio"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImageInfoEmpty() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "banner", "publisherId", "signkey", "keyId", "false")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.contentList(singletonList(
+                org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .metaData(MetaData.builder().build())
+                        .creativeType(1)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("content.MetaData.ImageInfo is empty"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBannerAdmPicture() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "banner", "publisherId", "signkey", "keyId", "false")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.contentList(
+                singletonList(org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .contentId("58025103")
+                        .price(2.8)
+                        .monitorList(singletonList(Monitor.of(
+                                "click",
+                                emptyList())))
+                        .metaData(MetaData.builder()
+                                .imageInfoList(singletonList(ImageInfo.builder()
+                                        .url("https://ads.huawei.com/usermgtportal/home/img/huawei_logo_black.aaec817d.svg")
+                                        .width(300)
+                                        .height(250)
+                                        .build()))
+                                .clickUrl("https://ads.huawei.com/usermgtportal/home/index.html#/")
+                                .build())
+                        .creativeType(1)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        Bid expectedBid = Bid.builder()
+                .id("impId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.8))
+                .crid("58025103")
+                .w(300)
+                .h(250)
+                .adm("<style> html, body  { margin: 0; padding: 0; width: 100%; height: 100%; vertical-align: middle; }  html  { display: table; }  body { display: table-cell; vertical-align: middle; text-align: center; -webkit-text-size-adjust: none; }  </style> <span class=\"title-link advertiser_label\"></span> <a href='https://ads.huawei.com/usermgtportal/home/index.html#/' style=\"text-decoration:none\" onclick=sendGetReq()> <img src='https://ads.huawei.com/usermgtportal/home/img/huawei_logo_black.aaec817d.svg' width='300' height='250'/> </a> <script type=\"text/javascript\">var dspClickTrackings = [];function sendGetReq() {sendSomeGetReq(dspClickTrackings)}function sendOneGetReq(url) {var req = new XMLHttpRequest();req.open('GET', url, true);req.send(null);}function sendSomeGetReq(urls) {for (var i = 0; i < urls.length; i++) {sendOneGetReq(urls[i]);}}</script>")
+                .adomain(singletonList("huaweiads"))
+                .build();
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBannerAdmVideo() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .video(Video.builder()
+                                .mimes(singletonList("video/mp4"))
+                                .w(300)
+                                .h(250)
+                                .maxduration(10)
+                                .placement(2)
+                                .linearity(1)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier
+                .adType(60)
+                .contentList(singletonList(org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .contentId("58001445")
+                        .price(2.8)
+                        .monitorList(List.of(Monitor.of("vastError", List.of("http://test/vastError")),
+                                Monitor.of("click", List.of("http://test/click", "http://test/dspclick")),
+                                Monitor.of("imp", List.of("http://test/imp", "http://test/dspimp")),
+                                Monitor.of("userclose", List.of("http://test/userclose")),
+                                Monitor.of("playStart", List.of("http://test/playStart")),
+                                Monitor.of("playEnd", List.of("http://test/playEnd1", "http://test/playEnd2")),
+                                Monitor.of("playResume", List.of("http://test/playResume")),
+                                Monitor.of("playPause", List.of("http://test/playPause")),
+                                Monitor.of("appOpen", List.of("http://test/appOpen"))))
+                        .metaData(MetaData.builder()
+                                .imageInfoList(singletonList(ImageInfo.builder()
+                                        .url("https://test.png")
+                                        .width(300)
+                                        .height(1280)
+                                        .build()))
+                                .title("%2Ftest%2F")
+                                .clickUrl("https://ads.huawei.com/usermgtportal/home/index.html#/")
+                                .intent("https%3A%2F%2Fhibobi.app.link%2FK1sog7A40hb")
+                                .mediaFile(MediaFile.of("video/mp4", 720, 1280, 10000L, "https://test.png", ""))
+                                .duration(6038L)
+                                .videoInfo(VideoInfo.builder()
+                                        .videoDownloadUrl("https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4")
+                                        .height(500)
+                                        .width(600)
+                                        .videoRatio(BigDecimal.valueOf(0.5625))
+                                        .videoDuration(6038L)
+                                        .videoFileSize(949951)
+                                        .sha256("aa08c8ffce82bbcd37cabefd6c8972b407de48f0b4e332e06d4cc18d25377d77")
+                                        .build())
+                                .build())
+                        .creativeType(6)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        Bid expectedBid = Bid.builder()
+                .id("impId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.8))
+                .crid("58001445")
+                .w(720)
+                .h(1280)
+                .adm("<?xml version=\"1.0\" encoding=\"UTF-8\"?><VAST version=\"3.0\"><Ad id=\"58001445\"><InLine><AdSystem>HuaweiAds</AdSystem><AdTitle>/test/</AdTitle><Error><![CDATA[http://test/vastError&et=[ERRORCODE]]]></Error><Impression><![CDATA[http://test/imp]]></Impression><Impression><![CDATA[http://test/dspimp]]></Impression><Creatives><Creative adId=\"58001445\" id=\"58001445\"><Linear><Duration>00:00:06.038</Duration><TrackingEvents><Tracking event=\"skip\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"closeLinear\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"start\"><![CDATA[http://test/playStart]]></Tracking><Tracking event=\"complete\"><![CDATA[http://test/playEnd1]]></Tracking><Tracking event=\"complete\"><![CDATA[http://test/playEnd2]]></Tracking><Tracking event=\"resume\"><![CDATA[http://test/playResume]]></Tracking><Tracking event=\"pause\"><![CDATA[http://test/playPause]]></Tracking></TrackingEvents><VideoClicks><ClickThrough><![CDATA[https://hibobi.app.link/K1sog7A40hb]]></ClickThrough><ClickTracking><![CDATA[http://test/click]]></ClickTracking><ClickTracking><![CDATA[http://test/dspclick]]></ClickTracking></VideoClicks><MediaFiles><MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"720\" height=\"1280\" scalable=\"true\" maintainAspectRatio=\"true\"> <![CDATA[https://test.png]]></MediaFile></MediaFiles></Linear></Creative></Creatives></InLine></Ad></VAST>")
+                .adomain(singletonList("huaweiads"))
+                .build();
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBannerAdmRewardedVideoIcon() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .video(Video.builder()
+                                .mimes(singletonList("video/mp4"))
+                                .w(720)
+                                .h(1280)
+                                .maxduration(10)
+                                .placement(2)
+                                .linearity(1)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier
+                .adType(7)
+                .contentList(singletonList(org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .contentId("58001445")
+                        .price(2.8)
+                        .monitorList(List.of(Monitor.of("vastError", List.of("http://test/vastError")),
+                                Monitor.of("click", List.of("http://test/click", "http://test/dspclick")),
+                                Monitor.of("imp", List.of("http://test/imp", "http://test/dspimp")),
+                                Monitor.of("userclose", List.of("http://test/userclose")),
+                                Monitor.of("playStart", List.of("http://test/playStart")),
+                                Monitor.of("playEnd", List.of("http://test/playEnd1")),
+                                Monitor.of("playResume", List.of("http://test/playResume")),
+                                Monitor.of("playPause", List.of("http://test/playPause")),
+                                Monitor.of("appOpen", List.of("http://test/appOpen"))))
+                        .metaData(MetaData.builder()
+                                .imageInfoList(singletonList(ImageInfo.builder()
+                                        .url("https://test.png")
+                                        .width(300)
+                                        .height(1280)
+                                        .build()))
+                                .title("%2Ftest%2F")
+                                .iconList(singletonList(Icon.builder()
+                                        .fileSize(10797L)
+                                        .height(160)
+                                        .imageType("img")
+                                        .sha256("042479eccbda9a8d7d3aa3da73c42486854407835623a30ffff875cb578242d0")
+                                        .url("https://appimg.dbankcdn.com/application/icon144/678727f6687b4382ade1fa4cfc77e165.png")
+                                        .width(160)
+                                        .build()))
+                                .clickUrl("https://ads.huawei.com/usermgtportal/home/index.html#/")
+                                .mediaFile(MediaFile.of("video/mp4", 720, 1280, 10000L, "https://test.png", ""))
+                                .duration(6038L)
+                                .videoInfo(VideoInfo.builder()
+                                        .videoDownloadUrl("https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4")
+                                        .height(500)
+                                        .width(600)
+                                        .videoRatio(BigDecimal.valueOf(0.5625))
+                                        .videoDuration(6038L)
+                                        .videoFileSize(949951)
+                                        .sha256("aa08c8ffce82bbcd37cabefd6c8972b407de48f0b4e332e06d4cc18d25377d77")
+                                        .build())
+                                .build())
+                        .creativeType(6)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        Bid expectedBid = Bid.builder()
+                .id("impId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.8))
+                .crid("58001445")
+                .w(720)
+                .h(1280)
+                .adm("<?xml version=\"1.0\" encoding=\"UTF-8\"?><VAST version=\"3.0\"><Ad id=\"58001445\"><InLine><AdSystem>HuaweiAds</AdSystem><AdTitle>/test/</AdTitle><Error><![CDATA[http://test/vastError&et=[ERRORCODE]]]></Error><Impression><![CDATA[http://test/imp]]></Impression><Impression><![CDATA[http://test/dspimp]]></Impression><Creatives><Creative adId=\"58001445\" id=\"58001445\"><Linear><Duration>00:00:06.038</Duration><TrackingEvents><Tracking event=\"skip\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"closeLinear\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"start\"><![CDATA[http://test/playStart]]></Tracking><Tracking event=\"complete\"><![CDATA[http://test/playEnd1]]></Tracking><Tracking event=\"resume\"><![CDATA[http://test/playResume]]></Tracking><Tracking event=\"pause\"><![CDATA[http://test/playPause]]></Tracking></TrackingEvents><VideoClicks><ClickThrough><![CDATA[https://ads.huawei.com/usermgtportal/home/index.html#/]]></ClickThrough><ClickTracking><![CDATA[http://test/click]]></ClickTracking><ClickTracking><![CDATA[http://test/dspclick]]></ClickTracking></VideoClicks><MediaFiles><MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"600\" height=\"500\" scalable=\"true\" maintainAspectRatio=\"true\"> <![CDATA[https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4]]></MediaFile></MediaFiles></Linear></Creative><Creative adId=\"58001445\" id=\"58001445\"><CompanionAds><Companion width=\"160\" height=\"160\"><StaticResource creativeType=\"image/png\"><![CDATA[https://appimg.dbankcdn.com/application/icon144/678727f6687b4382ade1fa4cfc77e165.png]]></StaticResource><CompanionClickThrough><![CDATA[https://ads.huawei.com/usermgtportal/home/index.html#/]]></CompanionClickThrough></Companion></CompanionAds></Creative></Creatives></InLine></Ad></VAST>")
+                .adomain(singletonList("huaweiads"))
+                .build();
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBannerAdmRewardedVideoImageInfo() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .video(Video.builder()
+                                .mimes(singletonList("video/mp4"))
+                                .w(720)
+                                .h(1280)
+                                .maxduration(10)
+                                .placement(2)
+                                .linearity(1)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier
+                .adType(7)
+                .contentList(singletonList(org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .contentId("58001445")
+                        .price(2.8)
+                        .monitorList(List.of(Monitor.of("vastError", List.of("http://test/vastError")),
+                                Monitor.of("click", List.of("http://test/click", "http://test/dspclick")),
+                                Monitor.of("imp", List.of("http://test/imp", "http://test/dspimp")),
+                                Monitor.of("userclose", List.of("http://test/userclose")),
+                                Monitor.of("playStart", List.of("http://test/playStart")),
+                                Monitor.of("playEnd", List.of("http://test/playEnd1")),
+                                Monitor.of("playResume", List.of("http://test/playResume")),
+                                Monitor.of("playPause", List.of("http://test/playPause")),
+                                Monitor.of("appOpen", List.of("http://test/appOpen"))))
+                        .metaData(MetaData.builder()
+                                .imageInfoList(singletonList(ImageInfo.builder()
+                                        .url("http://image1.jpg")
+                                        .width(400)
+                                        .height(350)
+                                        .build()))
+                                .title("%2Ftest%2F")
+                                .clickUrl("https://ads.huawei.com/usermgtportal/home/index.html#/")
+                                .mediaFile(MediaFile.of("video/mp4", 720, 1280, 10000L, "https://test.png", ""))
+                                .duration(6038L)
+                                .videoInfo(VideoInfo.builder()
+                                        .videoDownloadUrl("https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4")
+                                        .height(500)
+                                        .width(600)
+                                        .videoRatio(BigDecimal.valueOf(0.5625))
+                                        .videoDuration(6038L)
+                                        .videoFileSize(949951)
+                                        .sha256("aa08c8ffce82bbcd37cabefd6c8972b407de48f0b4e332e06d4cc18d25377d77")
+                                        .build())
+                                .build())
+                        .creativeType(6)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        Bid expectedBid = Bid.builder()
+                .id("impId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.8))
+                .crid("58001445")
+                .w(720)
+                .h(1280)
+                .adm("<?xml version=\"1.0\" encoding=\"UTF-8\"?><VAST version=\"3.0\"><Ad id=\"58001445\"><InLine><AdSystem>HuaweiAds</AdSystem><AdTitle>/test/</AdTitle><Error><![CDATA[http://test/vastError&et=[ERRORCODE]]]></Error><Impression><![CDATA[http://test/imp]]></Impression><Impression><![CDATA[http://test/dspimp]]></Impression><Creatives><Creative adId=\"58001445\" id=\"58001445\"><Linear><Duration>00:00:06.038</Duration><TrackingEvents><Tracking event=\"skip\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"closeLinear\"><![CDATA[http://test/userclose]]></Tracking><Tracking event=\"start\"><![CDATA[http://test/playStart]]></Tracking><Tracking event=\"complete\"><![CDATA[http://test/playEnd1]]></Tracking><Tracking event=\"resume\"><![CDATA[http://test/playResume]]></Tracking><Tracking event=\"pause\"><![CDATA[http://test/playPause]]></Tracking></TrackingEvents><VideoClicks><ClickThrough><![CDATA[https://ads.huawei.com/usermgtportal/home/index.html#/]]></ClickThrough><ClickTracking><![CDATA[http://test/click]]></ClickTracking><ClickTracking><![CDATA[http://test/dspclick]]></ClickTracking></VideoClicks><MediaFiles><MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"600\" height=\"500\" scalable=\"true\" maintainAspectRatio=\"true\"> <![CDATA[https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4]]></MediaFile></MediaFiles></Linear></Creative><Creative adId=\"58001445\" id=\"58001445\"><CompanionAds><Companion width=\"400\" height=\"350\"><StaticResource creativeType=\"image/png\"><![CDATA[http://image1.jpg]]></StaticResource><CompanionClickThrough><![CDATA[https://ads.huawei.com/usermgtportal/home/index.html#/]]></CompanionClickThrough></Companion></CompanionAds></Creative></Creatives></InLine></Ad></VAST>")
+                .adomain(singletonList("huaweiads"))
+                .build();
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfAdtypeNotNative() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .xNative(Native.builder()
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.contentList(singletonList(
+                org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .metaData(MetaData.builder().build())
+                        .creativeType(1)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("extract Adm for Native ad: huaweiads response is not a native ad"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfNativeRequestEmpty() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .xNative(Native.builder()
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.contentList(singletonList(
+                org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .metaData(MetaData.builder().build())
+                        .creativeType(1)
+                        .build()))
+                .adType(3));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("extract Adm for Native ad: imp.Native.Request is empty"));
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test // TODO add label field
+    public void makeBidsShouldReturnExpectedNative() throws JsonProcessingException {
+        // given
+        List<String> imei = singletonList("123");
+        List<String> oaid = emptyList();
+        List<String> gaid = emptyList();
+        List<String> clientTime = emptyList();
+
+        ObjectNode extUserData = createExtUserData(ExtUserDataDeviceIdHuaweiAds.of(imei, oaid, gaid, clientTime));
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer
+                        .banner(null)
+                        .xNative(Native.builder()
+                                .request("{\"context\":2,\"contextsubtype\":20,\"plcmttype\":1,\"plcmtcnt\":1,"
+                                        + "\"seq\":0,\"aurlsupport\":0,\"durlsupport\":0,\"eventtrackers\":"
+                                        + "[{\"event\":1,\"methods\":[1,2]}],\"privacy\":0,\"assets\":[{\"id\":100,"
+                                        + "\"title\":{\"len\":90},\"required\":1},{\"id\":103,\"img\":{\"type\":3,"
+                                        + "\"wmin\":200,\"hmin\":200},\"required\":1},{\"id\":105,\"data\":{\"type\":2,"
+                                        + "\"len\":90},\"required\":1}],\"ver\":\"1.2\"}")
+                                .ver("1.2")
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpHuaweiAds.of("slotid", "roll", "publisherId", "signkey", "keyId", "true")))),
+                request -> request
+                        .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
+
+        Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier
+                .adType(3)
+                .contentList(singletonList(org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                        .contentId("58022259")
+                        .price(2.8)
+                        .monitorList(List.of(Monitor.of("vastError", List.of("http://test/vastError")),
+                                Monitor.of("click", List.of("http://test/click")),
+                                Monitor.of("imp", List.of("http://test/imp")),
+                                Monitor.of("userclose", List.of("http://test/userclose")),
+                                Monitor.of("playStart", List.of("http://test/playStart")),
+                                Monitor.of("playEnd", List.of("http://test/playEnd1")),
+                                Monitor.of("playResume", List.of("http://test/playResume")),
+                                Monitor.of("playPause", List.of("http://test/playPause")),
+                                Monitor.of("appOpen", List.of("http://test/appOpen"))))
+                        .metaData(MetaData.builder()
+                                .imageInfoList(singletonList(ImageInfo.builder()
+                                        .url("http://image.jpg")
+                                        .width(720)
+                                        .height(1280)
+                                        .build()))
+                                .title("%2Ftest%2F")
+                                .clickUrl("https://ads.huawei.com/usermgtportal/home/index.html#/")
+                                .mediaFile(MediaFile.of("video/mp4", 720, 1280, 10000L, "https://test.png", ""))
+                                .duration(6038L)
+                                .videoInfo(VideoInfo.builder()
+                                        .videoDownloadUrl("https://consumer.huawei.com/content/dam/huawei-cbg-site/ecommerce/ae/2022/may/watch-gt-3-pro/subscribe-phase/video/update/MKT_Odin_Frigga_PV_EN_30s%20Horizontal%20SHM.mp4")
+                                        .height(500)
+                                        .width(600)
+                                        .videoRatio(BigDecimal.valueOf(0.5625))
+                                        .videoDuration(6038L)
+                                        .videoFileSize(949951)
+                                        .sha256("aa08c8ffce82bbcd37cabefd6c8972b407de48f0b4e332e06d4cc18d25377d77")
+                                        .build())
+                                .build())
+                        .creativeType(6)
+                        .build())));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(HuaweiAdsResponse.builder()
+                        .retcode(200)
+                        .multiad(singletonList(ad30))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, bidRequest);
+
+        Bid expectedBid = Bid.builder()
+                .id("impId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.8))
+                .crid("58022259")
+                .w(720)
+                .h(1280)
+                .adm("{\"ver\":\"1.2\",\"assets\":[{\"id\":100,\"title\":{\"text\":\"/test/\",\"len\":6}},{\"id\":103,\"img\":{\"type\":3,\"url\":\"http://image.jpg\",\"w\":720,\"h\":1280}},{\"id\":105,\"data\":{\"value\":\"\"}}],\"link\":{\"url\":\"https://ads.huawei.com/usermgtportal/home/index.html#/\",\"clicktrackers\":[\"http://test/click\"]},\"imptrackers\":[\"http://test/imp\"]}")
+                .adomain(singletonList("huaweiads"))
+                .build();
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.xNative);
+    }
+
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
+                .id("impId")
                 .banner(Banner.builder().h(150)
                         .w(300)
                         .format(singletonList(Format.builder().h(100).w(100).build())).build())).build();
@@ -781,6 +1499,15 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static Ad30 givenAd30(UnaryOperator<Ad30.Ad30Builder> ad30Modifier) {
+        return ad30Modifier.apply(Ad30.builder()
+                .adType(8)
+                .slotId("slotid")
+                .retCode30(200)
+                .contentList(singletonList(
+                        org.prebid.server.bidder.huaweiads.model.response.Content.builder().build()))).build();
     }
 
 }

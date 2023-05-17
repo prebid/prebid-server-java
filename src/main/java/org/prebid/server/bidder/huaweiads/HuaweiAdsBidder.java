@@ -41,6 +41,7 @@ import org.prebid.server.bidder.huaweiads.model.response.Ad30;
 import org.prebid.server.bidder.huaweiads.model.response.Content;
 import org.prebid.server.bidder.huaweiads.model.response.HuaweiAdsResponse;
 import org.prebid.server.bidder.huaweiads.model.response.InteractionType;
+import org.prebid.server.bidder.huaweiads.model.response.MetaData;
 import org.prebid.server.bidder.huaweiads.model.response.Monitor;
 import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
 import org.prebid.server.bidder.model.BidderBid;
@@ -680,7 +681,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     private List<BidderBid> convertHuaweiAdsResponse(HuaweiAdsResponse huaweiAdsResponse, BidRequest bidRequest) {
         if (huaweiAdsResponse == null) {
             return Collections.emptyList();
-        } else if (huaweiAdsResponse.getMultiad().size() == 0) {
+        } else if (huaweiAdsResponse.getMultiad() == null || huaweiAdsResponse.getMultiad().size() == 0) {
             throw new PreBidException("convert huaweiads response to bidder response failed: multiad length is 0, "
                     + "get no ads from huawei side.");
         }
@@ -693,6 +694,12 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
         final Map<String, Imp> mapSlotIdImp = new HashMap<>();
         final Map<String, BidType> mapSlotIdMediaType = new HashMap<>();
+
+        if (bidRequest.getImp() == null || bidRequest.getImp().size() < 1) {
+            throw new PreBidException(
+                    "convert huaweiads response to bidder response failed: openRTBRequest.imp is null");
+        }
+
         for (Imp imp : bidRequest.getImp()) {
 
             final ExtImpHuaweiAds huaweiAdsExt = parseImpExt(imp);
@@ -710,13 +717,9 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             mapSlotIdMediaType.put(huaweiAdsExt.getSlotId(), mediaType);
         }
 
-        if (mapSlotIdMediaType.size() < 1 || mapSlotIdImp.size() < 1) {
-            throw new PreBidException(
-                    "convert huaweiads response to bidder response failed: openRTBRequest.imp is nil");
-        }
-
         for (Ad30 ad30 : huaweiAdsResponse.getMultiad()) {
-            if (mapSlotIdImp.get(ad30.getSlotId()).getId().equals("")) {
+            Imp imp = mapSlotIdImp.get(ad30.getSlotId());
+            if (imp.getId() == null || imp.getId().equals("")) {
                 continue;
             }
 
@@ -726,20 +729,20 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
             for (Content content : ad30.getContentList()) {
                 Bid.BidBuilder bidBuilder = Bid.builder();
-                bidBuilder.id(mapSlotIdImp.get(ad30.getSlotId()).getId());
-                bidBuilder.impid(mapSlotIdImp.get(ad30.getSlotId()).getId());
+                bidBuilder.id(imp.getId());
+                bidBuilder.impid(imp.getId());
 
-                bidBuilder.price(BigDecimal.valueOf(content.getPrice()));
+                bidBuilder.price(content.getPrice() != null ? BigDecimal.valueOf(content.getPrice()) : null);
                 bidBuilder.crid(content.getContentId());
 
-                if (!content.getCur().equals("")) {
+                if (content.getCur() != null && !content.getCur().equals("")) {
                     bidResponse.cur(content.getCur());
                 }
 
                 bidBuilder = handleHuaweiAdsContent(ad30.getAdType(),
                         content,
                         mapSlotIdMediaType.get(ad30.getSlotId()),
-                        mapSlotIdImp.get(ad30.getSlotId()),
+                        imp,
                         bidBuilder.build())
                         .toBuilder();
 
@@ -776,7 +779,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         }
 
         int creativeType = content.getCreativeType();
-        if (content.getCreativeType() > 100) {
+        if (creativeType > 100) {
             creativeType = creativeType - 100;
         }
 
@@ -785,7 +788,8 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 || creativeType == CreativeType.BIG_PICTURE_2.getCode()
                 || creativeType == CreativeType.SMALL_PICTURE.getCode()
                 || creativeType == CreativeType.THREE_SMALL_PICTURES_TEXT.getCode()
-                || creativeType == CreativeType.ICON_TEXT.getCode() || creativeType == CreativeType.GIF.getCode()) {
+                || creativeType == CreativeType.ICON_TEXT.getCode()
+                || creativeType == CreativeType.GIF.getCode()) {
             return addAdmPicture(content, bid);
         } else if (creativeType == CreativeType.VIDEO_TEXT.getCode()
                 || creativeType == CreativeType.VIDEO.getCode()
@@ -805,13 +809,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         final String clickUrl = getClickUrl(content);
 
         String imageInfoUrl;
-        long adHeight = 0;
-        long adWidth = 0;
+        int adHeight;
+        int adWidth;
 
         if (content.getMetaData().getImageInfoList() != null) {
             imageInfoUrl = content.getMetaData().getImageInfoList().get(0).getUrl();
-            bidBuilder.h(content.getMetaData().getImageInfoList().get(0).getHeight());
-            bidBuilder.w(content.getMetaData().getImageInfoList().get(0).getWidth());
+            adHeight = content.getMetaData().getImageInfoList().get(0).getHeight();
+            bidBuilder.h(adHeight);
+            adWidth = content.getMetaData().getImageInfoList().get(0).getWidth();
+            bidBuilder.w(adWidth);
         } else {
             throw new PreBidException("content.MetaData.ImageInfo is empty");
         }
@@ -848,9 +854,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 + "req.open('GET', url, true);"
                 + "req.send(null);"
                 + "}"
-                + "function sendSomeGetReq(urls) {"
-                + "urls.forEach(sendOneGetReq);"
-                + "}"
+                + "function sendSomeGetReq(urls) {for (var i = 0; i < urls.length; i++) {sendOneGetReq(urls[i]);}}"
                 + "</script>";
 
         return bidBuilder.adm(adm).build();
@@ -860,17 +864,23 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         String clickUrl = "";
 
         if (Objects.equals(InteractionType.APP_PROMOTION.getCode(), content.getInteractionType())) {
-            if (!content.getMetaData().getIntent().isEmpty()) {
+            if (content.getMetaData() != null
+                    && content.getMetaData().getIntent() != null
+                    && !content.getMetaData().getIntent().isEmpty()) {
                 clickUrl = getDecodeValue(content.getMetaData().getIntent());
             } else {
                 throw new PreBidException(
                         "content.MetaData.Intent in huaweiads resopnse is empty when interactiontype is appPromotion");
             }
         } else {
-            if (!content.getMetaData().getClickUrl().isEmpty()) {
-                clickUrl = content.getMetaData().getClickUrl();
-            } else if (!content.getMetaData().getIntent().isEmpty()) {
+            if (content.getMetaData() != null
+                    && content.getMetaData().getIntent() != null
+                    && !content.getMetaData().getIntent().isEmpty()) {
                 clickUrl = getDecodeValue(content.getMetaData().getIntent());
+            } else if (content.getMetaData() != null
+                    && content.getMetaData().getClickUrl() != null
+                    && !content.getMetaData().getClickUrl().isEmpty()) {
+                clickUrl = content.getMetaData().getClickUrl();
             }
         }
 
@@ -889,7 +899,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                                              List<String> dspImpTrackings,
                                              StringBuilder dspClickTrackings) {
         for (Monitor monitor : content.getMonitorList()) {
-            if (!monitor.getUrl().isEmpty()) {
+            if (monitor.getUrl() != null && !monitor.getUrl().isEmpty()) {
                 switch (monitor.getEventType()) {
                     case "imp" -> dspImpTrackings.addAll(monitor.getUrl());
                     case "click" -> dspClickTrackings.append(String.join(",", monitor.getUrl()));
@@ -906,37 +916,43 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         final String clickUrl = getClickUrl(content);
 
         String mime = "video/mp4";
-        String resourceUrl;
-        String duration;
+        String resourceUrl = null;
+        String duration = null;
 
         Integer adWidth = 0;
         Integer adHeight = 0;
-        if (adType == AdsType.ROLL.getCode()) {
+
+        MetaData metaData = content.getMetaData();
+        if (metaData != null && metaData.getMediaFile() != null && adType == AdsType.ROLL.getCode()) {
             // roll ad get information from mediafile
-            if (!content.getMetaData().getMediaFile().getMime().isEmpty()) {
-                mime = content.getMetaData().getMediaFile().getMime();
+            if (metaData.getMediaFile().getMime() != null && !metaData.getMediaFile().getMime().isEmpty()) {
+                mime = metaData.getMediaFile().getMime();
             }
-            adWidth = content.getMetaData().getMediaFile().getWidth();
-            bidBuilder.w(content.getMetaData().getMediaFile().getWidth());
-            adHeight = content.getMetaData().getMediaFile().getHeight();
-            bidBuilder.h(content.getMetaData().getMediaFile().getHeight());
-            if (!content.getMetaData().getMediaFile().getUrl().isEmpty()) {
-                resourceUrl = content.getMetaData().getMediaFile().getUrl();
+            adWidth = metaData.getMediaFile().getWidth();
+            bidBuilder.w(metaData.getMediaFile().getWidth());
+            adHeight = metaData.getMediaFile().getHeight();
+            bidBuilder.h(metaData.getMediaFile().getHeight());
+            if (metaData.getMediaFile().getUrl() != null
+                    && !metaData.getMediaFile().getUrl().isEmpty()) {
+                resourceUrl = metaData.getMediaFile().getUrl();
             } else {
                 throw new PreBidException("extract Adm for video failed: Content.MetaData.MediaFile.Url is empty");
             }
-            duration = getDuration(content.getMetaData().getDuration());
-        } else {
-            if (!content.getMetaData().getVideoInfo().getVideoDownloadUrl().isEmpty()) {
-                resourceUrl = content.getMetaData().getVideoInfo().getVideoDownloadUrl();
+            duration = getDuration(metaData.getDuration());
+        } else if (metaData != null && metaData.getVideoInfo() != null) {
+            if (metaData.getVideoInfo().getVideoDownloadUrl() != null
+                    && !metaData.getVideoInfo().getVideoDownloadUrl().isEmpty()) {
+                resourceUrl = metaData.getVideoInfo().getVideoDownloadUrl();
             } else {
                 throw new PreBidException(
                         "extract Adm for video failed: content.MetaData.VideoInfo.VideoDownloadUrl is empty");
             }
-            if (content.getMetaData().getVideoInfo().getWidth() != 0
-                    && content.getMetaData().getVideoInfo().getHeight() != 0) {
-                bidBuilder.w(content.getMetaData().getVideoInfo().getWidth());
-                bidBuilder.h(content.getMetaData().getVideoInfo().getHeight());
+            if (metaData.getVideoInfo().getWidth() != 0
+                    && metaData.getVideoInfo().getHeight() != 0) {
+                adWidth = metaData.getVideoInfo().getWidth();
+                bidBuilder.w(metaData.getMediaFile().getWidth());
+                adHeight = metaData.getVideoInfo().getHeight();
+                bidBuilder.h(metaData.getMediaFile().getHeight());
             } else if (bidType == BidType.video && imp.getVideo() != null
                     && imp.getVideo().getW() != 0 && imp.getVideo().getH() != 0) {
                 adWidth = imp.getVideo().getW();
@@ -946,10 +962,10 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             } else {
                 throw new PreBidException("extract Adm for video failed: cannot get video width, height");
             }
-            duration = getDuration(content.getMetaData().getVideoInfo().getVideoDuration());
+            duration = getDuration(metaData.getVideoInfo().getVideoDuration());
         }
 
-        final String adTitle = getDecodeValue(content.getMetaData().getTitle());
+        final String adTitle = getDecodeValue(metaData.getTitle());
         final String adId = content.getContentId();
         final String creativeId = content.getContentId();
         final StringBuilder trackingEvents = new StringBuilder();
@@ -961,11 +977,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             if (monitor.getUrl().isEmpty()) {
                 continue;
             }
-            String event = getEvent(dspImpTracking2Str, dspClickTracking2Str, errorTracking2Str, monitor);
-
-            if (!event.isEmpty()) {
-                trackingEvents.append(getVastEventTrackingUrls(monitor.getUrl(), event));
-            }
+            handleEvent(dspImpTracking2Str, dspClickTracking2Str, errorTracking2Str, trackingEvents, monitor);
         }
 
         String rewardedVideoPart = "";
@@ -977,26 +989,26 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             String staticImageWidth = "";
             final String staticImageType = "image/png";
 
-            if (!content.getMetaData().getIconList().isEmpty()
-                    && !content.getMetaData().getIconList().get(0).getUrl().isEmpty()) {
-                staticImageUrl = content.getMetaData().getIconList().get(0).getUrl();
+            if (metaData.getIconList() != null
+                    && !metaData.getIconList().isEmpty()
+                    && !metaData.getIconList().get(0).getUrl().isEmpty()) {
+                staticImageUrl = metaData.getIconList().get(0).getUrl();
 
-                if (content.getMetaData().getIconList().get(0).getHeight() > 0
-                        && content.getMetaData().getIconList().get(0).getWidth() > 0) {
-                    staticImageHeight = String.valueOf(content.getMetaData().getIconList().get(0).getHeight());
-                    staticImageWidth = String.valueOf(content.getMetaData().getIconList().get(0).getWidth());
+                if (metaData.getIconList().get(0).getHeight() > 0 && metaData.getIconList().get(0).getWidth() > 0) {
+                    staticImageHeight = String.valueOf(metaData.getIconList().get(0).getHeight());
+                    staticImageWidth = String.valueOf(metaData.getIconList().get(0).getWidth());
                 } else {
                     staticImageHeight = String.valueOf(adHeight);
                     staticImageWidth = String.valueOf(adWidth);
                 }
-            } else if (!content.getMetaData().getImageInfoList().isEmpty()
-                    && !content.getMetaData().getImageInfoList().get(0).getUrl().isEmpty()) {
-                staticImageUrl = content.getMetaData().getImageInfoList().get(0).getUrl();
+            } else if (!metaData.getImageInfoList().isEmpty()
+                    && !metaData.getImageInfoList().get(0).getUrl().isEmpty()) {
+                staticImageUrl = metaData.getImageInfoList().get(0).getUrl();
 
-                if (content.getMetaData().getImageInfoList().get(0).getHeight() > 0
-                        && content.getMetaData().getImageInfoList().get(0).getWidth() > 0) {
-                    staticImageHeight = String.valueOf(content.getMetaData().getImageInfoList().get(0).getHeight());
-                    staticImageWidth = String.valueOf(content.getMetaData().getImageInfoList().get(0).getWidth());
+                if (metaData.getImageInfoList().get(0).getHeight() > 0
+                        && metaData.getImageInfoList().get(0).getWidth() > 0) {
+                    staticImageHeight = String.valueOf(metaData.getImageInfoList().get(0).getHeight());
+                    staticImageWidth = String.valueOf(metaData.getImageInfoList().get(0).getWidth());
                 } else {
                     staticImageHeight = String.valueOf(adHeight);
                     staticImageWidth = String.valueOf(adWidth);
@@ -1042,30 +1054,29 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 + "</Linear>"
                 + "</Creative>" + rewardedVideoPart
                 + "</Creatives>"
-                + "</InLine>"
-                + "</Ad>"
-                + "</VAST>";
+                + "</InLine></Ad></VAST>";
 
         return bidBuilder.adm(adm).build();
     }
 
-    private String getEvent(StringBuilder dspImpTracking2Str,
-                            StringBuilder dspClickTracking2Str,
-                            StringBuilder errorTracking2Str,
-                            Monitor monitor) {
+    private void handleEvent(StringBuilder dspImpTracking2Str,
+                             StringBuilder dspClickTracking2Str,
+                             StringBuilder errorTracking2Str,
+                             StringBuilder trackingEvents,
+                             Monitor monitor) {
         String event = "";
         switch (monitor.getEventType()) {
             case "vastError":
-                event = errorTracking2Str.append(
-                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "vastError")).toString();
+                errorTracking2Str.append(
+                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "vastError"));
                 break;
             case "imp":
-                event = dspImpTracking2Str.append(
-                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "imp")).toString();
+                dspImpTracking2Str.append(
+                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "imp"));
                 break;
             case "click":
-                event = dspClickTracking2Str.append(
-                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "click")).toString();
+                dspClickTracking2Str.append(
+                        getVastImpClickErrorTrackingUrls(monitor.getUrl(), "click"));
                 break;
             case "userclose":
                 event = "skip&closeLinear";
@@ -1091,10 +1102,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             default:
                 break;
         }
-        return event;
+
+        if (!event.isEmpty() && !event.equals("skip&closeLinear")) {
+            trackingEvents.append(getVastEventTrackingUrls(monitor.getUrl(), event));
+        } else if (!event.isEmpty()) {
+            trackingEvents.append(getVastEventTrackingUrls(monitor.getUrl(), "skip&closeLinear"));
+        }
     }
 
-    private String getDuration(long duration) {
+    private String getDuration(Long duration) {
         final Duration dur = Duration.ofMillis(duration);
         final LocalTime time = LocalTime.MIDNIGHT.plus(dur);
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
@@ -1148,7 +1164,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         }
 
         final Response.ResponseBuilder nativeResult = Response.builder();
-        final Link linkObject = Link.of(getClickUrl(content), null, null, null);
+        final Link linkObject = Link.of(getClickUrl(content), new ArrayList<>(), null, null);
         final List<com.iab.openrtb.response.Asset> responseAssets = new ArrayList<>();
 
         int imgIndex = 0;
@@ -1171,14 +1187,16 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 imgObjectBuilder.url("");
                 imgObjectBuilder.type(asset.getImg().getType());
                 if (Objects.equals(asset.getImg().getType(), HuaweiAdsConstants.IMAGE_ASSET_TYPE_ICON)) {
-                    if (content.getMetaData().getIconList().size() > iconIndex) {
+                    if (content.getMetaData().getIconList() != null
+                            && content.getMetaData().getIconList().size() > iconIndex) {
                         imgObjectBuilder.url(content.getMetaData().getIconList().get(iconIndex).getUrl());
                         imgObjectBuilder.w(content.getMetaData().getIconList().get(iconIndex).getWidth());
                         imgObjectBuilder.h(content.getMetaData().getIconList().get(iconIndex).getHeight());
                         iconIndex++;
                     }
                 } else {
-                    if (content.getMetaData().getImageInfoList().size() > imgIndex) {
+                    if (content.getMetaData().getImageInfoList() != null
+                            && content.getMetaData().getImageInfoList().size() > imgIndex) {
                         imgObjectBuilder.url(content.getMetaData().getImageInfoList().get(imgIndex).getUrl());
                         imgObjectBuilder.w(content.getMetaData().getImageInfoList().get(imgIndex).getWidth());
                         imgObjectBuilder.h(content.getMetaData().getImageInfoList().get(imgIndex).getHeight());
@@ -1187,7 +1205,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 }
                 final ImageObject imageObject = imgObjectBuilder.build();
 
-                if (bid.getW() == 0 && bid.getH() == 0) {
+                if (bid.getW() == null || bid.getH() == null || bid.getW() == 0 && bid.getH() == 0) {
                     bidBuilder.h(imageObject.getH());
                     bidBuilder.w(imageObject.getW());
                 }
@@ -1228,7 +1246,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final String result = mapper.mapper().writeValueAsString(nativeResult).replace("\n", "");
+            final String result = mapper.mapper().writeValueAsString(nativeResult.build()).replace("\n", "");
             return bidBuilder.adm(result).build();
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
@@ -1237,13 +1255,13 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
     public String getNrl(Content content) {
         if (content.getMonitorList() == null || content.getMonitorList().isEmpty()) {
-            return "";
+            return null;
         }
         for (Monitor monitor : content.getMonitorList()) {
             if (monitor.getEventType().equals("win") && !monitor.getUrl().isEmpty()) {
                 return monitor.getUrl().get(0);
             }
         }
-        return "";
+        return null;
     }
 }

@@ -1,15 +1,17 @@
 package org.prebid.server.bidder.huaweiads.model.response;
 
+import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value(staticConstructor = "of")
+@Builder(toBuilder = true)
+@Value
 public class VideoInfo {
 
     String videoDownloadUrl;
 
-    Integer videoDuration;
+    Long videoDuration;
 
     Integer videoFileSize;
 

@@ -1,10 +1,12 @@
 package org.prebid.server.bidder.huaweiads.model.response;
 
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
-@Value(staticConstructor = "of")
+@Builder(toBuilder = true)
+@Value
 public class Content {
 
     String contentId;
