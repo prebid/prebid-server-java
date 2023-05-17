@@ -74,9 +74,12 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
+        and: "Get currency rates"
+        def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorValue,
-                floorsResponse.modelGroups[0].currency, bidRequest.cur[0])
+                floorsResponse.modelGroups[0].currency, bidRequest.cur[0], currencyRatesResponse)
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = EUR
             seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
@@ -109,10 +112,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
+        and: "Get currency rates"
+        def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorMin,
-                bidRequest.ext.prebid.floors.floorMinCur, floorProviderCur)
+                bidRequest.ext.prebid.floors.floorMinCur, floorProviderCur, currencyRatesResponse)
 
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].values = [(rule): convertedMinFloorValue - 0.1]
@@ -283,9 +289,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
+        and: "Get currency rates"
+        def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP
-        def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue, floorCur, bidResponseCur)
+        def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue,
+                floorCur, bidResponseCur, currencyRatesResponse)
         def winBidPrice = convertedMinFloorValueGbp + 0.1
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = bidResponseCur
@@ -306,7 +316,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS should suppress bids lower than floorRuleValue"
-        def convertedFloorValueEur = getPriceAfterCurrencyConversion(winBidPrice, bidResponseCur, requestCur)
+        def convertedFloorValueEur = getPriceAfterCurrencyConversion(winBidPrice,
+                bidResponseCur, requestCur, currencyRatesResponse)
         assert response.seatbid?.first()?.bid?.collect { it.price } == [convertedFloorValueEur]
         assert response.cur == bidRequest.cur[0]
     }
