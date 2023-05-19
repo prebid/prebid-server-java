@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.synacormedia;
+package org.prebid.server.bidder.imds;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
@@ -11,7 +11,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,8 +25,9 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
-import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
+import org.prebid.server.proto.openrtb.ext.request.imds.ExtImpImds;
+import org.prebid.server.proto.openrtb.ext.request.imds.ExtRequestImds;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
 import java.util.function.Function;
@@ -32,23 +37,32 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class SynacormediaBidderTest extends VertxTest {
+public class ImdsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}.endpoint.com/{{Host}}";
+    private static final String ENDPOINT_URL = "https://pbs.endpoint.com/{{AccountID}}?src={{SourceId}}&adapter=imds";
 
-    private SynacormediaBidder synacormediaBidder;
+    private ImdsBidder imdsBidder;
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
 
     @Before
     public void setUp() {
-        synacormediaBidder = new SynacormediaBidder(ENDPOINT_URL, jacksonMapper);
+        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("pbs-java/0.1.2");
+        imdsBidder = new ImdsBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SynacormediaBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new ImdsBidder("invalid_url", prebidVersionProvider, jacksonMapper));
     }
 
     @Test
@@ -59,7 +73,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = imdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -79,7 +93,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = imdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -87,7 +101,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(BidRequest.builder()
                         .imp(singletonList(givenImp(identity()).toBuilder().tagid("tagId").build()))
-                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), ExtRequestSynacormedia.of("seatId")))
+                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), ExtRequestImds.of("seatId")))
                         .build());
     }
 
@@ -96,11 +110,11 @@ public class SynacormediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
+                        ExtPrebid.of(null, ExtImpImds.of(" ", "tagId")))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = imdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -114,11 +128,11 @@ public class SynacormediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpSynacormedia.of("seadId", " ")))),
+                        ExtPrebid.of(null, ExtImpImds.of("seadId", " ")))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = imdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -133,13 +147,13 @@ public class SynacormediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = imdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://seatId.endpoint.com/seatId");
+                .containsOnly("https://pbs.endpoint.com/seatId?src=pbs-java%2F0.1.2&adapter=imds");
     }
 
     @Test
@@ -148,7 +162,7 @@ public class SynacormediaBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -164,7 +178,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -178,7 +192,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,7 +213,7 @@ public class SynacormediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,7 +235,7 @@ public class SynacormediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -243,7 +257,7 @@ public class SynacormediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = imdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -260,7 +274,7 @@ public class SynacormediaBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId", "tagId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImds.of("seatId", "tagId")))))
                 .build();
     }
 
