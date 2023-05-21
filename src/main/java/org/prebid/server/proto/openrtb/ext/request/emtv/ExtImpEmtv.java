@@ -1,14 +1,10 @@
-package org.prebid.server.bidder.compass.proto;
+package org.prebid.server.proto.openrtb.ext.request.emtv;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
 import lombok.Value;
 
-@Builder
-@Value
-public class CompassImpExtBidder {
-
-    String type;
+@Value(staticConstructor = "of")
+public class ExtImpEmtv {
 
     @JsonProperty("placementId")
     String placementId;

@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.compass.proto;
+package org.prebid.server.bidder.emtv.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public class CompassImpExtBidder {
+public class EmtvImpExtBidder {
 
     String type;
 
