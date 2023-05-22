@@ -6,5 +6,4 @@ import lombok.Value;
 public class Regs {
 
     Integer coppa;
-
 }

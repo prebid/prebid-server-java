@@ -18,5 +18,4 @@ public class Icon {
     String imageType;
 
     Integer width;
-
 }

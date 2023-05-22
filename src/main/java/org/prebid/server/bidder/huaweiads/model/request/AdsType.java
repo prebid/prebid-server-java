@@ -23,4 +23,17 @@ public enum AdsType {
     public Integer getCode() {
         return code;
     }
+
+    public static AdsType fromString(String adtypeLower) {
+        return switch (adtypeLower) {
+            case "native" -> AdsType.XNATIVE;
+            case "rewarded" -> AdsType.REWARDED;
+            case "interstitial" -> AdsType.INTERSTITIAL;
+            case "roll" -> AdsType.ROLL;
+            case "splash" -> AdsType.SPLASH;
+            case "magazinelock" -> AdsType.MAGAZINE_LOCK;
+            case "audio" -> AdsType.AUDIO;
+            default -> AdsType.BANNER;
+        };
+    }
 }

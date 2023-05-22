@@ -8,5 +8,4 @@ public class Format {
     Integer w;
 
     Integer h;
-
 }

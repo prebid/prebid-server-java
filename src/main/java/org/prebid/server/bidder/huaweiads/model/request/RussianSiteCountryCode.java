@@ -8,7 +8,7 @@ public enum RussianSiteCountryCode {
 
     public static boolean isContainsByName(String name) {
         return Arrays.stream(RussianSiteCountryCode.values())
-                .anyMatch(code -> code.name().equalsIgnoreCase(name));
+                .map(Enum::name)
+                .anyMatch(codeName -> codeName.equalsIgnoreCase(name));
     }
-
 }

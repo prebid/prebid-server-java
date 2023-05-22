@@ -16,5 +16,4 @@ public class App {
     String lang;
 
     String country;
-
 }

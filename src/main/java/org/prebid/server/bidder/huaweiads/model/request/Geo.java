@@ -14,5 +14,4 @@ public class Geo {
     Integer accuracy;
 
     Integer lastfix;
-
 }

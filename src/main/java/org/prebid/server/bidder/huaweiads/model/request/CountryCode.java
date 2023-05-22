@@ -25,19 +25,18 @@ public enum CountryCode {
         } else if (country.length() >= 3 && !EnumUtils.isValidEnum(CountryCode.class, country)) {
             return country.substring(0, 2);
         }
-        return Optional.of(CountryCode.valueOf(country).getCode())
-                .orElse(HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
+        String countryCode = CountryCode.valueOf(country).getCode();
+
+        return countryCode != null ? countryCode : HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
     }
 
-    public static String getCountryCodeFromMCC(String mccValue) {
-        String countryCode = Optional.ofNullable(mccValue)
+    public static Mcc getCountryCodeFromMCC(String mccValue) {
+        return Optional.ofNullable(mccValue)
                 .map(mcc -> mcc.split("-")[0])
                 .filter(mcc -> mcc.matches("\\d+"))
                 .map(Integer::parseInt)
-                .flatMap(mcc -> Optional.of(Mcc.fromCode(mcc)))
-                .orElse(HuaweiAdsConstants.DEFAULT_COUNTRY_NAME);
-
-        return countryCode.toUpperCase();
+                .map(Mcc::fromCode)
+                .orElse(Mcc.ZA);
     }
 
     public String getCode() {

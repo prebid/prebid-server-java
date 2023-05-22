@@ -14,5 +14,4 @@ public class ExtUserDataDeviceIdHuaweiAds {
     List<String> gaid;
 
     List<String> clientTime;
-
 }

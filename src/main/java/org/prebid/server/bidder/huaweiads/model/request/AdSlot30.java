@@ -26,5 +26,4 @@ public class AdSlot30 {
     List<Format> format;
 
     List<String> detailedCreativeTypeList;
-
 }

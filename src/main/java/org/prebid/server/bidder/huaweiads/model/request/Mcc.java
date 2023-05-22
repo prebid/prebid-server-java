@@ -39,12 +39,11 @@ public enum Mcc {
         this.code = code;
     }
 
-    public static String fromCode(int countryCode) {
+    public static Mcc fromCode(int countryCode) {
         return Arrays.stream(values())
                 .filter(b -> b.code == countryCode)
                 .findFirst()
-                .map(Enum::name)
-                .orElse(null);
+                .orElse(Mcc.ZA);
     }
 
     public int getCode() {

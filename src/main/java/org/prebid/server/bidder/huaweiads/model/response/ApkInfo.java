@@ -22,5 +22,4 @@ public class ApkInfo {
     String appDesc;
 
     String appIcon;
-
 }

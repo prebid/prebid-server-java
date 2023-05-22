@@ -10,5 +10,4 @@ public class Monitor {
     String eventType;
 
     List<String> url;
-
 }

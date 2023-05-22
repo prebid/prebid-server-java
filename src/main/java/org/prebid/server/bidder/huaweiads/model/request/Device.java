@@ -52,5 +52,4 @@ public class Device {
     String clientTime;
 
     String ip;
-
 }

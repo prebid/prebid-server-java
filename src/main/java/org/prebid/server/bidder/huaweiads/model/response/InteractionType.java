@@ -13,5 +13,4 @@ public enum InteractionType {
     public Integer getCode() {
         return code;
     }
-
 }

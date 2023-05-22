@@ -22,5 +22,4 @@ public class Content {
     String cur;
 
     Double price;
-
 }

@@ -18,5 +18,4 @@ public class ImageInfo {
     String imageType;
 
     Integer width;
-
 }

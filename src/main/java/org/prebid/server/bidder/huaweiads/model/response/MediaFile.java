@@ -16,5 +16,4 @@ public class MediaFile {
     String url;
 
     String sha256;
-
 }

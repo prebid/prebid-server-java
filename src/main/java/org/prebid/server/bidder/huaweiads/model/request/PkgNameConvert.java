@@ -18,5 +18,4 @@ public class PkgNameConvert {
     List<String> unconvertedPkgNamePrefixs;
 
     List<String> exceptionPkgNames;
-
 }

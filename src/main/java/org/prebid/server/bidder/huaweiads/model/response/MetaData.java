@@ -28,5 +28,4 @@ public class MetaData {
     Long duration;
 
     MediaFile mediaFile;
-
 }

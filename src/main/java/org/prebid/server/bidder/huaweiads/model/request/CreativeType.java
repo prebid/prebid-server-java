@@ -14,5 +14,4 @@ public enum CreativeType {
     public Integer getCode() {
         return code;
     }
-
 }

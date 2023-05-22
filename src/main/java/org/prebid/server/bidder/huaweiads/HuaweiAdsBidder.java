@@ -80,7 +80,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
@@ -172,7 +171,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private AdSlot30 getReqAdslot30(ExtImpHuaweiAds huaweiAdsImpExt, Imp imp) {
-        final int adtype = parseAdsType(huaweiAdsImpExt.getAdtype().toLowerCase()).getCode();
+        final int adtype = AdsType.fromString(huaweiAdsImpExt.getAdtype().toLowerCase()).getCode();
         final int testStatus = huaweiAdsImpExt.getIsTestAuthorization().equals("true") ? 1 : 0;
 
         final AdSlot30.AdSlot30Builder adSlot30Builder = AdSlot30.builder();
@@ -183,21 +182,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         return getOpenrtbFormat(adSlot30Builder.build(), adtype, huaweiAdsImpExt.getAdtype(), imp);
     }
 
-    private AdsType parseAdsType(String adtypeLower) {
-        return switch (adtypeLower) {
-            case "native" -> AdsType.XNATIVE;
-            case "rewarded" -> AdsType.REWARDED;
-            case "interstitial" -> AdsType.INTERSTITIAL;
-            case "roll" -> AdsType.ROLL;
-            case "splash" -> AdsType.SPLASH;
-            case "magazinelock" -> AdsType.MAGAZINE_LOCK;
-            case "audio" -> AdsType.AUDIO;
-            default -> AdsType.BANNER;
-        };
-    }
-
     private AdSlot30 getOpenrtbFormat(AdSlot30 adslot30, int adtype, String impExtAdType, Imp imp) {
-
         if (imp.getBanner() != null) {
             if (adtype != AdsType.BANNER.getCode() && adtype != AdsType.INTERSTITIAL.getCode()) {
                 throw new PreBidException(
@@ -405,58 +390,55 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
     private Device getDeviceInfo(BidRequest openRTBRequest) {
         final Device.DeviceBuilder deviceBuilder = Device.builder();
-        Optional.ofNullable(openRTBRequest.getDevice())
-                .ifPresent(deviceData -> {
-                    deviceBuilder.type(deviceData.getDevicetype());
-                    deviceBuilder.useragent(deviceData.getUa());
-                    deviceBuilder.os(deviceData.getOs());
-                    deviceBuilder.version(deviceData.getOsv());
-                    deviceBuilder.maker(deviceData.getMake());
-                    deviceBuilder.model(StringUtils.isEmpty(deviceData.getModel())
-                            ? HuaweiAdsConstants.DEFAULT_MODEL_NAME : deviceData.getModel());
-                    deviceBuilder.height(deviceData.getH());
-                    deviceBuilder.width(deviceData.getW());
-                    deviceBuilder.language(deviceData.getLanguage());
-                    deviceBuilder.pxratio(deviceData.getPxratio());
-                    String countryCode = getCountryCode(openRTBRequest);
-                    deviceBuilder.belongCountry(countryCode);
-                    deviceBuilder.localeCountry(countryCode);
-                    deviceBuilder.ip(deviceData.getIp());
-                    deviceBuilder.gaid(deviceData.getIfa());
-                });
+        com.iab.openrtb.request.Device deviceData = openRTBRequest.getDevice();
 
-        return getDeviceIdFromUserExt(deviceBuilder.build(), openRTBRequest);
+        if (deviceData != null) {
+            deviceBuilder.type(deviceData.getDevicetype());
+            deviceBuilder.useragent(deviceData.getUa());
+            deviceBuilder.os(deviceData.getOs());
+            deviceBuilder.version(deviceData.getOsv());
+            deviceBuilder.maker(deviceData.getMake());
+            deviceBuilder.model(StringUtils.isEmpty(deviceData.getModel())
+                    ? HuaweiAdsConstants.DEFAULT_MODEL_NAME : deviceData.getModel());
+            deviceBuilder.height(deviceData.getH());
+            deviceBuilder.width(deviceData.getW());
+            deviceBuilder.language(deviceData.getLanguage());
+            deviceBuilder.pxratio(deviceData.getPxratio());
+            String countryCode = getCountryCode(openRTBRequest);
+            deviceBuilder.belongCountry(countryCode);
+            deviceBuilder.localeCountry(countryCode);
+            deviceBuilder.ip(deviceData.getIp());
+            deviceBuilder.gaid(deviceData.getIfa());
+        }
+
+        return modifyDeviceWithUserExt(deviceBuilder.build(), openRTBRequest);
     }
 
     private String getCountryCode(BidRequest openRTBRequest) {
-        return Stream.of(openRTBRequest)
-                .filter(request -> request.getDevice() != null
-                        && request.getDevice().getGeo() != null
-                        && !request.getDevice().getGeo().getCountry().isEmpty())
-                .findFirst()
-                .map(request -> CountryCode.convertCountryCode(request.getDevice().getGeo().getCountry()))
-                .orElseGet(() -> Stream.of(openRTBRequest)
-                        .filter(request -> request.getUser() != null
-                                && request.getUser().getGeo() != null
-                                && !request.getUser().getGeo().getCountry().isEmpty())
-                        .findFirst()
-                        .map(request -> CountryCode.convertCountryCode(request.getUser().getGeo().getCountry()))
-                        .orElseGet(() -> Stream.of(openRTBRequest)
-                                .filter(request -> request.getDevice() != null
-                                        && !request.getDevice().getMccmnc().isEmpty())
-                                .findFirst()
-                                .map(request -> CountryCode.getCountryCodeFromMCC(request.getDevice().getMccmnc()))
-                                .orElse(HuaweiAdsConstants.DEFAULT_COUNTRY_NAME)));
+        if (openRTBRequest.getDevice() != null
+                && openRTBRequest.getDevice().getGeo() != null
+                && !openRTBRequest.getDevice().getGeo().getCountry().isEmpty()) {
+            return CountryCode.convertCountryCode(openRTBRequest.getDevice().getGeo().getCountry());
+        } else if (openRTBRequest.getUser() != null
+                && openRTBRequest.getUser().getGeo() != null
+                && !openRTBRequest.getUser().getGeo().getCountry().isEmpty()) {
+            return CountryCode.convertCountryCode(openRTBRequest.getUser().getGeo().getCountry());
+        } else if (openRTBRequest.getDevice() != null
+                && !openRTBRequest.getDevice().getMccmnc().isEmpty()) {
+            return CountryCode.getCountryCodeFromMCC(openRTBRequest.getDevice().getMccmnc()).toString().toUpperCase();
+        } else {
+            return HuaweiAdsConstants.DEFAULT_COUNTRY_NAME;
+        }
     }
 
-    private Device getDeviceIdFromUserExt(Device device, BidRequest bidRequest) {
+    private Device modifyDeviceWithUserExt(Device device, BidRequest bidRequest) {
 
         Device.DeviceBuilder deviceBuilder = device.toBuilder();
-        final Optional<User> userOptional = Optional.ofNullable(bidRequest.getUser());
+        final User user = bidRequest.getUser();
 
-        if (userOptional.isPresent() && userOptional.get().getExt() != null) {
+        if (user != null && user.getExt() != null) {
             final ExtUserDataHuaweiAds extUserDataHuaweiAds = mapper.mapper()
-                    .convertValue(userOptional.get().getExt().getData(), ExtUserDataHuaweiAds.class);
+                    .convertValue(user.getExt().getData(), ExtUserDataHuaweiAds.class);
 
             final ExtUserDataDeviceIdHuaweiAds deviceId = extUserDataHuaweiAds.getData();
 
@@ -480,16 +462,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 deviceBuilder.clientTime(ClientTimeConverter.getClientTime(deviceId.getClientTime().get(0)));
             }
 
-            Optional.ofNullable(bidRequest.getDevice())
-                    .map(com.iab.openrtb.request.Device::getDnt)
-                    .ifPresent(dnt -> {
-                        if (deviceId.getOaid() != null && !deviceId.getOaid().isEmpty()) {
-                            deviceBuilder.isTrackingEnabled(dnt == 1 ? "0" : "1");
-                        }
-                        if (deviceId.getGaid() != null && !deviceId.getGaid().isEmpty()) {
-                            deviceBuilder.gaidTrackingEnabled(dnt == 1 ? "0" : "1");
-                        }
-                    });
+            com.iab.openrtb.request.Device bidRequestDevice = bidRequest.getDevice();
+            if (bidRequestDevice != null && bidRequestDevice.getDnt() != null) {
+                if (deviceId.getOaid() != null && !deviceId.getOaid().isEmpty()) {
+                    deviceBuilder.isTrackingEnabled(bidRequestDevice.getDnt() == 1 ? "0" : "1");
+                }
+                if (deviceId.getGaid() != null && !deviceId.getGaid().isEmpty()) {
+                    deviceBuilder.gaidTrackingEnabled(bidRequestDevice.getDnt() == 1 ? "0" : "1");
+                }
+            }
         } else {
             if (device.getGaid() == null || device.getGaid().isEmpty()) {
                 throw new PreBidException(
@@ -538,17 +519,18 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private Geo getGeoInfo(BidRequest openRTBRequest) {
-        if (openRTBRequest.getDevice() != null && openRTBRequest.getDevice().getGeo() != null) {
+        com.iab.openrtb.request.Device device = openRTBRequest.getDevice();
+        if (device != null && device.getGeo() != null) {
+            com.iab.openrtb.request.Geo geo = device.getGeo();
 
-            Float lon = openRTBRequest.getDevice().getGeo().getLon();
-            Float lat = openRTBRequest.getDevice().getGeo().getLat();
+            Float lon = geo.getLon();
+            Float lat = geo.getLat();
 
             return Geo.of(lon != null ? BigDecimal.valueOf(lon) : null,
                     lat != null ? BigDecimal.valueOf(lat) : null,
-                    openRTBRequest.getDevice().getGeo().getAccuracy(),
-                    openRTBRequest.getDevice().getGeo().getLastfix());
+                    geo.getAccuracy(),
+                    geo.getLastfix());
         }
-
         return null;
     }
 
@@ -572,12 +554,10 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
         headers.set(HttpUtil.AUTHORIZATION_HEADER, authorization);
 
-        if (request.getDevice() != null
-                && request.getDevice().getUa() != null
-                && !request.getDevice().getUa().isEmpty()) {
-
-            headers.set(HttpUtil.USER_AGENT_HEADER, request.getDevice().getUa());
-        }
+        Optional.ofNullable(request.getDevice())
+                .map(com.iab.openrtb.request.Device::getUa)
+                .filter(ua -> !ua.isEmpty())
+                .ifPresent(ua -> headers.set(HttpUtil.USER_AGENT_HEADER, ua));
 
         return headers;
     }
@@ -938,7 +918,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             } else {
                 throw new PreBidException("extract Adm for video failed: Content.MetaData.MediaFile.Url is empty");
             }
-            duration = getDuration(metaData.getDuration());
+            duration = convertDuration(metaData.getDuration());
         } else if (metaData != null && metaData.getVideoInfo() != null) {
             if (metaData.getVideoInfo().getVideoDownloadUrl() != null
                     && !metaData.getVideoInfo().getVideoDownloadUrl().isEmpty()) {
@@ -962,7 +942,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             } else {
                 throw new PreBidException("extract Adm for video failed: cannot get video width, height");
             }
-            duration = getDuration(metaData.getVideoInfo().getVideoDuration());
+            duration = convertDuration(metaData.getVideoInfo().getVideoDuration());
         }
 
         final String adTitle = getDecodeValue(metaData.getTitle());
@@ -1018,19 +998,44 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             }
 
             if (isAddRewardedVideoPart) {
-                rewardedVideoPart = "<Creative adId=\"" + adId + "\" id=\"" + creativeId + "\">"
-                        + "<CompanionAds>"
-                        + "<Companion width=\"" + staticImageWidth + "\" height=\"" + staticImageHeight + "\">"
-                        + "<StaticResource creativeType=\"" + staticImageType
-                        + "\"><![CDATA[" + staticImageUrl + "]]></StaticResource>"
-                        + "<CompanionClickThrough><![CDATA[" + clickUrl + "]]></CompanionClickThrough>"
-                        + "</Companion>"
-                        + "</CompanionAds>"
-                        + "</Creative>";
+                rewardedVideoPart = buildRewardedVideoPart(clickUrl,
+                        adId,
+                        creativeId,
+                        staticImageUrl,
+                        staticImageHeight,
+                        staticImageWidth
+                );
             }
         }
 
-        final String adm = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        final String adm = buildAdm(clickUrl, mime, resourceUrl, duration, adWidth, adHeight, adTitle,
+                adId, creativeId, trackingEvents, dspImpTracking2Str, dspClickTracking2Str,
+                errorTracking2Str, rewardedVideoPart);
+
+        return bidBuilder.adm(adm).build();
+    }
+
+    private static String buildRewardedVideoPart(String clickUrl, String adId, String creativeId, String staticImageUrl,
+                                                 String staticImageHeight, String staticImageWidth) {
+        String rewardedVideoPart;
+        rewardedVideoPart = "<Creative adId=\"" + adId + "\" id=\"" + creativeId + "\">"
+                + "<CompanionAds>"
+                + "<Companion width=\"" + staticImageWidth + "\" height=\"" + staticImageHeight + "\">"
+                + "<StaticResource creativeType=\"" + "image/png"
+                + "\"><![CDATA[" + staticImageUrl + "]]></StaticResource>"
+                + "<CompanionClickThrough><![CDATA[" + clickUrl + "]]></CompanionClickThrough>"
+                + "</Companion>"
+                + "</CompanionAds>"
+                + "</Creative>";
+        return rewardedVideoPart;
+    }
+
+    private static String buildAdm(String clickUrl, String mime, String resourceUrl, String duration, Integer adWidth,
+                                   Integer adHeight, String adTitle, String adId, String creativeId,
+                                   StringBuilder trackingEvents, StringBuilder dspImpTracking2Str,
+                                   StringBuilder dspClickTracking2Str, StringBuilder errorTracking2Str,
+                                   String rewardedVideoPart) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<VAST version=\"3.0\">"
                 + "<Ad id=\"" + adId + "\"><InLine>"
                 + "<AdSystem>HuaweiAds</AdSystem>"
@@ -1055,8 +1060,6 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 + "</Creative>" + rewardedVideoPart
                 + "</Creatives>"
                 + "</InLine></Ad></VAST>";
-
-        return bidBuilder.adm(adm).build();
     }
 
     private void handleEvent(StringBuilder dspImpTracking2Str,
@@ -1110,7 +1113,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String getDuration(Long duration) {
+    private String convertDuration(Long duration) {
         final Duration dur = Duration.ofMillis(duration);
         final LocalTime time = LocalTime.MIDNIGHT.plus(dur);
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
@@ -1172,16 +1175,9 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         for (Asset asset : nativePayload.getAssets()) {
             final com.iab.openrtb.response.Asset.AssetBuilder responseAsset = com.iab.openrtb.response.Asset.builder();
             if (asset.getTitle() != null) {
-                final TitleObject.TitleObjectBuilder titleObject = TitleObject.builder();
-                final String text = getDecodeValue(content.getMetaData().getTitle());
-                titleObject.text(text);
-                titleObject.len(text.length());
-                responseAsset.title(titleObject.build());
+                responseAsset.title(extractTitleObject(content));
             } else if (asset.getVideo() != null) {
-                final VideoObject.VideoObjectBuilder videoObject = VideoObject.builder();
-                addAdmVideo(adType, content, bidType, imp, bid);
-                videoObject.vasttag(bid.getAdm());
-                responseAsset.video(videoObject.build());
+                responseAsset.video(extractVideoObject(adType, content, bidType, imp, bid));
             } else if (asset.getImg() != null) {
                 final ImageObject.ImageObjectBuilder imgObjectBuilder = ImageObject.builder();
                 imgObjectBuilder.url("");
@@ -1211,15 +1207,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 }
                 responseAsset.img(imageObject);
             } else if (asset.getData() != null) {
-                final DataObject.DataObjectBuilder dataObject = DataObject.builder();
-                dataObject.value("");
-                // TODO set label
-                if (Objects.equals(asset.getData().getType(), HuaweiAdsConstants.DATA_ASSET_TYPE_DESC)
-                        || Objects.equals(asset.getData().getType(), HuaweiAdsConstants.DATA_ASSET_TYPE_DESC2)) {
-                    // TODO set label
-                    dataObject.value(getDecodeValue(content.getMetaData().getDescription()));
-                }
-                responseAsset.data(dataObject.build());
+                responseAsset.data(extractDataObject(content, asset));
             }
             responseAsset.id(asset.getId());
             responseAssets.add(responseAsset.build());
@@ -1251,6 +1239,33 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private TitleObject extractTitleObject(Content content) {
+        final TitleObject.TitleObjectBuilder titleObject = TitleObject.builder();
+        final String text = getDecodeValue(content.getMetaData().getTitle());
+        titleObject.text(text);
+        titleObject.len(text.length());
+        return titleObject.build();
+    }
+
+    private VideoObject extractVideoObject(int adType, Content content, BidType bidType, Imp imp, Bid bid) {
+        final VideoObject.VideoObjectBuilder videoObject = VideoObject.builder();
+        addAdmVideo(adType, content, bidType, imp, bid);
+        videoObject.vasttag(bid.getAdm());
+        return videoObject.build();
+    }
+
+    private DataObject extractDataObject(Content content, Asset asset) {
+        final DataObject.DataObjectBuilder dataObject = DataObject.builder();
+        dataObject.value("");
+        // TODO set label
+        if (Objects.equals(asset.getData().getType(), HuaweiAdsConstants.DATA_ASSET_TYPE_DESC)
+                || Objects.equals(asset.getData().getType(), HuaweiAdsConstants.DATA_ASSET_TYPE_DESC2)) {
+            // TODO set label
+            dataObject.value(getDecodeValue(content.getMetaData().getDescription()));
+        }
+        return dataObject.build();
     }
 
     public String getNrl(Content content) {

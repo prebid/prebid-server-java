@@ -22,5 +22,4 @@ public class VideoInfo {
     Integer width;
 
     Integer height;
-
 }
