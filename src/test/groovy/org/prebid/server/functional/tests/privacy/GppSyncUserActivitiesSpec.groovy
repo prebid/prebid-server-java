@@ -1,10 +1,13 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.PrivacyModule
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.service.PrebidServerException
@@ -38,7 +41,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -50,6 +53,124 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+    }
+
+    def "PBS cookie sync call when privacy regulation match and allowing should include proper responded with bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = GppSectionId.USP_NAT_V1.value
+            it.account = accountId
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [privacyAllowRegulations]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(PrivacyModule.IAB_US_GENERIC)
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId,  activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
+
+        where:
+        privacyAllowRegulations << [PrivacyModule.IAB_US_GENERIC, PrivacyModule.IAB_ALL, PrivacyModule.ALL]
+    }
+
+    def "PBS cookie sync call when privacy regulation restring but sid excluded should include proper responded with bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = GppSectionId.USP_NAT_V1.value
+            it.account = accountId
+        }
+
+        and: "Activities set for cookie sync with all bidders allowed"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [PrivacyModule.IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(PrivacyModule.IAB_US_GENERIC, [GppSectionId.USP_NAT_V1], false)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId,  activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
+    }
+
+    def "PBS cookie sync call when privacy regulation not exist for account should include proper responded with bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = GppSectionId.USP_NAT_V1.value
+            it.account = accountId
+        }
+
+        and: "Activities set for cookie sync with all bidders allowed"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [PrivacyModule.IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(PrivacyModule.IAB_TFC_EU, [], false)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId,  activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
+    }
+
+    def "PBS cookie sync call when privacy regulation match and allowing by first element in hierarchy should exclude bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = GppSectionId.USP_NAT_V1.value
+            it.account = accountId
+        }
+
+        and: "Activities set for cookie sync with rejecting privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [PrivacyModule.IAB_US_GENERIC]
+        }
+
+        def ruleIabAll= new ActivityRule().tap {
+            it.privacyRegulation = [PrivacyModule.IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(PrivacyModule.IAB_US_GENERIC)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig( PrivacyModule.IAB_TFC_EU, [], false)
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId,  activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
     def "PBS cookie sync call when bidder rejected in activities should exclude bidders URLs with proper message and update disallowed metrics"() {
@@ -67,7 +188,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -82,6 +203,33 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
     }
 
+    def "PBS cookie sync call when privacy regulation match and rejecting should exclude bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = GppSectionId.USP_NAT_V1.value
+            it.account = accountId
+        }
+
+        and: "Activities set for cookie sync with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [PrivacyModule.IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(PrivacyModule.IAB_US_GENERIC, [], false)
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId,  activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request without cookies"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+    }
+
     def "PBS cookie sync call when default activity setting set to false should exclude bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
@@ -94,7 +242,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -119,7 +267,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -154,7 +302,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -180,7 +328,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -207,7 +355,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -240,7 +388,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"
@@ -272,7 +420,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"
@@ -302,7 +450,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"
@@ -344,7 +492,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
@@ -374,7 +522,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes setuid request"

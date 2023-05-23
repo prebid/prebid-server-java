@@ -5,7 +5,9 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.ModuleConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
@@ -144,8 +146,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         new Account(uuid: accountId, config: new AccountConfig(privacy: privacy))
     }
 
-    protected static Account getAccountWithAllowActivities(String accountId, AllowActivities activities) {
-        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities)
+    protected static Account getAccountWithAllowActivitiesAndPrivacyModule(String accountId,
+                                                                           AllowActivities activities,
+                                                                           List<AccountGppConfig> gppConfigs = []) {
+
+        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities, modules: gppConfigs)
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(cookieSync: cookieSyncConfig, privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
