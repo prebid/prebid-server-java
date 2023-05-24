@@ -10,3 +10,10 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 856
+    extra-info:
+      pkgNameConvert:
+      closeSiteSelectionByCountry:
+      chineseEndpoint: https://acd.op.hicloud.com/ppsadx/getResult
+      russianEndpoint: https://adx-drru.op.hicloud.com/ppsadx/getResult
+      europeanEndpoint: https://adx-dre.op.hicloud.com/ppsadx/getResult
+      asianEndpoint: https://adx-dra.op.hicloud.com/ppsadx/getResult

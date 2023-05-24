@@ -81,7 +81,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class HuaweiAdsBidder implements Bidder<BidRequest> {
+public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpHuaweiAds>> HUAWEI_ADS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -91,20 +91,32 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final List<PkgNameConvert> packageNameConverter;
     private final String closeSiteSelectionByCountry;
+    private final String chineseEndpoint;
+    private final String russianEndpoint;
+    private final String europeanEndpoint;
+    private final String asianEndpoint;
 
     public HuaweiAdsBidder(String endpoint,
                            List<PkgNameConvert> packageNameConverter,
                            String closeSiteSelectionByCountry,
+                           String chineseEndpoint,
+                           String russianEndpoint,
+                           String europeanEndpoint,
+                           String asianEndpoint,
                            JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(endpoint);
         this.packageNameConverter = Objects.requireNonNull(packageNameConverter);
         this.closeSiteSelectionByCountry = Objects.requireNonNull(closeSiteSelectionByCountry);
+        this.chineseEndpoint = Objects.requireNonNull(chineseEndpoint);
+        this.russianEndpoint = Objects.requireNonNull(russianEndpoint);
+        this.europeanEndpoint = Objects.requireNonNull(europeanEndpoint);
+        this.asianEndpoint = Objects.requireNonNull(asianEndpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+    public Result<List<HttpRequest<HuaweiAdsRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final HuaweiAdsRequest.HuaweiAdsRequestBuilder huaweiAdsRequestBuilder = HuaweiAdsRequest.builder();
         final List<AdSlot30> multislot = new ArrayList<>();
 
@@ -135,12 +147,12 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         final String countryCode = huaweiAdsRequest.getApp().getCountry();
 
         return Result.withValue(
-                HttpRequest.<BidRequest>builder()
+                HttpRequest.<HuaweiAdsRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(buildEndpoint(countryCode))
                         .headers(getHeaders(extImpHuaweiAds, bidRequest))
                         .body(mapper.encodeToBytes(huaweiAdsRequest))
-                        .payload(bidRequest)
+                        .payload(huaweiAdsRequest)
                         .build());
     }
 
@@ -438,7 +450,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
         if (user != null && user.getExt() != null) {
             final ExtUserDataHuaweiAds extUserDataHuaweiAds = mapper.mapper()
-                    .convertValue(user.getExt().getData(), ExtUserDataHuaweiAds.class);
+                    .convertValue(user.getExt(), ExtUserDataHuaweiAds.class);
 
             final ExtUserDataDeviceIdHuaweiAds deviceId = extUserDataHuaweiAds.getData();
 
@@ -608,18 +620,18 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
         // choose site
         if (ChineseSiteCountryCode.isContainsByName(countryCode)) {
-            return HuaweiAdsConstants.CHINESE_SITE_ENDPOINT;
+            return chineseEndpoint;
         } else if (RussianSiteCountryCode.isContainsByName(countryCode)) {
-            return HuaweiAdsConstants.RUSSIAN_SITE_ENDPOINT;
+            return russianEndpoint;
         } else if (EuropeanSiteCountryCode.isContainsByName(countryCode)) {
-            return HuaweiAdsConstants.EUROPEAN_SITE_ENDPOINT;
+            return europeanEndpoint;
         } else {
-            return HuaweiAdsConstants.ASIAN_SITE_ENDPOINT;
+            return asianEndpoint;
         }
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<HuaweiAdsRequest> httpCall, BidRequest bidRequest) {
         try {
             final HuaweiAdsResponse huaweiAdsResponse = parseBidResponse(httpCall.getResponse());
             checkHuaweiAdsResponseRetcode(huaweiAdsResponse);

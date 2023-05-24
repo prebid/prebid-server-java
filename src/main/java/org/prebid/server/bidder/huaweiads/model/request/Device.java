@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -41,14 +42,17 @@ public class Device {
 
     String emuiVer;
 
+    @JsonProperty("localeCountry")
     String localeCountry;
 
+    @JsonProperty("belongCountry")
     String belongCountry;
 
     String gaidTrackingEnabled;
 
     String gaid;
 
+    @JsonProperty("clientTime")
     String clientTime;
 
     String ip;

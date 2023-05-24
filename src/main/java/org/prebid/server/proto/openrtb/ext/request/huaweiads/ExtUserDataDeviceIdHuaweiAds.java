@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.huaweiads;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
@@ -13,5 +14,6 @@ public class ExtUserDataDeviceIdHuaweiAds {
 
     List<String> gaid;
 
+    @JsonProperty("clientTime")
     List<String> clientTime;
 }

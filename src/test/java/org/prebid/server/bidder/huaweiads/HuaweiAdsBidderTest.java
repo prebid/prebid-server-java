@@ -34,7 +34,6 @@ import org.prebid.server.bidder.huaweiads.model.response.MediaFile;
 import org.prebid.server.bidder.huaweiads.model.response.MetaData;
 import org.prebid.server.bidder.huaweiads.model.response.Monitor;
 import org.prebid.server.bidder.huaweiads.model.response.VideoInfo;
-import org.prebid.server.bidder.huaweiads.model.util.HuaweiAdsConstants;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -45,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuaweiAds;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtUserDataDeviceIdHuaweiAds;
-import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtUserDataHuaweiAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -63,6 +61,10 @@ import static org.assertj.core.api.Assertions.tuple;
 public class HuaweiAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://acd.op.hicloud.com/ppsadx/getResult";
+    private static final String CHINESE_ENDPOINT_URL = "https://acd.op.hicloud.com/ppsadx/getResult";
+    private static final String RUSSIAN_ENDPOINT_URL = "https://adx-drru.op.hicloud.com/ppsadx/getResult";
+    private static final String EUROPEAN_ENDPOINT_URL = "https://adx-dre.op.hicloud.com/ppsadx/getResult";
+    private static final String ASIAN_ENDPOINT_URL = "https://adx-dra.op.hicloud.com/ppsadx/getResult";
 
     private HuaweiAdsBidder huaweiAdsBidder;
 
@@ -86,7 +88,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Before
     public void setUp() {
         huaweiAdsBidder = new HuaweiAdsBidder(
-                ENDPOINT_URL, PKG_NAME_CONVERTS, CLOSE_SITE_SELECTION_BY_COUNTRY, jacksonMapper);
+                ENDPOINT_URL, PKG_NAME_CONVERTS, CLOSE_SITE_SELECTION_BY_COUNTRY,
+                CHINESE_ENDPOINT_URL, RUSSIAN_ENDPOINT_URL, EUROPEAN_ENDPOINT_URL, ASIAN_ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -96,7 +99,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -111,7 +114,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("", "adtype", "publisherId", "signKey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -126,7 +129,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("slotid", "", "publisherId", "signKey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -141,7 +144,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("slotid", "adtype", "", "signKey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -156,7 +159,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("slotid", "adtype", "publisherId", "", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -171,7 +174,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("slotid", "adtype", "publisherId", "signkey", "", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -188,7 +191,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", adtype, "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -208,7 +211,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", adtype, "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -227,7 +230,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", "native", "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -244,7 +247,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", "native", "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -263,7 +266,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", "native", "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -298,7 +301,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 request -> request
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         String expectedAdslot30 = "{\"version\":\"3.4\",\"multislot\":[{\"slotid\":\"slotid\",\"adtype\":3,\"test\":0,"
                 + "\"w\":200,\"h\":200,\"detailed_creative_type_list\":[\"903\"]}],\"app\":{\"country\":\"ZA\"},"
@@ -306,11 +309,6 @@ public class HuaweiAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .containsExactly(Native.builder().request(nativeRequest).build());
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readTree(httpRequest.getBody()))
                 .containsOnly(mapper.readTree(expectedAdslot30));
@@ -327,7 +325,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", adtype, "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -347,7 +345,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", adtype, "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -366,7 +364,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         ExtImpHuaweiAds.of(
                                 "slotid", "ROLL", "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -394,12 +392,12 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(HuaweiAdsConstants.ASIAN_SITE_ENDPOINT);
+            assertThat(httpRequest.getUri()).isEqualTo(ASIAN_ENDPOINT_URL);
             assertThat(httpRequest.getHeaders())
                     .extracting(Map.Entry::getKey, Map.Entry::getValue)
                     .contains(
@@ -417,7 +415,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpHuaweiAds.of("slotid", "banner", "publisherId", "signkey", "keyId", "false")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -445,7 +443,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                                         .build())
                                 .build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -470,7 +468,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build())
                         .app(App.builder().build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();
@@ -504,7 +502,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build())
                         .app(app));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         org.prebid.server.bidder.huaweiads.model.request.App expectedApp =
                 org.prebid.server.bidder.huaweiads.model.request.App.builder()
@@ -568,7 +566,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .device(device)
                         .regs(regs));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         org.prebid.server.bidder.huaweiads.model.request.Device expectedDevice =
                 org.prebid.server.bidder.huaweiads.model.request.Device.builder()
@@ -637,12 +635,12 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 request -> request
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(HuaweiAdsConstants.ASIAN_SITE_ENDPOINT);
+            assertThat(httpRequest.getUri()).isEqualTo(ASIAN_ENDPOINT_URL);
             assertThat(httpRequest.getHeaders())
                     .extracting(Map.Entry::getKey, Map.Entry::getValue)
                     .contains(
@@ -672,12 +670,12 @@ public class HuaweiAdsBidderTest extends VertxTest {
                                 .build())
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(HuaweiAdsConstants.EUROPEAN_SITE_ENDPOINT);
+            assertThat(httpRequest.getUri()).isEqualTo(EUROPEAN_ENDPOINT_URL);
             assertThat(httpRequest.getHeaders())
                     .extracting(Map.Entry::getKey, Map.Entry::getValue)
                     .contains(
@@ -714,12 +712,12 @@ public class HuaweiAdsBidderTest extends VertxTest {
                                 .build())
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(HuaweiAdsConstants.ASIAN_SITE_ENDPOINT);
+            assertThat(httpRequest.getUri()).isEqualTo(ASIAN_ENDPOINT_URL);
             assertThat(httpRequest.getHeaders())
                     .extracting(Map.Entry::getKey, Map.Entry::getValue)
                     .contains(
@@ -733,7 +731,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, null);
@@ -749,7 +747,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfErrorRetcode() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(400)
                         .reason("test")
@@ -769,7 +767,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseisEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -783,7 +781,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfMultiadEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .build()));
@@ -807,7 +805,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         Ad30 ad30 = givenAd30(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -843,7 +841,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
 
         Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.adType(1));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -881,7 +879,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
 
         Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.adType(1));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -921,7 +919,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(1)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -973,7 +971,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(1)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1066,7 +1064,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(6)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1166,7 +1164,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(6)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1258,7 +1256,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(6)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1313,7 +1311,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(1)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1351,13 +1349,13 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .user(User.builder().ext(ExtUser.builder().data(extUserData).build()).build()));
 
         Ad30 ad30 = givenAd30(ad30Modifier -> ad30Modifier.contentList(singletonList(
-                org.prebid.server.bidder.huaweiads.model.response.Content.builder()
-                        .metaData(MetaData.builder().build())
-                        .creativeType(1)
-                        .build()))
+                        org.prebid.server.bidder.huaweiads.model.response.Content.builder()
+                                .metaData(MetaData.builder().build())
+                                .creativeType(1)
+                                .build()))
                 .adType(3));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1438,7 +1436,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .creativeType(6)
                         .build())));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+        final BidderCall<HuaweiAdsRequest> httpCall = givenHttpCall(HuaweiAdsRequest.builder().build(),
                 mapper.writeValueAsString(HuaweiAdsResponse.builder()
                         .retcode(200)
                         .multiad(singletonList(ad30))
@@ -1490,13 +1488,15 @@ public class HuaweiAdsBidderTest extends VertxTest {
 
     private ObjectNode createExtUserData(ExtUserDataDeviceIdHuaweiAds extUserDataDeviceIdHuaweiAds) {
         return jacksonMapper.mapper().createObjectNode()
-                .putPOJO("data", ExtUserDataHuaweiAds.of(null))
-                .putPOJO("data", extUserDataDeviceIdHuaweiAds);
+                .putPOJO("gaid", extUserDataDeviceIdHuaweiAds.getGaid())
+                .putPOJO("oaid", extUserDataDeviceIdHuaweiAds.getOaid())
+                .putPOJO("imei", extUserDataDeviceIdHuaweiAds.getImei())
+                .putPOJO("clientTime", extUserDataDeviceIdHuaweiAds.getClientTime());
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<HuaweiAdsRequest> givenHttpCall(HuaweiAdsRequest huaweiAdsRequest, String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<HuaweiAdsRequest>builder().payload(huaweiAdsRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

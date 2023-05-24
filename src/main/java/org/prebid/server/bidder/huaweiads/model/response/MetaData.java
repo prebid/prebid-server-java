@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -13,6 +14,7 @@ public class MetaData {
 
     String description;
 
+    @JsonProperty("imageInfo")
     List<ImageInfo> imageInfoList;
 
     List<Icon> iconList;

@@ -48,6 +48,10 @@ public class HuaweiAdsConfiguration {
                                 config.getEndpoint(),
                                 config.getExtraInfo().getPkgNameConvert(),
                                 config.getExtraInfo().getCloseSiteSelectionByCountry(),
+                                config.getExtraInfo().getChineseEndpoint(),
+                                config.getExtraInfo().getRussianEndpoint(),
+                                config.getExtraInfo().getEuropeanEndpoint(),
+                                config.getExtraInfo().getAsianEndpoint(),
                                 mapper))
                 .assemble();
     }
@@ -70,6 +74,14 @@ public class HuaweiAdsConfiguration {
         List<PkgNameConvert> pkgNameConvert;
 
         String closeSiteSelectionByCountry;
+
+        String chineseEndpoint;
+
+        String russianEndpoint;
+
+        String europeanEndpoint;
+
+        String asianEndpoint;
     }
 
 }

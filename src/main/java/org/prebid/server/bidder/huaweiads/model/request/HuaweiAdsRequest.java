@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -25,5 +26,6 @@ public class HuaweiAdsRequest {
 
     String consent;
 
+    @JsonProperty("clientAdRequestId")
     String clientAdRequestId;
 }
