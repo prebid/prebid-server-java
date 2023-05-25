@@ -1,0 +1,22 @@
+{
+  "ip": "123.123.123.124",
+  "placements": [
+    {
+      "adTypes": [
+        4309,
+        641
+      ],
+      "count": 1,
+      "divName": "inline",
+      "prebid": {
+        "requestId": "imp_id"
+      },
+      "properties": {},
+      "options": {}
+    }
+  ],
+  "url": "http://www.example.com",
+  "user": {
+    "key": "123-123"
+  }
+}
