@@ -211,7 +211,8 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<CampaignRequestBody> httpCall, BidRequest bidRequest) {
         try {
-            final CampaignResponseBody campaignResponseBody = mapper.decodeValue(httpCall.getResponse().getBody(), CampaignResponseBody.class);
+            final CampaignResponseBody campaignResponseBody =
+                    mapper.decodeValue(httpCall.getResponse().getBody(), CampaignResponseBody.class);
             return Result.withValues(extractInline(campaignResponseBody, bidRequest));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));

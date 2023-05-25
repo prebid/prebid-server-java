@@ -35,7 +35,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.flipp.ExtImpFlipp;
 import org.prebid.server.proto.openrtb.ext.request.flipp.ExtImpFlippOptions;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -45,6 +44,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -606,9 +606,9 @@ public class FlippBidderTest extends VertxTest {
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
-                        Assertions.tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        Assertions.tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        Assertions.tuple(HttpUtil.USER_AGENT_HEADER.toString(), ua)
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), ua)
                 );
     }
 
@@ -629,8 +629,8 @@ public class FlippBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .anySatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Cannot construct instance of " +
-                            "`org.prebid.server.bidder.flipp.model.response.CampaignResponseBody`");
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Cannot construct instance of "
+                            + "`org.prebid.server.bidder.flipp.model.response.CampaignResponseBody`");
                 });
     }
 
@@ -800,7 +800,8 @@ public class FlippBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldPopulateBidWidthWithNullWhenInlineContentsDataWidthEmpty() throws JsonProcessingException {
+    public void makeBidsShouldPopulateBidWidthWithNullWhenInlineContentsDataWidthEmpty()
+            throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
