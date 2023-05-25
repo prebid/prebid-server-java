@@ -655,7 +655,7 @@ public class FlippBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyBidderBidWhenInlineEmpty() throws JsonProcessingException {
         // given
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(null)));
+                mapper.writeValueAsString(CampaignResponseBody.of(null, null)));
 
         // and
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -676,12 +676,8 @@ public class FlippBidderTest extends VertxTest {
         // and
         final Integer creativeId = 1;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(creativeId)
-                                .prebid(Prebid.of(BigDecimal.ONE, "any", "any", "123"))
-                                .adId(12)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
+                        inlineBuilder.creativeId(creativeId))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -702,12 +698,8 @@ public class FlippBidderTest extends VertxTest {
         // and
         final BigDecimal price = BigDecimal.ONE;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .prebid(Prebid.of(price, "any", "any", "123"))
-                                .adId(12)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
+                        inlineBuilder.prebid(Prebid.of(price, "any", "any", "123")))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -729,11 +721,8 @@ public class FlippBidderTest extends VertxTest {
         final String creative = "creative";
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .prebid(Prebid.of(BigDecimal.ONE, creative, "creativeType", "123"))
-                                .adId(12)
-                                .build())));
+                        inlineBuilder -> inlineBuilder
+                                .prebid(Prebid.of(BigDecimal.ONE, creative, "crType", "123")))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -754,12 +743,7 @@ public class FlippBidderTest extends VertxTest {
         // and
         final Integer adId = 12;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(adId)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder.adId(adId))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -779,12 +763,7 @@ public class FlippBidderTest extends VertxTest {
 
         // and
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(1)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(identity())));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -805,17 +784,9 @@ public class FlippBidderTest extends VertxTest {
         // and
         final Integer width = 22;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .contents(singletonList(Content.of(
-                                        "any",
-                                        "custom",
-                                        Data.of(null, 0, width),
-                                        "type")))
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(1)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder
+                        .contents(singletonList(Content.of("any", "custom",
+                                Data.of(null, 0, width), "type"))))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -835,17 +806,9 @@ public class FlippBidderTest extends VertxTest {
 
         // and
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .contents(singletonList(Content.of(
-                                        "any",
-                                        "custom",
-                                        null,
-                                        "type")))
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(1)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder
+                        .contents(singletonList(
+                                Content.of("any", "custom", null, "type"))))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -865,17 +828,9 @@ public class FlippBidderTest extends VertxTest {
 
         // and
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .contents(singletonList(Content.of(
-                                        "any",
-                                        "custom",
-                                        null,
-                                        "type")))
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(1)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
+                        inlineBuilder.contents(singletonList(
+                                Content.of("any", "custom", null, "type"))))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -895,13 +850,8 @@ public class FlippBidderTest extends VertxTest {
 
         // and
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
-                mapper.writeValueAsString(givenCampaignResponseBody(
-                        Inline.builder()
-                                .creativeId(1)
-                                .contents(null)
-                                .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
-                                .adId(1)
-                                .build())));
+                mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
+                        inlineBuilder.contents(null))));
 
         // when
         final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
@@ -912,6 +862,44 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getW)
                 .containsNull();
+    }
+
+    @Test
+    public void makeBidsShouldPopulateBidCurrencyAsUsdByDefault() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // and
+        final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
+                mapper.writeValueAsString(givenCampaignResponseBody(identity())));
+
+        // when
+        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBidCurrency)
+                .containsExactly("USD");
+    }
+
+    @Test
+    public void makeBidsShouldPopulateBidTypeAsBannerByDefault() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // and
+        final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
+                mapper.writeValueAsString(givenCampaignResponseBody(identity())));
+
+        // when
+        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(banner);
     }
 
     private static BidRequest givenBidRequest(
@@ -940,8 +928,12 @@ public class FlippBidderTest extends VertxTest {
                 .build();
     }
 
-    private static CampaignResponseBody givenCampaignResponseBody(Inline inline) {
-        return CampaignResponseBody.of(null, Decisions.of(singletonList(inline)));
+    private static CampaignResponseBody givenCampaignResponseBody(UnaryOperator<Inline.InlineBuilder> inlineCustomize) {
+        return CampaignResponseBody.of(null,
+                Decisions.of(singletonList(inlineCustomize.apply(Inline.builder()
+                        .creativeId(1)
+                        .prebid(Prebid.of(BigDecimal.ONE, "creative", "creativeType", "123"))
+                        .adId(1)).build())));
     }
 
     private static BidderCall<CampaignRequestBody> givenHttpCall(CampaignRequestBody campaignRequestBody, String body) {

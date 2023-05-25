@@ -11,7 +11,10 @@
     },
     "creativeType": {
       "type": "string",
-      "enum": ["NativeX", "DTX"]
+      "enum": [
+        "NativeX",
+        "DTX"
+      ]
     },
     "siteId": {
       "type": "integer"

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -57,7 +58,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final String FLIPP_CONTENT_CODE = "flipp-content-code";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
-    private static final int FIRST_INDEX = 0;
+    private static final Integer FIRST_INDEX = 0;
     private static final List<Integer> AD_TYPES = List.of(4309, 641);
     private static final List<Integer> DTX_TYPES = List.of(5061);
     private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
@@ -131,8 +132,9 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .requestId(imp.getId());
 
         if (CollectionUtils.isNotEmpty(ObjectUtil.getIfNotNull(imp.getBanner(), Banner::getFormat))) {
-            prebidRequest.height(imp.getBanner().getFormat().get(FIRST_INDEX).getH());
-            prebidRequest.width(imp.getBanner().getFormat().get(FIRST_INDEX).getW());
+            final Format format = imp.getBanner().getFormat().get(FIRST_INDEX);
+            prebidRequest.height(format.getH());
+            prebidRequest.width(format.getW());
         }
 
         return prebidRequest.build();
