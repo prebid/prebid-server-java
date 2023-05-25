@@ -9,10 +9,21 @@
     },
     "secure" : 1,
     "ext" : {
-      "SL" : [ "_adhese_prebid_demo_-leaderboard" ],
-      "ag" : [ "55" ],
-      "ci" : [ "gent", "brussels" ],
-      "tl" : [ "all" ]
+      "adhese" : {
+        "SL": [
+          "_adhese_prebid_demo_-leaderboard"
+        ],
+        "ag": [
+          "55"
+        ],
+        "ci": [
+          "gent",
+          "brussels"
+        ],
+        "tl": [
+          "all"
+        ]
+      }
     }
   } ],
   "site" : {

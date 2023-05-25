@@ -103,7 +103,8 @@ public class AdheseBidder implements Bidder<BidRequest> {
         parameterMap.putAll(getTargetParameters(extImpAdhese));
         parameterMap.putAll(getSlotParameter(extImpAdhese));
 
-        final ObjectNode adheseExtNode = mapper.mapper().valueToTree(parameterMap);
+        final ObjectNode adheseExtInnerNode = mapper.mapper().valueToTree(parameterMap);
+        final ObjectNode adheseExtNode = mapper.mapper().createObjectNode().set("adhese", adheseExtInnerNode);
 
         Imp imp = bidRequest.getImp().get(0).toBuilder()
                 .ext(adheseExtNode)

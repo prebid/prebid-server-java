@@ -124,6 +124,7 @@ public class AdheseBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
+                .extracting(jsonNode -> jsonNode.get("adhese"))
                 .containsExactly(mapper.valueToTree(expectedParameters));
     }
 
