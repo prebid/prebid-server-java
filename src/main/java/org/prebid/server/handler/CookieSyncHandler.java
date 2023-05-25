@@ -51,7 +51,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
-    private final CookieSyncGppService gppProcessor;
+    private final CookieSyncGppService gppService;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -63,7 +63,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
-                             CookieSyncGppService gppProcessor,
+                             CookieSyncGppService gppService,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -75,7 +75,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.gppProcessor = Objects.requireNonNull(gppProcessor);
+        this.gppService = Objects.requireNonNull(gppService);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -91,6 +91,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         cookieSyncContext(routingContext)
                 .compose(this::fillWithAccount)
+                .map(this::fillWithGppContext)
                 .map(this::fillWithActivityInfrastructure)
                 .map(this::processGpp)
                 .compose(this::fillWithPrivacyContext)
@@ -154,6 +155,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .otherwise(Account.empty(accountId));
     }
 
+    private CookieSyncContext fillWithGppContext(CookieSyncContext cookieSyncContext) {
+        return cookieSyncContext.toBuilder()
+                .gppContext(gppService.contextFrom(cookieSyncContext))
+                .build();
+    }
+
     private CookieSyncContext fillWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
         final Account account = cookieSyncContext.getAccount();
 
@@ -169,7 +176,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private CookieSyncContext processGpp(CookieSyncContext cookieSyncContext) {
         return cookieSyncContext.with(
-                gppProcessor.apply(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
+                gppService.updateCookieSyncRequest(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
     }
 
     private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {

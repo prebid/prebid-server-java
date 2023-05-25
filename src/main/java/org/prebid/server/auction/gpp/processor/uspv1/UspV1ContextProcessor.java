@@ -4,26 +4,33 @@ import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.UspV1;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.UpdateResult;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class UspV1ContextProcessor implements GppContextProcessor {
 
     @Override
-    public GppContext process(GppContext gppContext) {
+    public GppContextWrapper process(GppContext gppContext) {
+        final List<String> errors = new ArrayList<>();
+        return GppContextWrapper.of(process(gppContext, errors), errors);
+    }
+
+    private static GppContext process(GppContext gppContext, List<String> errors) {
         final GppContext.Scope scope = gppContext.scope();
         final UspV1Privacy uspV1Privacy = gppContext.regions().getUspV1Privacy();
 
         final UpdateResult<String> resolvedUsPrivacy = resolveUsPrivacy(
-                uspV1Privacy.getUsPrivacy(),
+                uspV1Privacy != null ? uspV1Privacy.getUsPrivacy() : null,
                 scope.getGppModel(),
                 scope.getSectionsIds(),
-                gppContext.errors());
+                errors);
 
         return resolvedUsPrivacy.isUpdated()
                 ? gppContext.with(UspV1Privacy.of(resolvedUsPrivacy.getValue()))
