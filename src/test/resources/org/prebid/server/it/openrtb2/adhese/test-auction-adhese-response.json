@@ -13,17 +13,15 @@
           "w": 728,
           "h": 90,
           "ext": {
-            "adhese": {
-              "id": "2291",
-              "libId": "424",
-              "orderId": "218",
-              "adspaceId": "386",
-              "priority": "0",
-              "adType": "leaderboard",
-              "adFormat": "",
-              "viewableImpressionCounter": "https://ads-demo.adhese.com/track/2291-Adhese_IABview/sl178/dtunknown/ogcontrol/IIe7416599-41b7-4332-b2ec-fd7b0f297695/tlall/A2127.68.78.84/?t=1685022928481",
-              "orderProperty": ""
-            },
+            "id": "2291",
+            "libId": "424",
+            "orderId": "218",
+            "adspaceId": "386",
+            "priority": "0",
+            "adType": "leaderboard",
+            "adFormat": "",
+            "viewableImpressionCounter": "https://ads-demo.adhese.com/track/2291-Adhese_IABview/sl178/dtunknown/ogcontrol/IIe7416599-41b7-4332-b2ec-fd7b0f297695/tlall/A2127.68.78.84/?t=1685022928481",
+            "orderProperty": "",
             "origbidcpm": 1.0,
             "origbidcur": "USD",
             "prebid": {

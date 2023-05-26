@@ -2,6 +2,7 @@ package org.prebid.server.bidder.adhese;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -12,6 +13,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.adhese.model.AdheseOriginData;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -210,6 +212,9 @@ public class AdheseBidderTest extends VertxTest {
                         .id("impId")
                         .build()))
                 .build();
+        final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
+                "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
+        final ObjectNode adheseExtNode = mapper.createObjectNode().set("adhese", mapper.valueToTree(adheseOriginData));
         final Bid bid = Bid.builder()
                 .id("bidId")
                 .impid("impId")
@@ -218,6 +223,7 @@ public class AdheseBidderTest extends VertxTest {
                 .dealid("888")
                 .w(728)
                 .h(90)
+                .ext(adheseExtNode)
                 .build();
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder().bid(singletonList(bid)).build()))
@@ -245,6 +251,10 @@ public class AdheseBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
+        final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
+                "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
+        final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
+        final ObjectNode adheseExtNode = mapper.createObjectNode().set("adhese", adheseOriginDataNode);
         final Bid bid = Bid.builder()
                 .id("bidId")
                 .impid("impId")
@@ -253,6 +263,7 @@ public class AdheseBidderTest extends VertxTest {
                 .dealid("888")
                 .w(728)
                 .h(90)
+                .ext(adheseExtNode)
                 .build();
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder().bid(singletonList(bid)).build()))
@@ -264,7 +275,10 @@ public class AdheseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adheseBidder.makeBids(response, bidRequest);
 
         // then
-        final BidderBid expected = BidderBid.of(bid, BidType.banner, "USD");
+        final Bid expectedBid = bid.toBuilder()
+                .ext(mapper.valueToTree(adheseOriginDataNode))
+                .build();
+        final BidderBid expected = BidderBid.of(expectedBid, BidType.banner, "USD");
 
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
         assertThat(result.getErrors()).isEmpty();
