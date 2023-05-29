@@ -14,4 +14,19 @@ public enum CreativeType {
     public Integer getCode() {
         return code;
     }
+
+    public static CreativeType fromCreativeTypeCode(int creativeTypeCode) {
+        return switch (creativeTypeCode) {
+            case 2 -> CreativeType.BIG_PICTURE;
+            case 3 -> CreativeType.BIG_PICTURE_2;
+            case 4 -> CreativeType.GIF;
+            case 6 -> CreativeType.VIDEO_TEXT;
+            case 7 -> CreativeType.SMALL_PICTURE;
+            case 8 -> CreativeType.THREE_SMALL_PICTURES_TEXT;
+            case 9 -> CreativeType.VIDEO;
+            case 10 -> CreativeType.ICON_TEXT;
+            case 11 -> CreativeType.VIDEO_WITH_PICTURES_TEXT;
+            default -> CreativeType.TEXT;
+        };
+    }
 }

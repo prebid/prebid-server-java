@@ -36,4 +36,17 @@ public enum AdsType {
             default -> AdsType.BANNER;
         };
     }
+
+    public static AdsType fromAdsTypeCode(int adtype) {
+        return switch (adtype) {
+            case 1 -> AdsType.SPLASH;
+            case 2 -> AdsType.MAGAZINE_LOCK;
+            case 3 -> AdsType.XNATIVE;
+            case 7 -> AdsType.REWARDED;
+            case 12 -> AdsType.INTERSTITIAL;
+            case 17 -> AdsType.AUDIO;
+            case 60 -> AdsType.ROLL;
+            default -> AdsType.BANNER;
+        };
+    }
 }
