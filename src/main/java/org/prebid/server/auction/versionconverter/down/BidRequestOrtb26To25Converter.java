@@ -120,14 +120,23 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final ObjectNode impExt = imp.getExt();
         final ObjectNode modifiedImpExt = modifyImpExt(impExt, imp.getRwdd());
 
-        return ObjectUtils.anyNotNull(modifiedVideo, modifiedAudio, imp.getSsai(), modifiedImpExt)
+        return ObjectUtils.anyNotNull(modifiedVideo,
+                modifiedAudio,
+                imp.getSsai(),
+                imp.getQty(),
+                imp.getRefresh(),
+                modifiedImpExt)
+
                 ? imp.toBuilder()
                 .video(modifiedVideo != null ? modifiedVideo : video)
                 .audio(modifiedAudio != null ? modifiedAudio : audio)
                 .rwdd(null)
                 .ssai(null)
+                .qty(null)
+                .refresh(null)
                 .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
                 .build()
+
                 : null;
     }
 
@@ -143,7 +152,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 video.getPodseq(),
                 video.getRqddurs(),
                 video.getSlotinpod(),
-                video.getMincpmpersec())
+                video.getMincpmpersec(),
+                video.getPlcmt())
 
                 ? video.toBuilder()
                 .maxseq(null)
@@ -153,6 +163,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rqddurs(null)
                 .slotinpod(null)
                 .mincpmpersec(null)
+                .plcmt(null)
                 .build()
 
                 : null;

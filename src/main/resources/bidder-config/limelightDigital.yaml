@@ -8,6 +8,9 @@ adapters:
       evtech:
         enabled: false
         endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
+      adsyield:
+        enabled: false
+        endpoint: http://ads-pbs.open-adsyield.com/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

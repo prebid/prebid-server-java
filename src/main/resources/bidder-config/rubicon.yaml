@@ -24,9 +24,9 @@ adapters:
     usersync:
       cookie-family-name: rubicon
       redirect:
-        url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+        url: GET_FROM_globalsupport@magnite.com
         support-cors: false
     generate-bid-id: false
     XAPI:
-      Username:
-      Password:
+      Username: GET_FROM_globalsupport@magnite.com
+      Password: GET_FROM_globalsupport@magnite.com

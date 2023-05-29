@@ -1668,6 +1668,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000::"))).willReturn("2001:0db8:85a3:0000::");
 
         final User user = User.builder()
+                .id("id")
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
@@ -1698,6 +1699,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final BidderPrivacyResult expected = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
                 .user(User.builder()
+                        .id(null)
                         .buyeruid(null)
                         .yob(null)
                         .gender(null)
@@ -1727,6 +1729,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUser() {
         // given
         final User user = User.builder()
+                .id("id")
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
@@ -1741,6 +1744,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(User.builder()
+                .id(null)
                 .buyeruid(null)
                 .yob(null)
                 .gender(null)

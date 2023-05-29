@@ -43,7 +43,7 @@ adapters:
           enabled: true
           cookie-family-name: adsinteractive
           redirect:
-            url: http://pb.adsinteractive.com/getuid?{{redirect_url}}
+            url: http://bid.adsinteractive.com/getuid?{{redirect_url}}
             support-cors: false
             uid-macro: '$AUID'
     meta-info:
