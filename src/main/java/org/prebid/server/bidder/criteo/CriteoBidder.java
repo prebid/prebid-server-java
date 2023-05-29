@@ -5,9 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import com.networknt.schema.utils.JsonNodeUtil;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,7 +19,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.Collection;
 import java.util.Collections;
