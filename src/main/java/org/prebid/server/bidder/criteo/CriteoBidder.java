@@ -5,7 +5,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import com.networknt.schema.utils.JsonNodeUtil;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -16,8 +18,10 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +54,7 @@ public class CriteoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> extractBidsFromResponse(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -61,8 +65,23 @@ public class CriteoBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(modifyBidExt(bid), getBidType(bid), bidResponse.getCur()))
                 .toList();
+    }
+
+    private Bid modifyBidExt(Bid bid) {
+        final Bid.BidBuilder modifyBid = bid.toBuilder();
+
+        Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("networkName"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::textValue)
+                .ifPresent(networkName -> modifyBid.ext(mapper.mapper().valueToTree(ExtBidPrebid.builder()
+                        .meta(mapper.mapper().createObjectNode().put("networkName", networkName))
+                        .build())));
+
+        return modifyBid.build();
     }
 
     private static BidType getBidType(Bid bid) {
