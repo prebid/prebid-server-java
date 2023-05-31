@@ -9,6 +9,7 @@ import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleC
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class GppSidRuleCreator extends AbstractRuleCreator<AccountActivityGppSidRuleConfig> {
@@ -25,7 +26,7 @@ public class GppSidRuleCreator extends AbstractRuleCreator<AccountActivityGppSid
         return new GppSidRule(
                 condition != null ? setOf(condition.getComponentTypes()) : null,
                 condition != null ? setOf(condition.getComponentNames()) : null,
-                condition != null && intersects(condition.getSids(), gppContext.scope().getSectionsIds()),
+                sidsMatched(condition, gppContext.scope().getSectionsIds()),
                 allow);
     }
 
@@ -35,6 +36,11 @@ public class GppSidRuleCreator extends AbstractRuleCreator<AccountActivityGppSid
 
     private static <V> Set<V> setOf(Collection<V> collection) {
         return collection != null ? new HashSet<>(collection) : null;
+    }
+
+    private static boolean sidsMatched(AccountActivityGppSidRuleConfig.Condition condition, Set<Integer> gppSids) {
+        final List<Integer> sids = condition != null ? condition.getSids() : null;
+        return sids == null || intersects(sids, gppSids);
     }
 
     private static boolean intersects(Collection<Integer> configurationSids, Collection<Integer> gppSids) {
