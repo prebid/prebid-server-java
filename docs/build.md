@@ -45,3 +45,8 @@ mvn clean package
 ```bash
 mvn clean package --file extra/pom.xml
 ```
+
+## Common problems
+For IntelliJ IDEA users, if IDEA can't resolve proto classes:
+In IntelliJ IDEA, click `Help > Edit custom properties...` and add this property(in kilobytes): `idea.max.intellisense.filesize=your-value-here`(for example, `idea.max.intellisense.filesize=200000`).
+This will increase file size for intellisense introspection. You can find more information about this property here: https://www.jetbrains.com/help/objc/configuring-file-size-limit.html
