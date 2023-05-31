@@ -10,6 +10,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
@@ -264,6 +265,7 @@ public class WebConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
@@ -277,6 +279,7 @@ public class WebConfiguration {
                 logSamplingRate,
                 uidsCookieService,
                 cookieSyncGppProcessor,
+                activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,
@@ -293,6 +296,7 @@ public class WebConfiguration {
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PrivacyEnforcementService privacyEnforcementService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
@@ -304,6 +308,7 @@ public class WebConfiguration {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporter,
                 metrics,
@@ -373,23 +378,23 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             @Autowired(required = false) UserService userService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
-            @Value("${deals.enabled}") boolean dealsEnabled,
-            Metrics metrics) {
+            @Value("${deals.enabled}") boolean dealsEnabled) {
 
         return new NotificationEventHandler(
                 uidsCookieService,
                 applicationEventService,
                 userService,
+                activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
                 defaultTimeoutMillis,
-                dealsEnabled,
-                metrics);
+                dealsEnabled);
     }
 
     @Bean

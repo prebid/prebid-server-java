@@ -1,10 +1,12 @@
-package org.prebid.server.activity;
+package org.prebid.server.activity.infrastructure;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 
@@ -49,7 +51,7 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldReturnTrueAndUpdateMetrics() {
         // given
         given(activityConfiguration.isAllowed(argThat(arg -> arg.getComponentType().equals(ComponentType.BIDDER))))
-                .willReturn(ActivityContextResult.of(true, 3));
+                .willReturn(ActivityCallResult.of(true, 3));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.verbose);
 
@@ -70,7 +72,7 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldNotUpdateMetricsIfAllowedAndZeroProcessedRules() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(true, 0));
+                .willReturn(ActivityCallResult.of(true, 0));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.basic);
 
@@ -89,7 +91,7 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldUpdateExpectedMetricsIfDisallowedAndTraceLevelIsBasic() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(false, 1));
+                .willReturn(ActivityCallResult.of(false, 1));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.basic);
 
@@ -108,7 +110,7 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldUpdateExpectedMetricsIfDisallowedAndTraceLevelIsVerbose() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(false, 1));
+                .willReturn(ActivityCallResult.of(false, 1));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.verbose);
 

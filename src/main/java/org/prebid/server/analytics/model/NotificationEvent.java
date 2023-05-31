@@ -2,7 +2,7 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 

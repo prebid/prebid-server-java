@@ -5,7 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cache.model.DebugHttpCall;

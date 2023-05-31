@@ -42,7 +42,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;

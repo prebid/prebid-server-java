@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.cookie.UidsCookie;

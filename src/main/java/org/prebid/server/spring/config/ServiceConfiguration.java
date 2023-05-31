@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -331,6 +332,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             RequestValidator requestValidator,
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -351,6 +353,7 @@ public class ServiceConfiguration {
                 logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 auctionTimeoutResolver,
                 timeoutFactory,

@@ -15,6 +15,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -77,6 +78,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private CookieSyncGppService cookieSyncGppProcessor;
     @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private CookieSyncService cookieSyncService;
     @Mock
     private ApplicationSettings applicationSettings;
@@ -120,6 +123,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 0.05,
                 uidsCookieService,
                 cookieSyncGppProcessor,
+                activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,

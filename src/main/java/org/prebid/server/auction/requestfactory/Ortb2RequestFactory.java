@@ -14,8 +14,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -78,6 +78,7 @@ public class Ortb2RequestFactory {
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
@@ -95,6 +96,7 @@ public class Ortb2RequestFactory {
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
+                               ActivityInfrastructureCreator activityInfrastructureCreator,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
@@ -112,6 +114,7 @@ public class Ortb2RequestFactory {
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -174,15 +177,10 @@ public class Ortb2RequestFactory {
     }
 
     public Future<ActivityInfrastructure> activityInfrastructureFrom(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-
-        final ActivityInfrastructure activityInfrastructure = new ActivityInfrastructure(
-                account.getId(),
-                AccountActivitiesConfigurationUtils.parse(account),
-                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic),
-                metrics);
-
-        return Future.succeededFuture(activityInfrastructure);
+        return Future.succeededFuture(activityInfrastructureCreator.create(
+                auctionContext.getAccount(),
+                auctionContext.getGppContext(),
+                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
     }
 
     public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {

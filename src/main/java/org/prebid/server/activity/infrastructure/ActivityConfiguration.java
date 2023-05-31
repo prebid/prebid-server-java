@@ -1,6 +1,6 @@
-package org.prebid.server.activity;
+package org.prebid.server.activity.infrastructure;
 
-import org.prebid.server.activity.rule.Rule;
+import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,19 +20,19 @@ public class ActivityConfiguration {
         return new ActivityConfiguration(allowByDefault, rules);
     }
 
-    public ActivityContextResult isAllowed(ActivityPayload activityPayload) {
+    public ActivityCallResult isAllowed(ActivityCallPayload activityCallPayload) {
         int processedRulesCount = 0;
         Rule matchedRule = null;
 
         for (Rule rule : rules) {
             processedRulesCount++;
-            if (rule.matches(activityPayload)) {
+            if (rule.matches(activityCallPayload)) {
                 matchedRule = rule;
                 break;
             }
         }
 
-        return ActivityContextResult.of(
+        return ActivityCallResult.of(
                 Optional.ofNullable(matchedRule)
                         .map(Rule::allowed)
                         .orElse(allowByDefault),

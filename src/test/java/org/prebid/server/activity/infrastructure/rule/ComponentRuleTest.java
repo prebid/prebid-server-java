@@ -1,10 +1,10 @@
-package org.prebid.server.activity.rule;
+package org.prebid.server.activity.infrastructure.rule;
 
 import org.junit.Test;
-import org.prebid.server.activity.ActivityPayload;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityCallPayload;
 
-import static java.util.Collections.singletonList;
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ComponentRuleTest {
@@ -12,7 +12,7 @@ public class ComponentRuleTest {
     @Test
     public void allowedShouldReturnExpectedResult() {
         // given
-        final Rule rule = ComponentRule.of(null, null, true);
+        final Rule rule = new ComponentRule(null, null, true);
 
         // when
         final boolean allowed = rule.allowed();
@@ -24,10 +24,10 @@ public class ComponentRuleTest {
     @Test
     public void matchesShouldReturnTrueIfComponentTypesIsNull() {
         // given
-        final Rule rule = ComponentRule.of(null, null, true);
+        final Rule rule = new ComponentRule(null, null, true);
 
         // when
-        final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, null));
+        final boolean matches = rule.matches(ActivityCallPayload.of(ComponentType.BIDDER, null));
 
         // then
         assertThat(matches).isEqualTo(true);
@@ -36,10 +36,10 @@ public class ComponentRuleTest {
     @Test
     public void matchesShouldReturnFalseIfComponentTypesDoesNotContainsArgument() {
         // given
-        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), null, true);
+        final Rule rule = new ComponentRule(singleton(ComponentType.ANALYTICS), null, true);
 
         // when
-        final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, null));
+        final boolean matches = rule.matches(ActivityCallPayload.of(ComponentType.BIDDER, null));
 
         // then
         assertThat(matches).isEqualTo(false);
@@ -48,10 +48,10 @@ public class ComponentRuleTest {
     @Test
     public void matchesShouldReturnTrueIfComponentNamesIsNull() {
         // given
-        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), null, true);
+        final Rule rule = new ComponentRule(singleton(ComponentType.ANALYTICS), null, true);
 
         // when
-        final boolean matches = rule.matches(ActivityPayload.of(ComponentType.ANALYTICS, "componentName"));
+        final boolean matches = rule.matches(ActivityCallPayload.of(ComponentType.ANALYTICS, "componentName"));
 
         // then
         assertThat(matches).isEqualTo(true);
@@ -60,10 +60,10 @@ public class ComponentRuleTest {
     @Test
     public void matchesShouldReturnFalseIfComponentNamesDoesNotContainsArgument() {
         // given
-        final Rule rule = ComponentRule.of(singletonList(ComponentType.ANALYTICS), singletonList("other"), true);
+        final Rule rule = new ComponentRule(singleton(ComponentType.ANALYTICS), singleton("other"), true);
 
         // when
-        final boolean matches = rule.matches(ActivityPayload.of(ComponentType.ANALYTICS, "componentName"));
+        final boolean matches = rule.matches(ActivityCallPayload.of(ComponentType.ANALYTICS, "componentName"));
 
         // then
         assertThat(matches).isEqualTo(false);
@@ -72,10 +72,10 @@ public class ComponentRuleTest {
     @Test
     public void matchesShouldReturnExpectedResult() {
         // given
-        final Rule rule = ComponentRule.of(singletonList(ComponentType.BIDDER), singletonList("bidder"), true);
+        final Rule rule = new ComponentRule(singleton(ComponentType.BIDDER), singleton("bidder"), true);
 
         // when
-        final boolean matches = rule.matches(ActivityPayload.of(ComponentType.BIDDER, "bidder"));
+        final boolean matches = rule.matches(ActivityCallPayload.of(ComponentType.BIDDER, "bidder"));
 
         // then
         assertThat(matches).isEqualTo(true);

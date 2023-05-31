@@ -14,12 +14,13 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
@@ -69,6 +70,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final HostVendorTcfDefinerService tcfDefinerService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
@@ -80,6 +82,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          PrivacyEnforcementService privacyEnforcementService,
+                         ActivityInfrastructureCreator activityInfrastructureCreator,
                          HostVendorTcfDefinerService tcfDefinerService,
                          AnalyticsReporterDelegator analyticsDelegator,
                          Metrics metrics,
@@ -89,6 +92,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
@@ -134,12 +138,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .cookieName(cookieName)
                                 .syncType(cookieNameToSyncType.get(cookieName))
                                 .privacyContext(privacyContext)
-                                .activityInfrastructure(new ActivityInfrastructure(
-                                        account.getId(),
-                                        AccountActivitiesConfigurationUtils.parse(account),
-                                        TraceLevel.basic,
-                                        metrics))
-                                .build()));
+                                .build()))
+                .map(this::fillWithActivityInfrastructure);
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
@@ -147,6 +147,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
                 .otherwise(Account.empty(accountId));
+    }
+
+    private SetuidContext fillWithActivityInfrastructure(SetuidContext setuidContext) {
+        return setuidContext.toBuilder()
+                .activityInfrastructure(activityInfrastructureCreator.create(
+                        setuidContext.getAccount(),
+                        GppContextCreator.from(null, null).build().getGppContext(),
+                        TraceLevel.basic))
+                .build();
     }
 
     private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,

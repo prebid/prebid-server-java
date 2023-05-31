@@ -132,6 +132,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
