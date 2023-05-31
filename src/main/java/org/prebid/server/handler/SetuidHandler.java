@@ -20,7 +20,7 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
@@ -70,6 +70,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final SetuidGppService gppService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final HostVendorTcfDefinerService tcfDefinerService;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -82,6 +83,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          PrivacyEnforcementService privacyEnforcementService,
+                         SetuidGppService gppService,
                          ActivityInfrastructureCreator activityInfrastructureCreator,
                          HostVendorTcfDefinerService tcfDefinerService,
                          AnalyticsReporterDelegator analyticsDelegator,
@@ -92,6 +94,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.gppService = Objects.requireNonNull(gppService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
@@ -139,7 +142,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .syncType(cookieNameToSyncType.get(cookieName))
                                 .privacyContext(privacyContext)
                                 .build()))
-                .map(this::fillWithActivityInfrastructure);
+
+                .compose(setuidContext -> gppService.contextFrom(setuidContext)
+                        .map(setuidContext::with))
+
+                .map(this::fillWithActivityInfrastructure)
+
+                .map(gppService::updateSetuidContext);
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
@@ -153,7 +162,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return setuidContext.toBuilder()
                 .activityInfrastructure(activityInfrastructureCreator.create(
                         setuidContext.getAccount(),
-                        GppContextCreator.from(null, null).build().getGppContext(),
+                        setuidContext.getGppContext(),
                         TraceLevel.basic))
                 .build();
     }

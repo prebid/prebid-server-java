@@ -27,12 +27,12 @@ public class AuctionGppService {
     }
 
     public Future<GppContext> contextFrom(AuctionContext auctionContext) {
-        return Future.succeededFuture(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(AuctionGppService::contextFrom)
-                .map(gppService::processContext)
-                .onSuccess(gppContextWrapper -> enrichWithErrors(auctionContext, gppContextWrapper.getErrors()))
-                .map(GppContextWrapper::getGppContext);
+        final GppContextWrapper initialGppContextWrapper = contextFrom(auctionContext.getBidRequest());
+        final GppContextWrapper gppContextWrapper = gppService.processContext(initialGppContextWrapper);
+
+        enrichWithErrors(auctionContext, gppContextWrapper.getErrors());
+
+        return Future.succeededFuture(gppContextWrapper.getGppContext());
     }
 
     private static GppContextWrapper contextFrom(BidRequest bidRequest) {

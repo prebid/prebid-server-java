@@ -38,6 +38,7 @@ import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.GppService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
@@ -325,6 +326,11 @@ public class ServiceConfiguration {
     @Bean
     CookieSyncGppService cookieSyncGppProcessor(GppService gppService) {
         return new CookieSyncGppService(gppService);
+    }
+
+    @Bean
+    SetuidGppService setuidGppService(GppService gppService) {
+        return new SetuidGppService(gppService);
     }
 
     @Bean

@@ -20,6 +20,7 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -85,6 +86,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
+    private SetuidGppService gppService;
+    @Mock
     private ActivityInfrastructureCreator activityInfrastructureCreator;
     @Mock
     private HostVendorTcfDefinerService tcfDefinerService;
@@ -113,6 +116,9 @@ public class SetuidHandlerTest extends VertxTest {
         tcfContext = TcfContext.builder().inGdprScope(false).build();
         given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
+        given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(gppService.updateSetuidContext(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
         given(activityInfrastructureCreator.create(any(), any(), any()))
                 .willReturn(activityInfrastructure);
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
@@ -150,6 +156,7 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
@@ -477,6 +484,7 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
@@ -520,6 +528,7 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
@@ -562,6 +571,7 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
@@ -654,6 +664,7 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
