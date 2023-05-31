@@ -14,4 +14,4 @@ target/
 .DS_Store
 
 .allure/
-src/main/proto
+src/main/proto/
