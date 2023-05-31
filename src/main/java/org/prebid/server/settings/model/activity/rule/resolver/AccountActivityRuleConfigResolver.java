@@ -18,7 +18,7 @@ public class AccountActivityRuleConfigResolver {
         return MATCHERS.stream()
                 .filter(matcher -> matcher.matches(ruleNode))
                 .findFirst()
-                .orElseThrow()
+                .orElseGet(() -> MATCHERS.get(MATCHERS.size() - 1))
                 .type();
     }
 }
