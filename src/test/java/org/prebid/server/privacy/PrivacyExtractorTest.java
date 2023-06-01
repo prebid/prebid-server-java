@@ -205,6 +205,8 @@ public class PrivacyExtractorTest extends VertxTest {
         final HttpServerRequest request = mock(HttpServerRequest.class);
         given(request.getParam(eq("gdpr"))).willReturn("0");
         given(request.getParam(eq("gdpr_consent"))).willReturn("consent");
+        given(request.getParam(eq("gpp"))).willReturn("gpp");
+        given(request.getParam(eq("gpp_sid"))).willReturn("1,2");
 
         // when
         final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(request);
@@ -216,8 +218,8 @@ public class PrivacyExtractorTest extends VertxTest {
                         .consentString("consent")
                         .ccpa(Ccpa.EMPTY)
                         .coppa(0)
-                        .gpp("")
-                        .gppSid(emptyList())
+                        .gpp("gpp")
+                        .gppSid(List.of(1, 2))
                         .build());
     }
 
