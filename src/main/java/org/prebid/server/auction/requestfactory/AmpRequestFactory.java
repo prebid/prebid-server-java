@@ -88,7 +88,7 @@ public class AmpRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    private final AmpGppService ampGppService;
+    private final AmpGppService gppService;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
@@ -100,7 +100,7 @@ public class AmpRequestFactory {
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
                              BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                             AmpGppService ampGppService,
+                             AmpGppService gppService,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
                              Ortb2ImplicitParametersResolver paramsResolver,
@@ -112,7 +112,7 @@ public class AmpRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
-        this.ampGppService = Objects.requireNonNull(ampGppService);
+        this.gppService = Objects.requireNonNull(gppService);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
@@ -142,7 +142,7 @@ public class AmpRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
-                .compose(auctionContext -> ampGppService.contextFrom(auctionContext)
+                .compose(auctionContext -> gppService.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
@@ -386,7 +386,7 @@ public class AmpRequestFactory {
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> ampGppService.updateBidRequest(bidRequest, auctionContext))
+                .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))

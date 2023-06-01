@@ -7,6 +7,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleConfig;
 
 import java.util.Map;
 
@@ -65,6 +66,15 @@ public class AccountActivitiesConfigurationUtilsTest {
                                 AccountActivityComponentRuleConfig.of(
                                         AccountActivityComponentRuleConfig.Condition.of(
                                                 singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                        null))),
+                        Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                                AccountActivityGppSidRuleConfig.of(null, null),
+                                AccountActivityGppSidRuleConfig.of(
+                                        AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                                        null),
+                                AccountActivityGppSidRuleConfig.of(
+                                        AccountActivityGppSidRuleConfig.Condition.of(
+                                                singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
                                         null))))))
                 .build();
 
@@ -76,13 +86,31 @@ public class AccountActivitiesConfigurationUtilsTest {
     }
 
     @Test
-    public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidConditionalRule() {
+    public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidComponentRule() {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(null, null, Map.of(
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityComponentRuleConfig.of(
                                         AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),
+                                        null))))))
+                .build();
+
+        // when
+        final boolean result = AccountActivitiesConfigurationUtils.isInvalidActivitiesConfiguration(account);
+
+        // then
+        assertThat(result).isEqualTo(true);
+    }
+
+    @Test
+    public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidGppSidRule() {
+        // given
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
+                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
+                                AccountActivityGppSidRuleConfig.of(
+                                        AccountActivityGppSidRuleConfig.Condition.of(emptyList(), emptyList(), null),
                                         null))))))
                 .build();
 
@@ -109,6 +137,18 @@ public class AccountActivitiesConfigurationUtilsTest {
                         AccountActivityComponentRuleConfig.of(
                                 AccountActivityComponentRuleConfig.Condition.of(
                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                null))),
+                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                        AccountActivityGppSidRuleConfig.of(null, null),
+                        AccountActivityGppSidRuleConfig.of(
+                                AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                                null),
+                        AccountActivityGppSidRuleConfig.of(
+                                AccountActivityGppSidRuleConfig.Condition.of(emptyList(), emptyList(), null),
+                                null),
+                        AccountActivityGppSidRuleConfig.of(
+                                AccountActivityGppSidRuleConfig.Condition.of(
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
                                 null))));
 
         // when
@@ -126,6 +166,15 @@ public class AccountActivitiesConfigurationUtilsTest {
                         AccountActivityComponentRuleConfig.of(
                                 AccountActivityComponentRuleConfig.Condition.of(
                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                null))),
+                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                        AccountActivityGppSidRuleConfig.of(null, null),
+                        AccountActivityGppSidRuleConfig.of(
+                                AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                                null),
+                        AccountActivityGppSidRuleConfig.of(
+                                AccountActivityGppSidRuleConfig.Condition.of(
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
                                 null)))));
     }
 }

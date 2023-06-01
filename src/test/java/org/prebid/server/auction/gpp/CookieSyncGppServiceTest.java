@@ -141,7 +141,7 @@ public class CookieSyncGppServiceTest {
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
                 List.of(2, 6),
                 TcfEuV2Privacy.of(2, "gppConsent"),
-                UspV1Privacy.of("gppUsPrivacy")));
+                null));
 
         // when
         final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
@@ -180,7 +180,7 @@ public class CookieSyncGppServiceTest {
                 givenValidGppString(), List.of(2, 6), 1, "consent", null);
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
                 List.of(2, 6),
-                TcfEuV2Privacy.of(2, "gppConsent"),
+                null,
                 UspV1Privacy.of("gppUsPrivacy")));
 
         // when
