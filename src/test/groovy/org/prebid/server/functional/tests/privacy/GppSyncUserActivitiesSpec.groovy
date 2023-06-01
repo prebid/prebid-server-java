@@ -13,7 +13,6 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 
@@ -388,16 +387,23 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
-    def "PBS cookie sync should allow activity when intersection between gppSid and the condition.gppSid"() {
+    def "PBS cookie sync should allow rule when gppSid intersection"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.account = accountId
-            it.gppSid = TCF_EU_V2.value
+            it.gppSid = gppSid
         }
 
-        and: "Activities set for cookie sync with all bidders allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = [PBSUtils.randomString]
+            it.gppSid = conditionGppSid
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Flush metrics"
@@ -416,18 +422,28 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+
+        where:
+        gppSid          | conditionGppSid
+        null            | [USP_V1.intValue]
+        USP_V1.value | null
     }
 
-    def "PBS cookie sync shouldn't allow activity when gppSid doesn't #decription"() {
+    def "PBS cookie sync should disallowed rule when gppSid intersection"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.account = accountId
-            it.gppSid = gppSid
+            it.gppSid = USP_V1.value
         }
 
-        and: "Activities set for cookie sync with all bidders rejected"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            componentType = null
+            componentName = null
+            gppSid = [USP_V1.intValue]
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Flush metrics"
@@ -447,10 +463,5 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        where:
-        gppSid       | decription
-        null         | "exist"
-        USP_V1.value | "intersection between gppSid and the condition.gppSid"
     }
 }
