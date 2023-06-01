@@ -1,6 +1,8 @@
 
-package org.prebid.server.activity;
+package org.prebid.server.activity.infrastructure;
 
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 
@@ -36,15 +38,15 @@ public class ActivityInfrastructure {
     }
 
     public boolean isAllowed(Activity activity, ComponentType componentType, String componentName) {
-        final ActivityPayload activityPayload = ActivityPayload.of(componentType, componentName);
-        final ActivityContextResult result = activitiesConfigurations.get(activity).isAllowed(activityPayload);
+        final ActivityCallPayload activityCallPayload = ActivityCallPayload.of(componentType, componentName);
+        final ActivityCallResult result = activitiesConfigurations.get(activity).isAllowed(activityCallPayload);
 
-        updateMetrics(activity, activityPayload, result);
+        updateMetrics(activity, activityCallPayload, result);
 
         return result.isAllowed();
     }
 
-    private void updateMetrics(Activity activity, ActivityPayload activityPayload, ActivityContextResult result) {
+    private void updateMetrics(Activity activity, ActivityCallPayload activityCallPayload, ActivityCallResult result) {
         final int processedRulesCount = result.getProcessedRulesCount();
         if (processedRulesCount > 0) {
             metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);
@@ -58,8 +60,8 @@ public class ActivityInfrastructure {
             if (traceLevel == TraceLevel.verbose) {
                 metrics.updateAccountActivityDisallowedCount(accountId, activity);
             }
-            if (activityPayload.getComponentType() == ComponentType.BIDDER) {
-                metrics.updateAdapterActivityDisallowedCount(activityPayload.getComponentName(), activity);
+            if (activityCallPayload.getComponentType() == ComponentType.BIDDER) {
+                metrics.updateAdapterActivityDisallowedCount(activityCallPayload.getComponentName(), activity);
             }
         }
     }

@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -100,6 +101,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private RequestValidator requestValidator;
     @Mock
     private TimeoutResolver timeoutResolver;
@@ -170,6 +173,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -192,6 +196,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -233,6 +238,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -273,6 +279,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -618,6 +625,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,

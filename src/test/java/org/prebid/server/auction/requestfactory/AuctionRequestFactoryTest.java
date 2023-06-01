@@ -132,6 +132,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(auctionGppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(auctionGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 

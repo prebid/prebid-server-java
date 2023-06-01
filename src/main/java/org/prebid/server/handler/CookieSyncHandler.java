@@ -10,8 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -52,6 +51,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
     private final CookieSyncGppService gppService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -64,6 +64,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
                              CookieSyncGppService gppService,
+                             ActivityInfrastructureCreator activityInfrastructureCreator,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -76,6 +77,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.gppService = Objects.requireNonNull(gppService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -162,15 +164,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private CookieSyncContext fillWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
-        final Account account = cookieSyncContext.getAccount();
-
         return cookieSyncContext.toBuilder()
-                .activityInfrastructure(
-                        new ActivityInfrastructure(
-                                account.getId(),
-                                AccountActivitiesConfigurationUtils.parse(account),
-                                TraceLevel.basic,
-                                metrics))
+                .activityInfrastructure(activityInfrastructureCreator.create(
+                        cookieSyncContext.getAccount(),
+                        cookieSyncContext.getGppContext(),
+                        TraceLevel.basic))
                 .build();
     }
 

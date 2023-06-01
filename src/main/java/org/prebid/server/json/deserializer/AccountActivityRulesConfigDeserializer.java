@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfigResolver;
+import org.prebid.server.settings.model.activity.rule.resolver.AccountActivityRuleConfigResolver;
 
 import java.io.IOException;
 import java.util.ArrayList;
