@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.cookie.model.CookieSyncContext;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -35,23 +37,23 @@ public class CookieSyncGppServiceTest {
     @Mock
     private GppService gppService;
 
-    private CookieSyncGppService cookieSyncGppService;
+    private CookieSyncGppService target;
 
     @Before
     public void setUp() {
-        cookieSyncGppService = new CookieSyncGppService(gppService);
+        target = new CookieSyncGppService(gppService);
     }
 
     @Test
-    public void applyShouldReturnSameCookieSyncRequest() {
+    public void contextFromShouldReturnExpectedGppContext() {
         // given
         given(gppService.processContext(
-                argThat(gppContextMatcher(
+                argThat(gppContextWrapperMatcher(
                         Set.of(2, 6),
                         TcfEuV2Privacy.of(1, "consent"),
                         UspV1Privacy.of("usPrivacy"),
                         Collections.emptyList()))))
-                .willReturn(givenGppContext(
+                .willReturn(givenGppContextWrapper(
                         List.of(2, 6),
                         TcfEuV2Privacy.of(2, "gppConsent"),
                         UspV1Privacy.of("gppUsPrivacy"),
@@ -59,10 +61,72 @@ public class CookieSyncGppServiceTest {
 
         final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
                 givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(cookieSyncRequest, true);
 
         // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
+        final GppContext result = target.contextFrom(cookieSyncContext);
+
+        // then
+        assertThat(result.scope().getSectionsIds()).containsExactlyInAnyOrder(2, 6);
+        assertThat(result.regions().getTcfEuV2Privacy()).isEqualTo(TcfEuV2Privacy.of(2, "gppConsent"));
+        assertThat(result.regions().getUspV1Privacy()).isEqualTo(UspV1Privacy.of("gppUsPrivacy"));
+        assertThat(cookieSyncContext.getWarnings()).isEmpty();
+    }
+
+    @Test
+    public void contextFromShouldAddWarningsInCookieSyncContextIfDebugEnabled() {
+        // given
+        given(gppService.processContext(any()))
+                .willReturn(givenGppContextWrapper(
+                        List.of(2, 6),
+                        TcfEuV2Privacy.of(2, "gppConsent"),
+                        UspV1Privacy.of("gppUsPrivacy"),
+                        singletonList("Ups, something went wrong")));
+
+        final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
+                givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(cookieSyncRequest, true);
+
+        // when
+        target.contextFrom(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncContext.getWarnings()).containsExactly("Ups, something went wrong");
+    }
+
+    @Test
+    public void contextFromShouldNotAddWarningsInCookieSyncContextIfDebugDisabled() {
+        // given
+        given(gppService.processContext(any()))
+                .willReturn(givenGppContextWrapper(
+                        List.of(2, 6),
+                        TcfEuV2Privacy.of(2, "gppConsent"),
+                        UspV1Privacy.of("gppUsPrivacy"),
+                        singletonList("Ups, something went wrong")));
+
+        final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
+                givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(cookieSyncRequest, false);
+
+        // when
+        target.contextFrom(cookieSyncContext);
+
+        // then
+        assertThat(cookieSyncContext.getWarnings()).isEmpty();
+    }
+
+    @Test
+    public void updateCookieSyncRequestShouldReturnSameCookieSyncRequest() {
+        // given
+        final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
+                givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
+                List.of(2, 6),
+                TcfEuV2Privacy.of(2, "gppConsent"),
+                UspV1Privacy.of("gppUsPrivacy")));
+
+        // when
+        final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
 
         // then
         assertThat(result).isSameAs(cookieSyncRequest);
@@ -70,21 +134,17 @@ public class CookieSyncGppServiceTest {
     }
 
     @Test
-    public void applyShouldUpdateCookieSyncRequestGdpr() {
+    public void updateCookieSyncRequestShouldUpdateCookieSyncRequestGdpr() {
         // given
-        given(gppService.processContext(any()))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        Collections.emptyList()));
-
         final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
                 givenValidGppString(), List.of(2, 6), null, "consent", "usPrivacy");
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
+                List.of(2, 6),
+                TcfEuV2Privacy.of(2, "gppConsent"),
+                UspV1Privacy.of("gppUsPrivacy")));
 
         // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
+        final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
 
         // then
         assertThat(result.getGdpr()).isEqualTo(2);
@@ -94,21 +154,17 @@ public class CookieSyncGppServiceTest {
     }
 
     @Test
-    public void applyShouldUpdateCookieSyncRequestConsent() {
+    public void updateCookieSyncRequestShouldUpdateCookieSyncRequestConsent() {
         // given
-        given(gppService.processContext(any()))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        Collections.emptyList()));
-
         final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
                 givenValidGppString(), List.of(2, 6), 1, null, "usPrivacy");
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
+                List.of(2, 6),
+                TcfEuV2Privacy.of(2, "gppConsent"),
+                UspV1Privacy.of("gppUsPrivacy")));
 
         // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
+        final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
 
         // then
         assertThat(result.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
@@ -118,21 +174,17 @@ public class CookieSyncGppServiceTest {
     }
 
     @Test
-    public void applyShouldUpdateCookieSyncRequestUsPrivacy() {
+    public void updateCookieSyncRequestShouldUpdateCookieSyncRequestUsPrivacy() {
         // given
-        given(gppService.processContext(any()))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        Collections.emptyList()));
-
         final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
                 givenValidGppString(), List.of(2, 6), 1, "consent", null);
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
+                List.of(2, 6),
+                TcfEuV2Privacy.of(2, "gppConsent"),
+                UspV1Privacy.of("gppUsPrivacy")));
 
         // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
+        final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
 
         // then
         assertThat(result.getGdpr()).isSameAs(cookieSyncRequest.getGdpr());
@@ -142,21 +194,17 @@ public class CookieSyncGppServiceTest {
     }
 
     @Test
-    public void applyShouldUpdateCookieSyncRequest() {
+    public void updateCookieSyncRequestShouldUpdateCookieSyncRequest() {
         // given
-        given(gppService.processContext(any()))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        Collections.emptyList()));
-
         final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
                 givenValidGppString(), List.of(2, 6), null, null, null);
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(givenGppContext(
+                List.of(2, 6),
+                TcfEuV2Privacy.of(2, "gppConsent"),
+                UspV1Privacy.of("gppUsPrivacy")));
 
         // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
+        final CookieSyncRequest result = target.updateCookieSyncRequest(cookieSyncRequest, cookieSyncContext);
 
         // then
         assertThat(result.getGdpr()).isEqualTo(2);
@@ -165,83 +213,37 @@ public class CookieSyncGppServiceTest {
         assertThat(cookieSyncContext.getWarnings()).isEmpty();
     }
 
-    @Test
-    public void applyShouldAddWarningsInCookieSyncContextIfDebugEnabled() {
-        // given
-        given(gppService.processContext(
-                argThat(gppContextMatcher(
-                        Set.of(2, 6),
-                        TcfEuV2Privacy.of(1, "consent"),
-                        UspV1Privacy.of("usPrivacy"),
-                        Collections.emptyList()))))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        List.of("warning")));
+    private static ArgumentMatcher<GppContextWrapper> gppContextWrapperMatcher(Set<Integer> sectionsIds,
+                                                                               TcfEuV2Privacy tcfEuV2Privacy,
+                                                                               UspV1Privacy uspV1Privacy,
+                                                                               List<String> errors) {
 
-        final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
-                givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(true);
-
-        // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
-
-        // then
-        assertThat(result).isSameAs(cookieSyncRequest);
-        assertThat(cookieSyncContext.getWarnings()).containsExactly("warning");
+        return wrapper -> Objects.equals(wrapper.getGppContext().scope().getSectionsIds(), sectionsIds)
+                && Objects.equals(wrapper.getGppContext().regions().getTcfEuV2Privacy(), tcfEuV2Privacy)
+                && Objects.equals(wrapper.getGppContext().regions().getUspV1Privacy(), uspV1Privacy)
+                && Objects.equals(wrapper.getErrors(), errors);
     }
 
-    @Test
-    public void applyShouldNotAddWarningsInCookieSyncContextIfDebugDisabled() {
-        // given
-        given(gppService.processContext(
-                argThat(gppContextMatcher(
-                        Set.of(2, 6),
-                        TcfEuV2Privacy.of(1, "consent"),
-                        UspV1Privacy.of("usPrivacy"),
-                        Collections.emptyList()))))
-                .willReturn(givenGppContext(
-                        List.of(2, 6),
-                        TcfEuV2Privacy.of(2, "gppConsent"),
-                        UspV1Privacy.of("gppUsPrivacy"),
-                        List.of("warning")));
+    private static GppContextWrapper givenGppContextWrapper(List<Integer> sectionsIds,
+                                                            TcfEuV2Privacy tcfEuV2Privacy,
+                                                            UspV1Privacy uspV1Privacy,
+                                                            List<String> errors) {
 
-        final CookieSyncRequest cookieSyncRequest = givenCookieSyncRequest(
-                givenValidGppString(), List.of(2, 6), 1, "consent", "usPrivacy");
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(false);
+        final GppContextWrapper gppContextWrapper = GppContextCreator.from(givenValidGppString(), sectionsIds)
+                .with(tcfEuV2Privacy)
+                .with(uspV1Privacy)
+                .build();
+        gppContextWrapper.getErrors().addAll(errors);
 
-        // when
-        final CookieSyncRequest result = cookieSyncGppService.apply(cookieSyncRequest, cookieSyncContext);
-
-        // then
-        assertThat(result).isSameAs(cookieSyncRequest);
-        assertThat(cookieSyncContext.getWarnings()).isEmpty();
-    }
-
-    private static ArgumentMatcher<GppContext> gppContextMatcher(Set<Integer> sectionsIds,
-                                                                 TcfEuV2Privacy tcfEuV2Privacy,
-                                                                 UspV1Privacy uspV1Privacy,
-                                                                 List<String> errors) {
-
-        return gppContext -> Objects.equals(gppContext.scope().getSectionsIds(), sectionsIds)
-                && Objects.equals(gppContext.regions().getTcfEuV2Privacy(), tcfEuV2Privacy)
-                && Objects.equals(gppContext.regions().getUspV1Privacy(), uspV1Privacy)
-                && Objects.equals(gppContext.errors(), errors);
+        return gppContextWrapper;
     }
 
     private static GppContext givenGppContext(List<Integer> sectionsIds,
                                               TcfEuV2Privacy tcfEuV2Privacy,
-                                              UspV1Privacy uspV1Privacy,
-                                              List<String> errors) {
+                                              UspV1Privacy uspV1Privacy) {
 
-        final GppContext gppContext = GppContextCreator.from(givenValidGppString(), sectionsIds)
-                .with(tcfEuV2Privacy)
-                .with(uspV1Privacy)
-                .build();
-        gppContext.errors().addAll(errors);
-
-        return gppContext;
+        return givenGppContextWrapper(sectionsIds, tcfEuV2Privacy, uspV1Privacy, Collections.emptyList())
+                .getGppContext();
     }
 
     private static String givenValidGppString() {
@@ -267,9 +269,17 @@ public class CookieSyncGppServiceTest {
                 .build();
     }
 
-    private static CookieSyncContext givenCookieSyncContext(boolean debug) {
+    private static CookieSyncContext givenCookieSyncContext(CookieSyncRequest cookieSyncRequest, boolean debug) {
         return CookieSyncContext.builder()
+                .cookieSyncRequest(cookieSyncRequest)
                 .debug(debug)
+                .warnings(new ArrayList<>())
+                .build();
+    }
+
+    private static CookieSyncContext givenCookieSyncContext(GppContext gppContext) {
+        return CookieSyncContext.builder()
+                .gppContext(gppContext)
                 .warnings(new ArrayList<>())
                 .build();
     }

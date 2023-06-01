@@ -98,7 +98,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        given(cookieSyncGppProcessor.apply(any(), any()))
+        given(cookieSyncGppProcessor.updateCookieSyncRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.response()).willReturn(httpResponse);

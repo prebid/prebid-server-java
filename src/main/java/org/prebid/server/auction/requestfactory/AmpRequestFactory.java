@@ -142,6 +142,9 @@ public class AmpRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
+                .compose(auctionContext -> ampGppService.contextFrom(auctionContext)
+                        .map(auctionContext::with))
+
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
 
@@ -383,7 +386,7 @@ public class AmpRequestFactory {
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> ampGppService.apply(bidRequest, auctionContext))
+                .map(bidRequest -> ampGppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))

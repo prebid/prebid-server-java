@@ -6,6 +6,7 @@ import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cookie.UidsCookie;
@@ -57,6 +58,8 @@ public class AuctionContext {
 
     Map<String, BidRejectionTracker> bidRejectionTrackers;
 
+    GppContext gppContext;
+
     PrivacyContext privacyContext;
 
     ActivityInfrastructure activityInfrastructure;
@@ -93,16 +96,22 @@ public class AuctionContext {
         return this.toBuilder().auctionParticipations(auctionParticipations).build();
     }
 
+    public AuctionContext with(MetricName requestTypeMetric) {
+        return this.toBuilder()
+                .requestTypeMetric(requestTypeMetric)
+                .build();
+    }
+
+    public AuctionContext with(GppContext gppContext) {
+        return this.toBuilder()
+                .gppContext(gppContext)
+                .build();
+    }
+
     public AuctionContext with(PrivacyContext privacyContext) {
         return this.toBuilder()
                 .privacyContext(privacyContext)
                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
-                .build();
-    }
-
-    public AuctionContext with(MetricName requestTypeMetric) {
-        return this.toBuilder()
-                .requestTypeMetric(requestTypeMetric)
                 .build();
     }
 

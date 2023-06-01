@@ -3,8 +3,10 @@ package org.prebid.server.auction.gpp;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
+import io.vertx.core.Future;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.auction.model.AuctionContext;
@@ -23,14 +25,16 @@ public class AmpGppService {
         this.gppService = Objects.requireNonNull(gppService);
     }
 
-    public BidRequest apply(BidRequest bidRequest, AuctionContext auctionContext) {
-        final GppContext gppContext = gppService.processContext(contextFrom(bidRequest));
-
-        updateAuctionContext(auctionContext, gppContext);
-        return updateBidRequest(bidRequest, gppContext);
+    public Future<GppContext> contextFrom(AuctionContext auctionContext) {
+        return Future.succeededFuture(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(AmpGppService::contextFrom)
+                .map(gppService::processContext)
+                .onSuccess(gppContextWrapper -> enrichWithErrors(auctionContext, gppContextWrapper.getErrors()))
+                .map(GppContextWrapper::getGppContext);
     }
 
-    private static GppContext contextFrom(BidRequest bidRequest) {
+    private static GppContextWrapper contextFrom(BidRequest bidRequest) {
         final Regs regs = bidRequest.getRegs();
 
         final String gpp = regs != null ? regs.getGpp() : null;
@@ -47,13 +51,15 @@ public class AmpGppService {
                 .build();
     }
 
-    private static void updateAuctionContext(AuctionContext auctionContext, GppContext gppContext) {
+    private static void enrichWithErrors(AuctionContext auctionContext, List<String> errors) {
         if (auctionContext.getDebugContext().isDebugEnabled()) {
-            auctionContext.getDebugWarnings().addAll(gppContext.errors());
+            auctionContext.getDebugWarnings().addAll(errors);
         }
     }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, GppContext gppContext) {
+    public BidRequest updateBidRequest(BidRequest bidRequest, AuctionContext auctionContext) {
+        final GppContext gppContext = auctionContext.getGppContext();
+
         final UpdateResult<User> updatedUser = updateUser(bidRequest.getUser(), gppContext);
         final UpdateResult<Regs> updatedRegs = updateRegs(bidRequest.getRegs(), gppContext);
 
@@ -81,9 +87,10 @@ public class AmpGppService {
     }
 
     private static UpdateResult<String> updateConsent(User user, GppContext gppContext) {
+        final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
         return updateResult(
                 user != null ? user.getConsent() : null,
-                gppContext.regions().getTcfEuV2Privacy().getConsent());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getConsent() : null);
     }
 
     private static <T> UpdateResult<T> updateResult(T original, T gpp) {
@@ -110,14 +117,16 @@ public class AmpGppService {
     }
 
     private static UpdateResult<Integer> updateGdpr(Regs regs, GppContext gppContext) {
+        final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
         return updateResult(
                 regs != null ? regs.getGdpr() : null,
-                gppContext.regions().getTcfEuV2Privacy().getGdpr());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getGdpr() : null);
     }
 
     private static UpdateResult<String> updateUsPrivacy(Regs regs, GppContext gppContext) {
+        final UspV1Privacy uspV1Privacy = gppContext.regions().getUspV1Privacy();
         return updateResult(
                 regs != null ? regs.getUsPrivacy() : null,
-                gppContext.regions().getUspV1Privacy().getUsPrivacy());
+                uspV1Privacy != null ? uspV1Privacy.getUsPrivacy() : null);
     }
 }
