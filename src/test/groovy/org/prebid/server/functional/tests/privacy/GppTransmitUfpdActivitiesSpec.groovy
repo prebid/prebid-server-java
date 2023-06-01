@@ -682,7 +682,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def genericBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
-            regs.gppSid = [USP_V1.intValue]
+            regs.gppSid = gppSid
         }
 
         and: "Allow activities setup"
@@ -723,5 +723,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        gppSid            | decription
+        null              | "exist"
+        [USP_V1.intValue] | "intersection between gppSid and the condition.gppSid"
     }
 }

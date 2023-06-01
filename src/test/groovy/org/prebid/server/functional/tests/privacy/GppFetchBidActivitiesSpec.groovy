@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -13,6 +14,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
@@ -411,5 +413,75 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should not contain bidRequest from amp request"
         assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
+    }
+
+    def "PBS auction should allow activity when intersection between regs.gpp_sid and the condition.gppSid"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            regs.gppSid = [GppSectionId.TCF_EU_V2.intValue]
+            ext.prebid.trace = VERBOSE
+            setAccountId(accountId)
+        }
+
+        and: "Reject activities setup"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(generalBidRequest.id)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+    }
+
+    def "PBS auction shouldn't allow activity when regs.gppSid doesn't #decription"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            regs.gppSid = gppSid
+            setAccountId(accountId)
+            ext.prebid.trace = VERBOSE
+        }
+
+        and: "Activities set with all bidders rejected"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder request should be ignored"
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        gppSid            | decription
+        null              | "exist"
+        [USP_V1.intValue] | "intersection between gppSid and the condition.gppSid"
     }
 }
