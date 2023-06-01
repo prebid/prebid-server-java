@@ -387,7 +387,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
-    def "PBS cookie sync should allow rule when gppSid intersection"() {
+    def "PBS cookie sync should allow rule when gppSid not intersect"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -424,12 +424,12 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
 
         where:
-        gppSid          | conditionGppSid
-        null            | [USP_V1.intValue]
+        gppSid       | conditionGppSid
+        null         | [USP_V1.intValue]
         USP_V1.value | null
     }
 
-    def "PBS cookie sync should disallowed rule when gppSid intersection"() {
+    def "PBS cookie sync should disallowed rule when gppSid intersect"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {

@@ -11,10 +11,8 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
-import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
 class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
@@ -509,17 +507,24 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction should allow activity when intersection between regs.gpp_sid and the condition.gppSid"() {
+    def "PBS auction should allow rule when gppSid not intersect"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
-            regs.gppSid = [TCF_EU_V2.intValue, USP_V1.intValue]
+            regs.gppSid = regsGppSid
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
         }
 
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = [PBSUtils.randomString]
+            it.gppSid = conditionGppSid
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
 
         and: "Flush metrics"
@@ -548,19 +553,31 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+
+        where:
+        regsGppSid | conditionGppSid
+        null              | [USP_V1.intValue]
+        [USP_V1.intValue] | null
     }
 
-    def "PBS auction shouldn't allow activity when regs.gppSid doesn't #decription"() {
+    def "PBS auction shouldn't allow rule when gppSid intersect"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
-            regs.gppSid = null
+            regs.gppSid = [USP_V1.intValue]
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
         }
 
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = [USP_V1.intValue]
+        }
+
         and: "Activities set with bidder allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
 
         and: "Flush metrics"
@@ -590,10 +607,5 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-
-        where:
-        gppSid       | decription
-        null         | "exist"
-        USP_V1.value | "intersection between gppSid and the condition.gppSid"
     }
 }
