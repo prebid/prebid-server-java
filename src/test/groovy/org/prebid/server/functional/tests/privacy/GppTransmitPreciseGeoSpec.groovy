@@ -555,7 +555,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
-        regsGppSid | conditionGppSid
+        regsGppSid        | conditionGppSid
         null              | [USP_V1.intValue]
         [USP_V1.intValue] | null
     }
