@@ -166,7 +166,7 @@ public class AuctionGppServiceTest {
         final AuctionContext auctionContext = givenAuctionContext(givenGppContext(
                 List.of(2, 6),
                 TcfEuV2Privacy.of(2, "gppConsent"),
-                UspV1Privacy.of("gppUsPrivacy")));
+                null));
 
         // when
         final BidRequest result = auctionGppService.updateBidRequest(bidRequest, auctionContext);
@@ -206,7 +206,7 @@ public class AuctionGppServiceTest {
                 givenValidGppString(), List.of(2, 6), 1, "consent", null);
         final AuctionContext auctionContext = givenAuctionContext(givenGppContext(
                 List.of(2, 6),
-                TcfEuV2Privacy.of(2, "gppConsent"),
+                null,
                 UspV1Privacy.of("gppUsPrivacy")));
 
         // when

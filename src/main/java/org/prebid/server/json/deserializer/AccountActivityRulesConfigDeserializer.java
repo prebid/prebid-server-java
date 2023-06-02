@@ -25,10 +25,6 @@ public class AccountActivityRulesConfigDeserializer extends StdDeserializer<List
     public List<? extends AccountActivityRuleConfig> deserialize(JsonParser parser, DeserializationContext context)
             throws IOException {
 
-        if (parser.currentToken() == JsonToken.VALUE_NULL) {
-            return null;
-        }
-
         if (parser.currentToken() != JsonToken.START_ARRAY) {
             reportWrongTokenException(parser, context);
         }

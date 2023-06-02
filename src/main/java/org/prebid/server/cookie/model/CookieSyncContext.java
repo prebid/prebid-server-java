@@ -38,10 +38,12 @@ public class CookieSyncContext {
 
     Account account;
 
+    @JsonIgnore
     GppContext gppContext;
 
     PrivacyContext privacyContext;
 
+    @JsonIgnore
     ActivityInfrastructure activityInfrastructure;
 
     @JsonIgnore

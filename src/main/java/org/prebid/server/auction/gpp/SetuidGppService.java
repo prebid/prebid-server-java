@@ -5,7 +5,6 @@ import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
-import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.Privacy;

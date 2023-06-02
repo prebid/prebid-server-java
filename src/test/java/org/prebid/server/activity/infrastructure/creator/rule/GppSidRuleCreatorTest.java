@@ -21,9 +21,10 @@ public class GppSidRuleCreatorTest {
     public void fromShouldCreateDefaultRule() {
         // given
         final AccountActivityGppSidRuleConfig config = AccountActivityGppSidRuleConfig.of(null, null);
+        final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
         // when
-        final Rule rule = target.from(config, null);
+        final Rule rule = target.from(config, gppContext);
 
         // then
         assertThat(rule.matches(null)).isTrue();
