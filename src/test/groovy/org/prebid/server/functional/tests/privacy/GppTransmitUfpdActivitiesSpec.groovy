@@ -21,6 +21,7 @@ import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
@@ -184,8 +185,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
-                "contains conditional rule with empty array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with empty array").size() == 1
 
         where:
         conditions                       | isAllowed
@@ -470,16 +470,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             regs.gppSid = [USP_NAT_V1.intValue]
         }
 
-        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -495,8 +491,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendAuctionRequest(genericBidRequest)
 
         then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } == ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -525,7 +520,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId)
+        def genericBidRequest = generateBidRequestWithAccountAndUfpdData(accountId).tap {
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
         def rule = new ActivityRule().tap {
@@ -745,8 +742,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
-                "contains conditional rule with empty array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with empty array").size() == 1
 
         where:
         conditions                       | isAllowed
@@ -1086,16 +1082,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.gppSid = USP_NAT_V1.value
         }
 
-        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -1115,8 +1107,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } == ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1153,23 +1144,18 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.gppSid = USP_NAT_V1.value
         }
 
-        and: "Activities set for transmitUfpd with multiple privacy regulation"
+        and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], false)
+        and: "Account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
 
         and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig])
         accountDao.save(account)
 
         and: "Stored request in DB"

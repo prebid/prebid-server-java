@@ -413,16 +413,12 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
             regs.gppSid = [USP_NAT_V1.intValue]
         }
 
-        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -463,6 +459,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
         }
 
         and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
@@ -922,16 +919,12 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
             it.gppSid = USP_NAT_V1.value
         }
 
-        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -981,25 +974,21 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
+            it.gppSid = USP_NAT_V1.value
         }
 
-        and: "Activities set for transmitPreciseGeo with multiple privacy regulation"
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERIC]
         }
 
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], false)
+        and: "Account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
 
         and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig])
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
