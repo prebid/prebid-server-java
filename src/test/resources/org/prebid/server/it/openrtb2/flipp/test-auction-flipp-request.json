@@ -12,7 +12,9 @@
           "publisherNameIdentifier": "wishabi-test-publisher",
           "creativeType": "DTX",
           "siteId": 1243066,
-          "zoneIds": [285431],
+          "zoneIds": [
+            285431
+          ],
           "ip": "123.123.123.124",
           "options": {
             "startCompact": true,
@@ -23,7 +25,7 @@
     }
   ],
   "user": {
-    "id" : "123-123"
+    "id": "123-123"
   },
   "tmax": 5000,
   "regs": {
