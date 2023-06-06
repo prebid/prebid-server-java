@@ -78,19 +78,15 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            final CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody = CampaignRequestBody.builder();
             final ExtImpFlipp extImpFlipp;
 
             try {
                 extImpFlipp = parseImpExt(imp);
-                campaignRequestBody.ip(resolveIp(bidRequest, extImpFlipp));
+                final CampaignRequestBody campaignRequest = makeCampaignRequest(bidRequest, imp, extImpFlipp);
+                httpRequests.add(makeHttpRequest(bidRequest.getDevice(), campaignRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
-                continue;
             }
-
-            httpRequests.add(createRequest(bidRequest,
-                    updateCampaignRequestBody(bidRequest, imp, campaignRequestBody, extImpFlipp)));
         }
 
         if (CollectionUtils.isEmpty(httpRequests)) {
@@ -101,25 +97,22 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         return Result.of(httpRequests, errors);
     }
 
-    private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
-        return Placement.builder()
-                .divName(INLINE_DIV_NAME)
-                .siteId(extImpFlipp.getSiteId())
-                .adTypes(Objects.equals(extImpFlipp.getCreativeType(), CREATIVE_TYPE) ? DTX_TYPES : AD_TYPES)
-                .zoneIds(extImpFlipp.getZoneIds())
-                .count(COUNT)
-                .prebid(createPrebidRequest(extImpFlipp, imp))
-                .properties(Properties.of(resolveContentCode(bidRequest, extImpFlipp)))
-                .options(extImpFlipp.getOptions())
-                .build();
-    }
-
     private ExtImpFlipp parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), FLIPP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Flipp params not found. " + e.getMessage());
         }
+    }
+
+    private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
+        return CampaignRequestBody.builder()
+                .ip(resolveIp(bidRequest, extImpFlipp))
+                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
+                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+                .keywords(resolveKeywords(bidRequest))
+                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
+                .build();
     }
 
     private static PrebidRequest createPrebidRequest(ExtImpFlipp extImpFlipp, Imp imp) {
@@ -178,6 +171,19 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .orElseThrow(() -> new PreBidException("No IP set in Flipp bidder params or request device"));
     }
 
+    private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
+        return Placement.builder()
+                .divName(INLINE_DIV_NAME)
+                .siteId(extImpFlipp.getSiteId())
+                .adTypes(Objects.equals(extImpFlipp.getCreativeType(), CREATIVE_TYPE) ? DTX_TYPES : AD_TYPES)
+                .zoneIds(extImpFlipp.getZoneIds())
+                .count(COUNT)
+                .prebid(createPrebidRequest(extImpFlipp, imp))
+                .properties(Properties.of(resolveContentCode(bidRequest, extImpFlipp)))
+                .options(extImpFlipp.getOptions())
+                .build();
+    }
+
     private static String resolveKey(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
         return Optional.ofNullable(bidRequest.getUser())
                 .map(User::getId)
@@ -191,14 +197,13 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .orElseGet(() -> UUID.randomUUID().toString());
     }
 
-    private HttpRequest<CampaignRequestBody> createRequest(BidRequest bidRequest,
-                                                           CampaignRequestBody campaignRequestBody) {
+    private HttpRequest<CampaignRequestBody> makeHttpRequest(Device device, CampaignRequestBody campaignRequest) {
         return HttpRequest.<CampaignRequestBody>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(makeHeaders(bidRequest.getDevice()))
-                .body(mapper.encodeToBytes(campaignRequestBody))
-                .payload(campaignRequestBody)
+                .headers(makeHeaders(device))
+                .body(mapper.encodeToBytes(campaignRequest))
+                .payload(campaignRequest)
                 .build();
     }
 
@@ -207,18 +212,6 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .map(Device::getUa)
                 .map(ua -> HttpUtil.headers().add(HttpUtil.USER_AGENT_HEADER, ua))
                 .orElseGet(HttpUtil::headers);
-    }
-
-    private static CampaignRequestBody updateCampaignRequestBody(
-            BidRequest bidRequest, Imp imp, CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody,
-            ExtImpFlipp extImpFlipp) {
-
-        return campaignRequestBody
-                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
-                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
-                .keywords(resolveKeywords(bidRequest))
-                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
-                .build();
     }
 
     @Override
