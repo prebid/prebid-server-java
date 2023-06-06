@@ -5,7 +5,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Collection;
@@ -43,8 +43,8 @@ public class AccountActivitiesConfigurationUtils {
             return condition != null && isInvalidCondition(condition);
         }
 
-        if (rule instanceof AccountActivityGppSidRuleConfig gppSidRule) {
-            final AccountActivityGppSidRuleConfig.Condition condition = gppSidRule.getCondition();
+        if (rule instanceof AccountActivityGeoRuleConfig geoRule) {
+            final AccountActivityGeoRuleConfig.Condition condition = geoRule.getCondition();
             return condition != null && isInvalidCondition(condition);
         }
 
@@ -55,7 +55,7 @@ public class AccountActivitiesConfigurationUtils {
         return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
     }
 
-    private static boolean isInvalidCondition(AccountActivityGppSidRuleConfig.Condition condition) {
+    private static boolean isInvalidCondition(AccountActivityGeoRuleConfig.Condition condition) {
         return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
     }
 

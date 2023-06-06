@@ -2,25 +2,27 @@ package org.prebid.server.activity.infrastructure.creator.rule;
 
 import org.junit.Test;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.GeoActivityCallPayloadImpl;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GppSidRuleCreatorTest {
+public class GeoRuleCreatorTest {
 
-    private final GppSidRuleCreator target = new GppSidRuleCreator();
+    private final GeoRuleCreator target = new GeoRuleCreator();
 
     @Test
     public void fromShouldCreateDefaultRule() {
         // given
-        final AccountActivityGppSidRuleConfig config = AccountActivityGppSidRuleConfig.of(null, null);
+        final AccountActivityGeoRuleConfig config = AccountActivityGeoRuleConfig.of(null, null);
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
         // when
@@ -34,11 +36,12 @@ public class GppSidRuleCreatorTest {
     @Test
     public void fromShouldCreateExpectedRule() {
         // given
-        final AccountActivityGppSidRuleConfig config = AccountActivityGppSidRuleConfig.of(
-                AccountActivityGppSidRuleConfig.Condition.of(
+        final AccountActivityGeoRuleConfig config = AccountActivityGeoRuleConfig.of(
+                AccountActivityGeoRuleConfig.Condition.of(
                         singletonList(ComponentType.BIDDER),
                         singletonList("name"),
-                        asList(1, 2)),
+                        asList(1, 2),
+                        singletonList("country.condition")),
                 false);
         final GppContext gppContext = GppContextCreator.from(null, asList(2, 3)).build().getGppContext();
 
@@ -46,7 +49,11 @@ public class GppSidRuleCreatorTest {
         final Rule rule = target.from(config, gppContext);
 
         // then
-        assertThat(rule.matches(ActivityCallPayload.of(ComponentType.BIDDER, "name"))).isTrue();
+        final ActivityCallPayload payload = GeoActivityCallPayloadImpl.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name"),
+                "country",
+                "condition");
+        assertThat(rule.matches(payload)).isTrue();
         assertThat(rule.allowed()).isFalse();
     }
 }

@@ -3,7 +3,7 @@ package org.prebid.server.spring.config;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.activity.infrastructure.creator.ActivityRuleFactory;
 import org.prebid.server.activity.infrastructure.creator.rule.ComponentRuleCreator;
-import org.prebid.server.activity.infrastructure.creator.rule.GppSidRuleCreator;
+import org.prebid.server.activity.infrastructure.creator.rule.GeoRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
 import org.prebid.server.metric.Metrics;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +15,8 @@ import java.util.List;
 public class ActivityInfrastructureConfiguration {
 
     @Bean
-    GppSidRuleCreator gppSidRuleCreator() {
-        return new GppSidRuleCreator();
+    GeoRuleCreator geoRuleCreator() {
+        return new GeoRuleCreator();
     }
 
     @Bean

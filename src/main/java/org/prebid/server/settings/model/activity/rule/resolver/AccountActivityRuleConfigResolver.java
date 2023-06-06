@@ -11,7 +11,7 @@ public class AccountActivityRuleConfigResolver {
     }
 
     private static final List<AccountActivityRuleConfigMatcher> MATCHERS = List.of(
-            new AccountActivityGppSidRuleConfigMatcher(),
+            new AccountActivityGeoRuleConfigMatcher(),
             new AccountActivityDefaultRuleConfigMatcher());
 
     public static Class<? extends AccountActivityRuleConfig> resolve(JsonNode ruleNode) {

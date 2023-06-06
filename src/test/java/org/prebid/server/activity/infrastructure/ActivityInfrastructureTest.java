@@ -50,7 +50,7 @@ public class ActivityInfrastructureTest {
     @Test
     public void isAllowedShouldReturnTrueAndUpdateMetrics() {
         // given
-        given(activityConfiguration.isAllowed(argThat(arg -> arg.getComponentType().equals(ComponentType.BIDDER))))
+        given(activityConfiguration.isAllowed(argThat(arg -> arg.componentType().equals(ComponentType.BIDDER))))
                 .willReturn(ActivityCallResult.of(true, 3));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.verbose);

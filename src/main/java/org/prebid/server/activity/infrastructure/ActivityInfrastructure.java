@@ -3,6 +3,8 @@ package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 
@@ -38,11 +40,13 @@ public class ActivityInfrastructure {
     }
 
     public boolean isAllowed(Activity activity, ComponentType componentType, String componentName) {
-        final ActivityCallPayload activityCallPayload = ActivityCallPayload.of(componentType, componentName);
+        final ActivityCallPayload activityCallPayload = ActivityCallPayloadImpl.of(componentType, componentName);
+        return isAllowed(activity, activityCallPayload);
+    }
+
+    public boolean isAllowed(Activity activity, ActivityCallPayload activityCallPayload) {
         final ActivityCallResult result = activitiesConfigurations.get(activity).isAllowed(activityCallPayload);
-
         updateMetrics(activity, activityCallPayload, result);
-
         return result.isAllowed();
     }
 
@@ -60,8 +64,8 @@ public class ActivityInfrastructure {
             if (traceLevel == TraceLevel.verbose) {
                 metrics.updateAccountActivityDisallowedCount(accountId, activity);
             }
-            if (activityCallPayload.getComponentType() == ComponentType.BIDDER) {
-                metrics.updateAdapterActivityDisallowedCount(activityCallPayload.getComponentName(), activity);
+            if (activityCallPayload.componentType() == ComponentType.BIDDER) {
+                metrics.updateAdapterActivityDisallowedCount(activityCallPayload.componentName(), activity);
             }
         }
     }
