@@ -254,6 +254,8 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                     .map(regId -> BidderBid.of(constructBid(inlines, imp.getId()), BidType.banner, "USD"))
                     .orElse(null);
         }
+
+        return null;
     }
 
     private static Bid constructBid(Inline inline, String impId) {
