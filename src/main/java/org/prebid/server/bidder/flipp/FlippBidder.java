@@ -45,6 +45,7 @@ import org.prebid.server.util.ObjectUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -232,33 +233,28 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static List<BidderBid> extractInline(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
-        final List<Inline> inlineList = Optional.ofNullable(campaignResponseBody)
+        return Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
-                .orElse(Collections.emptyList());
-
-        return inlineList.stream()
-                .map(inline -> bidFromInline(inline, bidRequest))
-                .findAny()
-                .orElse(Collections.emptyList());
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(inline -> isInlineValid(bidRequest, inline))
+                .map(inline -> BidderBid.of(constructBid(inline), BidType.banner, "USD"))
+                .toList();
     }
 
-    private static List<BidderBid> bidFromInline(Inline inlines, BidRequest bidRequest) {
-        final List<BidderBid> bidderBids = new ArrayList<>();
+    private static boolean isInlineValid(BidRequest bidRequest, Inline inline) {
+        final String requestId = Optional.ofNullable(inline)
+                .map(Inline::getPrebid)
+                .map(Prebid::getRequestId)
+                .orElse(null);
 
-        for (Imp imp : bidRequest.getImp()) {
-            Optional.ofNullable(inlines)
-                    .map(Inline::getPrebid)
-                    .map(Prebid::getRequestId)
-                    .filter(requestId -> Objects.equals(requestId, imp.getId()))
-                    .map(regId -> BidderBid.of(constructBid(inlines, imp.getId()), BidType.banner, "USD"))
-                    .ifPresent(bidderBids::add);
-        }
-
-        return bidderBids;
+        return requestId != null && bidRequest.getImp().stream()
+                .map(Imp::getId)
+                .anyMatch(impId -> impId.equals(requestId));
     }
 
-    private static Bid constructBid(Inline inline, String impId) {
+    private static Bid constructBid(Inline inline) {
         final Prebid prebid = inline.getPrebid();
 
         return Bid.builder()
@@ -266,7 +262,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .price(prebid.getCpm())
                 .adm(prebid.getCreative())
                 .id(String.valueOf(inline.getAdId()))
-                .impid(impId)
+                .impid(inline.getPrebid().getRequestId())
                 .w(resolveWidth(inline))
                 .h(CollectionUtils.isNotEmpty(inline.getContents()) ? 0 : null)
                 .build();
