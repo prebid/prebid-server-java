@@ -274,7 +274,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with cookie sync and empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -666,7 +666,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with cookie sync and empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"

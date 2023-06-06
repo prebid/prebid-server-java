@@ -692,7 +692,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequest(ampStoredRequest.id)
     }
 
-    def "PBS amp call when privacy regulation not exist for account and allowing should call bid adapter"() {
+    def "PBS amp call when privacy regulation not exist for account should call bid adapter"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {

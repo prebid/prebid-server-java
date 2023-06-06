@@ -960,7 +960,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS amp call when privacy regulation not exist for account and allowing should leave UFPD fields in request"() {
+    def "PBS amp call when privacy regulation not exist for account should leave UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = generateBidRequestWithAccountAndUfpdData(accountId)
@@ -978,11 +978,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1], false)
-
         and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Stored request in DB"

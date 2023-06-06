@@ -327,7 +327,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when privacy regulation not exist for account and allowing should not round lat/lon data"() {
+    def "PBS auction call when privacy regulation not exist for account should not round lat/lon data"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
@@ -807,7 +807,7 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
     }
 
-    def "PBS amp call when privacy regulation not exist for account and allowing should not round lat/lon data"() {
+    def "PBS amp call when privacy regulation not exist for account should not round lat/lon data"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
@@ -827,11 +827,8 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1], false)
-
         and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
