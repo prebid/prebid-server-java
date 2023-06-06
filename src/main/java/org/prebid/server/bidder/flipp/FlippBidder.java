@@ -104,17 +104,6 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         return Result.of(httpRequests, errors);
     }
 
-    private static CampaignRequestBody updateCampaignRequestBody(BidRequest bidRequest, Imp imp,
-                         CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
-
-        return campaignRequestBody
-                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
-                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
-                .keywords(resolveKeywords(bidRequest))
-                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
-                .build();
-    }
-
     private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
         return Placement.builder()
                 .divName(INLINE_DIV_NAME)
@@ -217,6 +206,17 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .map(Device::getUa)
                 .map(ua -> HttpUtil.headers().add(HttpUtil.USER_AGENT_HEADER, ua))
                 .orElseGet(HttpUtil::headers);
+    }
+
+    private static CampaignRequestBody updateCampaignRequestBody(BidRequest bidRequest, Imp imp,
+                                                                 CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
+
+        return campaignRequestBody
+                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
+                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+                .keywords(resolveKeywords(bidRequest))
+                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
+                .build();
     }
 
     @Override
