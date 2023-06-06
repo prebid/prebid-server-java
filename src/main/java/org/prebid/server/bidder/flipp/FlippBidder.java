@@ -241,21 +241,23 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
 
         return inlineList.stream()
                 .map(inline -> bidFromInline(inline, bidRequest))
-                .filter(Objects::nonNull)
-                .toList();
+                .findAny()
+                .orElse(Collections.emptyList());
     }
 
-    private static BidderBid bidFromInline(Inline inlines, BidRequest bidRequest) {
+    private static List<BidderBid> bidFromInline(Inline inlines, BidRequest bidRequest) {
+        final List<BidderBid> bidderBids = new ArrayList<>();
+
         for (Imp imp : bidRequest.getImp()) {
-            return Optional.ofNullable(inlines)
+            Optional.ofNullable(inlines)
                     .map(Inline::getPrebid)
                     .map(Prebid::getRequestId)
                     .filter(requestId -> Objects.equals(requestId, imp.getId()))
                     .map(regId -> BidderBid.of(constructBid(inlines, imp.getId()), BidType.banner, "USD"))
-                    .orElse(null);
+                    .ifPresent(bidderBids::add);
         }
 
-        return null;
+        return bidderBids;
     }
 
     private static Bid constructBid(Inline inline, String impId) {
