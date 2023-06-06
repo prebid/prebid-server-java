@@ -57,10 +57,6 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final String INLINE_DIV_NAME = "inline";
     private static final Integer COUNT = 1;
     private static final String CREATIVE_TYPE = "DTX";
-    private static final String FLIPP_CONTENT_CODE = "flipp-content-code";
-    private static final String DEFAULT_CURRENCY = "USD";
-    private static final BidType DEFAULT_BID_TYPE = BidType.banner;
-    private static final Integer FIRST_INDEX = 0;
     private static final Set<Integer> AD_TYPES = Set.of(4309, 641);
     private static final Set<Integer> DTX_TYPES = Set.of(5061);
     private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
@@ -132,7 +128,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .requestId(imp.getId());
 
         if (CollectionUtils.isNotEmpty(ObjectUtil.getIfNotNull(imp.getBanner(), Banner::getFormat))) {
-            final Format format = imp.getBanner().getFormat().get(FIRST_INDEX);
+            final Format format = imp.getBanner().getFormat().get(0);
             prebidRequest.height(format.getH());
             prebidRequest.width(format.getW());
         }
@@ -155,36 +151,40 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
             return contentCode;
         }
 
-        return parseUrl(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+        final String pageUrl = Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getPage)
+                .orElse(null);
+
+        return URLEncodedUtils.parse(pageUrl, StandardCharsets.UTF_8)
                 .stream()
                 .filter(Objects::nonNull)
-                .filter(nameValuePair -> nameValuePair.getName().contains(FLIPP_CONTENT_CODE))
+                .filter(nameValuePair -> nameValuePair.getName().contains("flipp-content-code"))
                 .map(NameValuePair::getValue)
                 .findFirst()
                 .orElse(null);
     }
 
-    private static List<NameValuePair> parseUrl(String url) {
-        return URLEncodedUtils.parse(url, StandardCharsets.UTF_8);
+    private static String resolveIp(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
+        return Optional.ofNullable(extImpFlipp.getIp())
+                .filter(StringUtils::isNotEmpty)
+                .orElseGet(() -> resolveIpFromDevice(bidRequest.getDevice()));
     }
 
-    private static String resolveIp(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
-        if (StringUtils.isNoneEmpty(extImpFlipp.getIp())) {
-            return extImpFlipp.getIp();
-        }
-
-        return Optional.ofNullable(bidRequest.getDevice())
+    private static String resolveIpFromDevice(Device device) {
+        return Optional.ofNullable(device)
                 .map(Device::getIp)
                 .filter(StringUtils::isNoneEmpty)
                 .orElseThrow(() -> new PreBidException("No IP set in Flipp bidder params or request device"));
     }
 
     private static String resolveKey(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
-        final String userId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getId);
-        if (StringUtils.isNoneEmpty(userId)) {
-            return userId;
-        }
+        return Optional.ofNullable(bidRequest.getUser())
+                .map(User::getId)
+                .filter(StringUtils::isNotEmpty)
+                .orElseGet(() -> extractUserKey(extImpFlipp));
+    }
 
+    private static String extractUserKey(ExtImpFlipp extImpFlipp) {
         return Optional.ofNullable(extImpFlipp.getUserKey())
                 .filter(StringUtils::isNotEmpty)
                 .orElseGet(() -> UUID.randomUUID().toString());
@@ -195,21 +195,22 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         return HttpRequest.<CampaignRequestBody>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(updateHeaders(bidRequest.getDevice()))
+                .headers(makeHeaders(bidRequest.getDevice()))
                 .body(mapper.encodeToBytes(campaignRequestBody))
                 .payload(campaignRequestBody)
                 .build();
     }
 
-    private static MultiMap updateHeaders(Device device) {
+    private static MultiMap makeHeaders(Device device) {
         return Optional.of(device)
                 .map(Device::getUa)
                 .map(ua -> HttpUtil.headers().add(HttpUtil.USER_AGENT_HEADER, ua))
                 .orElseGet(HttpUtil::headers);
     }
 
-    private static CampaignRequestBody updateCampaignRequestBody(BidRequest bidRequest, Imp imp,
-                          CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
+    private static CampaignRequestBody updateCampaignRequestBody(
+            BidRequest bidRequest, Imp imp, CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody,
+            ExtImpFlipp extImpFlipp) {
 
         return campaignRequestBody
                 .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
@@ -231,26 +232,26 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static List<BidderBid> extractInline(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
-        final List<Inline> inlines = Optional.ofNullable(campaignResponseBody)
+        return Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
-                .orElse(null);
-        if (CollectionUtils.isEmpty(inlines)) {
-            return Collections.emptyList();
-        }
-
-        return bidsFromResponse(inlines, bidRequest);
+                .map(inline -> bidsFromInline(inline, bidRequest))
+                .orElse(Collections.emptyList());
     }
 
-    private static List<BidderBid> bidsFromResponse(List<Inline> inlines, BidRequest bidRequest) {
+    private static List<BidderBid> bidsFromInline(List<Inline> inlines, BidRequest bidRequest) {
         final List<BidderBid> bidderBids = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             for (Inline inline : inlines) {
-                final String requestId = ObjectUtil.getIfNotNull(
-                        ObjectUtil.getIfNotNull(inline, Inline::getPrebid), Prebid::getRequestId);
+
+                final String requestId = Optional.ofNullable(inline)
+                        .map(Inline::getPrebid)
+                        .map(Prebid::getRequestId)
+                        .orElse(null);
+
                 if (Objects.equals(requestId, imp.getId())) {
-                    bidderBids.add(BidderBid.of(constructBid(inline, imp.getId()), DEFAULT_BID_TYPE, DEFAULT_CURRENCY));
+                    bidderBids.add(BidderBid.of(constructBid(inline, imp.getId()), BidType.banner, "USD"));
                 }
             }
         }
@@ -259,7 +260,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static Bid constructBid(Inline inline, String impId) {
-        final Prebid prebid = ObjectUtil.getIfNotNull(inline, Inline::getPrebid);
+        final Prebid prebid = inline.getPrebid();
 
         return Bid.builder()
                 .crid(String.valueOf(inline.getCreativeId()))
@@ -275,7 +276,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static Integer resolveWidth(Inline inline) {
         return Optional.of(inline)
                 .map(Inline::getContents)
-                .map(content -> content.get(FIRST_INDEX))
+                .map(content -> content.get(0))
                 .map(Content::getData)
                 .map(Data::getWidth)
                 .orElse(null);
