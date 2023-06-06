@@ -82,23 +82,18 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
 
         for (Imp imp : bidRequest.getImp()) {
             final CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody = CampaignRequestBody.builder();
+            final ExtImpFlipp extImpFlipp;
 
             try {
-                final ExtImpFlipp extImpFlipp = parseImpExt(imp);
-
-                campaignRequestBody
-                        .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
-                        .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
-                        .keywords(resolveKeywords(bidRequest))
-                        .ip(resolveIp(bidRequest, extImpFlipp))
-                        .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)));
-
+                extImpFlipp = parseImpExt(imp);
+                campaignRequestBody.ip(resolveIp(bidRequest, extImpFlipp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
 
-            httpRequests.add(createRequest(bidRequest, campaignRequestBody.build()));
+            httpRequests.add(createRequest(bidRequest,
+                    updateCampaignRequestBody(bidRequest, imp, campaignRequestBody, extImpFlipp)));
         }
 
         if (CollectionUtils.isEmpty(httpRequests)) {
@@ -107,6 +102,17 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private static CampaignRequestBody updateCampaignRequestBody(BidRequest bidRequest, Imp imp,
+                         CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
+
+        return campaignRequestBody
+                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
+                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+                .keywords(resolveKeywords(bidRequest))
+                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
+                .build();
     }
 
     private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
