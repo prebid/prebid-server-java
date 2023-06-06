@@ -236,6 +236,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         return Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
+                .filter(CollectionUtils::isNotEmpty)
                 .map(inline -> bidsFromInline(inline, bidRequest))
                 .orElse(Collections.emptyList());
     }
