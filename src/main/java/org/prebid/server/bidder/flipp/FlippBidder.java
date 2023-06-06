@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
 
@@ -245,14 +246,12 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         for (Imp imp : bidRequest.getImp()) {
             for (Inline inline : inlines) {
 
-                final String requestId = Optional.ofNullable(inline)
+                bidderBids.add(Optional.ofNullable(inline)
                         .map(Inline::getPrebid)
                         .map(Prebid::getRequestId)
-                        .orElse(null);
-
-                if (Objects.equals(requestId, imp.getId())) {
-                    bidderBids.add(BidderBid.of(constructBid(inline, imp.getId()), BidType.banner, "USD"));
-                }
+                        .filter(requestId -> Objects.equals(requestId, imp.getId()))
+                        .map(reqId -> BidderBid.of(constructBid(inline, imp.getId()), BidType.banner, "USD"))
+                        .orElse(null));
             }
         }
 
