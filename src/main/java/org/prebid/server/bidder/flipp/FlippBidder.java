@@ -209,7 +209,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static CampaignRequestBody updateCampaignRequestBody(BidRequest bidRequest, Imp imp,
-                                                                 CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
+                          CampaignRequestBody.CampaignRequestBodyBuilder campaignRequestBody, ExtImpFlipp extImpFlipp) {
 
         return campaignRequestBody
                 .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
