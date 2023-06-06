@@ -262,7 +262,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .price(prebid.getCpm())
                 .adm(prebid.getCreative())
                 .id(String.valueOf(inline.getAdId()))
-                .impid(inline.getPrebid().getRequestId())
+                .impid(prebid.getRequestId())
                 .w(resolveWidth(inline))
                 .h(CollectionUtils.isNotEmpty(inline.getContents()) ? 0 : null)
                 .build();
