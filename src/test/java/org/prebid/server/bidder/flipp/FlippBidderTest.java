@@ -39,6 +39,7 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -131,7 +132,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(CampaignRequestBody::getPlacements)
                 .extracting(Placement::getAdTypes)
-                .containsExactly(List.of(5061));
+                .containsExactly(Set.of(5061));
     }
 
     @Test
@@ -232,7 +233,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(CampaignRequestBody::getPlacements)
                 .extracting(Placement::getAdTypes)
-                .containsExactly(List.of(4309, 641));
+                .containsExactly(Set.of(4309, 641));
     }
 
     @Test

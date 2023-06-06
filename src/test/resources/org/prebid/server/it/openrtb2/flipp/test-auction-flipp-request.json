@@ -10,7 +10,7 @@
       "ext": {
         "flipp": {
           "publisherNameIdentifier": "wishabi-test-publisher",
-          "creativeType": "NativeX",
+          "creativeType": "DTX",
           "siteId": 1243066,
           "zoneIds": [285431],
           "ip": "123.123.123.124",

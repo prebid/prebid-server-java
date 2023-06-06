@@ -10,7 +10,9 @@ public class Data {
     @JsonProperty("customData")
     JsonNode customData;
 
+    @JsonProperty("height")
     Integer height;
 
+    @JsonProperty("width")
     Integer width;
 }

@@ -2,24 +2,28 @@ package org.prebid.server.bidder.flipp.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 import java.util.List;
 
 @Builder(toBuilder = true)
-@Getter
+@Value
 public class CampaignRequestBody {
 
+    @JsonProperty("ip")
     String ip;
 
+    @JsonProperty("keywords")
     List<String> keywords;
 
+    @JsonProperty("placements")
     List<Placement> placements;
 
-    @JsonProperty("preferred_language")
     String preferredLanguage;
 
+    @JsonProperty("url")
     String url;
 
+    @JsonProperty("user")
     CampaignRequestBodyUser user;
 }

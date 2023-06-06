@@ -2,18 +2,20 @@ package org.prebid.server.bidder.flipp.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.flipp.ExtImpFlippOptions;
 
 import java.util.List;
+import java.util.Set;
 
 @Builder(toBuilder = true)
-@Getter
+@Value
 public class Placement {
 
     @JsonProperty("adTypes")
-    List<Integer> adTypes;
+    Set<Integer> adTypes;
 
+    @JsonProperty("count")
     Integer count;
 
     @JsonProperty("divName")
@@ -22,8 +24,10 @@ public class Placement {
     @JsonProperty("networkId")
     Integer networkId;
 
+    @JsonProperty("prebid")
     PrebidRequest prebid;
 
+    @JsonProperty("properties")
     Properties properties;
 
     @JsonProperty("siteId")
@@ -32,5 +36,6 @@ public class Placement {
     @JsonProperty("zoneIds")
     List<Integer> zoneIds;
 
+    @JsonProperty("options")
     ExtImpFlippOptions options;
 }

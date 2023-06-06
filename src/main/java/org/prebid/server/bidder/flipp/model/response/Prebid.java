@@ -8,8 +8,10 @@ import java.math.BigDecimal;
 @Value(staticConstructor = "of")
 public class Prebid {
 
+    @JsonProperty("cpm")
     BigDecimal cpm;
 
+    @JsonProperty("creative")
     String creative;
 
     @JsonProperty("creativeType")

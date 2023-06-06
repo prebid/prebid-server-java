@@ -24,6 +24,7 @@ import org.prebid.server.bidder.flipp.model.request.Properties;
 import org.prebid.server.bidder.flipp.model.response.CampaignResponseBody;
 import org.prebid.server.bidder.flipp.model.response.Content;
 import org.prebid.server.bidder.flipp.model.response.Data;
+import org.prebid.server.bidder.flipp.model.response.Decisions;
 import org.prebid.server.bidder.flipp.model.response.Inline;
 import org.prebid.server.bidder.flipp.model.response.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
@@ -59,8 +61,8 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final String DEFAULT_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
     private static final Integer FIRST_INDEX = 0;
-    private static final List<Integer> AD_TYPES = List.of(4309, 641);
-    private static final List<Integer> DTX_TYPES = List.of(5061);
+    private static final Set<Integer> AD_TYPES = Set.of(4309, 641);
+    private static final Set<Integer> DTX_TYPES = Set.of(5061);
     private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -83,16 +85,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
 
             try {
                 final ExtImpFlipp extImpFlipp = parseImpExt(imp);
-                final Placement placement = Placement.builder()
-                        .divName(INLINE_DIV_NAME)
-                        .siteId(extImpFlipp.getSiteId())
-                        .adTypes(Objects.equals(extImpFlipp.getCreativeType(), CREATIVE_TYPE) ? DTX_TYPES : AD_TYPES)
-                        .zoneIds(extImpFlipp.getZoneIds())
-                        .count(COUNT)
-                        .prebid(createPrebidRequest(extImpFlipp, imp))
-                        .properties(Properties.of(resolveContentCode(bidRequest, extImpFlipp)))
-                        .options(extImpFlipp.getOptions())
-                        .build();
+                final Placement placement = createPlacement(bidRequest, imp, extImpFlipp);
 
                 campaignRequestBody
                         .placements(Collections.singletonList(placement))
@@ -115,6 +108,19 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
+        return Placement.builder()
+                .divName(INLINE_DIV_NAME)
+                .siteId(extImpFlipp.getSiteId())
+                .adTypes(Objects.equals(extImpFlipp.getCreativeType(), CREATIVE_TYPE) ? DTX_TYPES : AD_TYPES)
+                .zoneIds(extImpFlipp.getZoneIds())
+                .count(COUNT)
+                .prebid(createPrebidRequest(extImpFlipp, imp))
+                .properties(Properties.of(resolveContentCode(bidRequest, extImpFlipp)))
+                .options(extImpFlipp.getOptions())
+                .build();
     }
 
     private ExtImpFlipp parseImpExt(Imp imp) {
@@ -220,20 +226,22 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static List<BidderBid> extractInline(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
-        if (campaignResponseBody == null
-                || Objects.isNull(campaignResponseBody.getDecisions())
-                || CollectionUtils.isEmpty(campaignResponseBody.getDecisions().getInline())) {
+        final List<Inline> inlines = Optional.ofNullable(campaignResponseBody)
+                .map(CampaignResponseBody::getDecisions)
+                .map(Decisions::getInline)
+                .orElse(null);
+        if (CollectionUtils.isEmpty(inlines)) {
             return Collections.emptyList();
         }
 
-        return bidsFromResponse(campaignResponseBody, bidRequest);
+        return bidsFromResponse(inlines, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
+    private static List<BidderBid> bidsFromResponse(List<Inline> inlines, BidRequest bidRequest) {
         final List<BidderBid> bidderBids = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            for (Inline inline : campaignResponseBody.getDecisions().getInline()) {
+            for (Inline inline : inlines) {
                 final String requestId = ObjectUtil.getIfNotNull(
                         ObjectUtil.getIfNotNull(inline, Inline::getPrebid), Prebid::getRequestId);
                 if (Objects.equals(requestId, imp.getId())) {
@@ -246,7 +254,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static Bid constructBid(Inline inline, String impId) {
-        final Prebid prebid = inline.getPrebid();
+        final Prebid prebid = ObjectUtil.getIfNotNull(inline, Inline::getPrebid);
 
         return Bid.builder()
                 .crid(String.valueOf(inline.getCreativeId()))
@@ -262,7 +270,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static Integer resolveWidth(Inline inline) {
         return Optional.of(inline)
                 .map(Inline::getContents)
-                .map(a -> a.get(FIRST_INDEX))
+                .map(content -> content.get(FIRST_INDEX))
                 .map(Content::getData)
                 .map(Data::getWidth)
                 .orElse(null);

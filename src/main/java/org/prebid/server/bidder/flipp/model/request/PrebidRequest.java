@@ -2,12 +2,10 @@ package org.prebid.server.bidder.flipp.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Value;
 
 @Builder(toBuilder = true)
-@Getter
-@EqualsAndHashCode
+@Value
 public class PrebidRequest {
 
     @JsonProperty("requestId")
@@ -19,7 +17,9 @@ public class PrebidRequest {
     @JsonProperty("publisherNameIdentifier")
     String publisherNameIdentifier;
 
+    @JsonProperty("height")
     Integer height;
 
+    @JsonProperty("width")
     Integer width;
 }
