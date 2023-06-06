@@ -45,12 +45,14 @@ import org.prebid.server.util.ObjectUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
 
@@ -232,30 +234,26 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     }
 
     private static List<BidderBid> extractInline(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
-        return Optional.ofNullable(campaignResponseBody)
+        final List<Inline> inlineList = Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
-                .filter(CollectionUtils::isNotEmpty)
-                .map(inline -> bidsFromInline(inline, bidRequest))
                 .orElse(Collections.emptyList());
+
+        return inlineList.stream()
+                .map(inline -> bidFromInline(inline, bidRequest))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
-    private static List<BidderBid> bidsFromInline(List<Inline> inlines, BidRequest bidRequest) {
-        final List<BidderBid> bidderBids = new ArrayList<>();
-
+    private static BidderBid bidFromInline(Inline inlines, BidRequest bidRequest) {
         for (Imp imp : bidRequest.getImp()) {
-            for (Inline inline : inlines) {
-
-                bidderBids.add(Optional.ofNullable(inline)
-                        .map(Inline::getPrebid)
-                        .map(Prebid::getRequestId)
-                        .filter(requestId -> Objects.equals(requestId, imp.getId()))
-                        .map(reqId -> BidderBid.of(constructBid(inline, imp.getId()), BidType.banner, "USD"))
-                        .orElse(null));
-            }
+            return Optional.ofNullable(inlines)
+                    .map(Inline::getPrebid)
+                    .map(Prebid::getRequestId)
+                    .filter(requestId -> Objects.equals(requestId, imp.getId()))
+                    .map(regId -> BidderBid.of(constructBid(inlines, imp.getId()), BidType.banner, "USD"))
+                    .orElse(null);
         }
-
-        return bidderBids;
     }
 
     private static Bid constructBid(Inline inline, String impId) {
