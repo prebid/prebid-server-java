@@ -85,10 +85,9 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
 
             try {
                 final ExtImpFlipp extImpFlipp = parseImpExt(imp);
-                final Placement placement = createPlacement(bidRequest, imp, extImpFlipp);
 
                 campaignRequestBody
-                        .placements(Collections.singletonList(placement))
+                        .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
                         .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
                         .keywords(resolveKeywords(bidRequest))
                         .ip(resolveIp(bidRequest, extImpFlipp))
