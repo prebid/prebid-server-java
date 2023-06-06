@@ -45,14 +45,12 @@ import org.prebid.server.util.ObjectUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
 
