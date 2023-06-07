@@ -48,6 +48,14 @@ mvn clean package --file extra/pom.xml
 
 ## Common problems
 For IntelliJ IDEA users, if IDEA can't resolve proto classes:
+First of all, you need to compile these files. They are compiled from .proto files located in src.main.proto. This can be done by running the mvn protobuf:compile command in your terminal or by clicking in IntelliJ IDEA:
+Maven > prebid-server > Plugins > protobuf > protobuf:compile.
+
+This step is also performed during the compile (and test-compile for tests) phase of Maven if you build the app using Maven directly.
+
+After that, you can build and run the application via IntelliJ IDEA. However, IntelliJ IDEA will not recognize these files with its default settings yet, and it will still report an error even though the application can be compiled. This is because intellisense does not introspect large files by default, and the compiled classes from proto files are much larger than the default classes.
+
+Here is how to resolve this:
 In IntelliJ IDEA, click `Help > Edit custom properties...` and add modify any of these properties(in kilobytes):
 `idea.max.content.load.filesize=your-value-here`(for example, `idea.max.content.load.filesize=200000`) - increases max file size that IDEA is able to open
 `idea.max.intellisense.filesize=your-value-here`(for example, `idea.max.intellisense.filesize=200000`) - increases max file size for coding assistance and design-time code inspection.
