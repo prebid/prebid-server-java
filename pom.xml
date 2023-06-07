@@ -50,7 +50,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
-        <metrics-prometheus.version>0.12.0</metrics-prometheus.version>
+        <metrics-prometheus.version>0.16.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <logback.version>1.2.11</logback.version>
         <log4j.version>2.19.0</log4j.version>
@@ -58,7 +58,7 @@
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.0</protoc.version>
-        <micrometer.version>1.9.2</micrometer.version>
+        <micrometer.version>1.9.11</micrometer.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -158,11 +158,6 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-circuit-breaker</artifactId>
-            <version>${vertx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-dropwizard-metrics</artifactId>
             <version>${vertx.version}</version>
         </dependency>
         <dependency>
@@ -295,6 +290,11 @@
             <version>${micrometer.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-cloudwatch2</artifactId>
+            <version>${micrometer.version}</version>
+        </dependency>
+        <dependency>
             <groupId>de.malkusch.whois-server-list</groupId>
             <artifactId>public-suffix-list</artifactId>
             <version>${psl.version}</version>
@@ -302,36 +302,6 @@
                 <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>${metrics.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jvm</artifactId>
-            <version>${metrics.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-graphite</artifactId>
-            <version>${metrics.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.izettle</groupId>
-            <artifactId>dropwizard-metrics-influxdb</artifactId>
-            <version>${metrics-influxdb.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.dropwizard</groupId>
-                    <artifactId>dropwizard-metrics</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>kafka-clients</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -352,7 +322,7 @@
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient_dropwizard</artifactId>
+            <artifactId>simpleclient</artifactId>
             <version>${metrics-prometheus.version}</version>
         </dependency>
         <dependency>

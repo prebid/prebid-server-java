@@ -1,16 +1,14 @@
 package org.prebid.server.spring.config;
 
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
-import io.vertx.ext.dropwizard.Match;
-import io.vertx.ext.dropwizard.MatchType;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.prebid.server.spring.config.metrics.MetricsConfiguration;
+import io.vertx.micrometer.MicrometerMetricsOptions;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.LocalMessageCodec;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,20 +22,21 @@ public class VertxConfiguration {
 
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
-                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics,
-                @Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
-        final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
+                CompositeMeterRegistry meterRegistry) {
+        final MicrometerMetricsOptions micrometerMetricsOptions = new MicrometerMetricsOptions()
                 .setEnabled(true)
-                .setJmxEnabled(jmxEnabled)
-                .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
-        if (enablePerClientEndpointMetrics) {
-            metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
-        }
+                .setMicrometerRegistry(meterRegistry);
+//                .setPrometheusOptions(
+//                        new VertxPrometheusOptions()
+//                                .setEnabled(true)
+//                                .setStartEmbeddedServer(true)
+//                                .setEmbeddedServerOptions(new HttpServerOptions().setPort(8090))
+//                                .setEmbeddedServerEndpoint("/metrics/vertx"));
 
         final VertxOptions vertxOptions = new VertxOptions()
                 .setPreferNativeTransport(true)
                 .setWorkerPoolSize(workerPoolSize)
-                .setMetricsOptions(metricsOptions);
+                .setMetricsOptions(micrometerMetricsOptions);
 
         final Vertx vertx = Vertx.vertx(vertxOptions);
         logger.info("Native transport enabled: {0}", vertx.isNativeTransportEnabled());

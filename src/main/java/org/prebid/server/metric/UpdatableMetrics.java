@@ -1,6 +1,5 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -27,8 +26,6 @@ class UpdatableMetrics {
         this.nameCreator = nameCreator;
         metricNames = new EnumMap<>(MetricName.class);
 
-
-        new MetricRegistry().meter("").mark(1);
         incrementer = null;
         // = switch (counterType) {
 //            case flushingCounter -> (registry, metricName, value) ->
