@@ -86,8 +86,11 @@ public class ImdsBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(
                         BidderUtil.defaultRequest(
                                 outgoingRequest,
-                                endpointUrl.replaceAll("\\{\\{AccountID}}", URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8))
-                                        .replaceAll("\\{\\{SourceId}}", URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8)),
+                                endpointUrl
+                                        .replaceAll("\\{\\{AccountID}}",
+                                                URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8))
+                                        .replaceAll("\\{\\{SourceId}}",
+                                                URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8)),
                                 mapper)),
                 errors);
     }
