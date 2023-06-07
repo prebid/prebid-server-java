@@ -6,16 +6,21 @@ import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.pricefloors.Country.CANADA
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.util.privacy.model.States.ALABAMA
+import static org.prebid.server.functional.util.privacy.model.States.ONTARIO
 
-class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
+class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
     private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_PRECISE_GEO.metricValue}.disallowed.count"
@@ -607,5 +612,176 @@ class GppTransmitPreciseGeoSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS auction should process rule when device.geo doesn't intersection"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            it.regs.gppSid = [USP_V1.intValue]
+            it.ext.prebid.trace = VERBOSE
+            it.device.geo = deviceGeo.tap {
+                lat = PBSUtils.getRandomDecimal(0, 90)
+                lon = PBSUtils.getRandomDecimal(0, 90)
+            }
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = [PBSUtils.randomString]
+            it.gppSid = [USP_V1.intValue]
+            it.geo = conditionGeo
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+
+        where:
+        deviceGeo                                              | conditionGeo
+        new Geo(country: USA,)                                 | null
+        new Geo(region: "$ALABAMA.abbreviation")               | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        new Geo(country: CANADA, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
+    }
+
+    def "PBS auction should process rule when device.geo is null and doesn't intersection"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            it.regs.gppSid = [USP_V1.intValue]
+            it.ext.prebid.trace = VERBOSE
+            it.device.geo = null
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = [PBSUtils.randomString]
+            it.gppSid = [USP_V1.intValue]
+            it.geo = ["$USA.value".toString()]
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+            !bidderRequests.device.geo
+            !bidderRequests.device.geo
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+    }
+
+    def "PBS auction should disallowed rule when device.geo intersection"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            it.regs.gppSid = null
+            it.ext.prebid.trace = VERBOSE
+            it.device.geo = deviceGeo.tap {
+                lat = PBSUtils.getRandomDecimal(0, 90)
+                lon = PBSUtils.getRandomDecimal(0, 90)
+            }
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = null
+            it.geo = conditionGeo
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        deviceGeo                                           | conditionGeo
+        new Geo(country: USA)                               | ["$USA".toString()]
+        new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CANADA.$ONTARIO.abbreviation".toString(),
+                                                               "$USA.$ALABAMA.abbreviation".toString()]
     }
 }
