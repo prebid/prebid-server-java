@@ -542,7 +542,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         null                                                   | ["$USA.value".toString()]
         new Geo(country: USA)                                  | null
         new Geo(region: "$ALABAMA.abbreviation")               | ["$USA.value.$ALABAMA.abbreviation".toString()]
-        new Geo(country: CANADA, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        new Geo(country: CAN, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
     }
 
     def "PBS auction should disallowed rule when device.geo intersection"() {
@@ -589,7 +589,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new Geo(country: USA)                               | ["$USA".toString()]
         new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
         new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CANADA.$ONTARIO.abbreviation".toString(),
+        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CAN.$ONTARIO.abbreviation".toString(),
                                                                "$USA.$ALABAMA.abbreviation".toString()]
     }
 }

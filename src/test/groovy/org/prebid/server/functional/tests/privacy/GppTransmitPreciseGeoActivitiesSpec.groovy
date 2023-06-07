@@ -12,7 +12,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.pricefloors.Country.CANADA
+import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
@@ -781,7 +781,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         new Geo(country: USA)                               | ["$USA".toString()]
         new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
         new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CANADA.$ONTARIO.abbreviation".toString(),
+        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CAN.$ONTARIO.abbreviation".toString(),
                                                                "$USA.$ALABAMA.abbreviation".toString()]
     }
 }

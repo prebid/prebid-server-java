@@ -19,7 +19,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.pricefloors.Country.CANADA
+import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
@@ -736,17 +736,17 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
-        deviceGeo                                              | conditionGeo
-        null                                                   | ["$USA.value".toString()]
-        new Geo(country: USA)                                  | null
-        new Geo(region: "$ALABAMA.abbreviation")               | ["$USA.value.$ALABAMA.abbreviation".toString()]
-        new Geo(country: CANADA, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        deviceGeo                                           | conditionGeo
+        null                                                | ["$USA.value".toString()]
+        new Geo(country: USA)                               | null
+        new Geo(region: "$ALABAMA.abbreviation")            | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        new Geo(country: CAN, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
     }
 
     def "PBS auction should disallowed rule when device.geo intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest =  givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
             it.device = new Device(geo: deviceGeo)
@@ -804,7 +804,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         new Geo(country: USA)                               | ["$USA".toString()]
         new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
         new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CANADA.$ONTARIO.abbreviation".toString(),
+        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CAN.$ONTARIO.abbreviation".toString(),
                                                                "$USA.$ALABAMA.abbreviation".toString()]
     }
 
