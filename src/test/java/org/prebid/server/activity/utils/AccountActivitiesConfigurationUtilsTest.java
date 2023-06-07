@@ -7,7 +7,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 
 import java.util.Map;
 
@@ -68,13 +68,13 @@ public class AccountActivitiesConfigurationUtilsTest {
                                                 singletonList(ComponentType.BIDDER), singletonList("bidder")),
                                         null))),
                         Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
-                                AccountActivityGppSidRuleConfig.of(null, null),
-                                AccountActivityGppSidRuleConfig.of(
-                                        AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                                AccountActivityGeoRuleConfig.of(null, null),
+                                AccountActivityGeoRuleConfig.of(
+                                        AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
                                         null),
-                                AccountActivityGppSidRuleConfig.of(
-                                        AccountActivityGppSidRuleConfig.Condition.of(
-                                                singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
+                                AccountActivityGeoRuleConfig.of(
+                                        AccountActivityGeoRuleConfig.Condition.of(
+                                                singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
                                         null))))))
                 .build();
 
@@ -104,13 +104,13 @@ public class AccountActivitiesConfigurationUtilsTest {
     }
 
     @Test
-    public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidGppSidRule() {
+    public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidGeoRule() {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(null, null, Map.of(
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
-                                AccountActivityGppSidRuleConfig.of(
-                                        AccountActivityGppSidRuleConfig.Condition.of(emptyList(), emptyList(), null),
+                                AccountActivityGeoRuleConfig.of(
+                                        AccountActivityGeoRuleConfig.Condition.of(emptyList(), emptyList(), null, null),
                                         null))))))
                 .build();
 
@@ -139,16 +139,16 @@ public class AccountActivitiesConfigurationUtilsTest {
                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
                                 null))),
                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
-                        AccountActivityGppSidRuleConfig.of(null, null),
-                        AccountActivityGppSidRuleConfig.of(
-                                AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                        AccountActivityGeoRuleConfig.of(null, null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
                                 null),
-                        AccountActivityGppSidRuleConfig.of(
-                                AccountActivityGppSidRuleConfig.Condition.of(emptyList(), emptyList(), null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(emptyList(), emptyList(), null, null),
                                 null),
-                        AccountActivityGppSidRuleConfig.of(
-                                AccountActivityGppSidRuleConfig.Condition.of(
-                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
                                 null))));
 
         // when
@@ -168,13 +168,13 @@ public class AccountActivitiesConfigurationUtilsTest {
                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
                                 null))),
                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
-                        AccountActivityGppSidRuleConfig.of(null, null),
-                        AccountActivityGppSidRuleConfig.of(
-                                AccountActivityGppSidRuleConfig.Condition.of(null, null, null),
+                        AccountActivityGeoRuleConfig.of(null, null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
                                 null),
-                        AccountActivityGppSidRuleConfig.of(
-                                AccountActivityGppSidRuleConfig.Condition.of(
-                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
                                 null)))));
     }
 }

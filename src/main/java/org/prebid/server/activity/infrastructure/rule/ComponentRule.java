@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.rule;
 
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 
 import java.util.Set;
 
@@ -22,8 +22,8 @@ public final class ComponentRule implements Rule {
 
     @Override
     public boolean matches(ActivityCallPayload activityCallPayload) {
-        return (componentTypes == null || componentTypes.contains(activityCallPayload.getComponentType()))
-                && (componentNames == null || componentNames.contains(activityCallPayload.getComponentName()));
+        return (componentTypes == null || componentTypes.contains(activityCallPayload.componentType()))
+                && (componentNames == null || componentNames.contains(activityCallPayload.componentName()));
     }
 
     @Override

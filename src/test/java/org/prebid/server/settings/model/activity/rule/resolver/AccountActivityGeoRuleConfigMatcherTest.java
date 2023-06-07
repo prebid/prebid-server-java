@@ -5,16 +5,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGppSidRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AccountActivityGppSidRuleConfigMatcherTest {
+public class AccountActivityGeoRuleConfigMatcherTest {
 
     private final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
-    private final AccountActivityGppSidRuleConfigMatcher target = new AccountActivityGppSidRuleConfigMatcher();
+    private final AccountActivityGeoRuleConfigMatcher target = new AccountActivityGeoRuleConfigMatcher();
 
     @Test
     public void matchesShouldReturnFalseOnNull() {
@@ -44,10 +44,23 @@ public class AccountActivityGppSidRuleConfigMatcherTest {
     }
 
     @Test
-    public void matchesShouldReturnTrueOnCertainConfig() {
+    public void matchesShouldReturnTrueOnConfigWithGppSid() {
         // given
         final ObjectNode config = mapper.createObjectNode();
         config.put("gppSid", 1);
+
+        // when
+        final boolean result = target.matches(config);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void matchesShouldReturnTrueOnConfigWithGeo() {
+        // given
+        final ObjectNode config = mapper.createObjectNode();
+        config.put("geo", 1);
 
         // when
         final boolean result = target.matches(config);
@@ -62,6 +75,6 @@ public class AccountActivityGppSidRuleConfigMatcherTest {
         final Class<? extends AccountActivityRuleConfig> result = target.type();
 
         // then
-        assertThat(result).isEqualTo(AccountActivityGppSidRuleConfig.class);
+        assertThat(result).isEqualTo(AccountActivityGeoRuleConfig.class);
     }
 }

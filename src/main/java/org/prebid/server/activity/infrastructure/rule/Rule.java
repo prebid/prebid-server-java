@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 
 public interface Rule {
 
