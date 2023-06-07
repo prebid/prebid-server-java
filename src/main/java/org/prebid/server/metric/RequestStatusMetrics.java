@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -10,8 +11,8 @@ import java.util.function.Function;
  */
 class RequestStatusMetrics extends UpdatableMetrics {
 
-    RequestStatusMetrics(MetricRegistry metricRegistry, CounterType counterType, MetricName requestType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    RequestStatusMetrics(MeterRegistry meterRegistry, CounterType counterType, MetricName requestType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                 nameCreator(Objects.requireNonNull(requestType)));
     }
 

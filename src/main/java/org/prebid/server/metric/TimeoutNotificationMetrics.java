@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 
@@ -9,8 +9,8 @@ import java.util.Objects;
  */
 class TimeoutNotificationMetrics extends UpdatableMetrics {
 
-    TimeoutNotificationMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    TimeoutNotificationMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                 metricName -> "timeout_notification." + metricName);
     }
 }

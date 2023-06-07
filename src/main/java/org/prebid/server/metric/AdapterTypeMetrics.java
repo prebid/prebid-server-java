@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,37 +20,37 @@ class AdapterTypeMetrics extends UpdatableMetrics {
     private final ResponseMetrics responseMetrics;
     private final ActivitiesMetrics activitiesMetrics;
 
-    AdapterTypeMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
+    AdapterTypeMetrics(MeterRegistry meterRegistry, CounterType counterType, String adapterType) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createAdapterPrefix(Objects.requireNonNull(adapterType))));
 
         bidTypeMetricsCreator = bidType ->
-                new BidTypeMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType), bidType);
+                new BidTypeMetrics(meterRegistry, counterType, createAdapterPrefix(adapterType), bidType);
         requestTypeMetricsCreator = requestType ->
-                new RequestTypeMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType), requestType);
+                new RequestTypeMetrics(meterRegistry, counterType, createAdapterPrefix(adapterType), requestType);
         requestTypeMetrics = new HashMap<>();
-        requestMetrics = new RequestMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
+        requestMetrics = new RequestMetrics(meterRegistry, counterType, createAdapterPrefix(adapterType));
         bidTypeMetrics = new HashMap<>();
-        responseMetrics = new ResponseMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
-        activitiesMetrics = new ActivitiesMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
+        responseMetrics = new ResponseMetrics(meterRegistry, counterType, createAdapterPrefix(adapterType));
+        activitiesMetrics = new ActivitiesMetrics(meterRegistry, counterType, createAdapterPrefix(adapterType));
     }
 
-    AdapterTypeMetrics(MetricRegistry metricRegistry,
+    AdapterTypeMetrics(MeterRegistry meterRegistry,
                        CounterType counterType,
                        String accountAdapterPrefix,
                        String adapterType) {
 
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createAdapterPrefix(
                         Objects.requireNonNull(accountAdapterPrefix),
                         Objects.requireNonNull(adapterType))));
 
         requestMetrics = new RequestMetrics(
-                metricRegistry,
+                meterRegistry,
                 counterType,
                 createAdapterPrefix(accountAdapterPrefix, adapterType));
 

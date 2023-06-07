@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.function.Function;
 
@@ -9,8 +10,8 @@ import java.util.function.Function;
  */
 class BidTypeMetrics extends UpdatableMetrics {
 
-    BidTypeMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String bidType) {
-        super(metricRegistry, counterType, nameCreator(prefix, bidType));
+    BidTypeMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix, String bidType) {
+        super(meterRegistry, counterType, nameCreator(prefix, bidType));
     }
 
     private static Function<MetricName, String> nameCreator(String prefix, String bidType) {

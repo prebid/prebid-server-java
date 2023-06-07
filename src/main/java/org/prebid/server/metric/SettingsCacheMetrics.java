@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,12 +15,12 @@ class SettingsCacheMetrics extends UpdatableMetrics {
     private final Function<MetricName, RefreshSettingsCacheMetrics> refreshSettingsCacheMetricsCreator;
     private final Map<MetricName, RefreshSettingsCacheMetrics> refreshSettingsCacheMetrics;
 
-    SettingsCacheMetrics(MetricRegistry metricRegistry, CounterType counterType, MetricName type) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    SettingsCacheMetrics(MeterRegistry meterRegistry, CounterType counterType, MetricName type) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(type))));
 
         refreshSettingsCacheMetricsCreator = refreshType ->
-                new RefreshSettingsCacheMetrics(metricRegistry, counterType, createPrefix(type), refreshType);
+                new RefreshSettingsCacheMetrics(meterRegistry, counterType, createPrefix(type), refreshType);
         refreshSettingsCacheMetrics = new HashMap<>();
     }
 
@@ -38,12 +38,12 @@ class SettingsCacheMetrics extends UpdatableMetrics {
 
     static class RefreshSettingsCacheMetrics extends UpdatableMetrics {
 
-        RefreshSettingsCacheMetrics(MetricRegistry metricRegistry,
+        RefreshSettingsCacheMetrics(MeterRegistry meterRegistry,
                                     CounterType counterType,
                                     String prefix,
                                     MetricName type) {
 
-            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+            super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                     nameCreator(createPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(type))));
         }
 

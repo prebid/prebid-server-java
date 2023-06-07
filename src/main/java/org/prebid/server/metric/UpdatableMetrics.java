@@ -1,6 +1,8 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -10,7 +12,7 @@ import java.util.function.LongSupplier;
 
 class UpdatableMetrics {
 
-    private final MetricRegistry metricRegistry;
+    private final MeterRegistry meterRegistry;
     private final Function<MetricName, String> nameCreator;
     private final MetricIncrementer incrementer;
     private final CounterType counterType;
@@ -19,18 +21,21 @@ class UpdatableMetrics {
     // thread-safe
     private final Map<MetricName, String> metricNames;
 
-    UpdatableMetrics(MetricRegistry metricRegistry, CounterType counterType, Function<MetricName, String> nameCreator) {
-        this.metricRegistry = metricRegistry;
+    UpdatableMetrics(MeterRegistry meterRegistry, CounterType counterType, Function<MetricName, String> nameCreator) {
+        this.meterRegistry = meterRegistry;
         this.counterType = counterType;
         this.nameCreator = nameCreator;
         metricNames = new EnumMap<>(MetricName.class);
 
-        incrementer = switch (counterType) {
-            case flushingCounter -> (registry, metricName, value) ->
-                    registry.counter(metricName, ResettingCounter::new).inc(value);
-            case counter -> (registry, metricName, value) -> registry.counter(metricName).inc(value);
-            case meter -> (registry, metricName, value) -> registry.meter(metricName).mark(value);
-        };
+
+        new MetricRegistry().meter("").mark(1);
+        incrementer = null;
+        // = switch (counterType) {
+//            case flushingCounter -> (registry, metricName, value) ->
+//                    registry.counter(metricName, ResettingCounter::new).inc(value);
+//            case counter -> (registry, metricName, value) -> registry.counter(metricName).inc(value);
+//            case meter -> (registry, metricName, value) -> registry.meter(metricName).mark(value);
+        // };
     }
 
     /**
@@ -44,14 +49,15 @@ class UpdatableMetrics {
      * Increments metric's counter on a given value.
      */
     void incCounter(MetricName metricName, long value) {
-        incrementer.accept(metricRegistry, name(metricName), value);
+        meterRegistry.counter(name(metricName)).increment(value);
     }
 
     /**
      * Updates metric's timer with a given value.
      */
     void updateTimer(MetricName metricName, long millis) {
-        metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
+        meterRegistry.timer(name(metricName)).record(millis, TimeUnit.MILLISECONDS);
+//        metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -59,15 +65,21 @@ class UpdatableMetrics {
      */
     void updateHistogram(MetricName metricName, long value) {
         // by default histograms with exponentially decaying reservoir (size=1028, alpha=0.015) are created
-        metricRegistry.histogram(name(metricName)).update(value);
+        meterRegistry.summary(name(metricName)).record(value);
+        // metricRegistry.histogram(name(metricName)).update(value);
     }
 
     void createGauge(MetricName metricName, LongSupplier supplier) {
-        metricRegistry.gauge(name(metricName), () -> supplier::getAsLong);
+        meterRegistry.gauge(name(metricName), supplier.getAsLong());
+//        metricRegistry.gauge(name(metricName), () -> supplier::getAsLong);
     }
 
     void removeMetric(MetricName metricName) {
-        metricRegistry.remove(name(metricName));
+        final Meter meter = meterRegistry.find(name(metricName)).meter();
+        if (meter != null) {
+            meterRegistry.remove(meter);
+        }
+        //metricRegistry.remove(name(metricName));
     }
 
     private String name(MetricName metricName) {
@@ -80,6 +92,6 @@ class UpdatableMetrics {
 
     @FunctionalInterface
     private interface MetricIncrementer {
-        void accept(MetricRegistry metricRegistry, String metricName, long value);
+        void accept(MeterRegistry metricRegistry, String metricName, long value);
     }
 }

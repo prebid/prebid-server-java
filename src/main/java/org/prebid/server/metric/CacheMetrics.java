@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -13,24 +14,24 @@ class CacheMetrics extends UpdatableMetrics {
     private final RequestMetrics requestsMetrics;
     private final CacheCreativeSizeMetrics cacheCreativeSizeMetrics;
 
-    CacheMetrics(MetricRegistry metricRegistry, CounterType counterType) {
+    CacheMetrics(MeterRegistry meterRegistry, CounterType counterType) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createPrefix()));
 
-        requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix());
-        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix());
+        requestsMetrics = new RequestMetrics(meterRegistry, counterType, createPrefix());
+        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(meterRegistry, counterType, createPrefix());
     }
 
-    CacheMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+    CacheMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
 
-        requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(prefix));
-        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
+        requestsMetrics = new RequestMetrics(meterRegistry, counterType, createPrefix(prefix));
+        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(meterRegistry, counterType, createPrefix(prefix));
     }
 
     private static String createPrefix(String prefix) {

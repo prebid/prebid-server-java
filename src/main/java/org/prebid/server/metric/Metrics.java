@@ -2,6 +2,7 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -61,29 +62,29 @@ public class Metrics extends UpdatableMetrics {
     private final HooksMetrics hooksMetrics;
     private final PgMetrics pgMetrics;
 
-    public Metrics(MetricRegistry metricRegistry,
+    public Metrics(MeterRegistry meterRegistry,
                    CounterType counterType,
                    AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
 
-        super(metricRegistry, counterType, MetricName::toString);
+        super(meterRegistry, counterType, MetricName::toString);
 
         this.accountMetricsVerbosityResolver = Objects.requireNonNull(accountMetricsVerbosityResolver);
 
-        requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
-        accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
-        adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(metricRegistry, counterType, adapterType);
+        requestMetricsCreator = requestType -> new RequestStatusMetrics(meterRegistry, counterType, requestType);
+        accountMetricsCreator = account -> new AccountMetrics(meterRegistry, counterType, account);
+        adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(meterRegistry, counterType, adapterType);
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
-                metricRegistry, counterType, cardinality);
+                meterRegistry, counterType, cardinality);
         analyticMetricsCreator = analyticCode -> new AnalyticsReporterMetrics(
-                metricRegistry, counterType, analyticCode);
+                meterRegistry, counterType, analyticCode);
         priceFloorsMetricsCreator = moduleType -> new PriceFloorMetrics(
-                metricRegistry, counterType, moduleType);
+                meterRegistry, counterType, moduleType);
         alertsMetricsCreator = account -> new AlertsConfigMetrics(
-                metricRegistry, counterType, account);
-        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
-        settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
+                meterRegistry, counterType, account);
+        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(meterRegistry, counterType, type);
+        settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(meterRegistry, counterType, type);
 
-        requestsMetrics = new RequestsMetrics(metricRegistry, counterType);
+        requestsMetrics = new RequestsMetrics(meterRegistry, counterType);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
@@ -91,16 +92,16 @@ public class Metrics extends UpdatableMetrics {
         priceFloorsMetrics = new HashMap<>();
         alertsMetrics = new HashMap<>();
         bidderCardinailtyMetrics = new HashMap<>();
-        userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
-        cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
-        privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
+        userSyncMetrics = new UserSyncMetrics(meterRegistry, counterType);
+        cookieSyncMetrics = new CookieSyncMetrics(meterRegistry, counterType);
+        privacyMetrics = new PrivacyMetrics(meterRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
-        cacheMetrics = new CacheMetrics(metricRegistry, counterType);
-        timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
-        currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
+        cacheMetrics = new CacheMetrics(meterRegistry, counterType);
+        timeoutNotificationMetrics = new TimeoutNotificationMetrics(meterRegistry, counterType);
+        currencyRatesMetrics = new CurrencyRatesMetrics(meterRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
-        hooksMetrics = new HooksMetrics(metricRegistry, counterType);
-        pgMetrics = new PgMetrics(metricRegistry, counterType);
+        hooksMetrics = new HooksMetrics(meterRegistry, counterType);
+        pgMetrics = new PgMetrics(meterRegistry, counterType);
     }
 
     RequestsMetrics requests() {
