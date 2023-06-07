@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 enum Country {
 
     USA("USA"),
+    CANADA("CAN"),
     MULTIPLE("*")
 
     @JsonValue

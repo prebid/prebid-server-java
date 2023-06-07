@@ -7,9 +7,10 @@ import org.prebid.server.functional.model.request.GppSectionId
 @ToString(includeNames = true, ignoreNulls = true)
 class Condition {
 
-    List<Integer> gppSid
     List<ConditionType> componentType
     List<String> componentName
+    List<Integer> gppSid
+    List<String> geo
 
     static Condition getBaseCondition(String componentName = BidderName.GENERIC.value) {
         new Condition().tap {
