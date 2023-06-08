@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.criteo;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -67,18 +68,13 @@ public class CriteoBidder implements Bidder<BidRequest> {
     }
 
     private Bid modifyBidExt(Bid bid) {
-        final Bid.BidBuilder modifyBid = bid.toBuilder();
-
-        Optional.ofNullable(bid.getExt())
+        return Optional.ofNullable(bid.getExt())
                 .map(ext -> ext.get("prebid"))
                 .map(prebid -> prebid.get("networkName"))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)
-                .ifPresent(networkName -> modifyBid.ext(mapper.mapper().valueToTree(ExtBidPrebid.builder()
-                        .meta(mapper.mapper().createObjectNode().put("networkName", networkName))
-                        .build())));
-
-        return modifyBid.build();
+                .map(networkName -> bid.toBuilder().ext(makeExt(networkName)).build())
+                .orElse(bid);
     }
 
     private static BidType getBidType(Bid bid) {
@@ -90,5 +86,11 @@ public class CriteoBidder implements Bidder<BidRequest> {
                 .map(BidType::fromString)
                 .orElseThrow(() -> new PreBidException(
                         "Missing ext.prebid.type in bid for impression : %s.".formatted(bid.getImpid())));
+    }
+
+    private ObjectNode makeExt(String networkName) {
+        return mapper.mapper().valueToTree(ExtBidPrebid.builder()
+                .meta(mapper.mapper().createObjectNode().put("networkName", networkName))
+                .build());
     }
 }
