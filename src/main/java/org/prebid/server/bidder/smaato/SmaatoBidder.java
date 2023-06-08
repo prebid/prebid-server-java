@@ -199,9 +199,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps, List<BidderError> errors) {
         try {
             final ObjectNode impExt = imps.get(0).getExt();
-            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE)
-                    .getBidder();
-
+            final ExtImpSmaato extImpSmaato =
+                    mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE).getBidder();
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adBreakId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdbreakId, "adbreakId");
 
@@ -232,11 +231,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId, ObjectNode impExtSkadn) {
         return IntStream.range(0, imps.size())
-                .mapToObj(idx -> modifyImpForAdBreak(idx, imps.get(idx), idx + 1, adBreakId, impExtSkadn))
+                .mapToObj(idx ->
+                        modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId, idx == 0 ? impExtSkadn : null))
                 .toList();
     }
 
-    private Imp modifyImpForAdBreak(Integer idx, Imp imp, Integer sequence, String adBreakId, ObjectNode impExtSkadn) {
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId, ObjectNode impExtSkadn) {
         final Video modifiedVideo = imp.getVideo().toBuilder()
                 .sequence(sequence)
                 .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
@@ -244,7 +244,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .tagid(adBreakId)
                 .video(modifiedVideo)
-                .ext(idx == 0 ? impExtSkadn : null)
+                .ext(impExtSkadn)
                 .build();
     }
 
@@ -285,8 +285,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
         try {
             final ObjectNode impExt = imp.getExt();
-            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(impExt,
-                    SMAATO_EXT_TYPE_REFERENCE).getBidder();
+            final ExtImpSmaato extImpSmaato =
+                    mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE).getBidder();
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adSpaceId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdspaceId, "adspaceId");
 
