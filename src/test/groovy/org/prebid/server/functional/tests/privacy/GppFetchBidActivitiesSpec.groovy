@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -201,7 +200,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
     }
 
-    def "PBS auction call when privacy regulation match and allowing should call bid adapter"() {
+    def "PBS auction call when privacy regulation match and disabled should call bid adapter"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = BidRequest.defaultBidRequest.tap {
@@ -251,7 +250,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, GppSectionId.values() as List<GppSectionId>, false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -280,41 +279,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with cookie sync and empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
-
-        then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
-    }
-
-    def "PBS auction call when privacy regulation match and allowing by first element in hierarchy should call bid adapter"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
-            regs.gppSid = [USP_NAT_V1.intValue]
-            setAccountId(accountId)
-        }
-
-        and: "Activities set for fetch bid with rejecting privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], false)
-
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -344,8 +309,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -354,7 +319,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendAuctionRequest(generalBidRequest)
 
         then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } == ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
+                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -392,6 +358,69 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should be ignored"
         assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+    }
+
+    def "PBS auction call when privacy regulation match and allowing by first element in hierarchy should skip call to restricted bidder"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+            regs.gppSid = [USP_NAT_V1.intValue]
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for fetch bid with rejecting privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder request should be ignored"
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+    }
+
+    def "PBS auction call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for transmit tid with invalid privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
     }
 
     def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
@@ -613,7 +642,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
     }
 
-    def "PBS amp call when privacy regulation match and allowing should call bid adapter"() {
+    def "PBS amp call when privacy regulation match and disabled should call bid adapter"() {
         given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
@@ -675,7 +704,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
 
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -714,50 +743,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should be present"
-        assert bidder.getBidderRequest(ampStoredRequest.id)
-    }
-
-    def "PBS amp call when privacy regulation match and allowing by first element in hierarchy should call bid adapter"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for fetch bid with multiple privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], false)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -795,8 +781,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -806,9 +792,17 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should be present"
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
+                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Bidder request should be present"
         assert bidder.getBidderRequest(ampStoredRequest.id)
     }
 
@@ -833,7 +827,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -848,5 +842,86 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should not contain bidRequest from amp request"
         assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
+    }
+
+    def "PBS amp call when privacy regulation match and allowing by first element in hierarchy should skip call to restricted bidder"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for fetch bid with multiple privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should not contain bidRequest from amp request"
+        assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
+    }
+
+    def "PBS amp call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic BidRequests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for transmit tid with invalid privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
     }
 }

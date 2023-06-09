@@ -432,7 +432,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should remove tid fields in request"() {
+    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should leave tid fields in request"() {
         given: "Generic BidRequests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -955,10 +955,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.imp.ext.tid == ampStoredRequest.imp.ext.tid
             bidderRequest.source.tid == ampStoredRequest.source.tid
         }
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove tid fields in request"() {
@@ -984,7 +980,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
