@@ -74,7 +74,10 @@ public class AccountActivitiesConfigurationUtilsTest {
                                         null),
                                 AccountActivityGeoRuleConfig.of(
                                         AccountActivityGeoRuleConfig.Condition.of(
-                                                singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
+                                                singletonList(ComponentType.BIDDER),
+                                                singletonList("bidder"),
+                                                null,
+                                                null),
                                         null))))))
                 .build();
 

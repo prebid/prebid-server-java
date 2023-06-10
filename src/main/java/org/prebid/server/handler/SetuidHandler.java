@@ -17,6 +17,9 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityCallPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -210,7 +213,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
-        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder)) {
+        final ActivityCallPayload activityCallPayload = TcfContextActivityCallPayload.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                tcfContext);
+
+        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityCallPayload)) {
             throw new UnavailableForLegalReasonsException();
         }
     }

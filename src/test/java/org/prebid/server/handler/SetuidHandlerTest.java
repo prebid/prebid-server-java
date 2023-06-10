@@ -145,7 +145,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
 
-        given(activityInfrastructure.isAllowed(any(), any(), anyString()))
+        given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -249,7 +249,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(eq("accountId"), any()))
                 .willReturn(Future.succeededFuture(Account.builder().build()));
 
-        given(activityInfrastructure.isAllowed(any(), any(), anyString()))
+        given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(false);
 
         // when
