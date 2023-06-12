@@ -42,8 +42,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -409,7 +409,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(ortbVersionConversionManager.convertFromAuctionSupportedVersion(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(activityInfrastructure.isAllowed(any(), any(), any()))
+        given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -515,10 +515,13 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldSkipBidderDisallowedByActivityInfrastructure() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.CALL_BIDDER), eq(ComponentType.BIDDER), eq("invalid")))
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.CALL_BIDDER),
+                argThat(argument -> argument.componentType().equals(ComponentType.BIDDER)
+                        && argument.componentName().equals("disallowed"))))
                 .willReturn(false);
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("disallowed", 0)));
 
         // when
         final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();

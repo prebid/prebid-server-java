@@ -21,8 +21,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -48,6 +48,7 @@ import static java.util.Collections.singleton;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
@@ -285,7 +286,9 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldNotPassAuctionEventToDisallowedDelegates() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), eq(ComponentType.ANALYTICS), any()))
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
                 .willReturn(false);
 
         final AuctionEvent auctionEvent = AuctionEvent.builder()
@@ -304,7 +307,9 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldNotPassAmpEventToDisallowedDelegates() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), eq(ComponentType.ANALYTICS), any()))
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
                 .willReturn(false);
 
         final AmpEvent ampEvent = AmpEvent.builder()
@@ -323,7 +328,9 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldNotPassNotificationEventToDisallowedDelegates() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), eq(ComponentType.ANALYTICS), any()))
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
                 .willReturn(false);
 
         final NotificationEvent notificationEvent = NotificationEvent.builder()
@@ -340,9 +347,9 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldUpdateAuctionEventToConsideringActivitiesRestrictions() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any(), any())).willReturn(true);
-        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any(), any())).willReturn(false);
-        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any(), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any())).willReturn(true);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
 
         given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());

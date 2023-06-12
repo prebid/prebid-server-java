@@ -26,8 +26,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -531,7 +534,7 @@ public class ExchangeService {
         final List<String> bidders = imps.stream()
                 .map(imp -> bidderNamesFromImpExt(imp, aliases))
                 .flatMap(Collection::stream)
-                .filter(bidder -> isBidderCallActivityAllowed(bidder, context.getActivityInfrastructure()))
+                .filter(bidder -> isBidderCallActivityAllowed(bidder, context))
                 .distinct()
                 .toList();
 
@@ -560,11 +563,15 @@ public class ExchangeService {
         return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
 
-    private static boolean isBidderCallActivityAllowed(String bidder, ActivityInfrastructure activityInfrastructure) {
+    private static boolean isBidderCallActivityAllowed(String bidder, AuctionContext auctionContext) {
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+        final ActivityCallPayload activityCallPayload = BidRequestActivityCallPayload.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                auctionContext.getBidRequest());
+
         return activityInfrastructure.isAllowed(
                 org.prebid.server.activity.Activity.CALL_BIDDER,
-                ComponentType.BIDDER,
-                bidder);
+                activityCallPayload);
     }
 
     /**
