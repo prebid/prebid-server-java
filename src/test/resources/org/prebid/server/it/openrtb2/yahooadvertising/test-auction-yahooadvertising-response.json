@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "yahoossp",
+      "seat": "yahooAdvertising",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "yahoossp": "{{ yahoossp.response_time_ms }}"
+      "yahooAdvertising": "{{ yahooAdvertising.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

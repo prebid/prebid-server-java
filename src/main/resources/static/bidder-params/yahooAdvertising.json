@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "YahooSSP Adapter Params",
-  "description": "A schema which validates params accepted by the YahooSSP adapter",
+  "title": "Yahoo Advertising Adapter Params",
+  "description": "A schema which validates params accepted by the Yahoo Advertising adapter",
   "type": "object",
   "properties": {
     "dcn": {
