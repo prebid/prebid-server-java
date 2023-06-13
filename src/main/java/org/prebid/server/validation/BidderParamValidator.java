@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class BidderParamValidator {
 
-    private static final JsonSchemaFactory SCHEMA_FACTORY = new JsonSchemaFactory();
+    private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
     private static final String JSON_FILE_EXT = ".json";
     private static final String FILE_SEP = "/";
 
@@ -108,7 +109,7 @@ public class BidderParamValidator {
         try {
             result = SCHEMA_FACTORY.getSchema(schema);
         } catch (JsonSchemaException e) {
-            throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
+            throw new IllegalArgumentException("Couldn't parse %s bidder schema".formatted(bidder), e);
         }
         return result;
     }
@@ -123,10 +124,10 @@ public class BidderParamValidator {
         try {
             result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder, mapper);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), e);
+            throw new IllegalArgumentException("Couldn't find %s json schema at %s".formatted(bidder, path), e);
         } catch (IOException | RuntimeException e) {
             throw new IllegalArgumentException(
-                    String.format("Failed to load %s json schema at %s", bidder, path), e);
+                    "Failed to load %s json schema at %s".formatted(bidder, path), e);
         }
         return result;
     }
@@ -137,11 +138,11 @@ public class BidderParamValidator {
             try {
                 result = mapper.mapper().readTree(content);
             } catch (IOException | JsonSchemaException e) {
-                throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
+                throw new IllegalArgumentException("Couldn't parse %s bidder schema".formatted(bidder), e);
             }
         } else {
             throw new IllegalArgumentException(
-                    String.format("Couldn't parse %s bidder schema. File is empty", bidder));
+                    "Couldn't parse %s bidder schema. File is empty".formatted(bidder));
         }
         return result;
     }

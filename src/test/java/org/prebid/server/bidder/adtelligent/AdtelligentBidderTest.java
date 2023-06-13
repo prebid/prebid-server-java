@@ -17,8 +17,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -61,7 +61,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.of(0, ExtRegs.of(1, null)))
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                 .build();
 
         // when
@@ -88,7 +88,7 @@ public class AdtelligentBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, ExtRegs.of(1, null)))
+                        .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
                         .build()));
     }
 
@@ -242,7 +242,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -265,7 +265,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -290,7 +290,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -320,7 +320,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(asList(Imp.builder().id("impId1").build(), Imp.builder().id("impId2").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -345,7 +345,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -370,7 +370,7 @@ public class AdtelligentBidderTest extends VertxTest {
                         .banner(Banner.builder().build()).id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -386,7 +386,7 @@ public class AdtelligentBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -399,7 +399,7 @@ public class AdtelligentBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("{");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -412,7 +412,7 @@ public class AdtelligentBidderTest extends VertxTest {
                                 + "column: 2]"));
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

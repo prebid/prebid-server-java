@@ -4,13 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
@@ -31,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class StroeerCoreBidder implements Bidder<BidRequest> {
 
@@ -69,7 +67,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
 
                 price = convertBidFloor(bidRequest, imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("%s. Ignore imp id = %s.", e.getMessage(), imp.getId())));
+                errors.add(BidderError.badInput("%s. Ignore imp id = %s.".formatted(e.getMessage(), imp.getId())));
                 continue;
             }
 
@@ -120,13 +118,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private Result<List<HttpRequest<BidRequest>>> createHttpRequests(List<BidderError> errors, BidRequest bidRequest) {
-        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .headers(HttpUtil.headers())
-                .build()), errors);
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper)), errors);
     }
 
     private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCurrency) {
@@ -142,7 +134,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
             final StroeerCoreBidResponse response = mapper.decodeValue(body, StroeerCoreBidResponse.class);
@@ -160,7 +152,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
                 .map(StroeerCoreBidder::toBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid toBidderBid(StroeerCoreBid stroeercoreBid) {

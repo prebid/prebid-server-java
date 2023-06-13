@@ -14,14 +14,14 @@
       "ext": {
         "prebid": {
           "bidder": {
-            "rubicon": {
+            "generic": {
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001
             }
           },
           "storedbidresponse": {
-            "bidder": "rubicon",
+            "bidder": "generic",
             "id": "test-stored-bid-response"
           }
         }

@@ -10,6 +10,8 @@ import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
+import java.util.concurrent.TimeUnit
+
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.mockserver.model.ClearType.ALL
 import static org.mockserver.model.HttpRequest.request
@@ -58,13 +60,36 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, ResponseModel responseModel, Map<String, String> headers = [:]) {
+    void setResponse(String value,
+                     ResponseModel responseModel,
+                     Map<String, String> headers) {
+        setResponse(value, responseModel, OK_200, headers)
+    }
+
+    void setResponse(String value,
+                     ResponseModel responseModel,
+                     HttpStatusCode statusCode = OK_200,
+                     Map<String, String> headers = [:]) {
         def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = encode(responseModel)
         mockServerClient.when(getRequest(value), Times.unlimited())
-                        .respond(response().withStatusCode(OK_200.code())
+                        .respond(response().withStatusCode(statusCode.code())
                                            .withBody(mockResponse, APPLICATION_JSON)
                                            .withHeaders(responseHeaders))
+    }
+
+    void setResponse(String value,
+                     ResponseModel responseModel,
+                     int responseDelay,
+                     HttpStatusCode statusCode = OK_200,
+                     Map<String, String> headers = [:]) {
+        def responseHeaders = headers.collect { new Header(it.key, it.value) }
+        def mockResponse = encode(responseModel)
+        mockServerClient.when(getRequest(value), Times.unlimited())
+                        .respond(response().withStatusCode(statusCode.code())
+                                           .withBody(mockResponse, APPLICATION_JSON)
+                                           .withHeaders(responseHeaders)
+                                           .withDelay(TimeUnit.MILLISECONDS, responseDelay))
     }
 
     void setResponse(String value, String mockResponse) {

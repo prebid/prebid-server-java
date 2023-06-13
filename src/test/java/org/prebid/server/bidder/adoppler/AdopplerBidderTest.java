@@ -16,8 +16,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -121,7 +121,7 @@ public class AdopplerBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest, mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid(null))));
 
@@ -140,7 +140,7 @@ public class AdopplerBidderTest extends VertxTest {
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).build();
         final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(AdopplerResponseAdsExt.of(null)));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .id("321")
                         .impid("impId")
@@ -160,7 +160,7 @@ public class AdopplerBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -170,9 +170,9 @@ public class AdopplerBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
                 .build();
     }
 
@@ -185,8 +185,8 @@ public class AdopplerBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

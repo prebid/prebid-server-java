@@ -1,0 +1,17 @@
+adapters:
+  yandex:
+    endpoint: https://bs.yandex.ru/prebid/{{PageId}}?imp-id={{ImpId}}&ssp-id=10500
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: prebid@yandex-team.ru
+      app-media-types:
+      site-media-types:
+        - banner
+        - native
+      vendor-id: 0
+    usersync:
+      cookie-family-name: yandex
+      redirect:
+        url: https://an.yandex.ru/mapuid/yandex/?ssp-id=10500&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&location={{redirect_url}}
+        support-cors: false
+        uid-macro: '{YANDEXUID}'

@@ -41,8 +41,7 @@ public class IntegrationTestsUtil {
         String expectedRequest = staticInfoUpdater.apply(jsonFrom(file));
         for (String bidder : bidders) {
             expectedRequest = bidderStaticInfoUpdater.apply(expectedRequest, bidder);
-            fullCustomizations.add(new Customization(
-                    String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
+            fullCustomizations.add(new Customization("ext.responsetimemillis." + bidder, (o1, o2) -> true));
         }
 
         JSONAssert.assertEquals(

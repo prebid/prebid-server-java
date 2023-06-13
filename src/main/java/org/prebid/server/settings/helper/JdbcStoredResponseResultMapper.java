@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class JdbcStoredResponseResultMapper {
 
@@ -34,8 +33,8 @@ public class JdbcStoredResponseResultMapper {
                 return StoredResponseDataResult.of(Collections.emptyMap(), errors);
             }
             errors.addAll(responseIds.stream().filter(id -> !storedIdToResponse.containsKey(id))
-                    .map(id -> String.format("No stored response found for id: %s", id))
-                    .collect(Collectors.toList()));
+                    .map(id -> "No stored response found for id: " + id)
+                    .toList());
         }
 
         return StoredResponseDataResult.of(storedIdToResponse, errors);
@@ -45,7 +44,7 @@ public class JdbcStoredResponseResultMapper {
         if (responseIds.isEmpty()) {
             errors.add("No stored responses found");
         } else {
-            errors.add(String.format("No stored responses were found for ids: %s", String.join(",", responseIds)));
+            errors.add("No stored responses were found for ids: " + String.join(",", responseIds));
         }
     }
 }

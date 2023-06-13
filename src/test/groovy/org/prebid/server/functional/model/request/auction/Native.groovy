@@ -8,10 +8,14 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 @ToString(includeNames = true, ignoreNulls = true)
 class Native implements ObjectMapperWrapper {
 
-    Request request
+    NativeRequest request
     String ver
     List<Integer> api
     List<Integer> battr
+
+    static Native getDefaultNative(){
+        new Native(request: NativeRequest.nativeRequest)
+    }
 
     @JsonGetter("request")
     String getRequest() {
@@ -20,6 +24,7 @@ class Native implements ObjectMapperWrapper {
 
     @JsonSetter("request")
     void getRequest(String request) {
-        this.request = decode(request, Request)
+        this.request = decode(request, NativeRequest)
     }
+
 }

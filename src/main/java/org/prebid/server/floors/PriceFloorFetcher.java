@@ -105,7 +105,7 @@ public class PriceFloorFetcher {
         final String accountId = account.getId();
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
-            logger.error(String.format("Malformed fetch.url: '%s', passed for account %s", fetchUrl, accountId));
+            logger.error("Malformed fetch.url: '%s', passed for account %s".formatted(fetchUrl, accountId));
             return FetchResult.of(null, FetchStatus.error);
         }
         if (!fetchInProgress.contains(accountId)) {
@@ -164,14 +164,15 @@ public class PriceFloorFetcher {
 
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpStatus.SC_OK) {
-            throw new PreBidException(String.format("Failed to request for account %s,"
-                    + " provider respond with status %s", accountId, statusCode));
+            throw new PreBidException("Failed to request for account %s, provider respond with status %s"
+                    .formatted(accountId, statusCode));
         }
         final String body = httpClientResponse.getBody();
 
         if (StringUtils.isBlank(body)) {
-            throw new PreBidException(String.format("Failed to parse price floor response for account %s, "
-                    + "response body can not be empty", accountId));
+            throw new PreBidException(
+                    "Failed to parse price floor response for account %s, response body can not be empty"
+                            .formatted(accountId));
         }
 
         final PriceFloorData priceFloorData = parsePriceFloorData(body, accountId);
@@ -187,9 +188,8 @@ public class PriceFloorFetcher {
         try {
             priceFloorData = mapper.decodeValue(body, PriceFloorData.class);
         } catch (DecodeException e) {
-            throw new PreBidException(
-                    String.format("Failed to parse price floor response for account %s, cause: %s",
-                            accountId, ExceptionUtils.getMessage(e)));
+            throw new PreBidException("Failed to parse price floor response for account %s, cause: %s"
+                    .formatted(accountId, ExceptionUtils.getMessage(e)));
         }
         return priceFloorData;
     }
@@ -210,9 +210,8 @@ public class PriceFloorFetcher {
             try {
                 return Long.parseLong(cacheHeaderMatcher.group(1));
             } catch (NumberFormatException e) {
-                logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
-                        cacheControlValue,
-                        fetchUrl));
+                logger.error("Can't parse Cache Control header '%s', fetch.url: '%s'"
+                        .formatted(cacheControlValue, fetchUrl));
             }
         }
 
@@ -227,10 +226,11 @@ public class PriceFloorFetcher {
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRulesData(), cacheInfo.getFetchStatus(), maxAgeTimerId);
 
-        if (cacheInfo.getRulesData() != null || !fetchedData.containsKey(accountId)) {
+        if (cacheInfo.getFetchStatus() == FetchStatus.success || !fetchedData.containsKey(accountId)) {
             fetchedData.put(accountId, fetchContext);
-            fetchInProgress.remove(accountId);
         }
+
+        fetchInProgress.remove(accountId);
 
         return fetchContext.getRulesData();
     }
@@ -279,18 +279,13 @@ public class PriceFloorFetcher {
         final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
             fetchStatus = FetchStatus.timeout;
-            logger.error(
-                    String.format("Fetch price floor request timeout for fetch.url: '%s', account %s exceeded.",
-                            fetchUrl,
-                            accountId));
+            logger.error("Fetch price floor request timeout for fetch.url: '%s', account %s exceeded."
+                    .formatted(fetchUrl, accountId));
         } else {
             fetchStatus = FetchStatus.error;
             logger.error(
-                    String.format("Failed to fetch price floor from provider for fetch.url: '%s',"
-                                    + " account = %s with a reason : %s ",
-                            fetchUrl,
-                            accountId,
-                            throwable.getMessage()));
+                    "Failed to fetch price floor from provider for fetch.url: '%s', account = %s with a reason : %s "
+                            .formatted(fetchUrl, accountId, throwable.getMessage()));
         }
 
         return Future.succeededFuture(ResponseCacheInfo.withStatus(fetchStatus));

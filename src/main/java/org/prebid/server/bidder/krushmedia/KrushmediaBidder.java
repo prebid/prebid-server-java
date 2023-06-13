@@ -12,8 +12,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class KrushmediaBidder implements Bidder<BidRequest> {
@@ -92,7 +91,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
                 .mapToObj(impIndex -> impIndex == 0
                         ? imps.get(impIndex).toBuilder().ext(null).build()
                         : imps.get(impIndex))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private MultiMap resolveHeaders(Device device) {
@@ -111,7 +110,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -133,7 +132,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
         return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     protected BidType getBidType(String impId, List<Imp> imps) {

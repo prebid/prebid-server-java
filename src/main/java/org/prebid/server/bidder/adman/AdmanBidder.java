@@ -6,12 +6,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -20,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adman.ExtImpAdman;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdmanBidder implements Bidder<BidRequest> {
 
@@ -80,17 +79,11 @@ public class AdmanBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifyBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(modifyBidRequest)
-                .body(mapper.encodeToBytes(modifyBidRequest))
-                .build();
+        return BidderUtil.defaultRequest(modifyBidRequest, endpointUrl, mapper);
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -115,7 +108,7 @@ public class AdmanBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bidResponse.getCur(), imps, bid, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
@@ -138,6 +131,6 @@ public class AdmanBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression \"%s\"", impId));
+        throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
 }

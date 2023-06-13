@@ -10,12 +10,11 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -24,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adprime.ExtImpAdprime;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdprimeBidder implements Bidder<BidRequest> {
 
@@ -62,7 +61,7 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                         modifyBidRequest(bidRequest, extImpAdprime, modifyImp(imp, extImpAdprime))));
             } catch (IllegalArgumentException e) {
                 return Result.withError(BidderError.badInput(
-                        String.format("Unable to decode the impression ext for id: '%s'", imp.getId())));
+                        "Unable to decode the impression ext for id: '%s'".formatted(imp.getId())));
             }
         }
 
@@ -115,17 +114,11 @@ public class AdprimeBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(bidRequest)
-                .body(mapper.encodeToBytes(bidRequest))
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -152,7 +145,7 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
@@ -178,10 +171,10 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                 if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: '%s'", impId));
+                throw new PreBidException("Unknown impression type for ID: '%s'".formatted(impId));
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
+        throw new PreBidException("Failed to find impression for ID: '%s'".formatted(impId));
     }
 
 }

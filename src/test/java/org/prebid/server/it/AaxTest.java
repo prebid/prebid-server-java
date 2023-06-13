@@ -30,7 +30,6 @@ public class AaxTest extends IntegrationTest {
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/aax/test-auction-aax-response.json", response,
-                singletonList("aax"));
+        assertJsonEquals("openrtb2/aax/test-auction-aax-response.json", response, singletonList("aax"));
     }
 }

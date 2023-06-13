@@ -2,6 +2,7 @@ package org.prebid.server.it;
 
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.github.tomakehurst.wiremock.matching.AnythingPattern;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
 import org.junit.BeforeClass;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -119,7 +121,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-order-response.json", response, singletonList(RUBICON)));
@@ -149,7 +151,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-reverse-order-response.json", response,
@@ -179,7 +181,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-order-response.json", response, singletonList(RUBICON)));
@@ -208,7 +210,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-in-reverse-order-response.json", response,
@@ -238,7 +240,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-first-bid-only-response.json", response,
@@ -268,7 +270,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-second-bid-only-response.json", response,
@@ -298,7 +300,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-third-bid-only-response.json", response,
                 singletonList(RUBICON)));
@@ -327,7 +329,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-first-and-second-response.json", response,
@@ -357,7 +359,7 @@ public class PrematureReturnTest extends VertxTest {
         stubExchange(lineItemResponseOrder, idToExecutionParameters);
 
         // when
-        final io.restassured.response.Response response = givenResponse();
+        final Response response = givenResponse();
 
         final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
                 "deals/premature/responses/test-auction-third-and-second-response.json", response,
@@ -366,7 +368,7 @@ public class PrematureReturnTest extends VertxTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbDeepDebugTimeComparator());
     }
 
-    private io.restassured.response.Response givenResponse() throws IOException {
+    private Response givenResponse() throws IOException {
         return given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
@@ -422,10 +424,15 @@ public class PrematureReturnTest extends VertxTest {
                                 JSONCompareMode.NON_EXTENSIBLE,
                                 new Customization("ext.debug.trace.lineitems.lineItem" + i + "[*].time",
                                         timeValueMatcher)))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
-        arrayValueMatchers.add(new Customization("**.requestheaders.x-prebid", (o1, o2) -> true));
+        arrayValueMatchers.add(new Customization("ext.debug.httpcalls.rubicon", new ArrayValueMatcher<>(
+                new CustomComparator(
+                        JSONCompareMode.NON_EXTENSIBLE,
+                        new Customization("**.requestheaders", (o1, o2) -> true),
+                        new Customization("**.requestbody", (o1, o2) -> true),
+                        new Customization("**.responsebody", (o1, o2) -> true)))));
 
         return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
                 arrayValueMatchers.toArray(new Customization[0]));

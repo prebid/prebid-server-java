@@ -8,7 +8,6 @@ import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @EqualsAndHashCode(callSuper = true)
@@ -25,17 +24,17 @@ public class InStrings extends In<String> {
                 () -> lookupIntegerAsString(context));
 
         return actualValue != null
-                ? LookupResult.of(actualValue.stream().map(String::toLowerCase).collect(Collectors.toList()))
+                ? LookupResult.of(actualValue.stream().map(String::toLowerCase).toList())
                 : LookupResult.empty();
     }
 
     private List<String> lookupIntegerAsString(RequestContext context) {
         final List<Integer> actualValue = context.lookupInteger(category).getValues();
-        return actualValue.stream().map(Object::toString).collect(Collectors.toList());
+        return actualValue.stream().map(Object::toString).toList();
     }
 
     private static List<String> toLowerCase(List<String> values) {
-        return values.stream().map(String::toLowerCase).collect(Collectors.toList());
+        return values.stream().map(String::toLowerCase).toList();
     }
 
     @SafeVarargs

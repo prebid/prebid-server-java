@@ -37,7 +37,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
@@ -131,13 +130,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 PriceFloorRulesValidator.validateRules(requestFloors, Integer.MAX_VALUE);
                 return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
             } catch (PreBidException e) {
-                errors.add(String.format("Failed to parse price floors from request,"
-                        + " with a reason : %s ", e.getMessage()));
+                errors.add("Failed to parse price floors from request, with a reason : %s ".formatted(e.getMessage()));
                 conditionalLogger.error(
-                        String.format("Failed to parse price floors from request with id: '%s',"
-                                        + " with a reason : %s ",
-                                bidRequest.getId(),
-                                e.getMessage()), 0.01d);
+                        "Failed to parse price floors from request with id: '%s', with a reason : %s "
+                                .formatted(bidRequest.getId(), e.getMessage()),
+                        0.01d);
             }
         }
 
@@ -219,7 +216,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
                 .filter(BasicPriceFloorProcessor::isValidModelGroup)
                 .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
-                .collect(Collectors.toList());
+                .toList();
 
         int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
         for (PriceFloorModelGroup modelGroup : groupsByWeight) {
@@ -323,7 +320,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         return CollectionUtils.emptyIfNull(imps).stream()
                 .map(imp -> updateImpWithFloors(imp, floors, bidRequest, errors, warnings))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static PriceFloorModelGroup extractFloorModelGroup(PriceFloorRules floors) {
@@ -364,11 +361,30 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 ? (ObjectNode) extPrebid
                 : mapper.mapper().createObjectNode();
 
-        final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(priceFloorResult.getFloorRule(),
-                priceFloorResult.getFloorRuleValue(), priceFloorResult.getFloorValue());
+        final JsonNode impFloorsNode = extPrebid.get("floors");
+        final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(
+                priceFloorResult.getFloorRule(),
+                priceFloorResult.getFloorRuleValue(),
+                priceFloorResult.getFloorValue(),
+                resolveImpFloorMin(impFloorsNode),
+                resolveImpFloorMinCur(impFloorsNode));
         final ObjectNode floorsNode = mapper.mapper().valueToTree(prebidFloors);
 
         return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
+    }
+
+    private static BigDecimal resolveImpFloorMin(JsonNode impFloorsNode) {
+        final JsonNode impFloorMinNode = impFloorsNode != null ? impFloorsNode.get("floorMin") : null;
+
+        return impFloorMinNode != null && impFloorMinNode.isNumber()
+                ? impFloorMinNode.decimalValue() : null;
+    }
+
+    private static String resolveImpFloorMinCur(JsonNode impFloorsNode) {
+        final JsonNode impFloorMinCurNode = impFloorsNode != null ? impFloorsNode.get("floorMinCur") : null;
+
+        return impFloorMinCurNode != null && impFloorMinCurNode.isTextual()
+                ? impFloorMinCurNode.asText() : null;
     }
 
     private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest,

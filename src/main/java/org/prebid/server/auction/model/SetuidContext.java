@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -27,7 +29,9 @@ public class SetuidContext {
     String cookieName;
 
     @JsonIgnore
-    String syncType;
+    UsersyncMethodType syncType;
 
     PrivacyContext privacyContext;
+
+    ActivityInfrastructure activityInfrastructure;
 }

@@ -8,9 +8,15 @@ class Audio {
     List<String> mimes
     Integer minduration
     Integer maxduration
+    Integer poddur
     List<Integer> protocols
     Integer startdelay
+    List<Integer> rqddurs
+    Integer podid
+    Integer podseq
     Integer sequence
+    Integer slotinpod
+    BigDecimal mincpmpersec
     List<Integer> battr
     Integer maxextended
     Integer minbitrate
@@ -23,4 +29,10 @@ class Audio {
     Integer feed
     Integer stitched
     Integer nvol
+
+    static Audio getDefaultAudio() {
+        new Audio().tap {
+            mimes = ["audio/mp4"]
+        }
+    }
 }

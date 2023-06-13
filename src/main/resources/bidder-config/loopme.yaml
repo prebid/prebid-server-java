@@ -13,9 +13,3 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 109
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: loopme
-      type: redirect
-      support-cors: false

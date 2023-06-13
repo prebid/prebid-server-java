@@ -6,13 +6,12 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -21,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class KubientBidder implements Bidder<BidRequest> {
 
@@ -54,14 +53,7 @@ public class KubientBidder implements Bidder<BidRequest> {
             }
         }
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .body(mapper.encodeToBytes(request))
-                                .headers(HttpUtil.headers())
-                                .payload(request)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(request, endpointUrl, mapper)),
                 Collections.emptyList());
     }
 
@@ -80,7 +72,7 @@ public class KubientBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
@@ -101,7 +93,7 @@ public class KubientBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bidRequest, bidResponse.getCur(), bid, errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         return Result.of(bidderBids, errors);
     }
 
@@ -120,6 +112,6 @@ public class KubientBidder implements Bidder<BidRequest> {
                 return imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException("Failed to find impression " + impId);
     }
 }

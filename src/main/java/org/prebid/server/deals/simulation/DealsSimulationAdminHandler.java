@@ -102,9 +102,9 @@ public class DealsSimulationAdminHandler implements Handler<RoutingContext> {
         if (!endpointPath.equals(BID_RATE_PATH)) {
             now = HttpUtil.getDateFromHeader(headers, PG_SIM_TIMESTAMP);
             if (now == null) {
-                throw new InvalidRequestException(String.format(
-                        "pg-sim-timestamp with simulated current date is required for endpoints: %s, %s, %s, %s",
-                        PLANNER_REGISTER_PATH, PLANNER_FETCH_PATH, ADVANCE_PLAN_PATH, REPORT_PATH));
+                throw new InvalidRequestException(
+                        "pg-sim-timestamp with simulated current date is required for endpoints: %s, %s, %s, %s"
+                                .formatted(PLANNER_REGISTER_PATH, PLANNER_FETCH_PATH, ADVANCE_PLAN_PATH, REPORT_PATH));
             }
         }
         return now;
@@ -128,24 +128,25 @@ public class DealsSimulationAdminHandler implements Handler<RoutingContext> {
             if (httpBidderRequester != null) {
                 handleBidRatesEndpoint(routingContext);
             } else {
-                throw new InvalidRequestException(String.format("Calling %s is not make sense since "
-                        + "Prebid Server configured to use real bidder exchanges in simulation mode", BID_RATE_PATH));
+                throw new InvalidRequestException("""
+                        Calling %s is not make sense since Prebid Server configured \
+                        to use real bidder exchanges in simulation mode""".formatted(BID_RATE_PATH));
             }
         } else {
-            throw new NotFoundException(String.format("Requested url %s was not found", endpointPath));
+            throw new NotFoundException("Requested url %s was not found".formatted(endpointPath));
         }
     }
 
     private void handleBidRatesEndpoint(RoutingContext routingContext) {
         final Buffer body = routingContext.getBody();
         if (body == null) {
-            throw new InvalidRequestException(String.format("Body is required for %s endpoint", BID_RATE_PATH));
+            throw new InvalidRequestException("Body is required for %s endpoint".formatted(BID_RATE_PATH));
         }
 
         try {
             httpBidderRequester.setBidRates(mapper.decodeValue(body, BID_RATES_TYPE_REFERENCE));
         } catch (DecodeException e) {
-            throw new InvalidRequestException(String.format("Failed to parse bid rates body: %s", e.getMessage()));
+            throw new InvalidRequestException("Failed to parse bid rates body: " + e.getMessage());
         }
     }
 

@@ -13,14 +13,13 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
@@ -38,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class PubmaticBidder implements Bidder<BidRequest> {
@@ -117,7 +118,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return acatNode != null && acatNode.isArray()
                 ? Arrays.stream(mapper.mapper().convertValue(acatNode, String[].class))
                 .map(StringUtils::stripToEmpty)
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 
@@ -138,9 +139,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private static void validateMediaType(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
-                    + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
+        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
+            throw new PreBidException(
+                    "Invalid MediaType. PubMatic only supports Banner, Video and Native. Ignoring ImpID=%s"
+                            .formatted(imp.getId()));
         }
     }
 
@@ -192,14 +194,17 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(String kadfloor, BigDecimal existingFloor) {
-        if (StringUtils.isBlank(kadfloor)) {
-            return existingFloor;
-        }
+        final BigDecimal kadFloor = parseKadFloor(kadfloor);
+        return ObjectUtils.allNotNull(kadFloor, existingFloor)
+                ? kadFloor.max(existingFloor)
+                : ObjectUtils.firstNonNull(kadFloor, existingFloor);
+    }
 
+    private static BigDecimal parseKadFloor(String kadFloorString) {
         try {
-            return new BigDecimal(StringUtils.trim(kadfloor));
+            return new BigDecimal(StringUtils.trimToEmpty(kadFloorString));
         } catch (NumberFormatException e) {
-            return existingFloor;
+            return null;
         }
     }
 
@@ -219,14 +224,14 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         if (adSlotParams.length != 2
                 || StringUtils.isEmpty(adSlotParams[0].trim())
                 || StringUtils.isEmpty(adSlotParams[1].trim())) {
-            throw new PreBidException(String.format("Invalid adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         impBuilder.tagid(adSlotParams[0]);
 
         final String[] adSize = adSlotParams[1].toLowerCase().split("x");
         if (adSize.length != 2) {
-            throw new PreBidException(String.format("Invalid size provided in adSlot '%s'", trimmedAdSlot));
+            throw new PreBidException("Invalid size provided in adSlot '%s'".formatted(trimmedAdSlot));
         }
 
         final Integer width = parseAdSizeParam(adSize[0], "width", adSlot);
@@ -240,7 +245,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         try {
             return Integer.parseInt(number.trim());
         } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid %s provided in adSlot '%s'", paramName, adSlot));
+            throw new PreBidException("Invalid %s provided in adSlot '%s'".formatted(paramName, adSlot));
         }
     }
 
@@ -307,13 +312,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(request))
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .build();
+        return BidderUtil.defaultRequest(request, endpointUrl, mapper);
     }
 
     private BidRequest modifyBidRequest(BidRequest request,
@@ -367,32 +366,33 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse, bidderErrors), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse);
+                : bidsFromResponse(bidResponse, bidderErrors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> resolveBidderBid(bid, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidderErrors))
+                .toList();
     }
 
-    private BidderBid resolveBidderBid(Bid bid, String currency) {
+    private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> bidderErrors) {
         final List<String> singleElementBidCat = CollectionUtils.emptyIfNull(bid.getCat()).stream()
                 .limit(1)
                 .collect(Collectors.collectingAndThen(Collectors.toList(),
@@ -400,14 +400,25 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         final PubmaticBidExt pubmaticBidExt = extractBidExt(bid.getExt());
         final Integer duration = getDuration(pubmaticBidExt);
-        final Bid updatedBid = singleElementBidCat != null || duration != null
+        final BidType bidType = getBidType(pubmaticBidExt);
+        final String bidAdm = bid.getAdm();
+        final String resolvedAdm = bidAdm != null && bidType == BidType.xNative
+                ? resolveNativeAdm(bidAdm, bidderErrors)
+                : bidAdm;
+        final Bid updatedBid = singleElementBidCat != null || duration != null || resolvedAdm != null
                 ? bid.toBuilder()
+                .adm(resolvedAdm != null ? resolvedAdm : bidAdm)
                 .cat(singleElementBidCat)
                 .ext(duration != null ? updateBidExtWithExtPrebid(duration, bid.getExt()) : bid.getExt())
                 .build()
                 : bid;
 
-        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), currency);
+        return BidderBid.builder()
+                .bid(updatedBid)
+                .type(bidType)
+                .bidCurrency(currency)
+                .dealPriority(getDealPriority(pubmaticBidExt))
+                .build();
     }
 
     private PubmaticBidExt extractBidExt(ObjectNode bidExt) {
@@ -423,14 +434,28 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 ? ObjectUtils.defaultIfNull(bidExt.getBidType(), 0)
                 : 0;
 
-        switch (bidType) {
-            case 1:
-                return BidType.video;
-            case 2:
-                return BidType.xNative;
-            default:
-                return BidType.banner;
+        return switch (bidType) {
+            case 1 -> BidType.video;
+            case 2 -> BidType.xNative;
+            default -> BidType.banner;
+        };
+    }
+
+    private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
+        final JsonNode admNode;
+        try {
+            admNode = mapper.mapper().readTree(adm);
+        } catch (JsonProcessingException e) {
+            bidderErrors.add(BidderError.badServerResponse("Unable to parse native adm: %s".formatted(adm)));
+            return null;
         }
+
+        final JsonNode nativeNode = admNode.get("native");
+        if (!nativeNode.isMissingNode()) {
+            return nativeNode.toString();
+        }
+
+        return null;
     }
 
     private static Integer getDuration(PubmaticBidExt bidExt) {
@@ -441,5 +466,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private ObjectNode updateBidExtWithExtPrebid(Integer duration, ObjectNode extBid) {
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build();
         return extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
+    }
+
+    private static Integer getDealPriority(PubmaticBidExt bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(PubmaticBidExt::getPrebidDealPriority)
+                .orElse(null);
     }
 }

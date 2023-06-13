@@ -1,6 +1,7 @@
 package org.prebid.server.deals.proto.report;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -24,4 +25,9 @@ public class LineItemStatusReport {
 
     @JsonProperty("pacingFrequency")
     Long pacingFrequency;
+
+    @JsonProperty("accountId")
+    String accountId;
+
+    ObjectNode target;
 }

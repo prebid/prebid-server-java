@@ -6,13 +6,12 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -21,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class RhythmoneBidder implements Bidder<BidRequest> {
 
@@ -55,8 +54,11 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
                 final ExtImpRhythmone parsedImpExt = parseAndValidateImpExt(imp);
 
                 if (composedUrl == null) {
-                    composedUrl = String.format("%s/%s/0/%s?z=%s&s2s=%s", endpointUrl, parsedImpExt.getPlacementId(),
-                            parsedImpExt.getPath(), parsedImpExt.getZone(), "true");
+                    composedUrl = "%s/%s/0/%s?z=%s&s2s=true".formatted(
+                            endpointUrl,
+                            parsedImpExt.getPlacementId(),
+                            parsedImpExt.getPath(),
+                            parsedImpExt.getZone());
                 }
                 final ExtImpRhythmone modifiedImpExt = parsedImpExt.toBuilder().s2s(true).build();
                 final Imp modifiedImp = imp.toBuilder().ext(impExtToObjectNode(modifiedImpExt)).build();
@@ -72,14 +74,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(composedUrl)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .headers(HttpUtil.headers())
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, composedUrl, mapper)),
                 errors);
     }
 
@@ -88,14 +83,14 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         try {
             impExt = mapper.mapper().convertValue(imp.getExt(), RHYTHMONE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ext data not provided in imp id=%s. Abort all Request", imp.getId()), e);
+            throw new PreBidException(
+                    "ext data not provided in imp id=%s. Abort all Request".formatted(imp.getId()), e);
         }
 
         if (StringUtils.isBlank(impExt.getPlacementId()) || StringUtils.isBlank(impExt.getZone())
                 || StringUtils.isBlank(impExt.getPath())) {
-            throw new PreBidException(String.format(
-                    "placementId | zone | path not provided in imp id=%s. Abort all Request", imp.getId()));
+            throw new PreBidException(
+                    "placementId | zone | path not provided in imp id=%s. Abort all Request".formatted(imp.getId()));
         }
         return impExt;
     }
@@ -105,13 +100,13 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         try {
             impExt = mapper.mapper().valueToTree(ExtPrebid.of(null, extImpRhythmone));
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
+            throw new PreBidException("Failed to create imp.ext with error: " + e.getMessage());
         }
         return impExt;
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -133,7 +128,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -97,7 +96,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
@@ -114,7 +113,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyValuesAndErrorIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
@@ -131,7 +130,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyValuesListAndErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(null).build()));
 
         // when
@@ -149,7 +148,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldProccedWithErrorsAndValues() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(
                         builder -> builder
                                 .ext(mapper.createObjectNode()
@@ -166,7 +165,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidDoesNotContainExt() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(null))));
 
         // when
@@ -183,7 +182,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfExtIncorrect() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.valueToTree(
                         ExtPrebid.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
@@ -201,7 +200,7 @@ public class SmarthubBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(Collections.emptyList())
                         .build()));
@@ -225,8 +224,8 @@ public class SmarthubBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
@@ -239,7 +238,7 @@ public class SmarthubBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.stream(bidCustomizers)
                                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder()).build())
-                                .collect(Collectors.toList()))
+                                .toList())
                         .build()))
                 .ext(ExtBidResponse.builder().build())
                 .build();

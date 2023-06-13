@@ -38,13 +38,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
+    private final double logSamplingRate;
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -54,7 +54,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
-    public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
+    public AuctionHandler(double logSamplingRate,
+                          AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
@@ -63,6 +64,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           PrebidVersionProvider prebidVersionProvider,
                           JacksonMapper mapper) {
 
+        this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
@@ -148,23 +150,22 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getBidResponse());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
                 final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
-                conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);
+                conditionalLogger.info("%s, Referer: %s".formatted(message, referer), logSamplingRate);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 0.01);
+                conditionalLogger.info(message, logSamplingRate);
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
@@ -174,7 +175,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -183,7 +184,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             } else if (exception instanceof InvalidAccountConfigException) {
                 metricRequestStatus = MetricName.bad_requests;
                 final String message = exception.getMessage();
-                conditionalLogger.error(exception.getMessage(), 0.01d);
+                conditionalLogger.error(exception.getMessage(), logSamplingRate);
 
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.BAD_REQUEST;
@@ -196,7 +197,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

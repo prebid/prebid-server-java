@@ -9,8 +9,6 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
-import java.util.stream.Collectors;
-
 public class SampleItAuctionResponseHook implements AuctionResponseHook {
 
     @Override
@@ -42,9 +40,9 @@ public class SampleItAuctionResponseHook implements AuctionResponseHook {
                                                         + "<Impression><![CDATA["
                                                         + "Auction response hook have been here too]]></Impression>")
                                                 .build())
-                                        .collect(Collectors.toList()))
+                                        .toList())
                                 .build())
-                        .collect(Collectors.toList()))
+                        .toList())
                 .build();
     }
 }

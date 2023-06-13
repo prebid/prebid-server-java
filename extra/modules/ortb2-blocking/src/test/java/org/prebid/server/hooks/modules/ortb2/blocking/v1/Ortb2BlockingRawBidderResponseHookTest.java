@@ -3,11 +3,10 @@ package org.prebid.server.hooks.modules.ortb2.blocking.v1;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.AttributeActionOverrides;
@@ -29,6 +28,7 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.function.UnaryOperator;
@@ -39,13 +39,14 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class Ortb2BlockingRawBidderResponseHookTest {
+public class Ortb2BlockingRawBidderResponseHookTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-    private final Ortb2BlockingRawBidderResponseHook hook = new Ortb2BlockingRawBidderResponseHook();
+    private final Ortb2BlockingRawBidderResponseHook hook = new Ortb2BlockingRawBidderResponseHook(
+            ObjectMapperProvider.mapper());
 
     @Test
     public void shouldReturnResultWithNoActionWhenNoBidsBlocked() {
@@ -59,6 +60,7 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create())
                 .analyticsTags(TagsImpl.of(singletonList(ActivityImpl.of(
                         "enforce-blocking",
                         "success",
@@ -88,6 +90,7 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create())
                 .errors(singletonList("attributes field in account configuration is not an object"))
                 .build());
     }
@@ -108,6 +111,7 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create())
                 .build());
     }
 
@@ -130,7 +134,7 @@ class Ortb2BlockingRawBidderResponseHookTest {
                 BidderInvocationContextImpl.builder()
                         .bidder("bidder1")
                         .accountConfig(accountConfig)
-                        .moduleContext(ModuleContext.create(
+                        .moduleContext(ModuleContext.create().with(
                                 "bidder1", BlockedAttributes.builder().badv(singletonList("domain2.com")).build()))
                         .debugEnabled(true)
                         .build());

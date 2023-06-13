@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ConsumableAdType {
 
@@ -25,7 +24,7 @@ public class ConsumableAdType {
                 .map(format -> format.getW() + "x" + format.getH())
                 .map(SIZE_MAP::get)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     static {

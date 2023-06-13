@@ -120,8 +120,10 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void circuitOpened(String name) {
-        conditionalLogger.warn(String.format("Http client request to %s is failed, circuit opened.", name),
-                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
+        conditionalLogger.warn(
+                "Http client request to %s is failed, circuit opened.".formatted(name),
+                LOG_PERIOD_SECONDS,
+                TimeUnit.SECONDS);
     }
 
     private void circuitHalfOpened(String name) {
@@ -146,7 +148,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
         try {
             return new URL(url);
         } catch (MalformedURLException e) {
-            throw new PreBidException(String.format("Invalid url: %s", url), e);
+            throw new PreBidException("Invalid url: " + url, e);
         }
     }
 }

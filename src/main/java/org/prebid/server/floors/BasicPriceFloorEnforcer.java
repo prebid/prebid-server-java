@@ -11,6 +11,8 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -57,10 +59,11 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     @Override
     public AuctionParticipation enforce(BidRequest bidRequest,
                                         AuctionParticipation auctionParticipation,
-                                        Account account) {
+                                        Account account,
+                                        BidRejectionTracker rejectionTracker) {
 
         return shouldApplyEnforcement(auctionParticipation, account)
-                ? applyEnforcement(bidRequest, auctionParticipation, account)
+                ? applyEnforcement(bidRequest, auctionParticipation, account, rejectionTracker)
                 : auctionParticipation;
     }
 
@@ -126,7 +129,8 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private AuctionParticipation applyEnforcement(BidRequest bidRequest,
                                                   AuctionParticipation auctionParticipation,
-                                                  Account account) {
+                                                  Account account,
+                                                  BidRejectionTracker rejectionTracker) {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
@@ -156,10 +160,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
+                final String impId = bid.getImpid();
                 warnings.add(BidderError.rejectedIpf(
-                        String.format("Bid with id '%s' was rejected by floor enforcement: "
-                                + "price %s is below the floor %s", bid.getId(), price, floor)));
+                        "Bid with id '%s' was rejected by floor enforcement: price %s is below the floor %s"
+                                .formatted(bid.getId(), price, floor), impId));
 
+                rejectionTracker.reject(impId, BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
                 updatedBidderBids.remove(bidderBid);
             }
         }
@@ -171,8 +177,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
-        final BidderSeatBid bidderSeatBid =
-                BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors, warnings);
+        rejectionTracker.restoreFromRejection(updatedBidderBids);
+        final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
+                .bids(updatedBidderBids)
+                .errors(errors)
+                .warnings(warnings)
+                .build();
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 
@@ -204,15 +214,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
             return convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), bidRequestCurrency);
         } catch (PreBidException e) {
-            final String logMessage =
-                    String.format("Price floors enforcement failed for request id: %s, reason: %s",
-                            bidRequest.getId(),
-                            e.getMessage());
+            final String logMessage = "Price floors enforcement failed for request id: %s, reason: %s"
+                    .formatted(bidRequest.getId(), e.getMessage());
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
             metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
-            errors.add(BidderError.badServerResponse(
-                    String.format("Price floors enforcement failed: %s", e.getMessage())));
+            errors.add(BidderError.badServerResponse("Price floors enforcement failed: " + e.getMessage()));
 
             return null;
         }
@@ -263,8 +270,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 .filter(imp -> Objects.equals(impId, imp.getId()))
                 .findFirst()
                 // Should never happen, see ResponseBidValidator usage.
-                .orElseThrow(() -> new PreBidException(
-                        String.format("Bid with impId %s doesn't have matched imp", impId)));
+                .orElseThrow(() -> new PreBidException("Bid with impId %s doesn't have matched imp".formatted(impId)));
     }
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {

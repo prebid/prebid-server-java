@@ -20,7 +20,7 @@ class UserSyncMetrics extends UpdatableMetrics {
 
     UserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("usersync.%s", metricName.toString()));
+                metricName -> "usersync." + metricName);
         bidderUserSyncMetricsCreator = bidder -> new BidderUserSyncMetrics(metricRegistry, counterType, bidder);
         bidderUserSyncMetrics = new HashMap<>();
     }
@@ -44,11 +44,11 @@ class UserSyncMetrics extends UpdatableMetrics {
         }
 
         private static String createUserSyncPrefix(String bidder) {
-            return String.format("usersync.%s", bidder);
+            return "usersync." + bidder;
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+            return metricName -> "%s.%s".formatted(prefix, metricName);
         }
     }
 }

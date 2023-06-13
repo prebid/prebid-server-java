@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId1",
+      "secure": 1,
       "banner": {
         "format": [
           {
@@ -12,17 +13,14 @@
         ],
         "ext": {
           "rp": {
-            "size_id": 15,
             "mime": "text/html"
           }
         }
       },
       "pmp": {
-        "private_auction": 0,
         "deals": [
           {
             "id": "dealId1",
-            "bidfloor": 0.0,
             "ext": {
               "line": {
                 "lineitemid": "lineItem1",
@@ -38,7 +36,6 @@
           },
           {
             "id": "dealId3",
-            "bidfloor": 0.0,
             "ext": {
               "line": {
                 "lineitemid": "lineItem3",
@@ -69,6 +66,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -94,30 +94,6 @@
     }
   },
   "user": {
-    "data": [
-      {
-        "id": "rubicon",
-        "segment": [
-          {
-            "id": "2222"
-          },
-          {
-            "id": "3333"
-          }
-        ]
-      },
-      {
-        "id": "bluekai",
-        "segment": [
-          {
-            "id": "5555"
-          },
-          {
-            "id": "6666"
-          }
-        ]
-      }
-    ],
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "fcapids": [
@@ -126,5 +102,5 @@
     }
   },
   "at": 1,
-  "tmax": 2000
+  "tmax": "${json-unit.any-number}"
 }

@@ -17,8 +17,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class SovrnBidder implements Bidder<BidRequest> {
 
@@ -76,8 +75,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private static void validateImpVideo(Video video) {
         if (video != null) {
             if (video.getMimes() == null
-                    || video.getMinduration() == 0
-                    || video.getMaxduration() == 0
+                    || BidderUtil.isNullOrZero(video.getMinduration())
+                    || BidderUtil.isNullOrZero(video.getMaxduration())
                     || video.getProtocols() == null) {
                 throw new PreBidException("Missing required video parameter");
             }
@@ -150,7 +149,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -184,7 +183,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
                         resolveBidType(bid.getImpid(), bidRequest.getImp(), bidderErrors),
                         bidResponse.getCur()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid makeBidderBid(Bid bid, BidType bidType, String cur) {

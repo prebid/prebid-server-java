@@ -5,12 +5,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -29,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class OrbidderBidder implements Bidder<BidRequest> {
 
@@ -67,14 +65,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(HttpUtil.headers())
-                                .payload(outgoingRequest)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 errors);
     }
 
@@ -104,7 +95,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
@@ -118,11 +109,11 @@ public class OrbidderBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
         return Result.of(bidderBids, Collections.emptyList());
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

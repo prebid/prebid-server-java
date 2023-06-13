@@ -17,7 +17,7 @@ class CurrencyRatesMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator() {
-        return metricName -> String.format("currency-rates.%s%s", metricName.toString(), SUFFIX);
+        return metricName -> "currency-rates." + metricName + SUFFIX;
     }
 
     @Override

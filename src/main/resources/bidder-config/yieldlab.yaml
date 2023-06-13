@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 70
     usersync:
-      url: https://ad.yieldlab.net/mr?t=2&pid=9140838&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=yieldlab&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%%YL_UID%%
       cookie-family-name: yieldlab
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ad.yieldlab.net/mr?t=2&pid=9140838&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '%%YL_UID%%'

@@ -14,7 +14,7 @@ enum PriceFloorField {
     MEDIA_TYPE("mediaType"),
     SIZE("size"),
     GPT_SLOT("gptSlot"),
-    PB_AD_SLOT("pbAdSlot"),
+    AD_UNIT_CODE("adUnitCode"),
     COUNTRY("country"),
     DEVICE_TYPE("deviceType"),
     BOGUS("bogus")

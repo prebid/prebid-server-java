@@ -17,8 +17,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -272,7 +272,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .build();
 
         final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bid1, bid2));
-        final HttpCall<BidRequest> httpCall = createHttpCall(response);
+        final BidderCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -306,7 +306,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = createHttpCall("[]");
+        final BidderCall<BidRequest> httpCall = createHttpCall("[]");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -322,7 +322,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfZeroBids() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
+        final BidderCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -366,12 +366,12 @@ public class StroeerCoreBidderTest extends VertxTest {
         return addImpExt.andThen(impCustomizer).apply(impBuilder).build();
     }
 
-    private HttpCall<BidRequest> createHttpCall(StroeerCoreBidResponse response) throws JsonProcessingException {
+    private BidderCall<BidRequest> createHttpCall(StroeerCoreBidResponse response) throws JsonProcessingException {
         return createHttpCall(mapper.writeValueAsString(response));
     }
 
-    private HttpCall<BidRequest> createHttpCall(String body) {
-        return HttpCall.success(HttpRequest.<BidRequest>builder().build(),
+    private BidderCall<BidRequest> createHttpCall(String body) {
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, body), null);
     }
 }

@@ -58,10 +58,8 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
         try {
             return endpoint != null ? HttpLogSpec.Endpoint.valueOf(endpoint) : null;
         } catch (IllegalArgumentException e) {
-            throw new InvalidRequestException(String.format(
-                    "Invalid '%s' parameter value, allowed values '%s'",
-                    ENDPOINT_PARAMETER,
-                    Arrays.toString(HttpLogSpec.Endpoint.values())));
+            throw new InvalidRequestException("Invalid '%s' parameter value, allowed values '%s'"
+                    .formatted(ENDPOINT_PARAMETER, Arrays.toString(HttpLogSpec.Endpoint.values())));
         }
     }
 
@@ -69,8 +67,8 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
         final Integer statusCode = getIntParameter(STATUS_CODE_PARAMETER, parameters);
 
         if (statusCode != null && (statusCode < 200 || statusCode > 500)) {
-            throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d", STATUS_CODE_PARAMETER, 200, 500));
+            throw new InvalidRequestException(
+                    "Parameter '%s' must be between %d and %d".formatted(STATUS_CODE_PARAMETER, 200, 500));
         }
 
         return statusCode;
@@ -88,12 +86,12 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
         final Integer limit = getIntParameter(LIMIT_PARAMETER, parameters);
 
         if (limit == null) {
-            throw new InvalidRequestException(String.format("Missing required parameter '%s'", LIMIT_PARAMETER));
+            throw new InvalidRequestException("Missing required parameter '%s'".formatted(LIMIT_PARAMETER));
         }
 
         if (limit < 1 || limit > maxLimit) {
-            throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 0, maxLimit));
+            throw new InvalidRequestException(
+                    "Parameter '%s' must be between %d and %d".formatted(LIMIT_PARAMETER, 0, maxLimit));
         }
 
         return limit;
@@ -104,7 +102,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
         try {
             return value != null ? Integer.parseInt(value) : null;
         } catch (NumberFormatException e) {
-            throw new InvalidRequestException(String.format("Invalid '%s' parameter value", parameterName));
+            throw new InvalidRequestException("Invalid '%s' parameter value".formatted(parameterName));
         }
     }
 }

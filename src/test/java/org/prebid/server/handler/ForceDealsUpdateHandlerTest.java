@@ -83,7 +83,7 @@ public class ForceDealsUpdateHandlerTest {
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
         verify(httpResponse).setStatusCode(400);
-        verify(httpResponse).end(String.format("Parameter '%s' is required and can't be empty", ACTION_NAME_PARAM));
+        verify(httpResponse).end("Parameter '%s' is required and can't be empty".formatted(ACTION_NAME_PARAM));
     }
 
     @Test
@@ -99,8 +99,8 @@ public class ForceDealsUpdateHandlerTest {
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
         verify(httpResponse).setStatusCode(400);
-        verify(httpResponse).end(String.format("Given '%s' parameter value '%s' is not among possible actions",
-                ACTION_NAME_PARAM, badParamName));
+        verify(httpResponse).end("Given '%s' parameter value '%s' is not among possible actions"
+                .formatted(ACTION_NAME_PARAM, badParamName));
     }
 
     @Test

@@ -3,12 +3,14 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "native": {
         "request": "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}",
         "ver": "1.2"
       },
       "tagid": "1",
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "mid": "1",
           "priceType": "net"
@@ -17,6 +19,7 @@
     },
     {
       "id": "imp_id_banner",
+      "secure": 1,
       "banner": {
         "format": [
           {
@@ -26,6 +29,7 @@
         ]
       },
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "inv": 1234,
           "mname": "wallpaper",
@@ -34,6 +38,9 @@
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -49,7 +56,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 2000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -60,13 +67,11 @@
   },
   "ext": {
     "prebid": {
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
-        "datacenter": "local"
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       }
     },
     "pt": "net",

@@ -129,15 +129,12 @@ public class BasicCategoryMappingService implements CategoryMappingService {
             throw new InvalidRequestException(
                     "Primary ad server required but was not defined when translate category is enabled");
         }
-        switch (primaryAdServer) {
-            case 1:
-                return FREEWHEEL_AD_SERVER;
-            case 2:
-                return DFP_AD_SERVER;
-            default:
-                throw new InvalidRequestException(
-                        String.format("Primary ad server `%s` is not recognized", primaryAdServer));
-        }
+        return switch (primaryAdServer) {
+            case 1 -> FREEWHEEL_AD_SERVER;
+            case 2 -> DFP_AD_SERVER;
+            default -> throw new InvalidRequestException(
+                    "Primary ad server `%s` is not recognized".formatted(primaryAdServer));
+        };
     }
 
     /**
@@ -273,16 +270,22 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                                                   String publisher) {
 
         if (MapUtils.isEmpty(fetchedCategories)) {
-            throw new RejectedBidException(bidId, bidder,
-                    String.format("Category mapping data for primary ad server: '%s', publisher: '%s' "
-                            + "not found", primaryAdServer, publisher));
+            throw new RejectedBidException(
+                    bidId,
+                    bidder,
+                    "Category mapping data for primary ad server: '%s', publisher: '%s' not found"
+                            .formatted(primaryAdServer, publisher));
         }
 
         final String categoryId = fetchedCategories.get(category);
         if (StringUtils.isEmpty(categoryId)) {
-            throw new RejectedBidException(bidId, bidder,
-                    String.format("Category mapping data for primary ad server: '%s', publisher: '%s' "
-                            + "does not contain category for cat = '%s'", primaryAdServer, publisher, category));
+            throw new RejectedBidException(
+                    bidId,
+                    bidder,
+                    """
+                            Category mapping data for primary ad server: '%s', publisher: '%s' \
+                            does not contain category for cat = '%s'"""
+                            .formatted(primaryAdServer, publisher, category));
         }
         return categoryId;
     }
@@ -330,7 +333,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec()).stream()
-                .sorted().collect(Collectors.toList());
+                .sorted().toList();
 
         final List<String> errors = new ArrayList<>();
         final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = isSupportedForDeals(bidRequest)
@@ -346,7 +349,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
 
         rejectedBids.addAll(collectRejectedDuplicatedBids(uniqueCatKeysToCategoryBids));
-        errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).collect(Collectors.toList()));
+        errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).toList());
 
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
@@ -394,8 +397,8 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         try {
             return jacksonMapper.mapper().treeToValue(priceGranularity, ExtPriceGranularity.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.prebid.targeting.%s: %s",
-                    path, e.getMessage()), e);
+            throw new PreBidException(
+                    "Error decoding bidRequest.prebid.targeting.%s: %s".formatted(path, e.getMessage()), e);
         }
     }
 
@@ -465,20 +468,22 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final ExtDealTier dealTier = ObjectUtil.getIfNotNull(dealTierContainer, DealTierContainer::getDealTier);
         if (dealTier == null) {
-            errors.add(String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId));
+            errors.add("DealTier configuration not defined for bidder '%s', imp ID '%s'".formatted(bidder, impId));
             return false;
         }
 
         if (StringUtils.isBlank(dealTier.getPrefix())) {
-            errors.add(String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
-                    + " dealTier.prefix empty string or null", bidder, impId));
+            errors.add("""
+                    DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason: \
+                    dealTier.prefix empty string or null""".formatted(bidder, impId));
             return false;
         }
 
         final Integer minDealTier = dealTier.getMinDealTier();
         if (minDealTier == null || minDealTier <= 0) {
-            errors.add(String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
-                    + " dealTier.minDealTier should be larger than 0, but was %s", bidder, impId, minDealTier));
+            errors.add("""
+                    DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason: \
+                    dealTier.minDealTier should be larger than 0, but was %s""".formatted(bidder, impId, minDealTier));
             return false;
         }
 
@@ -553,8 +558,8 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final int maxDuration = durations.get(durations.size() - 1);
         if (duration > maxDuration) {
-            throw new RejectedBidException(bidId, bidder,
-                    String.format("Bid duration '%s' exceeds maximum '%s'", duration, maxDuration));
+            throw new RejectedBidException(
+                    bidId, bidder, "Bid duration '%s' exceeds maximum '%s'".formatted(duration, maxDuration));
         }
 
         return durations.stream()
@@ -567,7 +572,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      * Creates category key which used for finding duplicated bids.
      */
     private String createCategoryUniqueKey(boolean withCategory, String category, String price, int duration) {
-        return withCategory ? category : String.format("%s_%ds", price, duration);
+        return withCategory ? category : "%s_%ds".formatted(price, duration);
     }
 
     private static String createCategoryDuration(String price,
@@ -580,13 +585,13 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                                                  String bidder) {
 
         final String categoryPrefix = dealTier != null && satisfiedPriority
-                ? String.format("%s%d", dealTier.getPrefix(), dealTier.getMinDealTier())
+                ? dealTier.getPrefix() + dealTier.getMinDealTier()
                 : price;
         final String categoryDuration = withCategory
-                ? String.format("%s_%s_%ds", categoryPrefix, category, duration)
-                : String.format("%s_%ds", categoryPrefix, duration);
+                ? "%s_%s_%ds".formatted(categoryPrefix, category, duration)
+                : "%s_%ds".formatted(categoryPrefix, duration);
 
-        return appendBidderName ? String.format("%s_%s", categoryDuration, bidder) : categoryDuration;
+        return appendBidderName ? "%s_%s".formatted(categoryDuration, bidder) : categoryDuration;
     }
 
     /**
@@ -647,7 +652,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                 .map(bidderResponse -> bidderToRejectedBidIds.containsKey(bidderResponse.getBidder())
                         ? removeRejectedBids(bidderResponse, bidderToRejectedBidIds.get(bidderResponse.getBidder()))
                         : bidderResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -655,14 +660,14 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      */
     private static BidderResponse removeRejectedBids(BidderResponse bidderResponse, List<String> rejectedBidIds) {
         final String bidder = bidderResponse.getBidder();
-
-        final List<BidderBid> survivedBidderBids = bidderResponse.getSeatBid().getBids().stream()
-                .filter(bidderBid -> !rejectedBidIds.contains(bidderBid.getBid().getId()))
-                .collect(Collectors.toList());
-
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
+
+        final List<BidderBid> survivedBidderBids = bidderSeatBid.getBids().stream()
+                .filter(bidderBid -> !rejectedBidIds.contains(bidderBid.getBid().getId()))
+                .toList();
+
         return BidderResponse.of(bidder,
-                BidderSeatBid.of(survivedBidderBids, bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors()),
+                bidderSeatBid.with(survivedBidderBids),
                 bidderResponse.getResponseTime());
     }
 
@@ -710,9 +715,10 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         String errorMessage;
 
         private static RejectedBid of(String bidId, String bidder, String errorMessage) {
-            return new RejectedBid(bidId, bidder,
-                    String.format("Bid rejected [bidder: %s, bid ID: %s] with a reason: %s",
-                            bidder, bidId, errorMessage));
+            return new RejectedBid(
+                    bidId,
+                    bidder,
+                    "Bid rejected [bidder: %s, bid ID: %s] with a reason: %s".formatted(bidder, bidId, errorMessage));
         }
     }
 

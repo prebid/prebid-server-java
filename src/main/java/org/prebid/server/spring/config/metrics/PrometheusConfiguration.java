@@ -13,6 +13,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.metric.CounterType;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.prometheus.NamespaceSubsystemSampleBuilder;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +59,9 @@ public class PrometheusConfiguration {
         private MetricRegistry metricRegistry;
 
         @Autowired
+        private Metrics metrics;
+
+        @Autowired
         private PrometheusConfigurationProperties prometheusConfigurationProperties;
 
         @Autowired
@@ -67,6 +72,10 @@ public class PrometheusConfiguration {
             logger.info(
                     "Starting Prometheus Server on port {0,number,#}",
                     prometheusConfigurationProperties.getPort());
+
+            if (metrics.getCounterType() == CounterType.flushingCounter) {
+                logger.warn("Prometheus metric system: Metric type is flushingCounter.");
+            }
 
             final Router router = Router.router(vertx);
             router.route("/metrics").handler(new MetricsHandler());

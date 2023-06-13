@@ -10,7 +10,7 @@ import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
-    public static final int PROMETHEUS_PORT = 8070
+    private static final int PROMETHEUS_PORT = 8070
     private static final int DEFAULT_PORT = 8080
     private static final int DEFAULT_ADMIN_PORT = 8060
     private static final int DEFAULT_DEBUG_PORT = 8000
@@ -27,6 +27,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         super(PBS_DOCKER_IMAGE_NAME)
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withFixedPorts()
+        withStartupAttempts(3)
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
                        .forStatusCode(200))
@@ -37,6 +38,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.metricConfig
                 << PbsConfig.adminEndpointConfig
                 << PbsConfig.bidderConfig
+                << PbsConfig.bidderAliasConfig
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
@@ -92,6 +94,14 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 .replace("-", "")
                 .replace("[", "_")
                 .replace("]", "_")
+    }
+
+    // This is a workaround for cases when container is killed mid-test due to OOM
+    void refresh() {
+        if (!running) {
+            stop()
+            start()
+        }
     }
 
     @Override

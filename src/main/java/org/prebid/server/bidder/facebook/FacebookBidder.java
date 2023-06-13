@@ -23,8 +23,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class FacebookBidder implements Bidder<BidRequest> {
 
@@ -76,8 +75,9 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private static String checkBlankString(String paramValue, String paramName) {
         if (StringUtils.isBlank(paramValue)) {
-            throw new IllegalArgumentException(String.format("No facebook %s specified. Calls to the Audience "
-                    + "Network will fail. Did you set adapters.facebook.%s in the app config?", paramName, paramName));
+            throw new IllegalArgumentException("""
+                    No facebook %s specified. Calls to the Audience Network will fail.
+                    Did you set adapters.facebook.%s in the app config?""".formatted(paramName, paramName));
         }
         return paramValue;
     }
@@ -154,37 +154,29 @@ public class FacebookBidder implements Bidder<BidRequest> {
         } else if (splitLength == 2) {
             return ExtImpFacebook.of(placementSplit[1], placementSplit[0]);
         } else {
-            throw new PreBidException(String.format("Invalid placementId param '%s' and publisherId param '%s'",
-                    placementId, extImpFacebook.getPublisherId()));
+            throw new PreBidException("Invalid placementId param '%s' and publisherId param '%s'"
+                    .formatted(placementId, extImpFacebook.getPublisherId()));
         }
     }
 
     private static Imp modifyImp(Imp imp, ExtImpFacebook extImpFacebook) {
         final BidType impType = resolveImpType(imp);
+
+        final String impId = imp.getId();
         if (impType == null) {
-            throw new PreBidException(String.format("imp #%s with invalid type", imp.getId()));
+            throw new PreBidException("imp #%s with invalid type".formatted(impId));
         }
 
         final boolean impInstlEqOne = Objects.equals(imp.getInstl(), 1);
         if (impInstlEqOne && impType != BidType.banner) {
-            throw new PreBidException(String.format("imp #%s: interstitial imps are only supported for banner",
-                    imp.getId()));
+            throw new PreBidException("imp #%s: interstitial imps are only supported for banner".formatted(impId));
         }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         switch (impType) {
-            case banner:
-                impBuilder.banner(modifyBanner(imp, impInstlEqOne));
-                break;
-            case video:
-                impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
-                break;
-            case xNative:
-                impBuilder.xNative(modifyNative(imp.getXNative()));
-                break;
-            default:
-                // Do nothing for Audio
-                break;
+            case banner -> impBuilder.banner(modifyBanner(imp, impInstlEqOne));
+            case video -> impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
+            case xNative -> impBuilder.xNative(modifyNative(imp.getXNative()));
         }
         return impBuilder
                 .ext(null)
@@ -210,8 +202,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private static Banner modifyBanner(Imp imp, boolean impInstlEqOne) {
         final Banner banner = imp.getBanner();
+        final String impId = imp.getId();
+
         if (banner == null) {
-            throw new PreBidException(String.format("imp #%s: Banner is null", imp.getId()));
+            throw new PreBidException("imp #%s: Banner is null".formatted(impId));
         }
         if (impInstlEqOne) {
             return banner.toBuilder().w(0).h(0).format(null).build();
@@ -227,11 +221,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                             .build();
                 }
             }
-            throw new PreBidException(String.format("imp #%s: banner height required", imp.getId()));
+            throw new PreBidException("imp #%s: banner height required".formatted(impId));
         } else {
             if (!isBannerHeightValid(banner.getH())) {
-                throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
-                        imp.getId()));
+                throw new PreBidException("imp #%s: only banner heights 50 and 250 are supported".formatted(impId));
             }
             return banner.toBuilder().w(-1).format(null).build();
         }
@@ -267,7 +260,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
@@ -289,7 +282,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(bidderBids, errors);
     }
@@ -298,13 +291,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final String bidId;
         try {
             if (StringUtils.isBlank(bid.getAdm())) {
-                throw new PreBidException(String.format("Bid %s missing 'adm'", bid.getId()));
+                throw new PreBidException("Bid %s missing 'adm'".formatted(bid.getId()));
             }
 
             bidId = mapper.decodeValue(bid.getAdm(), FacebookAdMarkup.class).getBidId();
 
             if (StringUtils.isBlank(bidId)) {
-                throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));
+                throw new PreBidException("bid %s missing 'bid_id' in 'adm'".formatted(bid.getId()));
             }
 
             final Bid modifiedBid = bid.toBuilder()
@@ -329,8 +322,8 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 return bidType;
             }
         }
-        throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
-                + "bid request", impId));
+        throw new PreBidException(
+                "Invalid bid imp ID %s does not match any imp IDs from the original bid request".formatted(impId));
     }
 
     @Override
@@ -350,7 +343,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(String.format(timeoutNotificationUrlTemplate, platformId, publisherId, requestId))
+                .uri(timeoutNotificationUrlTemplate.formatted(platformId, publisherId, requestId))
                 .build();
     }
 }

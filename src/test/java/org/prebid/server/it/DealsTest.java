@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -280,11 +281,16 @@ public class DealsTest extends VertxTest {
                                         new Customization(
                                                 "ext.debug.trace.lineitems.lineItem" + i + "[*].time",
                                                 timeValueMatcher)))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
         arrayValueMatchers.add(new Customization("ext.debug.httpcalls.cache", cacheArrayValueMatcher));
-        arrayValueMatchers.add(new Customization("**.requestheaders.x-prebid", (o1, o2) -> true));
+        arrayValueMatchers.add(new Customization("ext.debug.httpcalls.rubicon", new ArrayValueMatcher<>(
+                new CustomComparator(
+                        JSONCompareMode.NON_EXTENSIBLE,
+                        new Customization("**.requestheaders", (o1, o2) -> true),
+                        new Customization("**.requestbody", (o1, o2) -> true),
+                        new Customization("**.responsebody", (o1, o2) -> true)))));
 
         return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE, arrayValueMatchers.toArray(Customization[]::new));
     }

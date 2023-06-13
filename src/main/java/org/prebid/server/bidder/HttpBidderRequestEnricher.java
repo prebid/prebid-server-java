@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
@@ -39,6 +40,7 @@ public class HttpBidderRequestEnricher {
             String bidderName,
             MultiMap bidderRequestHeaders,
             CaseInsensitiveMultiMap originalRequestHeaders,
+            BidderAliases aliases,
             BidRequest bidRequest) {
 
         // some bidders has headers on class level, so we create copy to not affect them
@@ -46,7 +48,7 @@ public class HttpBidderRequestEnricher {
 
         addOriginalRequestHeaders(bidderRequestHeadersCopy, originalRequestHeaders);
         addXPrebidHeader(bidderRequestHeadersCopy, bidRequest);
-        addContentEncodingHeader(bidderRequestHeadersCopy, resolveCompressionType(bidderName));
+        addContentEncodingHeader(bidderRequestHeadersCopy, resolveCompressionType(bidderName, aliases));
 
         return bidderRequestHeadersCopy;
     }
@@ -96,7 +98,7 @@ public class HttpBidderRequestEnricher {
 
     private static String createNameVersionRecord(String name, String version) {
         return StringUtils.isNoneEmpty(name, version)
-                ? String.format("%s/%s", name, version)
+                ? "%s/%s".formatted(name, version)
                 : null;
     }
 
@@ -106,8 +108,8 @@ public class HttpBidderRequestEnricher {
         }
     }
 
-    private CompressionType resolveCompressionType(String bidderName) {
-        return Optional.ofNullable(bidderCatalog.bidderInfoByName(bidderName))
+    private CompressionType resolveCompressionType(String bidderName, BidderAliases aliases) {
+        return Optional.ofNullable(bidderCatalog.bidderInfoByName(aliases.resolveBidder(bidderName)))
                 .map(BidderInfo::getCompressionType)
                 .orElse(CompressionType.NONE);
     }

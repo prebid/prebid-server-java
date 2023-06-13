@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -28,10 +29,11 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -46,7 +48,6 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -77,6 +78,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -94,9 +96,13 @@ public class AmpRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private Ortb2RequestFactory ortb2RequestFactory;
+    @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
-    private Ortb2RequestFactory ortb2RequestFactory;
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    @Mock
+    private AmpGppService ampGppService;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
@@ -107,8 +113,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     private FpdResolver fpdResolver;
     @Mock
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
-    @Mock
-    private TimeoutResolver timeoutResolver;
     @Mock
     private DebugResolver debugResolver;
 
@@ -125,8 +129,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(ampGppService.apply(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(
@@ -143,6 +150,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -153,25 +161,33 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
-        given(ortb2RequestFactory.populateDealsInfo(any()))
+        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
-        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         given(ampPrivacyContextFactory.contextFrom(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new AmpRequestFactory(
-                storedRequestProcessor,
                 ortb2RequestFactory,
+                storedRequestProcessor,
+                ortbVersionConversionManager,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
                 ampPrivacyContextFactory,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
     }
@@ -299,7 +315,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext())
-                .isEqualTo(DebugContext.of(true, null));
+                .isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test
@@ -1176,7 +1192,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 
@@ -1195,7 +1211,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .consent("BONV8oqONXwgmADACHENAO7pqzAAppY")
                         .build());
     }
 
@@ -1297,7 +1313,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(1, null)));
+                .isEqualTo(Regs.builder().gdpr(1).build());
     }
 
     @Test
@@ -1369,7 +1385,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(0, null)));
+                .isEqualTo(Regs.builder().gdpr(0).build());
     }
 
     @Test
@@ -1384,7 +1400,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1N--")));
+                .isEqualTo(Regs.builder().usPrivacy("1N--").build());
     }
 
     @Test
@@ -1399,7 +1415,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+                .isEqualTo(Regs.builder().usPrivacy("1Y-N").build());
     }
 
     @Test
@@ -1416,7 +1432,77 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+                .isEqualTo(Regs.builder().usPrivacy("1Y-N").build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsGppWhenConsentStringIsPresentAndConsentTypeIsGpp() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gpp("someGppString").build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsGppSidWhenGppSidParameterPresentAndCanBeParsed() {
+        // given
+        routingContext.queryParams().add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder().gppSid(List.of(1, 2, 3)).build());
+    }
+
+    @Test
+    public void shouldPopulateRegsObjectWithGppDataIfGppSidCouldBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.builder()
+                        .gpp("someGppString")
+                        .gppSid(List.of(1, 2, 3))
+                        .build());
+    }
+
+    @Test
+    public void shouldNotPopulateRegsObjectWithGppDataIfGppSidCouldNotBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "someGppString")
+                .add("consent_type", "4")
+                .add("gpp_sid", "1,2,ab");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
     }
 
     @Test
@@ -1450,7 +1536,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any()))
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean()))
                 .willReturn(updatedBidRequest);
 
         // when
@@ -1467,7 +1553,12 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("1", "consent", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
 
         given(ampPrivacyContextFactory.contextFrom(any()))
@@ -1540,6 +1631,50 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future).succeededWith(auctionContext);
     }
 
+    @Test
+    public void shouldConvertBidRequestToInternalOpenRTBVersion() {
+        // given
+        givenBidRequest();
+
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build());
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isEqualTo(Source.builder().tid("uniqTid").build());
+    }
+
+    @Test
+    public void shouldUpdateTimeout() {
+        // given
+        givenBidRequest();
+
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+                .willAnswer(invocation -> {
+                    final AuctionContext auctionContext = invocation.getArgument(0);
+                    return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
+                });
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isEqualTo(10000L);
+    }
+
     private void givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
             Imp... imps) {
@@ -1559,7 +1694,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any())).willAnswer(
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));

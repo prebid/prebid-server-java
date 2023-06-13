@@ -19,11 +19,11 @@ class HookImplMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     private static String createPrefix(String prefix, String stage) {
-        return String.format("%s.hook.%s", prefix, stage);
+        return "%s.hook.%s".formatted(prefix, stage);
     }
 
     HookSuccessMetrics success() {

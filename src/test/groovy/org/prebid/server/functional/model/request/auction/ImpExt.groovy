@@ -18,6 +18,9 @@ class ImpExt {
     AppNexus appNexus
     ImpExtContext context
     ImpExtContextData data
+    String tid
+    String gpid
+    Integer ae
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {

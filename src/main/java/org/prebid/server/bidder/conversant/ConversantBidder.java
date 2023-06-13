@@ -10,13 +10,12 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -75,14 +74,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(HttpUtil.headers())
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 Collections.emptyList());
     }
 
@@ -113,11 +105,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
         try {
             extImp = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression[%d] missing ext.bidder object", impIndex));
+            throw new PreBidException("Impression[%d] missing ext.bidder object".formatted(impIndex));
         }
 
         if (StringUtils.isEmpty(extImp.getSiteId())) {
-            throw new PreBidException(String.format("Impression[%d] requires ext.bidder.site_id", impIndex));
+            throw new PreBidException("Impression[%d] requires ext.bidder.site_id".formatted(impIndex));
         }
         return extImp;
     }
@@ -160,7 +152,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final Integer extSecure = impExt.getSecure();
         final Integer impSecure = imp.getSecure();
 
-        return extSecure != null && (impSecure == null || impSecure == 0) ? extSecure : impSecure;
+        return extSecure != null && (BidderUtil.isNullOrZero(impSecure)) ? extSecure : impSecure;
     }
 
     private static Banner modifyBanner(Banner impBanner, Integer extPosition) {
@@ -191,19 +183,19 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
         final List<Integer> api = CollectionUtils.isNotEmpty(extApi) ? extApi : videoApi;
         return CollectionUtils.isNotEmpty(api)
-                ? api.stream().filter(APIS::contains).collect(Collectors.toList())
+                ? api.stream().filter(APIS::contains).toList()
                 : videoApi;
     }
 
     private static List<Integer> makeProtocols(List<Integer> extProtocols, List<Integer> videoProtocols) {
         final List<Integer> protocols = CollectionUtils.isNotEmpty(extProtocols) ? extProtocols : videoProtocols;
         return CollectionUtils.isNotEmpty(protocols)
-                ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList())
+                ? protocols.stream().filter(PROTOCOLS::contains).toList()
                 : videoProtocols;
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.withValues(extractBids(httpCall));
         } catch (PreBidException e) {
@@ -211,7 +203,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+    private List<BidderBid> extractBids(BidderCall<BidRequest> httpCall) {
         final BidResponse bidResponse;
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -235,7 +227,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(updateBidWithId(bid), getType(bid.getImpid(),
                         bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Bid updateBidWithId(Bid bid) {

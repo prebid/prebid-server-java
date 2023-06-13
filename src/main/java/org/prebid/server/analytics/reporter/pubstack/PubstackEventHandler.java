@@ -148,7 +148,8 @@ public class PubstackEventHandler {
     }
 
     private static byte[] gzip(String value) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+        try (
+                ByteArrayOutputStream obj = new ByteArrayOutputStream();
                 GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value.getBytes(StandardCharsets.UTF_8));
@@ -156,8 +157,7 @@ public class PubstackEventHandler {
 
             return obj.toByteArray();
         } catch (IOException e) {
-            throw new PreBidException(String.format("[pubstack] failed to compress, skip the events : %s",
-                    e.getMessage()));
+            throw new PreBidException("[pubstack] failed to compress, skip the events : " + e.getMessage());
         }
     }
 

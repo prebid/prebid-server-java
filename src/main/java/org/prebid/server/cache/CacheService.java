@@ -49,6 +49,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -115,7 +116,7 @@ public class CacheService {
     public String getEndpointHost() {
         final String host = endpointUrl.getHost();
         final int port = endpointUrl.getPort();
-        return port != -1 ? String.format("%s:%d", host, port) : host;
+        return port != -1 ? "%s:%d".formatted(host, port) : host;
     }
 
     public String getEndpointPath() {
@@ -149,7 +150,7 @@ public class CacheService {
                 .type(CachedDebugLog.CACHE_TYPE)
                 .value(new TextNode(videoCacheDebugLog.buildCacheBody()))
                 .expiry(videoCacheTtl != null ? videoCacheTtl : videoCacheDebugLog.getTtl())
-                .key(String.format("log_%s", hbCacheId))
+                .key("log_" + hbCacheId)
                 .build(), creativeSizeFromTextNode(value));
     }
 
@@ -234,7 +235,7 @@ public class CacheService {
                                 integration))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<BidInfo> bidsToCache,
@@ -287,7 +288,7 @@ public class CacheService {
 
         return bidInfos.stream()
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, false))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos,
@@ -297,7 +298,7 @@ public class CacheService {
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, true))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -346,7 +347,7 @@ public class CacheService {
                         bids.stream().map(cacheBid ->
                                 createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
                         videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId, hbCacheId)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (cachedCreatives.isEmpty()) {
             return Future.succeededFuture(CacheServiceResult.empty());
@@ -513,7 +514,7 @@ public class CacheService {
 
     private static String resolveCustomCacheKey(String hbCacheId, String category) {
         return StringUtils.isNoneEmpty(category, hbCacheId)
-                ? String.format("%s_%s", category, hbCacheId)
+                ? "%s_%s".formatted(category, hbCacheId)
                 : null;
     }
 
@@ -551,14 +552,14 @@ public class CacheService {
                                                 long startTime) {
 
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = mapper.decodeValue(responseBody, BidCacheResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+            throw new PreBidException("Cannot parse response: " + responseBody, e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();
@@ -578,7 +579,7 @@ public class CacheService {
                 .filter(Objects::nonNull)
                 .map(responseItemCreator)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -597,7 +598,7 @@ public class CacheService {
             final List<Bid> videoBids = cacheVideoBids.stream()
                     .map(CacheBid::getBidInfo)
                     .map(BidInfo::getBid)
-                    .collect(Collectors.toList());
+                    .toList();
 
             final int bidsSize = cacheBids.size();
             for (int i = 0; i < bidsSize; i++) {
@@ -702,7 +703,7 @@ public class CacheService {
     private BidCacheRequest toBidCacheRequest(List<CachedCreative> cachedCreatives) {
         return BidCacheRequest.of(cachedCreatives.stream()
                 .map(CachedCreative::getPayload)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @Value(staticConstructor = "of")

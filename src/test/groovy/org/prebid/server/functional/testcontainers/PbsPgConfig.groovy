@@ -51,7 +51,7 @@ class PbsPgConfig {
     private static Map<String, String> getPgConfig(String networkServiceContainerUri) {
         pbsGeneralSettings() + adminDealsUpdateEndpoint() + deals() + deliveryProgress() +
                 planner(networkServiceContainerUri) + deliveryStatistics(networkServiceContainerUri) +
-                alert(networkServiceContainerUri) + userData(networkServiceContainerUri)
+                alert(networkServiceContainerUri) + userData(networkServiceContainerUri) + adminLineItemStatusEndpoint()
     }
 
     private static Map<String, String> pbsGeneralSettings() {
@@ -68,6 +68,10 @@ class PbsPgConfig {
 
     private static Map<String, String> adminDealsUpdateEndpoint() {
         ["admin-endpoints.force-deals-update.enabled": "true"]
+    }
+
+    private static Map<String, String> adminLineItemStatusEndpoint() {
+        ["admin-endpoints.lineitem-status.enabled": "true"]
     }
 
     private static Map<String, String> deals() {

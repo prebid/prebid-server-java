@@ -29,7 +29,7 @@ public class Data {
     String name;
 
     /**
-     * Array of Segment (Section 3.2.22) objects that contain the actual data
+     * Array of {@link Segment} (Section 3.2.22) objects that contain the actual data
      * values.
      */
     List<Segment> segment;

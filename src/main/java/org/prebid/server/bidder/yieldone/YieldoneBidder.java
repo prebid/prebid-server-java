@@ -7,12 +7,11 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -21,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldone.ExtImpYieldone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class YieldoneBidder implements Bidder<BidRequest> {
 
@@ -62,14 +61,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(HttpUtil.headers())
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 errors);
     }
 
@@ -97,7 +89,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
@@ -111,7 +103,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                     .flatMap(Collection::stream)
                     .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
                             bidResponse.getCur()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             return Result.withValues(bidderBids);
         } catch (PreBidException e) {
@@ -119,7 +111,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
@@ -137,6 +129,6 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Unknown impression type with id %s", impId));
+        throw new PreBidException("Unknown impression type with id " + impId);
     }
 }

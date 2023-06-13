@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class FpdResolver {
@@ -332,7 +331,7 @@ public class FpdResolver {
         return arrayNode != null && isTextualArray(arrayNode)
                 ? StreamSupport.stream(arrayNode.spliterator(), false)
                 .map(JsonNode::asText)
-                .collect(Collectors.toList())
+                .toList()
                 : null;
     }
 

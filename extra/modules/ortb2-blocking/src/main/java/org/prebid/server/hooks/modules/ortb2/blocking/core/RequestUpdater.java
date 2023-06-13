@@ -10,7 +10,6 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttribut
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class RequestUpdater {
 
@@ -25,16 +24,18 @@ public class RequestUpdater {
     }
 
     public BidRequest update(BidRequest bidRequest) {
-        final List<String> blockedAdomain = blockedAttributes.getBadv();
-        final List<String> blockedAdvCat = blockedAttributes.getBcat();
-        final List<String> blockedApp = blockedAttributes.getBapp();
+        final List<String> blockedAdomain = bidRequest.getBadv();
+        final List<String> blockedAdvCat = bidRequest.getBcat();
+        final Integer cattax = bidRequest.getCattax();
+        final List<String> blockedApp = bidRequest.getBapp();
 
         return bidRequest.toBuilder()
-            .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : bidRequest.getBadv())
-            .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : bidRequest.getBcat())
-            .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : bidRequest.getBapp())
-            .imp(updateImps(bidRequest.getImp()))
-            .build();
+                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : blockedAttributes.getBadv())
+                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : blockedAttributes.getBcat())
+                .cattax(cattax != null ? cattax : blockedAttributes.getCattaxComplement())
+                .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : blockedAttributes.getBapp())
+                .imp(updateImps(bidRequest.getImp()))
+                .build();
     }
 
     private List<Imp> updateImps(List<Imp> imps) {
@@ -46,14 +47,13 @@ public class RequestUpdater {
         }
 
         return imps.stream()
-            .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
-            .collect(Collectors.toList());
+                .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
+                .toList();
     }
 
-    private Imp updateImp(
-        Imp imp,
-        Map<String, List<Integer>> blockedBannerType,
-        Map<String, List<Integer>> blockedBannerAttr) {
+    private Imp updateImp(Imp imp,
+                          Map<String, List<Integer>> blockedBannerType,
+                          Map<String, List<Integer>> blockedBannerAttr) {
 
         final String impId = imp.getId();
         final List<Integer> btypeForImp = blockedBannerType != null ? blockedBannerType.get(impId) : null;
@@ -69,10 +69,10 @@ public class RequestUpdater {
         final Banner.BannerBuilder bannerBuilder = banner != null ? banner.toBuilder() : Banner.builder();
 
         return imp.toBuilder()
-            .banner(bannerBuilder
-                .btype(CollectionUtils.isNotEmpty(btypeForImp) ? btypeForImp : existingBtype)
-                .battr(CollectionUtils.isNotEmpty(battrForImp) ? battrForImp : existingBattr)
-                .build())
-            .build();
+                .banner(bannerBuilder
+                        .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btypeForImp)
+                        .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battrForImp)
+                        .build())
+                .build();
     }
 }

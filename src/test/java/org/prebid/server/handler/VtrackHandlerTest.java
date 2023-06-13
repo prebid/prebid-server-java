@@ -466,7 +466,7 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(any())).willReturn(false);
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
-                        .events(AccountEventsConfig.of(true)).build())
+                                .events(AccountEventsConfig.of(true)).build())
                         .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
@@ -505,7 +505,7 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(any())).willReturn(false);
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
-                        .events(AccountEventsConfig.of(true)).build())
+                                .events(AccountEventsConfig.of(true)).build())
                         .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(

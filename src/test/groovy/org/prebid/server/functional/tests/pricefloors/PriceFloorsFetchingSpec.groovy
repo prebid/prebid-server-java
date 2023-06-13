@@ -648,8 +648,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when fetch request exceeds fetch.timeout-ms"() {
         given: "PBS with minTimeoutMs configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minTimeoutMs": "1"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minTimeoutMs": "1"])
 
         and: "Test start time"
         def startTime = Instant.now()
@@ -722,7 +721,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Response size " +
@@ -742,7 +741,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def storedRequestModel = bidRequestWithFloors
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel, accountId)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -805,8 +804,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule ==
-                    bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRule == bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
 
@@ -824,7 +822,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Default stored request with floors "
         def ampStoredRequest = storedRequestWithFloors
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -868,7 +866,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def storedRequestModel = bidRequestWithFloors
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -913,7 +911,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def ampStoredRequest = storedRequestWithFloors.tap {
             ext.prebid.floors.floorMin = FLOOR_MIN
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -952,9 +950,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should periodically fetch floor rules when previous response from floors provider is #description"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minMaxAgeSec": "3",
-                 "price-floors.minPeriodSec": "3"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minMaxAgeSec": "3",
+                                                                      "price-floors.minPeriodSec": "3"])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -1169,7 +1166,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
             ext.prebid.floors.data.modelGroups.last().modelWeight = modelWeight
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -1350,9 +1347,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
         given: "PBS with PF configuration with minMaxAgeSec"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
-                ["price-floors.minMaxAgeSec": "3",
-                 "price-floors.minPeriodSec": "3"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.minMaxAgeSec": "3",
+                                                                      "price-floors.minPeriodSec": "3"])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)

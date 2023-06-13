@@ -2,10 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -18,11 +15,13 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -48,25 +47,21 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
-import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
-import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,52 +69,23 @@ import java.util.Set;
 @Configuration
 public class WebConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebConfiguration.class);
-
-    @Autowired
-    private ContextRunner contextRunner;
-
-    @Value("${vertx.http-server-instances}")
-    private int httpServerNum;
+    @Value("${logging.sampling-rate:0.01}")
+    private double logSamplingRate;
 
     @Autowired
     private Vertx vertx;
 
-    @Autowired
-    private HttpServerOptions httpServerOptions;
-
-    @Autowired
-    private ExceptionHandler exceptionHandler;
-
-    @Autowired
-    @Qualifier("router")
-    private Router router;
-
-    @Value("${http.port}")
-    private int httpPort;
-
-    @PostConstruct
-    public void startHttpServer() {
-        logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
-                httpPort);
-
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
-                vertx.createHttpServer(httpServerOptions)
-                        .exceptionHandler(exceptionHandler)
-                        .requestHandler(router)
-                        .listen(httpPort, promise));
-
-        logger.info("Successfully started {0} instances of Http Server", httpServerNum);
-    }
-
-    @Bean
-    HttpServerOptions httpServerOptions(@Value("${http.max-headers-size}") int maxHeaderSize,
-                                        @Value("${http.ssl}") boolean ssl,
-                                        @Value("${http.jks-path}") String jksPath,
-                                        @Value("${http.jks-password}") String jksPassword) {
+    @Bean // TODO: remove support for properties with http prefix after transition period
+    HttpServerOptions httpServerOptions(
+            @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
+            @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
+            @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
+            @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
+            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
+                .setMaxInitialLineLength(maxInitialLineLength)
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
@@ -222,6 +188,7 @@ public class WebConfiguration {
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
+                logSamplingRate,
                 auctionRequestFactory,
                 exchangeService,
                 analyticsReporter,
@@ -294,36 +261,25 @@ public class WebConfiguration {
 
     @Bean
     CookieSyncHandler cookieSyncHandler(
-            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${cookie-sync.coop-sync.default-limit:#{null}}") Integer coopSyncDefaultLimit,
-            @Value("${cookie-sync.coop-sync.max-limit:#{null}}") Integer coopSyncMaxLimit,
             UidsCookieService uidsCookieService,
+            CookieSyncGppService cookieSyncGppProcessor,
             ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            CoopSyncPriorities coopSyncPriorities,
-            TcfDefinerService tcfDefinerService,
+            CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
 
         return new CookieSyncHandler(
-                externalUrl,
                 defaultTimeoutMs,
-                coopSyncDefaultLimit,
-                coopSyncMaxLimit,
+                logSamplingRate,
                 uidsCookieService,
+                cookieSyncGppProcessor,
+                cookieSyncService,
                 applicationSettings,
-                bidderCatalog,
-                tcfDefinerService,
                 privacyEnforcementService,
-                hostVendorId,
-                defaultCoopSync,
-                coopSyncPriorities.getPri(),
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -337,8 +293,7 @@ public class WebConfiguration {
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PrivacyEnforcementService privacyEnforcementService,
-            TcfDefinerService tcfDefinerService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            HostVendorTcfDefinerService tcfDefinerService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
@@ -350,7 +305,6 @@ public class WebConfiguration {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                hostVendorId,
                 analyticsReporter,
                 metrics,
                 timeoutFactory);
@@ -423,7 +377,8 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
-            @Value("${deals.enabled}") boolean dealsEnabled) {
+            @Value("${deals.enabled}") boolean dealsEnabled,
+            Metrics metrics) {
 
         return new NotificationEventHandler(
                 uidsCookieService,
@@ -433,7 +388,8 @@ public class WebConfiguration {
                 timeoutFactory,
                 applicationSettings,
                 defaultTimeoutMillis,
-                dealsEnabled);
+                dealsEnabled,
+                metrics);
     }
 
     @Bean
@@ -452,14 +408,5 @@ public class WebConfiguration {
         Set<String> getCustomTargetingSet() {
             return new HashSet<>(customTargeting);
         }
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "cookie-sync.coop-sync")
-    @Data
-    @NoArgsConstructor
-    private static class CoopSyncPriorities {
-
-        private List<Collection<String>> pri;
     }
 }

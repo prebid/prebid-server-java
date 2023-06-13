@@ -1,14 +1,17 @@
 adapters:
   rubicon:
+    ortb-version: "2.6"
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     meta-info:
       maintainer-email: header-bidding@rubiconproject.com
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
         - activeview
         - comscore
@@ -19,12 +22,11 @@ adapters:
         - whiteops
       vendor-id: 52
     usersync:
-      url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
-      redirect-url:
       cookie-family-name: rubicon
-      type: redirect
-      support-cors: false
+      redirect:
+        url: GET_FROM_globalsupport@magnite.com
+        support-cors: false
     generate-bid-id: false
     XAPI:
-      Username:
-      Password:
+      Username: GET_FROM_globalsupport@magnite.com
+      Password: GET_FROM_globalsupport@magnite.com

@@ -54,11 +54,11 @@ public class JdbcStoredDataResultMapper {
                 errors.add("No stored requests or imps were found");
             } else {
                 final String errorRequests = requestIds.isEmpty() ? ""
-                        : String.format("stored requests for ids %s", requestIds);
+                        : "stored requests for ids " + requestIds;
                 final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
-                final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
+                final String errorImps = impIds.isEmpty() ? "" : "stored imps for ids " + impIds;
 
-                errors.add(String.format("No %s%s%s were found", errorRequests, separator, errorImps));
+                errors.add("No %s%s%s were found".formatted(errorRequests, separator, errorImps));
             }
         } else {
             final Map<String, Set<StoredItem>> requestIdToStoredItems = new HashMap<>();

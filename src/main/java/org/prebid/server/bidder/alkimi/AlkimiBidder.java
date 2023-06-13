@@ -9,12 +9,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -23,13 +22,13 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.alkimi.ExtImpAlkimi;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AlkimiBidder implements Bidder<BidRequest> {
 
@@ -51,17 +50,10 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> updatedImps = request.getImp().stream()
                 .map(imp -> updateImp(imp, parseImpExt(imp)))
-                .collect(Collectors.toList());
+                .toList();
 
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encodeToBytes(outgoingRequest))
-                        .build());
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
 
     private ExtImpAlkimi parseImpExt(Imp imp) {
@@ -81,7 +73,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                 .bidfloor(extImpAlkimi.getBidFloor())
                 .banner(updatedBanner)
                 .video(updatedVideo)
-                .ext(makeImpExt(updatedBanner, updatedVideo, extImpAlkimi))
+                .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
                 .build();
     }
 
@@ -102,7 +94,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         return video != null ? video.toBuilder().pos(position).build() : null;
     }
 
-    private ObjectNode makeImpExt(Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
+    private ObjectNode makeImpExt(Imp imp, Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
         final ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = extImpAlkimi.toBuilder();
 
         if (banner != null) {
@@ -117,11 +109,13 @@ public class AlkimiBidder implements Bidder<BidRequest> {
             extBuilder.impMediaType(TYPE_VIDEO);
         }
 
+        extBuilder.adUnitCode(imp.getId());
+
         return mapper.mapper().valueToTree(ExtPrebid.of(null, extBuilder.build()));
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -144,7 +138,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

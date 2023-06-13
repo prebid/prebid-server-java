@@ -19,12 +19,13 @@ class AmpRequest {
     Long timeout
     String slot
     String curl
-    Integer account
+    String account
     String gdprConsent
     String consentString
     ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
+    String gppSid
 
     static AmpRequest getDefaultAmpRequest() {
         def request = new AmpRequest()

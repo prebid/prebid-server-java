@@ -74,8 +74,8 @@ public class PriceFloorsConfigResolver {
             validatePriceFloorConfig(account, defaultFloorsConfig);
             return Future.succeededFuture(account);
         } catch (PreBidException e) {
-            final String message =
-                    String.format("Account with id '%s' has invalid config: %s", account.getId(), e.getMessage());
+            final String message = "Account with id '%s' has invalid config: %s"
+                    .formatted(account.getId(), e.getMessage());
             final String accountId = ObjectUtil.getIfNotNull(account, Account::getId);
             if (StringUtils.isNotBlank(accountId)) {
                 metrics.updateAlertsConfigFailed(account.getId(), MetricName.price_floors);
@@ -162,7 +162,7 @@ public class PriceFloorsConfigResolver {
     }
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
-        return String.format("Invalid price-floors property '%s', value passed: %s", property, value);
+        return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
     }
 
     private Account fallbackToDefaultConfig(Account account) {

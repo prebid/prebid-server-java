@@ -118,7 +118,7 @@ public abstract class VendorListService<T, V> {
     public Future<Map<Integer, V>> forVersion(int version) {
         if (version <= 0) {
             return Future.failedFuture(
-                    String.format("TCF %d vendor list for version %d not valid.", getTcfVersion(), version));
+                    "TCF %d vendor list for version %d not valid.".formatted(getTcfVersion(), version));
         }
 
         final Map<Integer, V> idToVendor = cache.get(version);
@@ -140,7 +140,7 @@ public abstract class VendorListService<T, V> {
         fetchNewVendorListFor(version);
 
         return Future.failedFuture(
-                String.format("TCF %d vendor list for version %d not fetched yet, try again later.", tcf, version));
+                "TCF %d vendor list for version %d not fetched yet, try again later.".formatted(tcf, version));
     }
 
     /**
@@ -172,10 +172,10 @@ public abstract class VendorListService<T, V> {
             try {
                 fileSystem.mkdirsBlocking(dir);
             } catch (FileSystemException e) {
-                throw new PreBidException(String.format("Cannot create directory: %s", dir), e);
+                throw new PreBidException("Cannot create directory: " + dir, e);
             }
         } else if (!Files.isWritable(Paths.get(dir))) {
-            throw new PreBidException(String.format("No write permissions for directory: %s", dir));
+            throw new PreBidException("No write permissions for directory: " + dir);
         }
     }
 
@@ -213,8 +213,7 @@ public abstract class VendorListService<T, V> {
         final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
         final T vendorList = toVendorList(vendorListContent);
         if (!isValid(vendorList)) {
-            throw new PreBidException(String.format(
-                    "Fallback vendor list parsed but has invalid data: %s", vendorListContent));
+            throw new PreBidException("Fallback vendor list parsed but has invalid data: " + vendorListContent);
         }
 
         return filterVendorIdToVendors(vendorList);
@@ -246,10 +245,9 @@ public abstract class VendorListService<T, V> {
         final int statusCode = response.getStatusCode();
 
         if (statusCode == HttpResponseStatus.NOT_FOUND.code()) {
-            throw new MissingVendorListException(String.format(
-                    "Remote server could not found vendor list with version %d", version));
+            throw new MissingVendorListException("Remote server could not found vendor list with version " + version);
         } else if (statusCode != HttpResponseStatus.OK.code()) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final String body = response.getBody();
@@ -258,7 +256,7 @@ public abstract class VendorListService<T, V> {
         // we should care on obtained vendor list, because it'll be saved and never be downloaded again
         // while application is running
         if (!isValid(vendorList)) {
-            throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
+            throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
 
         return VendorListResult.of(version, body, vendorList);

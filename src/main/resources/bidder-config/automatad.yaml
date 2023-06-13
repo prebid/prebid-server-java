@@ -1,0 +1,11 @@
+adapters:
+  automatad:
+    endpoint: https://s2s.atmtd.com
+    meta-info:
+      maintainer-email: tech@automatad.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0

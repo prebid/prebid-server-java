@@ -13,13 +13,12 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -125,7 +124,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     private static String buildImpId(String originalId, BidType type) {
-        return String.format("%s:opa:%s", originalId, type.getName());
+        return "%s:opa:%s".formatted(originalId, type.getName());
     }
 
     private static Banner modifyBanner(Banner banner) {
@@ -175,13 +174,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(imp))
                 .build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveUrl(extImpOperaads))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, resolveUrl(extImpOperaads), mapper);
     }
 
     private String resolveUrl(ExtImpOperaads extImpOperaads) {
@@ -191,7 +184,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -212,7 +205,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(OperaadsBidder::isValidBid)
                 .map(this::createBidderBid)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean isValidBid(Bid bid) {

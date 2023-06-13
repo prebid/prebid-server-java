@@ -85,8 +85,8 @@ public class BasicHttpClient implements HttpClient {
                                HttpClientRequest httpClientRequest) {
 
         if (!promise.future().isComplete()) {
-            failResponse(new TimeoutException(
-                    String.format("Timeout period of %dms has been exceeded", timeoutMs)), promise);
+            failResponse(
+                    new TimeoutException("Timeout period of %dms has been exceeded".formatted(timeoutMs)), promise);
 
             // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
             httpClientRequest.reset();
@@ -98,8 +98,11 @@ public class BasicHttpClient implements HttpClient {
         final String contentLength = response.getHeader(HttpHeaders.CONTENT_LENGTH);
         final long responseBodySize = contentLength != null ? Long.parseLong(contentLength) : 0;
         if (responseBodySize > maxResponseSize) {
-            failResponse(new PreBidException(String.format("Response size %d exceeded %d bytes limit",
-                    responseBodySize, maxResponseSize)), promise, timerId);
+            failResponse(
+                    new PreBidException(
+                            "Response size %d exceeded %d bytes limit".formatted(responseBodySize, maxResponseSize)),
+                    promise,
+                    timerId);
             return;
         }
 

@@ -1,6 +1,7 @@
 adapters:
   smaato:
     endpoint: https://prebid.ad.smaato.net/oapi/prebid
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@smaato.com
       app-media-types:
@@ -12,8 +13,8 @@ adapters:
       supported-vendors:
       vendor-id: 82
     usersync:
-      url: https://s.ad.smaato.net/c/?adExInit=p&redir=
-      redirect-url: /setuid?bidder=smaato&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: smaato
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

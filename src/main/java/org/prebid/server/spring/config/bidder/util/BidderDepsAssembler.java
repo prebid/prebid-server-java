@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -15,8 +16,10 @@ import org.prebid.server.bidder.BidderInstanceDeps;
 import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
+import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
@@ -27,15 +30,17 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
-    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
-            + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
-            + "and tell them to check their configuration.";
+    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = """
+            %s is not configured properly on this Prebid Server deploy.
+            If you believe this should work, contact the company hosting the service \
+            and tell them to check their configuration.""";
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -43,7 +48,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private String bidderName;
     private CFG configProperties;
-    private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
+    private BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
 
     private BidderDepsAssembler() {
@@ -56,7 +61,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     public BidderDepsAssembler<CFG> usersyncerCreator(
-            Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator) {
+            BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> usersyncerCreator) {
 
         this.usersyncerCreator = usersyncerCreator;
         return this;
@@ -86,64 +91,82 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
-        return deps(bidderName, BidderInfoCreator.create(configProperties), configProperties);
+        return deps(
+                bidderName,
+                usersyncer(configProperties, CookieFamilySource.ROOT),
+                BidderInfoCreator.create(configProperties),
+                configProperties);
     }
 
     private List<BidderInstanceDeps> aliasesDeps() {
         return configProperties.getAliases().entrySet().stream()
                 .map(this::aliasDeps)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
         final String alias = entry.getKey();
-        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
-        validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
+        final CFG aliasConfigProperties = configurationAsPropertiesObject(
+                entry.getValue(), configProperties.getSelfClass());
 
-        return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
+        final CFG aliasMergedProperties = mergeConfigurations(aliasConfigProperties, configProperties);
+
+        validateCapabilities(alias, aliasMergedProperties, bidderName, configProperties);
+
+        final Usersyncer usersyncer = Optional.ofNullable(aliasConfigProperties.getUsersync())
+                .map(UsersyncConfigurationProperties::getCookieFamilyName)
+                .map(familyName -> usersyncer(aliasMergedProperties, CookieFamilySource.ALIAS))
+                .orElseGet(() -> usersyncer(aliasMergedProperties, CookieFamilySource.ROOT));
+
+        return deps(
+                alias,
+                usersyncer,
+                BidderInfoCreator.create(aliasMergedProperties, bidderName),
+                aliasMergedProperties);
     }
 
-    private BidderInstanceDeps deps(String bidderName, BidderInfo bidderInfo, CFG configProperties) {
+    private BidderInstanceDeps deps(String bidderName,
+                                    Usersyncer usersyncer,
+                                    BidderInfo bidderInfo,
+                                    CFG configProperties) {
+
         return BidderInstanceDeps.builder()
                 .name(bidderName)
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer(configProperties))
+                .usersyncer(usersyncer)
                 .bidder(bidder(configProperties))
                 .build();
     }
 
-    private Usersyncer usersyncer(CFG configProperties) {
-        return configProperties.getEnabled() ? usersyncerCreator.apply(configProperties.getUsersync()) : null;
+    private Usersyncer usersyncer(CFG configProperties, CookieFamilySource cookieFamilySource) {
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
+        final boolean usersyncPresent = usersync != null
+                && ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
+        return usersyncPresent ? usersyncerCreator.apply(usersync, cookieFamilySource) : null;
     }
 
     private Bidder<?> bidder(CFG configProperties) {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
-                : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
-    }
-
-    private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
-        return mergeConfigurations(
-                configurationAsPropertiesObject(aliasConfiguration, coreConfiguration.getSelfClass()),
-                coreConfiguration);
+                : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
     }
 
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
         final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
         final MetaInfo aliasMetaInfo = aliasConfiguration.getMetaInfo();
-        final List<String> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
-        final List<String> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
-        final List<String> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
-        final List<String> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
+        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
+        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
+        final List<MediaType> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
+        final List<MediaType> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
                 || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {
 
-            throw new IllegalArgumentException(String.format(
-                    "Alias %s supports more capabilities (app: %s, site: %s) "
-                            + "than the core bidder %s (app: %s, site: %s)",
+            throw new IllegalArgumentException("""
+                    Alias %s supports more capabilities (app: %s, site: %s) \
+                    than the core bidder %s (app: %s, site: %s)""".formatted(
                     alias,
                     aliasAppMediaTypes,
                     aliasSiteMediaTypes,

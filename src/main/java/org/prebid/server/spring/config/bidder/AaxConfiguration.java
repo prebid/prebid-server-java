@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.GenericBidder;
+import org.prebid.server.bidder.aax.AaxBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -31,13 +31,13 @@ public class AaxConfiguration {
 
     @Bean
     BidderDeps aaxBidderDeps(BidderConfigurationProperties aaxConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                             @NotBlank @Value("${external-url}") String externalUrl,
+                             JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(aaxConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new GenericBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
+                .bidderCreator(config -> new AaxBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
                 .assemble();
     }
 

@@ -32,11 +32,11 @@ class ModuleMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     private static String createPrefix(String prefix, String moduleCode) {
-        return String.format("%s.module.%s", prefix, moduleCode);
+        return "%s.module.%s".formatted(prefix, moduleCode);
     }
 
     StageMetrics stage(Stage stage) {

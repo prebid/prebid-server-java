@@ -1,0 +1,33 @@
+{
+    "test": 1,
+    "tmax": 1000,
+    "id": "test-auction-id",
+    "imp": [
+        {
+            "id": "a",
+            "video": {
+            },
+            "ext": {
+                "prebid": {
+                    "storedrequest": {
+                        "id": "1001-sreq-test-prebid-vast"
+                    }
+                }
+            }
+        }
+    ],
+    "site": {
+      "publisher": {
+        "id": "1001"
+      }
+    },
+    "ext": {
+        "prebid": {
+            "targeting": {
+                "includewinners": true,
+                "includebidderkeys": true
+            },
+	    "storedrequest": { "id": "1001-sreq-test-top" }
+        }
+    }
+}

@@ -35,9 +35,8 @@ public class CountryCodeMapper {
         final String[] subTokens = row.replaceAll("[^a-zA-Z,]", "").split(",");
         if (subTokens.length != 2 || subTokens[0].length() != 2 || subTokens[1].length() != 3) {
             throw new IllegalArgumentException(
-                    String.format(
-                            "Invalid csv file format: row \"%s\" contains more than 2 entries or tokens are invalid",
-                            row));
+                    "Invalid csv file format: row \"%s\" contains more than 2 entries or tokens are invalid"
+                            .formatted(row));
         }
 
         return Pair.of(subTokens[0].toUpperCase(), subTokens[1].toUpperCase());

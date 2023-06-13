@@ -52,7 +52,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.PAGE_POSITION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -176,20 +176,20 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType | bidRequest
+        targetingType  | bidRequest
 
-        REFERRER      | BidRequest.defaultBidRequest.tap {
+        REFERRER       | BidRequest.defaultBidRequest.tap {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
+        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
             app = new App(id: PBSUtils.randomString,
                     bundle: stringTargetingValue)
         }
 
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+        UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {
             user = User.defaultUser.tap {
-                language = stringTargetingValue
+                buyeruid = stringTargetingValue
             }
         }
     }
@@ -200,7 +200,7 @@ class TargetingSpec extends BasePgSpec {
             imp = [Imp.defaultImpression.tap {
                 banner = Banner.defaultBanner
                 ext = ImpExt.defaultImpExt
-                ext.prebid.bidder = new Bidder(rubicon: Rubicon.default.tap { accountId = integerTargetingValue })
+                ext.prebid.bidder = new Bidder(rubicon: Rubicon.defaultRubicon.tap { accountId = integerTargetingValue })
             }]
         }
 
@@ -463,8 +463,8 @@ class TargetingSpec extends BasePgSpec {
         given: "Bid request with set ad slot info in different request places"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
-                ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
-                        adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
+                tagId = impTagId
+                ext.gpid = impExtGpid
                 ext.data = new ImpExtContextData(pbAdSlot: adSlot,
                         adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
@@ -489,11 +489,11 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
 
         where:
-        contextAdSlot         | contextAdServerAdSlot | adSlot                | adServerAdSlot
+        impTagId              | impExtGpid            | adSlot                | adServerAdSlot
         stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString
         PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString | PBSUtils.randomString
-        PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue  | PBSUtils.randomString
-        PBSUtils.randomString | PBSUtils.randomString | PBSUtils.randomString | stringTargetingValue
+        null                  | null                  | stringTargetingValue  | PBSUtils.randomString
+        null                  | null                  | PBSUtils.randomString | stringTargetingValue
     }
 
     def "PBS should be able to match Ad Slot targeting taken from different sources by IN matching function"() {
@@ -528,5 +528,31 @@ class TargetingSpec extends BasePgSpec {
 
         then: "PBS had PG auction"
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
+    }
+
+    def "PBS should be able to match video size targeting taken from imp[].video sources by INTERSECTS matching function"() {
+        given: "Default video bid request"
+        def lineItemSize = LineItemSize.defaultLineItemSize
+        def bidRequest = BidRequest.defaultVideoRequest.tap {
+            imp[0].video.w = lineItemSize.w
+            imp[0].video.h = lineItemSize.h
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [lineItemSize])
+                                                            .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
+                                                            .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
     }
 }

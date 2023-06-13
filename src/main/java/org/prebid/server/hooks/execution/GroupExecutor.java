@@ -102,7 +102,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             HookId hookId) {
 
         if (hook == null) {
-            conditionalLogger.error(String.format("Hook implementation %s does not exist or disabled", hookId), 0.01d);
+            conditionalLogger.error("Hook implementation %s does not exist or disabled".formatted(hookId), 0.01d);
 
             return Future.failedFuture(new FailedException("Hook implementation does not exist or disabled"));
         }

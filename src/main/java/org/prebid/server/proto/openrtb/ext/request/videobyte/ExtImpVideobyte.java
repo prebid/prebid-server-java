@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class ExtImpVideobyte {
 
     @JsonProperty("pubId")

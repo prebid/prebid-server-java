@@ -114,10 +114,10 @@ public class JdbcPeriodicRefreshService implements Initializable {
         final long startTime = clock.millis();
 
         jdbcClient.executeQuery(
-                initQuery,
-                Collections.emptyList(),
-                JdbcStoredDataResultMapper::map,
-                createTimeout())
+                        initQuery,
+                        Collections.emptyList(),
+                        JdbcStoredDataResultMapper::map,
+                        createTimeout())
                 .map(storedDataResult ->
                         handleResult(storedDataResult, Instant.now(clock), startTime, MetricName.initialize))
                 .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
@@ -150,10 +150,10 @@ public class JdbcPeriodicRefreshService implements Initializable {
         final long startTime = clock.millis();
 
         jdbcClient.executeQuery(
-                updateQuery,
-                Collections.singletonList(Date.from(lastUpdate)),
-                JdbcStoredDataResultMapper::map,
-                createTimeout())
+                        updateQuery,
+                        Collections.singletonList(Date.from(lastUpdate)),
+                        JdbcStoredDataResultMapper::map,
+                        createTimeout())
                 .map(storedDataResult ->
                         handleResult(invalidate(storedDataResult), updateTime, startTime, MetricName.update))
                 .recover(exception -> handleFailure(exception, startTime, MetricName.update));
@@ -179,7 +179,7 @@ public class JdbcPeriodicRefreshService implements Initializable {
                 .filter(entry -> StringUtils.isBlank(entry.getValue())
                         || StringUtils.equalsIgnoreCase(entry.getValue(), "null"))
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Map<String, String> removeFromMap(Map<String, String> map, List<String> invalidatedKeys) {

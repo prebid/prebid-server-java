@@ -6,8 +6,8 @@ import lombok.Value;
 /**
  * Representation of a single auction interaction
  */
-@Builder(toBuilder = true)
 @Value
+@Builder(toBuilder = true)
 public class AuctionParticipation {
 
     String bidder;

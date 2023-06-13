@@ -1,0 +1,17 @@
+adapters:
+  nextmillennium:
+    endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
+    meta-info:
+      maintainer-email: accountmanagers@nextmillennium.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 1060
+    usersync:
+      cookie-family-name: nextmillennium
+      iframe:
+        url: https://cookies.nextmillmedia.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[NMUID]'

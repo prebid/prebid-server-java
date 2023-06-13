@@ -16,8 +16,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class LunamediaBidder implements Bidder<BidRequest> {
 
@@ -150,7 +149,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImps.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpLunamedia, imps);
 
-            final String url = String.format("%s%s", endpointUrl, extImpLunamedia.getPubid());
+            final String url = endpointUrl + extImpLunamedia.getPubid();
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
@@ -172,7 +171,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = imps.stream()
                 .map(imp -> imp.toBuilder().tagid(extImpLunamedia.getPlacement()).build())
-                .collect(Collectors.toList());
+                .toList();
 
         bidRequestBuilder.imp(modifiedImps);
 
@@ -194,7 +193,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -208,7 +207,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -220,7 +219,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

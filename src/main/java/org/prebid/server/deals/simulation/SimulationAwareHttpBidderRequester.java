@@ -10,6 +10,9 @@ import io.vertx.core.Future;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -75,8 +78,10 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
     @Override
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
+                                                 BidRejectionTracker bidRejectionTracker,
                                                  Timeout timeout,
                                                  CaseInsensitiveMultiMap requestHeaders,
+                                                 BidderAliases aliases,
                                                  boolean debugEnabled) {
 
         final List<Imp> imps = bidderRequest.getBidRequest().getImp();
@@ -89,9 +94,12 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .collect(Collectors.toSet())));
 
         if (impsToDealInfo.values().stream().noneMatch(CollectionUtils::isNotEmpty)) {
-            return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
-                    Collections.singletonList(BidderError.failedToRequestBids(
-                            "Matched or ready to serve line items were not found, but required in simulation mode"))));
+            bidRejectionTracker.rejectAll(BidRejectionReason.FAILED_TO_REQUEST_BIDS);
+
+            return Future.succeededFuture(BidderSeatBid.builder()
+                    .errors(Collections.singletonList(BidderError.failedToRequestBids(
+                            "Matched or ready to serve line items were not found, but required in simulation mode")))
+                    .build());
         }
 
         final List<BidderBid> bidderBids = impsToDealInfo.entrySet().stream()
@@ -101,9 +109,9 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                                 dealInfo.getLineItemId()))
                         .filter(Objects::nonNull))
                 .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_CURRENCY))
-                .collect(Collectors.toList());
+                .toList();
 
-        return Future.succeededFuture(BidderSeatBid.of(bidderBids, Collections.emptyList(), Collections.emptyList()));
+        return Future.succeededFuture(BidderSeatBid.of(bidderBids));
     }
 
     private String getLineItemId(Deal deal) {
@@ -116,14 +124,14 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
     private Bid createBid(Imp imp, String dealId, String lineItemId) {
         final Double rate = bidRates.get(lineItemId);
         if (rate == null) {
-            throw new PreBidException(String.format("Bid rate for line item with id %s was not found", lineItemId));
+            throw new PreBidException("Bid rate for line item with id %s was not found".formatted(lineItemId));
         }
         final String impId = imp.getId();
         final LineItem lineItem = lineItemService.getLineItemById(lineItemId);
         final List<Format> sizes = getLineItemSizes(imp);
         return Math.random() < rate
                 ? Bid.builder()
-                .id(String.format(BID_ID_FORMAT, impId, lineItemId))
+                .id(BID_ID_FORMAT.formatted(impId, lineItemId))
                 .impid(impId)
                 .dealid(dealId)
                 .price(lineItem != null ? lineItem.getCpm() : DEFAULT_CPM)
@@ -147,15 +155,14 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private ExtDeal getExtDeal(JsonNode extDeal) {
         try {
             return mapper.mapper().treeToValue(extDeal, ExtDeal.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(
-                    String.format("Error decoding bidRequest.imp.pmp.deal.ext: %s", e.getMessage()), e);
+            throw new PreBidException("Error decoding bidRequest.imp.pmp.deal.ext: " + e.getMessage(), e);
         }
     }
 

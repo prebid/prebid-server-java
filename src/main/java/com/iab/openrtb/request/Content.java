@@ -12,8 +12,8 @@ import java.util.List;
  * may be syndicated or non- syndicated content. This object may be useful when
  * syndicated content contains impressions and does not necessarily match the
  * publisher’s general content. The exchange might or might not have knowledge
- * of the page where the content is running, as a result of the syndication
- * method. For example might be a video impression embedded in an iframe on an
+ * of the page where the content is running, because of the syndication
+ * method. For example, might be a video impression embedded in an iframe on an
  * unknown web property or device.
  */
 @Builder(toBuilder = true)
@@ -22,10 +22,14 @@ public class Content {
 
     private static final Content EMPTY = Content.builder().build();
 
-    /** ID uniquely identifying the content. */
+    /**
+     * ID uniquely identifying the content.
+     */
     String id;
 
-    /** Episode number. */
+    /**
+     * Episode number.
+     */
     Integer episode;
 
     /**
@@ -45,63 +49,116 @@ public class Content {
      */
     String series;
 
-    /** Content season (e.g., “Season 3”). */
+    /**
+     * Content season (e.g., “Season 3”).
+     */
     String season;
 
-    /** Artist credited with the content. */
-
+    /**
+     * Artist credited with the content.
+     */
     String artist;
 
-    /** Genre that best describes the content (e.g., rock, pop, etc). */
+    /**
+     * Genre that best describes the content (e.g., rock, pop, etc).
+     */
     String genre;
 
-    /** Album to which the content belongs; typically for audio. */
+    /**
+     * Album to which the content belongs; typically for audio.
+     */
     String album;
 
-    /** International Standard Recording Code conforming to ISO- 3901. */
+    /**
+     * International Standard Recording Code conforming to ISO- 3901.
+     */
     String isrc;
 
-    /** Details about the content Producer (Section 3.2.17). */
+    /**
+     * Details about the content {@link Producer} (Section 3.2.17).
+     */
     Producer producer;
 
-    /** URL of the content, for buy-side contextualization or review. */
+    /**
+     * URL of the content, for buy-side contextualization or review.
+     */
     String url;
 
     /**
-     * Array of IAB content categories that describe the content producer.
-     * Refer to List 5.1.
+     * The taxonomy in use. Refer to the AdCOM list <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list_categorytaxonomies">List: Category
+     * Taxonomies</a> for values.
+     */
+    Integer cattax;
+
+    /**
+     * Array of IAB content categories that describe the content.
+     * The taxonomy to be used is defined by the cattax field.If no cattax
+     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
      */
     List<String> cat;
 
-    /** Production quality. Refer to List 5.13. */
+    /**
+     * Production quality. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--production-qualities-">
+     * List: Production Qualities</a> in AdCOM 1.0 .
+     */
     Integer prodq;
 
-    /** Type of content (game, video, text, etc.). Refer to List 5.18. */
+    /**
+     * Type of content (game, video, text, etc.). Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--content-contexts-">
+     * List: Content Contexts</a> in AdCOM 1.0.
+     */
     Integer context;
 
-    /** Content rating (e.g., MPAA). */
+    /**
+     * Content rating (e.g., MPAA).
+     */
     String contentrating;
 
-    /** User rating of the content (e.g., number of stars, likes, etc.). */
+    /**
+     * User rating of the content (e.g., number of stars, likes, etc.).
+     */
     String userrating;
 
-    /** Media rating per IQG guidelines. Refer to List 5.19. */
+    /**
+     * Media rating per IQG guidelines. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--media-ratings-">
+     * List: Media Ratings</a> in AdCOM 1.0.
+     */
     Integer qagmediarating;
 
-    /** Comma separated list of keywords describing the content. */
+    /**
+     * Comma separated list of keywords describing the content. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
     String keywords;
 
-    /** 0 = not live, 1 = content is live (e.g., stream, live blog). */
+    /**
+     * Array of keywords about the site. Only one of ‘keywords’ or ‘kwarray’ may be present.
+     */
+    List<String> kwarray;
+
+    /**
+     * 0 = not live, 1 = content is live (e.g., stream, live blog).
+     */
     Integer livestream;
 
-    /** 0 = indirect, 1 = direct. */
+    /**
+     * 0 = indirect, 1 = direct.
+     */
     Integer sourcerelationship;
 
-    /** Length of content in seconds; appropriate for video or audio. */
+    /**
+     * Length of content in seconds; appropriate for video or audio.
+     */
     Integer len;
 
-    /** Content language using ISO-639-1-alpha-2. */
+    /**
+     * Content language using ISO-639-1-alpha-2. Only one of language or langb should be present.
+     */
     String language;
+
+    /**
+     * Content language using IETF BCP 47. Only one of language or langb should be present.
+     */
+    String langb;
 
     /**
      * Indicator of whether or not the content is embeddable (e.g., an
@@ -110,12 +167,24 @@ public class Content {
     Integer embeddable;
 
     /**
-     * Additional content data. Each Data object (Section 3.2.21) represents a
+     * Additional content data. Each {@link Data} object (Section 3.2.21) represents a
      * different data source.
      */
     List<Data> data;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Details about the {@link Network} (Section 3.2.23) the content is on.
+     */
+    Network network;
+
+    /**
+     * Details about the {@link Channel} (Section 3.2.24) the content is on.
+     */
+    Channel channel;
+
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 
     @JsonIgnore

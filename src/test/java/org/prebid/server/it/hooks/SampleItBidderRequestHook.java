@@ -11,7 +11,6 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SampleItBidderRequestHook implements BidderRequestHook {
 
@@ -37,7 +36,7 @@ public class SampleItBidderRequestHook implements BidderRequestHook {
     private BidRequest updateBidRequest(BidRequest originalBidRequest) {
         final List<Imp> updatedImps = originalBidRequest.getImp().stream()
                 .map(imp -> imp.toBuilder().tagid("tagid-from-bidder-request-hook").build())
-                .collect(Collectors.toList());
+                .toList();
 
         return originalBidRequest.toBuilder()
                 .imp(updatedImps)

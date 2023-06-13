@@ -76,27 +76,16 @@ class GroupResult<T> {
 
     private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
         switch (action) {
-            case reject:
-                applyReject(hookId);
-                break;
-            case update:
-                applyPayloadUpdate(hookId, payloadUpdate);
-                break;
-            case no_action:
-                break;
-            default:
-                throw new IllegalStateException(
-                        String.format("Unknown invocation action %s", action));
+            case reject -> applyReject(hookId);
+            case update -> applyPayloadUpdate(hookId, payloadUpdate);
         }
     }
 
     private void applyReject(HookId hookId) {
         if (!rejectAllowed) {
             conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to reject an entity on a stage that does not support "
-                                    + "rejection",
-                            hookId),
+                    "Hook implementation %s requested to reject an entity on a stage that does not support rejection"
+                            .formatted(hookId),
                     LOG_SAMPLING_RATE);
 
             throw new RejectionNotSupportedException("Rejection is not supported during this stage");
@@ -109,9 +98,8 @@ class GroupResult<T> {
     private void applyPayloadUpdate(HookId hookId, PayloadUpdate<T> payloadUpdate) {
         if (payloadUpdate == null) {
             conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to update an entity but not provided a payload update",
-                            hookId),
+                    "Hook implementation %s requested to update an entity but not provided a payload update"
+                            .formatted(hookId),
                     LOG_SAMPLING_RATE);
 
             throw new PayloadUpdateException("Payload update is missing in invocation result");
@@ -120,15 +108,12 @@ class GroupResult<T> {
         try {
             payload = payloadUpdate.apply(payload);
         } catch (Exception e) {
-            conditionalLogger.error(
-                    String.format(
-                            "Hook implementation %s requested to update an entity but payload update has thrown an "
-                                    + "exception: %s",
-                            hookId,
-                            e),
+            conditionalLogger.error("""
+                            Hook implementation %s requested to update an entity \
+                            but payload update has thrown an exception: %s""".formatted(hookId, e),
                     LOG_SAMPLING_RATE);
 
-            throw new PayloadUpdateException(String.format("Payload update has thrown an exception: %s", e));
+            throw new PayloadUpdateException("Payload update has thrown an exception: " + e);
         }
     }
 
@@ -173,14 +158,10 @@ class GroupResult<T> {
             return null;
         }
 
-        switch (status) {
-            case success:
-                return ExecutionStatus.success;
-            case failure:
-                return ExecutionStatus.failure;
-            default:
-                throw new IllegalStateException(String.format("Unknown invocation status %s", status));
-        }
+        return switch (status) {
+            case success -> ExecutionStatus.success;
+            case failure -> ExecutionStatus.failure;
+        };
     }
 
     private static ExecutionAction toExecutionAction(InvocationAction action) {
@@ -188,16 +169,11 @@ class GroupResult<T> {
             return null;
         }
 
-        switch (action) {
-            case reject:
-                return ExecutionAction.reject;
-            case update:
-                return ExecutionAction.update;
-            case no_action:
-                return ExecutionAction.no_action;
-            default:
-                throw new IllegalStateException(String.format("Unknown invocation action %s", action));
-        }
+        return switch (action) {
+            case reject -> ExecutionAction.reject;
+            case update -> ExecutionAction.update;
+            case no_action -> ExecutionAction.no_action;
+        };
     }
 
     private static class RejectionNotSupportedException extends RuntimeException {

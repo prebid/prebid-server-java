@@ -109,10 +109,13 @@ public class VastModifierTest {
                 INTEGRATION);
 
         // then
-        final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>"
-                + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>"
-                + "<Impression><![CDATA[http://external-url/event]]></Impression>"
-                + "<Creatives></Creatives></Wrapper></Ad></VAST>";
+        final String modifiedVast =
+                """
+                <VAST version="3.0"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>\
+                <VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>\
+                <Impression><![CDATA[http://external-url/event]]></Impression><Creatives>\
+                </Creatives></Wrapper></Ad></VAST>\
+                """;
 
         assertThat(result).isEqualTo(new TextNode(modifiedVast));
     }
@@ -341,19 +344,23 @@ public class VastModifierTest {
     }
 
     public static String adm() {
-        return "<VAST version=\"3.0\"><Ad><Wrapper>"
-                + "<AdSystem>prebid.org wrapper</AdSystem>"
-                + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives>"
-                + "</Wrapper></Ad></VAST>";
+        return """
+                <VAST version="3.0"><Ad><Wrapper>\
+                <AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI>\
+                <![CDATA[adm2]]></VASTAdTagURI><Impression>\
+                </Impression><Creatives></Creatives>\
+                </Wrapper></Ad></VAST>\
+                """;
     }
 
     private static String modifiedAdm(String bidNurl) {
-        return "<VAST version=\"3.0\"><Ad><Wrapper>"
-                + "<AdSystem>prebid.org wrapper</AdSystem>"
-                + "<VASTAdTagURI><![CDATA[" + bidNurl + "]]></VASTAdTagURI>"
-                + "<Creatives></Creatives>"
-                + "</Wrapper></Ad></VAST>";
+        return """
+                <VAST version="3.0"><Ad><Wrapper>\
+                <AdSystem>prebid.org wrapper</AdSystem>\
+                <VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI>\
+                <Creatives></Creatives>\
+                </Wrapper></Ad></VAST>\
+                """.formatted(bidNurl);
     }
 
     private static EventsContext givenEventsContext(boolean accountEnabled) {

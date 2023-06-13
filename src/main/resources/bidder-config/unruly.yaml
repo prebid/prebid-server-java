@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 36
     usersync:
-      url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[RX_UUID]
       cookie-family-name: unruly
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[RX_UUID]'

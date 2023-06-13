@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
@@ -20,8 +21,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -143,6 +144,26 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnMaxOfBidfloorAndKadfloorIfImpExtKadfloorIsValid() {
+        // given
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder
+                        .ext(givenExtImpWithKadfloor("12.5"))
+                        .bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(12.5));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfBidRequestExtWrapperIsInvalid() {
         // given
         final ObjectNode pubmaticNode = mapper.createObjectNode();
@@ -211,7 +232,21 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoBannerOrVideo() {
+    public void makeHttpRequestsShouldNotReturnErrorIfNativePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNoBannerOrVideoOrNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(null));
@@ -222,7 +257,7 @@ public class PubmaticBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
-                        "Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=123"));
+                        "Invalid MediaType. PubMatic only supports Banner, Video and Native. Ignoring ImpID=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -759,7 +794,7 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
@@ -774,7 +809,7 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
@@ -788,7 +823,7 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -802,7 +837,7 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -818,7 +853,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfExtBidContainsBidTypeOne() throws JsonProcessingException {
         // given
         final ObjectNode bidType = mapper.createObjectNode().put("BidType", 1);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
@@ -835,7 +870,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeBidsShouldReturnXNativeBidIfExtBidContainsBidTypeTwo() throws JsonProcessingException {
         // given
         final ObjectNode bidType = mapper.createObjectNode().put("BidType", 2);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
@@ -851,10 +886,11 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldFillExtBidPrebidVideoDurationIfDurationIsNotNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, VideoCreativeInfo.of(1)))))));
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(1), null))))));
 
         // when
         final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
@@ -872,10 +908,11 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotFillExtBidPrebidVideoDurationIfDurationIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, VideoCreativeInfo.of(null)))))));
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(null), null))))));
 
         // when
         final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
@@ -892,10 +929,11 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldNotFillExtBidPrebidVideoDurationIfVideoIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, null))))));
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(null, null, null))))));
 
         // when
         final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
@@ -909,9 +947,55 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldFillDealPriorityData() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(null, null, 12))))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(BidderBid::getDealPriority)
+                .containsExactly(12);
+    }
+
+    @Test
+    public void makeBidsShouldParseNativeAdmData() throws JsonProcessingException {
+        // given
+        final ObjectNode admNode = mapper.createObjectNode();
+        final ObjectNode nativeNode = mapper.createObjectNode();
+        nativeNode.put("property1", "value1");
+        admNode.set("native", nativeNode);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .adm(admNode.toString())
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(2, null, 12))))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("{\"property1\":\"value1\"}");
+    }
+
+    @Test
     public void makeBidsShouldTakeOnlyFirstCatElement() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .cat(asList("cat1", "cat2")))));
@@ -931,7 +1015,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfExtBidContainsIllegalBidType() throws JsonProcessingException {
         // given
         final ObjectNode bidType = mapper.createObjectNode().put("BidType", 100);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
@@ -1071,8 +1155,8 @@ public class PubmaticBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

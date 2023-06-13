@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config.bidder.model;
 
 import lombok.Data;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
@@ -14,6 +15,9 @@ public class DefaultBidderConfigurationProperties {
 
     @NotNull
     private Boolean enabled;
+
+    @NotNull
+    private OrtbVersion ortbVersion;
 
     @NotNull
     private Boolean pbsEnforcesCcpa;

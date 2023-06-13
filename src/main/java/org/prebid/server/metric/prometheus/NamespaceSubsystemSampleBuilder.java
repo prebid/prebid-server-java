@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
@@ -23,8 +22,8 @@ public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
         final Pattern prefixPattern = Pattern.compile(VALID_PREFIX_REGEX);
         if (!prefixPattern.matcher(prefix).matches()) {
-            throw new IllegalArgumentException(String.format(
-                    "Invalid prefix: %s, namespace and subsystem should match regex: %s", prefix, VALID_PREFIX_REGEX));
+            throw new IllegalArgumentException("Invalid prefix: %s, namespace and subsystem should match regex: %s"
+                    .formatted(prefix, VALID_PREFIX_REGEX));
         }
 
         delegate = mapperConfigs.isEmpty()
@@ -57,6 +56,6 @@ public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
                         prefix + mapperConfig.getMatch(),
                         prefix + mapperConfig.getName(),
                         mapperConfig.getLabels()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

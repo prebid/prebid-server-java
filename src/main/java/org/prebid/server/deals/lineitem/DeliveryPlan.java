@@ -3,7 +3,6 @@ package org.prebid.server.deals.lineitem;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.deals.proto.DeliverySchedule;
 import org.prebid.server.deals.proto.Token;
-import org.prebid.server.exception.PreBidException;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -55,14 +54,12 @@ public class DeliveryPlan {
     /**
      * Returns lowest (which means highest priority) token's class value with unspent tokens.
      */
-    public int getHighestUnspentTokensClass() {
+    public Integer getHighestUnspentTokensClass() {
         return deliveryTokens.stream()
                 .filter(token -> token.getUnspent() > 0)
-                .findFirst()
                 .map(DeliveryToken::getPriorityClass)
-                .orElseThrow(() -> new PreBidException(String.format(
-                        "Class with not spent tokens was not found for plan with id %s",
-                        deliverySchedule.getPlanId())));
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -140,8 +137,7 @@ public class DeliveryPlan {
     }
 
     public Long getDeliveryRateInMilliseconds() {
-        final int unspentTokens = getUnspentTokens();
-        return unspentTokens > 0
+        return getUnspentTokens() > 0
                 ? (deliverySchedule.getEndTimeStamp().toInstant().toEpochMilli()
                 - deliverySchedule.getStartTimeStamp().toInstant().toEpochMilli())
                 / getTotalTokens()

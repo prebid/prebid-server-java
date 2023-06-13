@@ -11,6 +11,8 @@ public class ResponseBlockingConfig {
 
     BidAttributeBlockingConfig<String> bcat;
 
+    BidAttributeBlockingConfig<Integer> cattax;
+
     BidAttributeBlockingConfig<String> bapp;
 
     BidAttributeBlockingConfig<Integer> battr;

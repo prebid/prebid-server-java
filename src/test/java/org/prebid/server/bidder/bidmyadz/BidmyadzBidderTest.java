@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -128,7 +128,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
@@ -145,7 +145,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfMediaTypeEqualsBanner() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -164,7 +164,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -181,7 +181,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfSeatBidDoesNotHaveBids() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -199,7 +199,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfMediaTypeUnknown() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -217,8 +217,8 @@ public class BidmyadzBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
@@ -228,16 +228,16 @@ public class BidmyadzBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .device(Device.builder().ip("ip").ipv6("ipv6").ua("ua").build())
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .device(Device.builder().ip("ip").ipv6("ipv6").ua("ua").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpBidmyadz.of("placementId")))))
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpBidmyadz.of("placementId")))))
                 .build();
     }
 

@@ -5,13 +5,12 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -20,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.engagebdr.ExtImpEngagebdr;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class EngagebdrBidder implements Bidder<BidRequest> {
 
@@ -54,13 +53,10 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
         for (Map.Entry<String, List<Imp>> sspidToImpsEntry : dispatchedRequest.entrySet()) {
             final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(sspidToImpsEntry.getValue()).build();
 
-            httpRequests.add(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(endpointUrl + "?zoneid=" + sspidToImpsEntry.getKey())
-                    .body(mapper.encodeToBytes(updatedBidRequest))
-                    .headers(HttpUtil.headers())
-                    .payload(updatedBidRequest)
-                    .build());
+            httpRequests.add(BidderUtil.defaultRequest(
+                    updatedBidRequest,
+                    endpointUrl + "?zoneid=" + sspidToImpsEntry.getKey(),
+                    mapper));
         }
 
         return Result.of(httpRequests, errors);
@@ -76,7 +72,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
 
                 sspidToImp.computeIfAbsent(sspid, key -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(String.format("Ignoring imp id=%s, %s", imp.getId(), e.getMessage())));
+                errors.add(BidderError.badInput("Ignoring imp id=%s, %s".formatted(imp.getId(), e.getMessage())));
             }
         }
         return sspidToImp;
@@ -99,12 +95,12 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
             return mapper.mapper().convertValue(imp.getExt(),
                     ENGAGEBDR_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("error while decoding impExt, err: %s", e.getMessage()));
+            throw new PreBidException("error while decoding impExt, err: " + e.getMessage());
         }
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, bidRequest));
@@ -126,7 +122,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

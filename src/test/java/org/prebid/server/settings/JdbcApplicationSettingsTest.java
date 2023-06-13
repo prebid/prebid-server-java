@@ -29,6 +29,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountCoopSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountMetricsConfig;
@@ -167,7 +168,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"cookie-sync\": {"
                 + "\"default-limit\": 5,"
                 + "\"max-limit\": 8,"
-                + "\"default-coop-sync\": true"
+                + "\"coop-sync\": {"
+                + "\"default\": true"
+                + "}"
                 + "}"
                 + "}'"
                 + ");");
@@ -246,6 +249,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .enabled(true)
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                                     .build(),
+                            null,
                             null))
                     .analytics(AccountAnalyticsConfig.of(
                             expectedEventsConfig,
@@ -253,7 +257,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     "some-analytics",
                                     mapper.createObjectNode()
                                             .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
-                    .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, null, AccountCoopSyncConfig.of(true)))
                     .build());
             async.complete();
         }));
@@ -659,8 +663,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private JdbcClient jdbcClient() {
         return new BasicJdbcClient(vertx, JDBCClient.createShared(vertx,
                 new JsonObject()
-                        .put("url", JDBC_URL)
+                        .put("jdbcUrl", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")
-                        .put("max_pool_size", 10)), metrics, clock);
+                        .put("max_pool_size", 10)
+                        .put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")),
+                metrics, clock);
     }
 }

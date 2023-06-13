@@ -75,7 +75,8 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Before
     public void setUp() {
         debugProperties = new PriceFloorDebugProperties();
-        priceFloorFetcher = new PriceFloorFetcher(applicationSettings,
+        priceFloorFetcher = new PriceFloorFetcher(
+                applicationSettings,
                 metrics,
                 vertx,
                 timeoutFactory,

@@ -11,6 +11,7 @@ class App {
     String bundle
     String domain
     String storeurl
+    Integer cattax
     List<String> cat
     List<String> sectioncat
     List<String> pagecat
@@ -20,6 +21,7 @@ class App {
     Publisher publisher
     Content content
     String keywords
+    List<String> kwarray
     AppExt ext
 
     static App getDefaultApp() {

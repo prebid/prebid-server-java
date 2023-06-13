@@ -1,6 +1,7 @@
 package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -11,6 +12,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
@@ -45,17 +47,15 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -69,6 +69,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
@@ -80,6 +81,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
+    private TimeoutResolver timeoutResolver;
+    @Mock
     private IpAddressHelper ipAddressHelper;
     @Mock
     private IdGenerator idGenerator;
@@ -88,21 +91,20 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private Ortb2ImplicitParametersResolver target;
 
-    @Mock
-    private TimeoutResolver timeoutResolver;
-
     private BidRequest defaultBidRequest;
     private HttpRequestContext httpRequest;
 
     public Ortb2ImplicitParametersResolver target(boolean shouldCacheOnlyWinningsBids) {
         return new Ortb2ImplicitParametersResolver(
                 shouldCacheOnlyWinningsBids,
+                true,
                 "USD",
                 singletonList("bad_app"),
                 "https://external.url/",
                 0,
                 "datacenter-region",
                 paramsExtractor,
+                timeoutResolver,
                 ipAddressHelper,
                 idGenerator,
                 jsonMerger,
@@ -118,7 +120,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(idGenerator.generateId()).willReturn(null);
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
+        given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         target = target(false);
     }
@@ -129,7 +131,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -154,7 +156,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -178,7 +180,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -208,7 +210,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -239,7 +241,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -263,7 +265,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
 
         // when
-        target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         verify(paramsExtractor, never()).ipFrom(any(CaseInsensitiveMultiMap.class), any());
@@ -279,7 +281,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isNull();
@@ -295,7 +297,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isOne();
@@ -315,7 +317,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isZero();
@@ -332,7 +334,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -349,7 +351,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -367,7 +369,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -385,7 +387,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -403,7 +405,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -421,7 +423,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -439,7 +441,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -457,7 +459,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -475,7 +477,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -494,14 +496,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldOverrideDeviceLmtForIos14Minor0AndEmptyIfa() {
+    public void shouldOverrideDeviceLmtToOneForIos14Minor0AndEmptyIfa() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -514,7 +516,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -533,7 +535,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -546,20 +548,39 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("14.1")
+                        .osv("14.0")
                         .ifa("12345")
                         .build())
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor0AndNonZerosIfaWhenLmtAlreadySet() {
+    public void shouldSetDeviceLmtZeroForIos14Minor1AndNonZerosIfa() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.1")
+                        .ifa("12345")
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getDevice().getLmt()).isZero();
+    }
+
+    @Test
+    public void shouldOverrideDeviceLmtToZeroForIos14Minor0AndNonZerosIfaWhenLmtAlreadySet() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -572,10 +593,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
-        assertThat(result.getDevice().getLmt()).isOne();
+        assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
@@ -590,7 +611,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -609,14 +630,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldOverrideDeviceLmtForIos14Minor1AndEmptyIfa() {
+    public void shouldOverrideDeviceLmtToOneForIos14Minor1AndEmptyIfa() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -629,7 +650,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -648,33 +669,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldSetDeviceLmtZeroForIos14Minor1AndNonZerosIfa() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .os("iOS")
-                        .osv("14.1")
-                        .ifa("12345")
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isZero();
-    }
-
-    @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor1AndNonZerosIfaWhenLmtAlreadySet() {
+    public void shouldOverrideDeviceLmtToZeroForIos14Minor1AndNonZerosIfaWhenLmtAlreadySet() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -687,38 +689,18 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-
-        // then
-        assertThat(result.getDevice().getLmt()).isOne();
-    }
-
-    @Test
-    public void shouldSetDeviceLmtZeroForIos14Minor2AndAtts0() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .os("iOS")
-                        .osv("14.2")
-                        .ext(ExtDevice.of(0, null))
-                        .build())
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts0() {
+    public void shouldSetDeviceLmtOneForIos14Minor2AndAtts0() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
-                        .lmt(1)
                         .os("iOS")
                         .osv("14.2")
                         .ext(ExtDevice.of(0, null))
@@ -726,7 +708,27 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldOverrideDeviceLmtToOneForIos14Minor2AndAtts0() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(0)
+                        .os("iOS")
+                        .osv("14.2")
+                        .ext(ExtDevice.of(0, null))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -745,14 +747,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts1() {
+    public void shouldOverrideDeviceLmtToOneForIos14Minor2AndAtts1() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -765,10 +767,29 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
-        assertThat(result.getDevice().getLmt()).isZero();
+        assertThat(result.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos15Minor0AndAtts0() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("15.0")
+                        .ext(ExtDevice.of(0, null))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
@@ -784,7 +805,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -803,14 +824,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts2() {
+    public void shouldOverrideDeviceLmtToOneForIos14Minor2AndAtts2() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -823,10 +844,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
-        assertThat(result.getDevice().getLmt()).isZero();
+        assertThat(result.getDevice().getLmt()).isOne();
     }
 
     @Test
@@ -842,14 +863,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
-    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts3() {
+    public void shouldOverrideDeviceLmtToZeroForIos14Minor2AndAtts3() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -862,10 +883,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
-        assertThat(result.getDevice().getLmt()).isOne();
+        assertThat(result.getDevice().getLmt()).isZero();
     }
 
     @Test
@@ -881,7 +902,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -900,7 +921,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -913,7 +934,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).flatExtracting(Imp::getSecure).containsOnly(1);
@@ -922,14 +943,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().secure(0).build());
+        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(0).build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -944,7 +965,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
@@ -953,17 +974,53 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().build());
+        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(1).build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
+    }
+
+    @Test
+    public void shouldGenerateImpIdIfEmpty() {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder().id(null).build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getId)
+                .doesNotContainNull();
+    }
+
+    @Test
+    public void shouldGenerateImpIdIfImpIdIsNotUnique() {
+        // given
+        final List<Imp> imps = List.of(
+                Imp.builder().id("not_unique_id").build(),
+                Imp.builder().id("not_unique_id").build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getImp().stream()
+                .map(Imp::getId)
+                .collect(Collectors.toSet()))
+                .hasSize(2)
+                .containsExactly("1", "2");
     }
 
     @Test
@@ -971,6 +1028,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
                         .ext(mapper.createObjectNode()
                                 .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
                                 .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
@@ -982,6 +1040,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .put("skadn-data", "skadn-value"))
                                 .<ObjectNode>set("data", mapper.createObjectNode()
                                         .put("data-data", "data-value"))
+                                .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                        .put("gpid-data", "gpid-value"))
+                                .<ObjectNode>set("tid", mapper.createObjectNode()
+                                        .put("tid-data", "tid-value"))
                                 .set("prebid", mapper.createObjectNode()
                                         .<ObjectNode>set("bidder", mapper.createObjectNode()
                                                 .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
@@ -991,10 +1053,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
+                .secure(1)
                 .ext(mapper.createObjectNode()
                         .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
                         .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
@@ -1004,6 +1068,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                 .put("skadn-data", "skadn-value"))
                         .<ObjectNode>set("data", mapper.createObjectNode()
                                 .put("data-data", "data-value"))
+                        .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                .put("gpid-data", "gpid-value"))
+                        .<ObjectNode>set("tid", mapper.createObjectNode()
+                                .put("tid-data", "tid-value"))
                         .set("prebid", mapper.createObjectNode()
                                 .<ObjectNode>set("bidder", mapper.createObjectNode()
                                         .<ObjectNode>set(
@@ -1019,10 +1087,233 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassExistingImpExtTidValue() {
+        // given
+        given(idGenerator.generateId()).willReturn("generatedID");
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                Endpoint.openrtb2_auction.value(),
+                false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .extracting(JsonNode::asText)
+                .containsExactly("tidValue");
+    }
+
+    @Test
+    public void shouldReplaceExistingImpExtTidValueIfRequestHasAppliedStoreRequest() {
+        // given
+        given(idGenerator.generateId()).willReturn("generatedID");
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("tidValue")))
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                Endpoint.openrtb2_auction.value(),
+                true);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .extracting(JsonNode::asText)
+                .containsExactly("generatedID");
+    }
+
+    @Test
+    public void shouldGenerateImpExtTidValueIfMissing() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode().set("tid", MissingNode.getInstance()))
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .extracting(JsonNode::asText)
+                .containsExactly("generatedID");
+    }
+
+    @Test
+    public void shouldReplaceUuidMacroForImpExtTidWithGeneratedValue() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode().set("tid", new TextNode("prefix_{{UUID}}_suffix")))
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .extracting(JsonNode::asText)
+                .containsExactly("prefix_generatedID_suffix");
+    }
+
+    @Test
+    public void shouldCreateImpExtTidIfMissing() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode())
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .extracting(JsonNode::asText)
+                .containsExactly("generatedID");
+    }
+
+    @Test
+    public void shouldPassExistingSourceTidValue() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(Source.builder().tid("tidValue").build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getTid)
+                .isEqualTo("tidValue");
+    }
+
+    @Test
+    public void shouldReplaceExistingSourceTidValueIfRequestHasAppliedStoredRequest() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(Source.builder().tid("tidValue").build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                Endpoint.openrtb2_auction.value(),
+                true);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getTid)
+                .isEqualTo("generatedID");
+    }
+
+    @Test
+    public void shouldGenerateSourceTidValueIfMissing() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(Source.builder().tid(null).build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getTid)
+                .isEqualTo("generatedID");
+    }
+
+    @Test
+    public void shouldReplaceUuidMacroForSourceTidWithGeneratedValue() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(Source.builder().tid("prefix_{{UUID}}_suffix").build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(
+                bidRequest,
+                httpRequest,
+                ENDPOINT,
+                false);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getTid)
+                .isEqualTo("prefix_generatedID_suffix");
+    }
+
+    @Test
+    public void shouldCreateSourceObjectWithGeneratedTidValue() {
+        // given
+        when(idGenerator.generateId()).thenReturn("generatedID");
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(null)
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getTid)
+                .isEqualTo("generatedID");
+    }
+
+    @Test
     public void shouldMoveBidderParametersToImpExtPrebidBidderWhenImpExtPrebidAbsent() {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
                         .ext(mapper.createObjectNode()
                                 .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
                                 .set("bidder2", mapper.createObjectNode().put("param2", "value2")))
@@ -1031,10 +1322,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
+                .secure(1)
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode()
@@ -1049,6 +1342,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetDealsOnlyIfNotSpecifiedAndPgDealsOnlyIsTrue() {
         final Imp imp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO("someBidder", Map.of("pgdealsonly", true)))
@@ -1059,10 +1353,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
+                .secure(1)
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1077,6 +1373,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldNotAffectDealsOnlyIfSpecifiedAndPgDealsOnlyIsTrue() {
         final Imp imp = Imp.builder()
+                .id("someImpId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1089,10 +1386,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
+                .id("someImpId")
+                .secure(1)
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode().putPOJO(
@@ -1109,6 +1408,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
+                        .id("someImpId")
+                        .secure(1)
                         .ext(mapper.createObjectNode()
                                 .set("prebid", mapper.createObjectNode()
                                         .set("bidder", mapper.createObjectNode()
@@ -1121,7 +1422,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -1151,7 +1452,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -1162,7 +1463,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetSiteExtIfNoReferer() {
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite())
@@ -1178,7 +1479,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1192,7 +1493,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite().getPage()).isNull();
@@ -1209,7 +1510,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         verify(paramsExtractor).domainFrom(eq("page.site.com"));
@@ -1233,7 +1534,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1260,7 +1561,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -1279,7 +1580,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1294,11 +1595,11 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
@@ -1307,45 +1608,20 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSourceExtSchainIfNotDefinedAndExtSchainPresent() {
+    public void shouldSetSourceSchainIfNotDefinedAndExtSchainPresent() {
         // given
         final ExtRequest extRequest = jacksonMapper.fillExtension(
                 ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+                mapper.createObjectNode().putPOJO("schain", SupplyChain.of(1, null, "ver", null)));
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)));
-    }
-
-    @Test
-    public void shouldModifySourceExtIfSourceExtSchainNotDefinedAndExtSchainPresent() {
-        // given
-        final ExtSource extSource = jacksonMapper.fillExtension(
-                ExtSource.of(null),
-                mapper.createObjectNode().put("someField", "someValue"));
-        final ExtRequest extRequest = jacksonMapper.fillExtension(
-                ExtRequest.empty(),
-                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
-        final BidRequest bidRequest = BidRequest.builder()
-                .source(Source.builder().ext(extSource).build())
-                .ext(extRequest)
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-
-        // then
-        assertThat(result.getSource())
-                .extracting(Source::getExt)
-                .isEqualTo(jacksonMapper.fillExtension(
-                        ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)),
-                        mapper.createObjectNode().put("someField", "someValue")));
+                .extracting(Source::getSchain)
+                .isEqualTo(SupplyChain.of(1, null, "ver", null));
     }
 
     @Test
@@ -1354,7 +1630,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(0).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1366,7 +1642,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1378,7 +1654,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().cur(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
@@ -1390,7 +1666,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getTmax()).isEqualTo(2000L);
@@ -1407,7 +1683,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         // result was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -1429,7 +1705,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1450,7 +1726,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
+        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Invalid string price granularity with value: invalid");
     }
@@ -1466,7 +1742,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1495,7 +1771,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1517,7 +1793,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1543,7 +1819,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1575,7 +1851,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1606,7 +1882,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1639,7 +1915,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getExt)
@@ -1668,7 +1944,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getExt).element(0).isNotNull().isEqualTo(impBidderParams);
@@ -1685,7 +1961,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1708,7 +1984,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1732,7 +2008,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result.getExt())
@@ -1751,7 +2027,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1773,7 +2049,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1797,7 +2073,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1821,7 +2097,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1846,7 +2122,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1870,7 +2146,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -1894,7 +2170,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -1915,14 +2191,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getPbs)
-                .extracting(ExtRequestPrebidPbs::getEndpoint)
+                .extracting(ExtRequestPrebid::getServer)
+                .extracting(ExtRequestPrebidServer::getEndpoint)
                 .isEqualTo(Endpoint.openrtb2_auction.value());
     }
 
@@ -1937,7 +2213,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -1958,7 +2234,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -1978,7 +2254,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
+        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("ext.prebid.channel.name can't be empty");
     }
@@ -1993,7 +2269,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2013,7 +2289,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2035,7 +2311,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2057,7 +2333,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest request = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(request))
@@ -2078,7 +2354,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2096,14 +2372,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
 
         // then
         assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getServer)
-                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
+                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region", ENDPOINT));
     }
 
     @Test
@@ -2115,7 +2391,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(BlacklistedAppException.class)
-                .isThrownBy(() -> target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
+                .isThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 

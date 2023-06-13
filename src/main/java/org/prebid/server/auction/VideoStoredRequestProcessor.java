@@ -66,7 +66,6 @@ public class VideoStoredRequestProcessor {
     private final ApplicationSettings applicationSettings;
     private final VideoRequestValidator validator;
     private final Metrics metrics;
-    private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
     private final JsonMerger jsonMerger;
@@ -81,7 +80,6 @@ public class VideoStoredRequestProcessor {
                                        VideoRequestValidator validator,
                                        Metrics metrics,
                                        TimeoutFactory timeoutFactory,
-                                       TimeoutResolver timeoutResolver,
                                        JacksonMapper mapper,
                                        JsonMerger jsonMerger) {
 
@@ -95,7 +93,6 @@ public class VideoStoredRequestProcessor {
         this.validator = Objects.requireNonNull(validator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
@@ -120,7 +117,7 @@ public class VideoStoredRequestProcessor {
                 .map(storedData -> toBidRequestWithPodErrors(storedData, videoRequest, storedBidRequestId))
 
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))));
+                        "Stored request fetching failed: " + exception.getMessage())));
     }
 
     private static BidRequest readBidRequest(String defaultBidRequestPath,
@@ -256,7 +253,7 @@ public class VideoStoredRequestProcessor {
                     continue;
                 }
                 final Imp imp = storedImp.toBuilder()
-                        .id(String.format("%d_%d", pod.getPodId(), i))
+                        .id("%d_%d".formatted(pod.getPodId(), i))
                         .video(updateVideo(video, minDuration, maxDuration))
                         .build();
                 imps.add(imp);
@@ -324,8 +321,7 @@ public class VideoStoredRequestProcessor {
             bidRequestBuilder.regs(regs);
         }
 
-        final long timeout = timeoutResolver.resolve(videoRequest.getTmax());
-        bidRequestBuilder.tmax(timeout);
+        bidRequestBuilder.tmax(videoRequest.getTmax());
 
         addRequiredOpenRtbFields(bidRequestBuilder);
 

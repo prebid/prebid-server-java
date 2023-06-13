@@ -15,8 +15,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -296,7 +296,7 @@ public class AdgenerationBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+        final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
@@ -318,14 +318,22 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "vastxml", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
         final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<div id=\"apvad-123\"></div><script type=\"text/javascript\" id=\"apv\" src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script><script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"123\"}).load('vastxml'); })(); </script>beacon</body>";
+        final String adm = """
+                <div id="apvad-123"></div>
+                <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"123"}).load('vastxml');
+                })();
+                </script>
+                beacon</body>""";
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("123")
@@ -355,7 +363,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -377,7 +385,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -399,7 +407,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -423,7 +431,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -456,8 +464,8 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

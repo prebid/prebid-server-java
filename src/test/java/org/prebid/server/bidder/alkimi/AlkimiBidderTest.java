@@ -14,8 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -113,6 +113,7 @@ public class AlkimiBidderTest extends VertxTest {
                         .width(300)
                         .height(250)
                         .impMediaType(TYPE_BANNER)
+                        .adUnitCode(DIV_BANNER_ID)
                         .build()));
     }
 
@@ -136,12 +137,13 @@ public class AlkimiBidderTest extends VertxTest {
                         .width(1024)
                         .height(768)
                         .impMediaType(TYPE_VIDEO)
+                        .adUnitCode(DIV_VIDEO_ID)
                         .build()));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors())
@@ -153,7 +155,7 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
@@ -162,7 +164,7 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
@@ -173,7 +175,7 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBidsForBannerAndVideoImps() throws JsonProcessingException {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse()));
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
@@ -270,8 +272,8 @@ public class AlkimiBidderTest extends VertxTest {
         ).build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

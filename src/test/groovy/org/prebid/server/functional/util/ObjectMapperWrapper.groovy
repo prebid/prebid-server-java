@@ -4,14 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL
 
 trait ObjectMapperWrapper {
 
     private static final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(NON_NULL)
-                                                                 .registerModule(new JavaTimeModule())
+                                                                 .registerModule(new ZonedDateTimeModule())
     private static final XmlMapper xmlMapper = new XmlMapper()
 
     final static String encode(Object object) {

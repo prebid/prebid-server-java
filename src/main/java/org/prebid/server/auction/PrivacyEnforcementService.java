@@ -12,6 +12,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -63,7 +66,6 @@ public class PrivacyEnforcementService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private static final User EMPTY_USER = User.builder().build();
-    private static final ExtUser EMPTY_USER_EXT = ExtUser.builder().build();
 
     private final BidderCatalog bidderCatalog;
     private final PrivacyExtractor privacyExtractor;
@@ -114,13 +116,13 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy,
-                alpha2CountryCode,
-                effectiveIpAddress,
-                accountGdpr,
-                requestType,
-                requestLogInfo,
-                timeout)
+                        privacy,
+                        alpha2CountryCode,
+                        effectiveIpAddress,
+                        accountGdpr,
+                        requestType,
+                        requestLogInfo,
+                        timeout)
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
@@ -165,7 +167,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -181,7 +183,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -237,7 +239,9 @@ public class PrivacyEnforcementService {
                         bidderToEnforcement, aliases, requestType, bidderToUser, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
                         bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
-                .map(gdprResult -> merge(ccpaResult, gdprResult));
+                .map(gdprResult -> merge(ccpaResult, gdprResult))
+                .map(bidderPrivacyResults -> applyActivityRestrictions(
+                        bidderPrivacyResults, auctionContext.getActivityInfrastructure()));
     }
 
     public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
@@ -319,6 +323,7 @@ public class PrivacyEnforcementService {
                     .id(null)
                     .buyeruid(null)
                     .geo(maskGeoDefault(user.getGeo()))
+                    .eids(null)
                     .ext(maskUserExt(user.getExt()))
                     .build());
         }
@@ -353,7 +358,7 @@ public class PrivacyEnforcementService {
                         .user(maskCoppaUser(bidderAndUser.getValue()))
                         .device(maskCoppaDevice(device))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private User maskCoppaUser(User user) {
@@ -364,6 +369,7 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .buyeruid(null)
                     .geo(maskGeoForCoppa(user.getGeo()))
+                    .eids(null)
                     .ext(maskUserExt(user.getExt()))
                     .build());
         }
@@ -405,10 +411,10 @@ public class PrivacyEnforcementService {
                                                                                        Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                Collections.unmodifiableSet(bidders),
-                VendorIdResolver.of(aliases, bidderCatalog),
-                tcfContext,
-                accountGdprConfig(account))
+                        Collections.unmodifiableSet(bidders),
+                        VendorIdResolver.of(aliases, bidderCatalog),
+                        tcfContext,
+                        accountGdprConfig(account))
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
@@ -502,8 +508,8 @@ public class PrivacyEnforcementService {
         if (user.getId() != null || user.getBuyeruid() != null) {
             return true;
         }
-        final ExtUser extUser = user.getExt();
-        return extUser != null && CollectionUtils.isNotEmpty(extUser.getEids());
+
+        return CollectionUtils.isNotEmpty(user.getEids());
     }
 
     /**
@@ -533,7 +539,7 @@ public class PrivacyEnforcementService {
                         bidderUserEntry.getKey(),
                         isLmtEnabled,
                         bidderToEnforcement))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -587,6 +593,7 @@ public class PrivacyEnforcementService {
                 userBuilder
                         .id(null)
                         .buyeruid(null)
+                        .eids(null)
                         .ext(maskUserExt(user.getExt()));
             }
 
@@ -648,7 +655,7 @@ public class PrivacyEnforcementService {
      */
     private static ExtUser maskUserExt(ExtUser userExt) {
         return userExt != null
-                ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
+                ? nullIfEmpty(userExt.toBuilder().digitrust(null).build())
                 : null;
     }
 
@@ -656,7 +663,7 @@ public class PrivacyEnforcementService {
      * Returns null if {@link ExtUser} has no data in case of masking was applied.
      */
     private static ExtUser nullIfEmpty(ExtUser userExt) {
-        return Objects.equals(userExt, EMPTY_USER_EXT) ? null : userExt;
+        return userExt.isEmpty() ? null : userExt;
     }
 
     /**
@@ -668,6 +675,79 @@ public class PrivacyEnforcementService {
 
     private static boolean isLmtEnabled(Device device) {
         return device != null && Objects.equals(device.getLmt(), 1);
+    }
+
+    private List<BidderPrivacyResult> applyActivityRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
+                                                                ActivityInfrastructure activityInfrastructure) {
+
+        return bidderPrivacyResults.stream()
+                .map(bidderPrivacyResult -> applyActivityRestrictions(bidderPrivacyResult, activityInfrastructure))
+                .toList();
+    }
+
+    private BidderPrivacyResult applyActivityRestrictions(BidderPrivacyResult bidderPrivacyResult,
+                                                          ActivityInfrastructure activityInfrastructure) {
+
+        final String bidder = bidderPrivacyResult.getRequestBidder();
+        final User user = bidderPrivacyResult.getUser();
+        final Device device = bidderPrivacyResult.getDevice();
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, ComponentType.BIDDER, bidder);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, ComponentType.BIDDER, bidder);
+
+        final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo)
+                : user;
+        final Device resolvedDevice = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo)
+                : device;
+
+        return bidderPrivacyResult.toBuilder()
+                .user(resolvedUser)
+                .device(resolvedDevice)
+                .build();
+    }
+
+    public User maskUserConsideringActivityRestrictions(User user,
+                                                        boolean disallowTransmitUfpd,
+                                                        boolean disallowTransmitGeo) {
+
+        if (!(disallowTransmitGeo || disallowTransmitUfpd) || user == null) {
+            return user;
+        }
+
+        final User.UserBuilder userBuilder = user.toBuilder();
+
+        if (disallowTransmitUfpd) {
+            final ExtUser extUser = user.getExt();
+            userBuilder
+                    .id(null)
+                    .buyeruid(null)
+                    .yob(null)
+                    .gender(null)
+                    .data(null)
+                    .eids(null)
+                    .ext(extUser != null ? nullIfEmpty(extUser.toBuilder().data(null).build()) : null);
+        }
+
+        if (disallowTransmitGeo) {
+            userBuilder.geo(maskGeoDefault(user.getGeo()));
+        }
+
+        return userBuilder.build();
+    }
+
+    public Device maskDeviceConsideringActivityRestrictions(Device device,
+                                                            boolean disallowTransmitUfpd,
+                                                            boolean disallowTransmitGeo) {
+
+        if (!(disallowTransmitGeo || disallowTransmitUfpd)) {
+            return device;
+        }
+
+        return maskTcfDevice(device, disallowTransmitGeo, disallowTransmitGeo, disallowTransmitUfpd);
     }
 
     private static List<BidderPrivacyResult> merge(

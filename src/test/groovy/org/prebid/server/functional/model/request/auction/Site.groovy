@@ -9,6 +9,7 @@ class Site {
     String id
     String name
     String domain
+    Integer cattax
     List<String> cat
     List<String> sectioncat
     List<String> pagecat
@@ -20,6 +21,7 @@ class Site {
     Publisher publisher
     Content content
     String keywords
+    List<String> kwarray
     SiteExt ext
 
     static Site getDefaultSite() {

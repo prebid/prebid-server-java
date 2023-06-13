@@ -36,7 +36,7 @@ public class WinningBidComparatorFactory {
     /**
      * Compares two {@link BidInfo} arguments for order based on dealId presence.
      * Returns negative integer when first does not have a deal and second has.
-     * Return positive integer when first has deal and second does not
+     * Return positive integer when first has deal and second does not.
      * Returns zero when both have deals, or both don't have a deal
      */
     private static class WinningBidDealComparator implements Comparator<BidInfo> {
@@ -119,8 +119,7 @@ public class WinningBidComparatorFactory {
             // this should never happen
             if (!Objects.equals(imp, bidInfo2.getCorrespondingImp())) {
                 throw new IllegalStateException(
-                        String.format("Error while determining winning bid: "
-                                + "Multiple bids was found for impId: %s", imp.getId()));
+                        "Error while determining winning bid: Multiple bids was found for impId: " + imp.getId());
             }
 
             return PRICE_COMPARATOR.compare(bidInfo1, bidInfo2);

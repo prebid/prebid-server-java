@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -29,8 +28,8 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,7 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -139,7 +138,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final String version = ObjectUtil.getIfNotNull(prebid, ExtAppPrebid::getVersion);
 
         return ObjectUtils.allNotNull(source, version)
-                ? String.format("%s-%s", source, version)
+                ? "%s-%s".formatted(source, version)
                 : null;
     }
 
@@ -188,22 +187,25 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getLegacyPlacementId(), extImpAppnexus.getPlacementId());
+                extImpAppnexus.getPlacementId(), extImpAppnexus.getDeprecatedPlacementId());
         final String resolvedInvCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
         final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
                 extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
+        final Boolean resolvedUsePaymentRule = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getUsePmtRule(), extImpAppnexus.getDeprecatedUsePaymentRule());
 
         return extImpAppnexus.toBuilder()
                 .placementId(resolvedPlacementId)
                 .invCode(resolvedInvCode)
                 .trafficSourceCode(resolvedTrafficSourceCode)
+                .usePmtRule(resolvedUsePaymentRule)
                 .build();
     }
 
     private static boolean shouldReplaceWithLegacyParameters(ExtImpAppnexus extImpAppnexus) {
         final boolean setPlacementId = extImpAppnexus.getPlacementId() == null
-                && extImpAppnexus.getLegacyPlacementId() != null;
+                && extImpAppnexus.getDeprecatedPlacementId() != null;
         final boolean setInvCode = extImpAppnexus.getInvCode() == null
                 && extImpAppnexus.getLegacyInvCode() != null;
         final boolean setTrafficSourceCode = extImpAppnexus.getTrafficSourceCode() == null
@@ -244,7 +246,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final String key = appnexusKeyVal.getKey();
         final List<String> values = appnexusKeyVal.getValue();
         return CollectionUtils.isNotEmpty(values)
-                ? values.stream().map(value -> String.format("%s=%s", key, value))
+                ? values.stream().map(value -> "%s=%s".formatted(key, value))
                 : Stream.of(key);
     }
 
@@ -279,7 +281,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private String constructUrl(Set<String> ids, List<BidderError> errors) {
         validateMemberIds(ids, errors);
         return CollectionUtils.isNotEmpty(ids)
-                ? String.format("%s?member_id=%s", endpointUrl, ids.iterator().next())
+                ? "%s?member_id=%s".formatted(endpointUrl, ids.iterator().next())
                 : endpointUrl;
     }
 
@@ -308,8 +310,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static String extractEndpointName(BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
-        return pbs != null ? pbs.getEndpoint() : null;
+        final ExtRequestPrebidServer server = prebid != null ? prebid.getServer() : null;
+        return server != null ? server.getEndpoint() : null;
     }
 
     private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest,
@@ -321,7 +323,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .map(podImps -> splitHttpRequests(
                         bidRequest, updateRequestExtForVideo(bidRequest.getExt()), podImps, url))
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private ExtRequest updateRequestExtForVideo(ExtRequest extRequest) {
@@ -380,7 +382,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return ListUtils.partition(imps, MAX_IMP_PER_REQUEST)
                 .stream()
                 .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
@@ -393,17 +395,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .ext(requestExt)
                 .build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -427,7 +423,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
@@ -480,19 +476,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
         }
 
-        switch (bidAdType) {
-            case 0:
-                return BidType.banner;
-            case 1:
-                return BidType.video;
-            case 2:
-                return BidType.audio;
-            case 3:
-                return BidType.xNative;
-            default:
-                throw new PreBidException(
-                        String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
-        }
+        return switch (bidAdType) {
+            case 0 -> BidType.banner;
+            case 1 -> BidType.video;
+            case 2 -> BidType.audio;
+            case 3 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
+        };
     }
 
     private AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) throws JsonProcessingException {

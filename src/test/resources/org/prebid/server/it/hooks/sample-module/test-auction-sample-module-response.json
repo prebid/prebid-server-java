@@ -71,9 +71,7 @@
           "language": "fr"
         },
         "user": {
-          "ext": {
-            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
-          }
+          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
         },
         "at": 1,
         "tmax": 5000,

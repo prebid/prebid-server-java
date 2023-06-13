@@ -17,8 +17,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BrightrollBidder implements Bidder<BidRequest> {
 
@@ -78,7 +77,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
+                .uri("%s?publisher=%s".formatted(endpointUrl, firstImpExtPublisher))
                 .body(mapper.encodeToBytes(updateBidRequest))
                 .headers(createHeaders(updateBidRequest.getDevice()))
                 .payload(updateBidRequest)
@@ -127,7 +126,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         builder.imp(bidRequest.getImp().stream()
                 .filter(imp -> isImpValid(imp, errors))
                 .map(imp -> updateImp(imp, publisherBidFloor))
-                .collect(Collectors.toList()));
+                .toList());
 
         return builder.build();
     }
@@ -139,8 +138,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         if (imp.getBanner() != null || imp.getVideo() != null) {
             return true;
         } else {
-            errors.add(BidderError.badInput(String.format(
-                    "Brightroll only supports banner and video imps. Ignoring imp id=%s", imp.getId())));
+            errors.add(BidderError.badInput(
+                    "Brightroll only supports banner and video imps. Ignoring imp id=" + imp.getId()));
             return false;
         }
     }
@@ -204,7 +203,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
@@ -231,7 +230,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         return seatBids.get(0).getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
