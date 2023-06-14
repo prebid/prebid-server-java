@@ -12,7 +12,7 @@ import java.util.EnumSet;
 @NoArgsConstructor
 @Builder(toBuilder = true)
 @Data
-public class VendorV2 {
+public class Vendor {
 
     Integer id;
 
@@ -33,8 +33,8 @@ public class VendorV2 {
     @JsonProperty("specialFeatures")
     EnumSet<SpecialFeature> specialFeatures;
 
-    public static VendorV2 empty(Integer id) {
-        return VendorV2.builder()
+    public static Vendor empty(Integer id) {
+        return Vendor.builder()
                 .id(id)
                 .purposes(EnumSet.noneOf(PurposeCode.class))
                 .legIntPurposes(EnumSet.noneOf(PurposeCode.class))

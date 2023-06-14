@@ -9,7 +9,7 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class VendorListV2 {
+public class VendorList {
 
     @JsonProperty("vendorListVersion")
     Integer vendorListVersion;
@@ -17,5 +17,5 @@ public class VendorListV2 {
     @JsonProperty("lastUpdated")
     Date lastUpdated;
 
-    Map<Integer, VendorV2> vendors;
+    Map<Integer, Vendor> vendors;
 }

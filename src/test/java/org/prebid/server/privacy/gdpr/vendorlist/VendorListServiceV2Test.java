@@ -22,8 +22,8 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.Feature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -70,7 +70,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private VendorListService<VendorListV2, VendorV2> vendorListService;
+    private VendorListService<VendorList, Vendor> vendorListService;
 
     @Before
     public void setUp() throws JsonProcessingException {
@@ -142,12 +142,12 @@ public class VendorListServiceV2Test extends VertxTest {
                 jacksonMapper);
 
         // when
-        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
 
         // then
         verifyNoInteractions(httpClient);
         assertThat(future).succeededWith(singletonMap(
-                52, VendorV2.builder()
+                52, Vendor.builder()
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
@@ -311,7 +311,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
         // given
-        final VendorListV2 vendorList = VendorListV2.of(null, null, null);
+        final VendorList vendorList = VendorList.of(null, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -325,7 +325,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
         // given
-        final VendorListV2 vendorList = VendorListV2.of(1, null, null);
+        final VendorList vendorList = VendorList.of(1, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -339,7 +339,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
         // given
-        final VendorListV2 vendorList = VendorListV2.of(1, new Date(), null);
+        final VendorList vendorList = VendorList.of(1, new Date(), null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -353,7 +353,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
         // given
-        final VendorListV2 vendorList = VendorListV2.of(1, new Date(), emptyMap());
+        final VendorList vendorList = VendorList.of(1, new Date(), emptyMap());
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -367,7 +367,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
-        final VendorListV2 vendorList = VendorListV2.of(1, new Date(), singletonMap(1, VendorV2.builder().build()));
+        final VendorList vendorList = VendorList.of(1, new Date(), singletonMap(1, Vendor.builder().build()));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -417,7 +417,7 @@ public class VendorListServiceV2Test extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future).isFailed().hasMessage("TCF 2 vendor list for version 1 not fetched yet, try again later.");
@@ -433,11 +433,11 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // when
         vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, VendorV2>> result = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> result = vendorListService.forVersion(1);
 
         // then
         assertThat(result).succeededWith(singletonMap(
-                52, VendorV2.builder()
+                52, Vendor.builder()
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
@@ -451,7 +451,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldKeepPurposesForAllVendors() throws JsonProcessingException {
         // given
-        final VendorV2 firstExternalV2 = VendorV2.builder()
+        final Vendor firstExternalV2 = Vendor.builder()
                 .id(52)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
@@ -460,7 +460,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
-        final VendorV2 secondExternalV2 = VendorV2.builder()
+        final Vendor secondExternalV2 = Vendor.builder()
                 .id(42)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
@@ -469,11 +469,11 @@ public class VendorListServiceV2Test extends VertxTest {
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
-        final Map<Integer, VendorV2> idToVendor = new HashMap<>();
+        final Map<Integer, Vendor> idToVendor = new HashMap<>();
         idToVendor.put(52, firstExternalV2);
         idToVendor.put(42, secondExternalV2);
 
-        final VendorListV2 vendorList = VendorListV2.of(1, new Date(), idToVendor);
+        final VendorList vendorList = VendorList.of(1, new Date(), idToVendor);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
@@ -481,7 +481,7 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // when
         vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future).succeededWith(idToVendor);
@@ -495,14 +495,14 @@ public class VendorListServiceV2Test extends VertxTest {
         // when
 
         // first call triggers http request that results in 404
-        final Future<Map<Integer, VendorV2>> future1 = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future1 = vendorListService.forVersion(1);
         // second call yields fallback vendor list
-        final Future<Map<Integer, VendorV2>> future2 = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future2 = vendorListService.forVersion(1);
 
         // then
         assertThat(future1).isFailed();
         assertThat(future2).succeededWith(singletonMap(
-                52, VendorV2.builder()
+                52, Vendor.builder()
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
@@ -585,8 +585,8 @@ public class VendorListServiceV2Test extends VertxTest {
         verify(metrics).updatePrivacyTcfVendorListFallbackMetric(eq(2));
     }
 
-    private static VendorListV2 givenVendorList() {
-        final VendorV2 vendor = VendorV2.builder()
+    private static VendorList givenVendorList() {
+        final Vendor vendor = Vendor.builder()
                 .id(52)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
@@ -595,7 +595,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
-        return VendorListV2.of(1, new Date(), singletonMap(52, vendor));
+        return VendorList.of(1, new Date(), singletonMap(52, vendor));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

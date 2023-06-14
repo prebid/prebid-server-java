@@ -15,8 +15,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.GdprConfig;
@@ -168,7 +167,7 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
-                expectedVendorPermission, VendorV2.empty(1));
+                expectedVendorPermission, Vendor.empty(1));
         verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl));
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
@@ -192,7 +191,7 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
-                expectedVendorPermission, VendorV2.empty(1));
+                expectedVendorPermission, Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(expectedVendorPermissionWitGvl);
         verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls, true);
         verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, true);
@@ -234,7 +233,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(purposeStrategyOne).processTypePurposeStrategy(
                 tcString,
                 accountPurposeOne,
-                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(null))),
+                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, Vendor.empty(null))),
                 false);
         verify(tcString).getVendorListVersion();
         verify(vendorListService).forVersion(10);
@@ -291,9 +290,9 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission2 =
                 VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 =
-                VendorPermissionWithGvl.of(expectedVendorPermission1, VendorV2.empty(1));
+                VendorPermissionWithGvl.of(expectedVendorPermission1, Vendor.empty(1));
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 =
-                VendorPermissionWithGvl.of(expectedVendorPermission2, VendorV2.empty(2));
+                VendorPermissionWithGvl.of(expectedVendorPermission2, Vendor.empty(2));
 
         verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl1));
         verifyEachPurposeStrategyReceiveWeak(singletonList(expectedVendorPermissionWitGvl2));
@@ -322,9 +321,9 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission2 =
                 VendorPermission.of(null, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 =
-                VendorPermissionWithGvl.of(expectedVendorPermission1, VendorV2.empty(1));
+                VendorPermissionWithGvl.of(expectedVendorPermission1, Vendor.empty(1));
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 =
-                VendorPermissionWithGvl.of(expectedVendorPermission2, VendorV2.empty(null));
+                VendorPermissionWithGvl.of(expectedVendorPermission2, Vendor.empty(null));
         assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
 
         verifyEachPurposeStrategyReceive(asList(expectedVendorPermissionWitGvl2, expectedVendorPermissionWitGvl1));
@@ -349,9 +348,9 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission2 = VendorPermission.of(2, null,
                 PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
-                expectedVendorPermission1, VendorV2.empty(1));
+                expectedVendorPermission1, Vendor.empty(1));
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 = VendorPermissionWithGvl.of(
-                expectedVendorPermission2, VendorV2.empty(2));
+                expectedVendorPermission2, Vendor.empty(2));
         assertThat(result).succeededWith(asList(expectedVendorPermission1, expectedVendorPermission2));
         verifyEachPurposeStrategyReceive(asList(expectedVendorPermissionWitGvl1, expectedVendorPermissionWitGvl2));
         verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission1, expectedVendorPermission2));
@@ -386,7 +385,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
                 PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
-                expectedVendorPermission1, VendorV2.empty(1));
+                expectedVendorPermission1, Vendor.empty(1));
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
 
         verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
@@ -422,7 +421,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
                 PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
-                expectedVendorPermission1, VendorV2.empty(1));
+                expectedVendorPermission1, Vendor.empty(1));
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
 
         verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
@@ -459,7 +458,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
                 PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
-                expectedVendorPermission1, VendorV2.empty(1));
+                expectedVendorPermission1, Vendor.empty(1));
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
 
         verify(purposeStrategyOne, never()).allow(any());
