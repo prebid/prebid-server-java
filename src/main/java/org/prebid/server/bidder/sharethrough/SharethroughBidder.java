@@ -214,7 +214,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
 
         final BidType bidType = parseBidType(bidTypeNode, errors);
         return bidType != null
-                ? BidderBid.of(bid, parseBidType(bidTypeNode, errors), BID_CURRENCY)
+                ? BidderBid.of(bid, bidType, BID_CURRENCY)
                 : null;
     }
 
