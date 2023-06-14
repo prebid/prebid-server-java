@@ -4,7 +4,6 @@ package org.prebid.server.activity.infrastructure;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 
@@ -37,11 +36,6 @@ public class ActivityInfrastructure {
         if (activitiesConfigurations == null || activitiesConfigurations.size() != Activity.values().length) {
             throw new AssertionError("Activities configuration must include all possible activities.");
         }
-    }
-
-    public boolean isAllowed(Activity activity, ComponentType componentType, String componentName) {
-        final ActivityCallPayload activityCallPayload = ActivityCallPayloadImpl.of(componentType, componentName);
-        return isAllowed(activity, activityCallPayload);
     }
 
     public boolean isAllowed(Activity activity, ActivityCallPayload activityCallPayload) {
