@@ -41,7 +41,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final int GEO_PRECISION = 2
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GENERIC_COOKIE_SYNC_CONFIG +
-            ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+            ["adapters.generic.meta-info.vendor-id"   : GENERIC_VENDOR_ID as String,
+             "gdpr.host-vendor-id"                    : GENERIC_VENDOR_ID as String,
+             "adapters.${GENERIC.value}.ccpa-enforced": "true"])
 
     private static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
                                                                            "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
