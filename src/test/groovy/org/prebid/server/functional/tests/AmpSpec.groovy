@@ -6,10 +6,16 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.TcfConsent
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_INVALID
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_V2
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_V3
 
 class AmpSpec extends BaseSpec {
 
@@ -154,5 +160,68 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+    }
+
+    def "PBS cookie sync with proper tcf parameter should process request and display metrics for tcf and gvl"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
+
+        and: "Default stored request with gpp"
+        def gppConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(tcfVersion.value)
+                .build()
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            user = new User(consent: gppConsent)
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain parameters from the stored request"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.consent == gppConsent as String
+
+        and: "Metric should contain tcf and gvl requests"
+        def metric = defaultPbsService.sendCollectedMetricsRequest()
+        assert metric["privacy.tcf.v%d.requests".formatted(tcfVersion.equivalentVendorListVersion)] == 1
+        assert metric["privacy.gvl.v%d.requests".formatted(tcfVersion.equivalentVendorListVersion)] == 1
+
+        where:
+        tcfVersion << [TCF_V2, TCF_V3]
+    }
+
+    def "PBS cookie sync with invalid tcf parameter should reject request and update metrics"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
+
+        and: "Default stored request with gpp"
+        def gppConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(TCF_INVALID.value)
+                .build()
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            user = new User(consent: gppConsent)
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.message == ["Incoming TCF string is invalid"]
+
+        and: "Metric should contain tcf and gvl blocked"
+        def metric = defaultPbsService.sendCollectedMetricsRequest()
+        assert metric["cookie_sync.generic.tcf.blocked"] == 1
+        assert metric["cookie_sync.generic.gvl.blocked"] == 1
     }
 }
