@@ -17,9 +17,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
 
-import java.time.Clock;
 import java.time.Duration;
-import java.time.ZonedDateTime;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -110,8 +108,7 @@ public class UidsCookieService {
         final Uids parsedUids = parseUids(cookies);
 
         final Uids.UidsBuilder uidsBuilder = Uids.builder()
-                .uidsLegacy(Collections.emptyMap())
-                .bday(parsedUids != null ? parsedUids.getBday() : ZonedDateTime.now(Clock.systemUTC()));
+                .uidsLegacy(Collections.emptyMap());
 
         final Boolean optout;
         final Map<String, UidWithExpiry> uidsMap;
