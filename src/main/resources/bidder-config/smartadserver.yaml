@@ -2,7 +2,7 @@ adapters:
   smartadserver:
     endpoint: https://ssb-global.smartadserver.com
     meta-info:
-      maintainer-email: support@smartadserver.com
+      maintainer-email: supply-partner-integration@equativ.com
       app-media-types:
         - banner
         - video

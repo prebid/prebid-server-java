@@ -17,3 +17,7 @@ adapters:
         url: https://ssp-sync.criteo.com/user-sync/redirect?gdprapplies={{gdpr}}&gdpr={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}&profile=230
         support-cors: false
         uid-macro: '${CRITEO_USER_ID}'
+      iframe:
+        url: https://ssp-sync.criteo.com/user-sync/iframe?gdprapplies={{gdpr}}&gdpr={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}&profile=230
+        support-cors: false
+        uid-macro: '${CRITEO_USER_ID}'
