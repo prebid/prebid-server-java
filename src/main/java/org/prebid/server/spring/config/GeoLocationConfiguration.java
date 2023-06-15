@@ -2,13 +2,17 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
-import lombok.experimental.UtilityClass;
+import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
+import org.prebid.server.geolocation.ConfigurationGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
+import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.geolocation.model.GeoInfoResponseConfiguration;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -28,8 +32,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
-@UtilityClass
 public class GeoLocationConfiguration {
 
     @Configuration
@@ -92,6 +98,85 @@ public class GeoLocationConfiguration {
 
             remoteFileSyncer.sync(maxMindGeoLocationService);
             return maxMindGeoLocationService;
+        }
+    }
+
+    @Configuration
+    @ConditionalOnExpression("${geolocation.enabled} == true and '${geolocation.type}' == 'configuration'")
+    static class ConfigurationGeoLocationConfiguration {
+
+        @Bean
+        @ConfigurationProperties("geolocation.configurations")
+        public List<GeoInfoResponseConfigurationLocal> configurations() {
+            return new ArrayList<>();
+        }
+
+        @Bean
+        public GeoLocationService configurationGeoLocationService(List<GeoInfoResponseConfigurationLocal> configs) {
+            return new ConfigurationGeoLocationService(
+                    configs.stream()
+                            .filter(config -> config != null && config.getAddressPattern() != null)
+                            .map(ConfigurationGeoLocationConfiguration::from)
+                            .toList());
+        }
+
+        private static GeoInfoResponseConfiguration from(GeoInfoResponseConfigurationLocal localConfig) {
+            final GeoInfoLocal localGeoInfo = localConfig.getGeoInfo();
+
+            return GeoInfoResponseConfiguration.of(
+                    localConfig.getAddressPattern(),
+                    localGeoInfo != null
+                            ? GeoInfo.builder()
+                            .vendor(StringUtils.EMPTY)
+                            .continent(localGeoInfo.getContinent())
+                            .country(localGeoInfo.getCountry())
+                            .region(localGeoInfo.getRegion())
+                            .city(localGeoInfo.getCity())
+                            .metroGoogle(localGeoInfo.getMetroGoogle())
+                            .metroNielsen(localGeoInfo.getMetroNielsen())
+                            .zip(localGeoInfo.getZip())
+                            .connectionSpeed(localGeoInfo.getConnectionSpeed())
+                            .lat(localGeoInfo.getLat())
+                            .lon(localGeoInfo.getLon())
+                            .timeZone(localGeoInfo.getTimeZone())
+                            .build()
+                            : null);
+        }
+
+        @Data
+        static class GeoInfoResponseConfigurationLocal {
+
+            String addressPattern;
+
+            GeoInfoLocal geoInfo;
+        }
+
+        @Data
+        static class GeoInfoLocal {
+
+            String continent;
+
+            String country;
+
+            String region;
+
+            Integer regionCode;
+
+            String city;
+
+            String metroGoogle;
+
+            Integer metroNielsen;
+
+            String zip;
+
+            String connectionSpeed;
+
+            Float lat;
+
+            Float lon;
+
+            ZoneId timeZone;
         }
     }
 

@@ -6,7 +6,7 @@ import lombok.Value;
 
 import java.time.ZoneId;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class GeoInfo {
 
