@@ -1,10 +1,12 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.RepeatUntilFailure
 
@@ -17,10 +19,20 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.NON
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
+
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
+            .setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse().tap {
+                conversions = [(USD): [(EUR): 0.9124920156948626,
+                                       (GBP): 0.793776804452961],
+                               (GBP): [(USD): 1.2597999770088517,
+                                       (EUR): 1.1495574203931487],
+                               (EUR): [(USD): 1.3429368029739777]]
+            })
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -147,7 +159,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     def  "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["currency-converter.external-rates.enabled": "false"])
 
         and: "BidRequest with floorMinCur"
