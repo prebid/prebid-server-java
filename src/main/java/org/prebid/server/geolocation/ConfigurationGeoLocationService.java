@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public class ConfigurationGeoLocationService implements GeoLocationService {
 
-    private static final String VENDOR = "configuration";
+    public static final String VENDOR = "configuration";
 
     private final List<GeoInfoResponseConfiguration> configurations;
 
