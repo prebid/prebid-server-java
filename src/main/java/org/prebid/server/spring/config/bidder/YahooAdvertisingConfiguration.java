@@ -2,7 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.yahoossp.YahooSSPBidder;
+import org.prebid.server.bidder.yahooadvertising.YahooAdvertisingBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,27 +17,27 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/yahoossp.yaml", factory = YamlPropertySourceFactory.class)
-public class YahooSSPConfiguration {
+@PropertySource(value = "classpath:/bidder-config/yahooAdvertising.yaml", factory = YamlPropertySourceFactory.class)
+public class YahooAdvertisingConfiguration {
 
-    private static final String BIDDER_NAME = "yahoossp";
+    private static final String BIDDER_NAME = "yahooAdvertising";
 
-    @Bean("yahoosspConfigurationProperties")
-    @ConfigurationProperties("adapters.yahoossp")
+    @Bean("yahooAdvertisingConfigurationProperties")
+    @ConfigurationProperties("adapters.yahooadvertising")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps yahoosspBidderDeps(BidderConfigurationProperties yahoosspConfigurationProperties,
+    BidderDeps yahooAdvertisingBidderDeps(BidderConfigurationProperties yahooAdvertisingConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper,
                                   BidRequestOrtbVersionConversionManager conversionManager) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(yahoosspConfigurationProperties)
+                .withConfig(yahooAdvertisingConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), conversionManager, mapper))
+                .bidderCreator(config -> new YahooAdvertisingBidder(config.getEndpoint(), conversionManager, mapper))
                 .assemble();
     }
 }

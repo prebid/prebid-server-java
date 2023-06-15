@@ -215,7 +215,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
         assert response.responseBody
 
         and: "Metrics processed across activities should be updated"
@@ -310,7 +309,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
         assert response.responseBody
 
         and: "Response should contain error"
@@ -352,7 +350,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
         assert response.responseBody
     }
 

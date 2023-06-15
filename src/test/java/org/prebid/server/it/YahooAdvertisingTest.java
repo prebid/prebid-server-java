@@ -16,23 +16,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class YahooSSPTest extends IntegrationTest {
+public class YahooAdvertisingTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromYahooSSP() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromYahooAdvertising() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yahoossp-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yahooadvertising-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/yahoossp/test-yahoossp-bid-request.json")))
+                        jsonFrom("openrtb2/yahooadvertising/test-yahooadvertising-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/yahoossp/test-yahoossp-bid-response.json"))));
+                        jsonFrom("openrtb2/yahooadvertising/test-yahooadvertising-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/yahoossp/test-auction-yahoossp-request.json",
+        final Response response = responseFor("openrtb2/yahooadvertising/test-auction-yahooadvertising-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/yahoossp/test-auction-yahoossp-response.json", response,
-                singletonList("yahoossp"));
+        assertJsonEquals("openrtb2/yahooadvertising/test-auction-yahooadvertising-response.json", response,
+                singletonList("yahooAdvertising"));
     }
 }

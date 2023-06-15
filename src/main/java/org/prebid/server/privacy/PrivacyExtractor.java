@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
@@ -83,7 +84,8 @@ public class PrivacyExtractor {
                     .map(Integer::parseInt)
                     .toList();
         } catch (NumberFormatException e) {
-            return DEFAULT_GPP_SID_VALUE;
+            throw new InvalidRequestException("invalid %s value. Comma separated integers expected."
+                    .formatted(SETUID_GPP_SID_PARAM));
         }
     }
 
