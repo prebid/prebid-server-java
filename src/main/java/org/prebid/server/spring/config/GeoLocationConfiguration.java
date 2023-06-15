@@ -11,8 +11,6 @@ import org.prebid.server.geolocation.ConfigurationGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
-import org.prebid.server.geolocation.model.GeoInfo;
-import org.prebid.server.geolocation.model.GeoInfoResponseConfiguration;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -107,12 +105,12 @@ public class GeoLocationConfiguration {
 
         @Bean
         @ConfigurationProperties("geolocation.configurations")
-        public List<GeoInfoResponseConfigurationLocal> configurations() {
+        public List<GeoInfoResponseConfiguration> configurations() {
             return new ArrayList<>();
         }
 
         @Bean
-        public GeoLocationService configurationGeoLocationService(List<GeoInfoResponseConfigurationLocal> configs) {
+        public GeoLocationService configurationGeoLocationService(List<GeoInfoResponseConfiguration> configs) {
             return new ConfigurationGeoLocationService(
                     configs.stream()
                             .filter(config -> config != null && config.getAddressPattern() != null)
@@ -120,39 +118,41 @@ public class GeoLocationConfiguration {
                             .toList());
         }
 
-        private static GeoInfoResponseConfiguration from(GeoInfoResponseConfigurationLocal localConfig) {
-            final GeoInfoLocal localGeoInfo = localConfig.getGeoInfo();
+        private static org.prebid.server.geolocation.model.GeoInfoResponseConfiguration from(
+                GeoInfoResponseConfiguration config) {
 
-            return GeoInfoResponseConfiguration.of(
-                    localConfig.getAddressPattern(),
-                    localGeoInfo != null
-                            ? GeoInfo.builder()
+            final GeoInfo geoInfo = config.getGeoInfo();
+
+            return org.prebid.server.geolocation.model.GeoInfoResponseConfiguration.of(
+                    config.getAddressPattern(),
+                    geoInfo != null
+                            ? org.prebid.server.geolocation.model.GeoInfo.builder()
                             .vendor(StringUtils.EMPTY)
-                            .continent(localGeoInfo.getContinent())
-                            .country(localGeoInfo.getCountry())
-                            .region(localGeoInfo.getRegion())
-                            .city(localGeoInfo.getCity())
-                            .metroGoogle(localGeoInfo.getMetroGoogle())
-                            .metroNielsen(localGeoInfo.getMetroNielsen())
-                            .zip(localGeoInfo.getZip())
-                            .connectionSpeed(localGeoInfo.getConnectionSpeed())
-                            .lat(localGeoInfo.getLat())
-                            .lon(localGeoInfo.getLon())
-                            .timeZone(localGeoInfo.getTimeZone())
+                            .continent(geoInfo.getContinent())
+                            .country(geoInfo.getCountry())
+                            .region(geoInfo.getRegion())
+                            .city(geoInfo.getCity())
+                            .metroGoogle(geoInfo.getMetroGoogle())
+                            .metroNielsen(geoInfo.getMetroNielsen())
+                            .zip(geoInfo.getZip())
+                            .connectionSpeed(geoInfo.getConnectionSpeed())
+                            .lat(geoInfo.getLat())
+                            .lon(geoInfo.getLon())
+                            .timeZone(geoInfo.getTimeZone())
                             .build()
                             : null);
         }
 
         @Data
-        static class GeoInfoResponseConfigurationLocal {
+        static class GeoInfoResponseConfiguration {
 
             String addressPattern;
 
-            GeoInfoLocal geoInfo;
+            GeoInfo geoInfo;
         }
 
         @Data
-        static class GeoInfoLocal {
+        static class GeoInfo {
 
             String continent;
 
