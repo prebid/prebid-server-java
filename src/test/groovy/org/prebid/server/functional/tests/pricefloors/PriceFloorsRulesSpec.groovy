@@ -51,7 +51,6 @@ import static org.prebid.server.functional.model.request.auction.Location.NO_DAT
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
 
-@Ignore
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS should ignore rule when total number of split entries in a given rule doesn't match the number of fields"() {

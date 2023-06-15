@@ -28,7 +28,6 @@ import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
-@Ignore
 class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     private static final int MAX_ENFORCE_FLOORS_RATE = 100

@@ -29,7 +29,6 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.MED
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
-@Ignore
 class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should skip signalling for request with rules when ext.prebid.floors.enabled = false in request"() {

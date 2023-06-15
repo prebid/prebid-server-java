@@ -23,7 +23,6 @@ import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
-@Ignore
 class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should make PF enforcement for amp request when stored request #descriprion rules"() {
