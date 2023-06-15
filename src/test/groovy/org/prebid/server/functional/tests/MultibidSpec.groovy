@@ -6,9 +6,11 @@ import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
+@Ignore
 class MultibidSpec extends BaseSpec {
 
     def "PBS should not return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = false"() {

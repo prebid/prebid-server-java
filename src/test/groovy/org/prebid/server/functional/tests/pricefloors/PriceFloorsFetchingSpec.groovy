@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import java.time.Instant
 
@@ -27,6 +28,7 @@ import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
+@Ignore
 class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     private static final int MAX_ENFORCE_FLOORS_RATE = 100

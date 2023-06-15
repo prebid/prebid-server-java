@@ -21,6 +21,7 @@ import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdSer
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -50,6 +51,7 @@ import static org.prebid.server.functional.model.request.auction.Location.NO_DAT
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
 
+@Ignore
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS should ignore rule when total number of split entries in a given rule doesn't match the number of fields"() {

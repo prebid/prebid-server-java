@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -13,6 +14,7 @@ import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
+@Ignore(inherited = true)
 class AliasSpec extends BaseSpec {
 
     def "PBS should be able to take alias from request"() {

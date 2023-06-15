@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
@@ -76,6 +77,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+        println currencyRatesResponse
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorValue,
@@ -114,6 +116,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+        println currencyRatesResponse
 
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
@@ -142,7 +145,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
     }
 
-    def "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
+    def  "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
         def pbsService = pbsServiceFactory.getService(floorsConfig +
                 ["currency-converter.external-rates.enabled": "false"])
@@ -291,6 +294,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
+        println currencyRatesResponse
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP

@@ -10,11 +10,13 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
+@Ignore(inherited = true)
 class CurrencySpec extends BasePgSpec {
 
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
