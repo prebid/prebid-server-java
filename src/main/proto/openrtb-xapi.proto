@@ -1,0 +1,565 @@
+//
+// File for XAPI AdEngine endpoint integration extensions
+//
+
+// XAPI integration fields
+// Use extension IDs in 5100-5299 range for XAPI
+
+syntax = "proto2";
+
+import "openrtb.proto";
+option java_outer_classname = "OpenRtbXapi";
+package com.magnite.openrtb.v2;
+
+message KeyValuePair {
+    // Generic key.
+    optional string key = 1;
+
+    // List of generic values.
+    repeated string value = 2;
+}
+
+message Window {
+    // Referrer url of the highest accessible window.
+    optional string url = 1;
+
+    // The iframe depth.
+    optional int32 depth = 2;
+
+    // Minimum width of any iframe traversed between the video player and window.top.
+    optional uint32 w = 3;
+
+    // Minimum height of any iframe traversed between the video player and window.top.
+    optional uint32 h = 4;
+}
+
+message BidRequestExt {
+    message Rp {
+        // ID for the bid object chosen by the ad server for tracking and
+        // debugging purposes.
+        optional int32 zone_id = 1;
+
+        // Blocked advertisers IDs (max 20).
+        repeated int32 badvid = 2;
+
+        // Blocked advertiser industry IDs (max 50).
+        repeated int32 baindid = 3;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest {
+    // Extension key for xAPI BidRequest.ext
+    optional BidRequestExt bid_request = 5101;
+}
+
+message ImpExt {
+    message ProxyBid {
+        // ID for the bid object chosen by the ad server for tracking and
+        // debugging purposes.
+        optional string id = 1;
+
+        // Proxy bid price in CPM (US dollars). All input and output prices are
+        // either gross (default) or net of Publisher fees, by prior
+        // arrangement with us.
+        optional double price = 2;
+    }
+
+    message ProxyDemand {
+        // Expected average market rate CPMs (US dollars) from the primary ad
+        // server’s native demand. May be configured to act as a floor price.
+        optional double marketrate = 1;
+
+        // The proxy bids object represents a simple id and bid price for any
+        // native demand the Ad Server wants to have represented in the
+        // auction. These bids will be treated as “house bids” for which no
+        // revenue is recorded.
+        repeated ProxyBid bids = 2;
+    }
+
+    message Floor {
+        // RTB rule identifier.
+        optional string id = 1;
+
+        // RTB rule price floor.
+        optional double price = 2;
+
+        // DEPRECATED: NO LONGER SUPPORTED
+        // Flag to indicate whether or not Dynamic Price Floors should be active
+        // for this floor.
+        optional bool dpf = 3;
+
+        // RTB rule private marketplace (PMP) tier, where 1 and 2 are reserved
+        // for future use, 3 = Private marketplace, 4 = First Right marketplace.
+        optional int32 pmptier = 4;
+
+        // RTB rule private marketplace (PMP) priority level.
+        optional int32 pmppriority = 5;
+    }
+
+    message Rp {
+        // ID for the bid object chosen by the ad server for tracking and
+        // debugging purposes.
+        optional int32 zone_id = 1;
+
+        // Set to “url” to URL encode ad.
+        optional string enc = 2;
+
+        // The caller may configure slots in our system, and associate them with
+        // multiple size IDs. Rather than specify the size ID(s) at request time,
+        // another option is to specify the slot name here, thus allowing the set
+        // of sizes to be varied outside of code.
+        optional string slot = 3;
+
+        // Inventory-specific targeting. The target object contains an
+        // arbitrary set of keys with values comprising of arrays of strings
+        // used for Deals (Private Marketplace) targeting, utilized to target
+        // first party inventory data. First party inventory data consists of
+        // data about the inventory (i.e. category of page, price of item,
+        // etc.).
+        repeated KeyValuePair target = 4;
+
+        // Inventory-specific tracking/reporting.
+        repeated KeyValuePair track = 5;
+
+        // Optional parameters that will be passed to DSPs, and logged by Magnite.
+        repeated KeyValuePair rtb = 6;
+
+        // Optional parameters that will passed to DSPs, though not logged within Magnite.
+        repeated KeyValuePair nolog = 7;
+
+        // The proxy demand object contains a parent object for usage where the
+        // primary ad server wants to represent native demand in the auction.
+        // These bids will be treated as “house bids” for which no revenue is
+        // recorded.
+        optional ProxyDemand proxydemand = 8;
+
+        // Floor data used to synthesize RTB rules.
+        repeated Floor floors = 9;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+
+    // For greater transparency around video inventory, some buyers require this
+    // additional data relating to the content and the video player.
+    optional Window window = 2;
+
+    // Supported viewability vendors. For list of supported vendors, visit:
+    // https://resources.rubiconproject.com/resource/publisher-resources/xapi-specifications/#4.9.
+    repeated string viewabilityvendors = 3;
+
+    // Global Placement ID. The unique identifier of the placement that is sent 
+    // to all participants in buying impressions for this placement. In general, 
+    // this field will be populated with one of the DFP Ad Unit Code, Prebid Ad Slot,
+    // or value provided by the publisher or ad server.
+    optional string gpid = 4;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp {
+    // Extension key for xAPI BidRequest.ext
+    optional ImpExt imp = 5102;
+}
+
+message VideoExt {
+    message Rp {
+        // DV+ size ID. Refer to
+        // https://resources.rubiconproject.com/resource/publisher-resources-2/supported-ad-formats.
+        optional uint32 size_id = 1;
+    }
+
+    message Ad {
+        // Width of ad render area.
+        optional int32 w = 1;
+
+        // Height of ad render area.
+        optional int32 h = 2;
+    }
+
+    // The orientation of the video player, so the buyer can adjust accordingly.
+    // Allowed values are "h" (horizontal) and "v" (vertical).
+    optional string orientation = 1;
+
+    // Addtions specific to DV+.
+    optional Rp rp = 2;
+
+    // For greater transparency around video inventory, some buyers require this
+    // additional data relating to the video player.
+    optional Ad ad = 3;
+
+    // DEPRECATED: Use “skip” field from the video object.
+    optional bool skip = 4;
+
+    // DEPRECATED: Replaced by “skipafter” in the video object.
+    optional int32 skipdelay = 5;
+
+    // Placement type for the impression. Refer to IAB OpenRTB
+    // VideoPlacementType enum.
+    optional int32 placement = 6;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Video {
+    // Extension key for xAPI Video.ext
+    optional VideoExt video = 5103;
+}
+
+message BannerExt {
+    message Rp {
+        // DV+ size ID. Refer to
+        // https://resources.rubiconproject.com/resource/publisher-resources-2/supported-ad-formats.
+        optional uint32 size_id = 1;
+
+        // Alternate size IDs. Refer to
+        // https://resources.rubiconproject.com/resource/publisher-resources-2/supported-ad-formats.
+        repeated uint32 alt_size_ids = 2;
+
+        // Specify the content type of ad markup (“adm” property) in the
+        // response. Supported MIME types are “application/javascript” and
+        // “text/html”. The default returned format can be specified at
+        //integration time. The “text/html” format corresponds to an HTML
+        // fragment.
+        optional string mime = 3;
+
+        // DEPRECATED: NO LONGER SUPPORTED
+        // Flag to indicate usage of nurl (Magnite billable pixel) in
+        // bid response.
+        optional bool usenurl = 4;
+
+        // Flag to indicate usage of imptrackers (DSP impression tracking
+        // pixels) in bid response.
+        optional bool useimptrackers = 5;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Banner {
+    // Extension key for xAPI Banner.ext
+    optional BannerExt banner = 5104;
+}
+
+message AdQuality {
+    // Signal the sensitivity of this slot to ad quality. Allowed values are
+    // "high" (which results in the blocking of creatives that have been
+    // tagged as low-quality), or "low".
+    optional string sensitivity = 1;
+}
+
+message AppExt {
+    message Rp {
+        // DV+ site ID.
+        optional uint32 site_id = 1;
+
+        // Our Creative Audit process allows for the caller to tag creatives in
+        // our responses as high or low quality and then, at request time,
+        // specify limitations on which of these creatives are allowed to serve.
+        optional AdQuality aq = 2;
+
+        // An array of string identifiers denoting the advertiser blocklist
+        // relevant for this impression. See the DV+ Blocklist API for details:
+        // https://resources.rubiconproject.com/resource/publisher-resources/knowledge-base/blocklist-sync-api.
+        repeated string blocklists = 3;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.App {
+    // Extension key for xAPI App.ext
+    optional AppExt app = 5105;
+}
+
+message SiteExt {
+    message Rp {
+        // DV+ site ID.
+        optional uint32 site_id = 1;
+
+        // Our Creative Audit process allows for the caller to tag creatives in
+        // our responses as high or low quality and then, at request time,
+        // specify limitations on which of these creatives are allowed to serve.
+        optional AdQuality aq = 2;
+
+        // An array of string identifiers denoting the advertiser blocklist
+        // relevant for this impression. See the DV+ Blocklist API for details:
+        // https://resources.rubiconproject.com/resource/publisher-resources/knowledge-base/blocklist-sync-api.
+        repeated string blocklists = 3;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+
+    // For greater transparency around video inventory, some buyers require this
+    // additional data relating to the content and the video player.
+    optional Window window = 2;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Site {
+    // Extension key for xAPI Site.ext
+    optional SiteExt site = 5106;
+}
+
+message PublisherExt {
+    message Rp {
+        // DV+ account ID.
+        optional int32 account_id = 1;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Publisher {
+    // Extension key for xAPI Publisher.ext
+    optional PublisherExt publisher = 5107;
+}
+
+message DeviceExt {
+    message Rp {
+        // Screen size (width “x” height).
+        optional string res = 1;
+
+        // The ratio of physical pixels to device independent pixels (dips) on
+        // the device, e.g., 1 for non-retina iOS, 2 for Retina Display.
+        optional double pixelratio = 2;
+
+        // This is the X-Forwarded-For header that the caller received from the
+        // end device. The field is omitted if that header was not received. If
+        // the end device called Magnite directly, we should expect the calling
+        // IP address and X-Forwarded-For header to match the “ip” and "xff"
+        // values in this request.
+        optional string xff = 3;
+    }
+
+    message Dooh {
+        // Multiplier that applies to all fees, prices, and floors.
+        optional double impmultiply = 1;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+
+    // Indicates whether user IP addresses should be masked before sending to
+    // DSPs. Note that this feature is only enabled for select accounts.
+    optional bool ipmask = 2;
+
+    // Additional information specific to Digital Out of Home (DOOH).
+    optional Dooh dooh = 3;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Device {
+    // Extension key for xAPI Device.ext
+    optional DeviceExt device = 5108;
+}
+
+message GeoExt {
+    message Rp {
+        // Indicates whether or not the app has asked the user for permission
+        // to read fine-grained location data (GPS). A value of 1 indicates
+        // “yes”; 0 indicates “no”. If the field is not present, this is
+        // unknown.
+        optional int32 consent = 1;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Geo {
+    // Extension key for xAPI Geo.ext
+    optional GeoExt geo = 5109;
+}
+
+message UserExt {
+    message Dt {
+        // The user ID, encrypted.
+        optional string id = 1;
+
+        // User consent for sharing/recording the user ID, 0 (default)
+        // indicates consent, 1 indicates no consent.
+        optional uint64 pref = 2;
+
+        // The version of the key used to encrypt the user ID (not the key
+        // itself). This allows the receiver to make a quick determination
+        // that the key has been rotated.
+        optional uint32 keyv = 3 [default = 1];
+    }
+
+    message Rp {
+        // User-specific targeting. The target object contains an arbitrary set
+        // of keys with values comprising of arrays of strings used for Deals
+        // (Private Marketplace) targeting, utilized to target first party
+        // visitor data. First party visitor data consists of non-PII data
+        // about the user (i.e. demographic data).
+        repeated KeyValuePair target = 1;
+    }
+
+    // DEPRECATED: DigiTrust user ID and context.
+    optional Dt dt = 1;
+
+    // Additions specific to DV+.
+    optional Rp rp = 3;
+
+    // LiveRamp IdentityLink (IDL) envelope.
+    optional string liveramp_idl = 4;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.User {
+    // Extension key for xAPI User.ext
+    optional UserExt user = 5110;
+}
+
+message RegsExt {
+    // Flag indicating whether or not this request falls under California Cal
+    // Bus & Prof Code s22580 regulation.
+    optional bool s22580 = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Regs {
+    // Extension key for xAPI Regs.ext
+    optional RegsExt regs = 5111;
+}
+
+message SourceExt {
+    // Specifies a Server-Side Ad Insertion (SSAI) request where a server will
+    // render the creative and execute any trackers. When true, calls directly
+    // from the server will convey device context in new “X-Device” HTTP
+    // headers per the VAST 4.1 specification.
+    optional bool ssreq = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Source {
+    // Extension key for xAPI Source.ext
+    optional SourceExt source = 5112;
+}
+
+message NativeExt {
+    message Rp {
+        // DV+ size ID. Refer to
+        // https://resources.rubiconproject.com/resource/publisher-resources-2/supported-ad-formats.
+        optional uint32 size_id = 1;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Native {
+    // Extension key for xAPI Native.ext
+    optional NativeExt native = 5113;
+}
+
+message NativeRequestExt {
+    // Flag to declare support for Native Ad Choices.
+    optional bool privacy = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.NativeRequest {
+    // Extension key for xAPI NativeRequest.ext
+    optional NativeRequestExt native_request = 5114;
+}
+
+message BidResponseExt {
+    message Rp {
+        // Status code set to 0 if the bid array will contain an ad.
+        // Status code set to 32 for proxy bid wins.
+        optional int32 statuscode = 1;
+
+        // If status code is set, this field can be used to provide additional
+        // information.
+        optional string statusmsg = 2;
+
+        // Response time, rounded up to the next multiple of 10 milliseconds.
+        optional int32 time = 3;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse {
+    // Extension key for xAPI BidResponse.ext
+    optional BidResponseExt bid_response = 5201;
+}
+
+message SeatBidExt {
+    message Rp {
+        // DV+ ID of the bidder on whose behalf the bid(s) are made.
+        optional string buyer = 1;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid {
+    // Extension key for xAPI SeatBid.ext
+    optional SeatBidExt seatbid = 5202;
+}
+
+message BidExt {
+    message Rp {
+        // DV+ advertiser ID for the bid, corresponding to the "adomain" field.
+        optional int32 advid = 1;
+
+        // The MIME content type with which the "adm" property of the bid is
+        // encoded for Banner objects only.
+        optional string mime = 2;
+
+        // The type of creative returned. This can be one of banner or video.
+        // For banner and video, the creative is sent as part of adm.
+        optional string adtype = 3;
+
+        // DV+ size ID of winning ad size. Refer to
+        // https://resources.rubiconproject.com/resource/publisher-resources-2/supported-ad-formats.
+        optional uint32 size_id = 4;
+
+        // Custom key/values used for targeting line items in a publisher ad
+        // server.
+        repeated KeyValuePair targeting = 5;
+
+        // Supported API framework for this impression. Refer to the IAB
+        // OpenRTB ApiFramework enum.
+        optional uint32 creativeapi = 6;
+
+        // Supported viewability vendors. For list of supported vendors, visit:
+        // https://resources.rubiconproject.com/resource/publisher-resources/xapi-specifications/#4.9.
+        repeated string viewabilityvendors = 7;
+
+        // Indicates if the price is estimated (e.g., where pricing is not
+        // CPM-based), 0 = not estimated, 1 = estimated.
+        optional int32 estimated = 8;
+
+        // Bid price net of all fees.
+        optional double adjustbid = 9;
+
+        // Indicates the private marketplace (PMP) tier of the bid, where 1 and
+        // 2 are reserved for future use, 3 = Private marketplace, 4 = First
+        // Right marketplace. Omitted for open auction.
+        optional string pmptier = 10;
+
+        // RTB ad quality ID.
+        optional string aqid = 11;
+
+        // Advertiser industry ID.
+        repeated int32 aindid = 12;
+
+        // URL to be called to signal the billable event.
+        optional string burl = 13;
+
+        // DSP provided impression tracking pixels. If the request indicates a
+        // secure environment via the imp.secure flag, all URLs must be secure.
+        repeated string imptrackers = 14;
+    }
+
+    // Additions specific to DV+.
+    optional Rp rp = 1;
+}
+
+extend com.iabtechlab.openrtb.v2.BidResponse.SeatBid.Bid {
+    // Extension key for xAPI Bid.ext
+    optional BidExt bid = 5203;
+}
