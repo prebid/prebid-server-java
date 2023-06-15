@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class GeoInfoResponseConfiguration {
+public class GeoInfoConfiguration {
 
     @JsonProperty("address-pattern")
     String addressPattern;

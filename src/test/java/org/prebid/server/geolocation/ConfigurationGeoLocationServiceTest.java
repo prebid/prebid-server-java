@@ -9,7 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
-import org.prebid.server.geolocation.model.GeoInfoResponseConfiguration;
+import org.prebid.server.geolocation.model.GeoInfoConfiguration;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class ConfigurationGeoLocationServiceTest {
     @Test
     public void lookupShouldReturnSucceededFuture() {
         // given
-        final List<GeoInfoResponseConfiguration> configs = singletonList(GeoInfoResponseConfiguration.of(
+        final List<GeoInfoConfiguration> configs = singletonList(GeoInfoConfiguration.of(
                 "192.",
                 GeoInfo.builder()
                         .vendor(StringUtils.EMPTY)
@@ -49,7 +49,7 @@ public class ConfigurationGeoLocationServiceTest {
     @Test
     public void lookupShouldReturnFailedFuture() {
         // given
-        final List<GeoInfoResponseConfiguration> configs = emptyList();
+        final List<GeoInfoConfiguration> configs = emptyList();
         final GeoLocationService target = new ConfigurationGeoLocationService(configs);
 
         // when

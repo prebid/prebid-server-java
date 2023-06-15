@@ -105,12 +105,12 @@ public class GeoLocationConfiguration {
 
         @Bean
         @ConfigurationProperties("geolocation.configurations")
-        public List<GeoInfoResponseConfiguration> configurations() {
+        public List<GeoInfoConfiguration> configurations() {
             return new ArrayList<>();
         }
 
         @Bean
-        public GeoLocationService configurationGeoLocationService(List<GeoInfoResponseConfiguration> configs) {
+        public GeoLocationService configurationGeoLocationService(List<GeoInfoConfiguration> configs) {
             return new ConfigurationGeoLocationService(
                     configs.stream()
                             .filter(config -> config != null && config.getAddressPattern() != null)
@@ -118,12 +118,12 @@ public class GeoLocationConfiguration {
                             .toList());
         }
 
-        private static org.prebid.server.geolocation.model.GeoInfoResponseConfiguration from(
-                GeoInfoResponseConfiguration config) {
+        private static org.prebid.server.geolocation.model.GeoInfoConfiguration from(
+                GeoInfoConfiguration config) {
 
             final GeoInfo geoInfo = config.getGeoInfo();
 
-            return org.prebid.server.geolocation.model.GeoInfoResponseConfiguration.of(
+            return org.prebid.server.geolocation.model.GeoInfoConfiguration.of(
                     config.getAddressPattern(),
                     geoInfo != null
                             ? org.prebid.server.geolocation.model.GeoInfo.builder()
@@ -144,7 +144,7 @@ public class GeoLocationConfiguration {
         }
 
         @Data
-        static class GeoInfoResponseConfiguration {
+        static class GeoInfoConfiguration {
 
             String addressPattern;
 
