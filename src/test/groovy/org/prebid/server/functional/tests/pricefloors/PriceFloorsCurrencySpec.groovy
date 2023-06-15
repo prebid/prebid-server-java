@@ -26,13 +26,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
     protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
-            .setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse().tap {
-                conversions = [(USD): [(EUR): 0.9124920156948626,
-                                       (GBP): 0.793776804452961],
-                               (GBP): [(USD): 1.2597999770088517,
-                                       (EUR): 1.1495574203931487],
-                               (EUR): [(USD): 1.3429368029739777]]
-            })
+
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -157,7 +151,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
     }
 
-    def  "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
+    def "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
         def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["currency-converter.external-rates.enabled": "false"])
@@ -303,6 +297,15 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Set currency response"
+        currencyConversion.setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse().tap {
+            conversions = [(USD): [(EUR): 0.9124920156948626,
+                                   (GBP): 0.793776804452961],
+                           (GBP): [(USD): 1.2597999770088517,
+                                   (EUR): 1.1495574203931487],
+                           (EUR): [(USD): 1.3429368029739777]]
+        })
 
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
