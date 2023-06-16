@@ -66,7 +66,6 @@ public class SetuidGppService {
                 tcfEuV2Privacy != null ? tcfEuV2Privacy.getConsent() : null);
 
         return updatedGdpr.isUpdated() || updatedConsent.isUpdated()
-
                 ? setuidContext.toBuilder()
                 .privacyContext(PrivacyContext.of(
                         privacy.toBuilder()
@@ -76,7 +75,6 @@ public class SetuidGppService {
                         privacyContext.getTcfContext(),
                         privacyContext.getIpAddress()))
                 .build()
-
                 : setuidContext;
     }
 

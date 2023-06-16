@@ -22,8 +22,7 @@ public class BidRequestActivityCallPayload implements GeoActivityCallPayload {
 
     @Override
     public String country() {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getDevice)
+        return Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getCountry)
                 .orElse(null);
@@ -31,8 +30,7 @@ public class BidRequestActivityCallPayload implements GeoActivityCallPayload {
 
     @Override
     public String region() {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getDevice)
+        return Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getRegion)
                 .orElse(null);
