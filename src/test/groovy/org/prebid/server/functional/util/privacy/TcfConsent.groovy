@@ -41,7 +41,7 @@ class TcfConsent implements ConsentString {
 
         private TCStringEncoder.Builder tcStringEncoder
 
-        Builder(TcfPolicyVersion tcfPolicyVersion = TcfPolicyVersion.TCF_V2) {
+        Builder(TcfPolicyVersion tcfPolicyVersion = TcfPolicyVersion.TCF_POLICY_V2) {
             tcStringEncoder = TCStringEncoder.newBuilder()
             setVersion(2)
             setTcfPolicyVersion(tcfPolicyVersion.value)
@@ -104,9 +104,9 @@ class TcfConsent implements ConsentString {
 
     enum TcfPolicyVersion {
 
-        TCF_V2(2),
-        TCF_V3(4),
-        TCF_INVALID(63)
+        TCF_POLICY_V2(2),
+        TCF_POLICY_V3(4),
+        TCF_POLICY_INVALID(63)
 
         final int value
 

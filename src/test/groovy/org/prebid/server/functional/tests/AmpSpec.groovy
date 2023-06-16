@@ -13,9 +13,9 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_INVALID
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_V2
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_V3
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_INVALID
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class AmpSpec extends BaseSpec {
 
@@ -162,7 +162,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
-    def "PBS cookie sync with proper tcf parameter should process request and display metrics for tcf and gvl"() {
+    def "PBS cookie sync with proper consent.tcfPolicyVersion parameter should process request and display metrics for tcf and gvl"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
@@ -188,20 +188,20 @@ class AmpSpec extends BaseSpec {
 
         and: "Metric should contain tcf and gvl requests"
         def metric = defaultPbsService.sendCollectedMetricsRequest()
-        assert metric["privacy.tcf.v%d.requests".formatted(tcfVersion.equivalentVendorListVersion)] == 1
-        assert metric["privacy.gvl.v%d.requests".formatted(tcfVersion.equivalentVendorListVersion)] == 1
+        assert metric["privacy.tcf.v2.requests"] == 1
+        assert metric["privacy.gvl.v2.requests"] == 1
 
         where:
-        tcfVersion << [TCF_V2, TCF_V3]
+        tcfVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
-    def "PBS cookie sync with invalid tcf parameter should reject request and update metrics"() {
+    def "PBS cookie sync with invalid consent.tcfPolicyVersion parameter should reject request and update metrics"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
         and: "Default stored request with gpp"
         def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(TCF_INVALID.value)
+                .setTcfPolicyVersion(TCF_POLICY_INVALID.value)
                 .build()
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             site = Site.defaultSite
@@ -221,7 +221,7 @@ class AmpSpec extends BaseSpec {
 
         and: "Metric should contain tcf and gvl blocked"
         def metric = defaultPbsService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 1
-        assert metric["cookie_sync.generic.gvl.blocked"] == 1
+        assert metric["privacy.tcf.v2.vendorlist.missing"] == 1
+        assert metric["privacy.gvl.v2.vendorlist.missing"] == 1
     }
 }
