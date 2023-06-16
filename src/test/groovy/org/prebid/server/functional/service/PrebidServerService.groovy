@@ -329,7 +329,6 @@ class PrebidServerService implements ObjectMapperWrapper {
             cookies.put(UIDS_COOKIE_NAME, Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
         }
 
-
         postCookieSync(cookieSyncRequest, cookies, header)
     }
 
