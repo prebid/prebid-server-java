@@ -30,9 +30,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     private final static int INVALID_STATUS_CODE = 451
     private final static String INVALID_STATUS_MESSAGE = "Unavailable For Legal Reasons."
 
-    private static final Map<String, String> GEO_LOCATION = ["geolocation.enabled"                       : "true",
-                                                             "geolocation.type"                          : "configuration",
-                                                             "geolocation.configurations.address-pattern": "209."]
+    private static final Map<String, String> GEO_LOCATION = ["geolocation.enabled"                           : "true",
+                                                             "geolocation.type"                              : "configuration",
+                                                             "geolocation.configurations.[0].address-pattern": "209."]
 
     def "PBS cookie sync call when bidder allowed in activities should include proper responded with bidders URLs and update processed metrics"() {
         given: "Cookie sync request with link to account"
@@ -560,8 +560,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS cookie sync should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.country": countyConfig,
-                 "geolocation.configurations.geo-info.region" : regionConfig])
+                ["geolocation.configurations.geo-info.[0].country": countyConfig,
+                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
@@ -612,8 +612,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.country": countyConfig,
-                 "geolocation.configurations.geo-info.region" : regionConfig])
+                ["geolocation.configurations.geo-info.[0].country": countyConfig,
+                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
@@ -663,8 +663,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS set uid should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.country": countyConfig,
-                 "geolocation.configurations.geo-info.region" : regionConfig])
+                ["geolocation.configurations.geo-info.[0].country": countyConfig,
+                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
@@ -719,8 +719,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS set uid should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.country": countyConfig,
-                 "geolocation.configurations.geo-info.region" : regionConfig])
+                ["geolocation.configurations.geo-info.[0].country": countyConfig,
+                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
