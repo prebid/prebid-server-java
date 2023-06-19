@@ -233,7 +233,7 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resolveTcfContextShould() {
+    public void resolveTcfContextShouldTreatTcfConsentWithTcfPolicyVersionGreaterThanFourAsCorrupted() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .enabled(true)
