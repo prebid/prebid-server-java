@@ -535,7 +535,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with cookie sync and allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -588,7 +588,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with cookie sync and allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -642,7 +642,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -698,7 +698,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -751,7 +751,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 

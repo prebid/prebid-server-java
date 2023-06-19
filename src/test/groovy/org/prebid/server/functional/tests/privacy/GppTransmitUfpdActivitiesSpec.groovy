@@ -586,7 +586,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Save account config with allow activities into DB"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -646,7 +646,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Save account config with allow activities into DB"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -703,7 +703,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
@@ -767,7 +767,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
+        and: "Set up account for allow activities"
         def account = getAccountWithAllowActivities(accountId, activities)
         accountDao.save(account)
 
