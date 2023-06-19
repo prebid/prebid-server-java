@@ -175,12 +175,11 @@ public class Tcf2ServiceTest extends VertxTest {
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(bidderCatalog).nameByVendorId(1);
-        verify(tcString).getVendorListVersion();
         verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
     }
 
     @Test
-    public void permissionsForShouldReturnByGdprPurposeAndDowngradeToBasicTypeWhenVendorListServiceIsFailed() {
+    public void permissionsForShouldReturnByGdprPurposeAndDowngradeToBasicTypeWhenVendorListServiceFailed() {
         // given
         given(vendorListService.forConsent(any())).willReturn(Future.failedFuture("Bad version"));
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
@@ -207,8 +206,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(bidderCatalog).nameByVendorId(1);
-        verify(tcString).getVendorListVersion();
-        verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
+        verify(vendorListService).forConsent(any());
     }
 
     @Test
@@ -238,7 +236,6 @@ public class Tcf2ServiceTest extends VertxTest {
                 accountPurposeOne,
                 singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, Vendor.empty(null))),
                 false);
-        verify(tcString).getVendorListVersion();
         verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
     }
 
@@ -302,7 +299,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission2, expectedVendorPermission1));
 
         verify(vendorIdResolver, times(2)).resolve(anyString());
-        verify(tcString).getVendorListVersion();
+        verify(vendorListService).forConsent(any());
 
         assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
     }
@@ -333,7 +330,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission2, expectedVendorPermission1));
 
         verify(vendorIdResolver, times(2)).resolve(anyString());
-        verify(tcString).getVendorListVersion();
+        verify(vendorListService).forConsent(any());
     }
 
     @Test
@@ -359,7 +356,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission1, expectedVendorPermission2));
 
         verify(bidderCatalog, times(2)).nameByVendorId(anyInt());
-        verify(tcString).getVendorListVersion();
+        verify(vendorListService).forConsent(any());
 
         verifyNoMoreInteractions(bidderCatalog);
     }
