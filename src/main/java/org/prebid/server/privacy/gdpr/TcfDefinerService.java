@@ -347,8 +347,8 @@ public class TcfDefinerService {
         }
 
         final int tcfPolicyVersion = tcString.getTcfPolicyVersion();
-        // disable support for tcf policy version >= 4
-        if (tcfPolicyVersion >= 4) {
+        // disable support for tcf policy version > 4
+        if (tcfPolicyVersion > 4) {
             warnings.add("Parsing consent string: %s failed. TCF policy version %d is not supported".formatted(
                     consentString, tcfPolicyVersion));
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
