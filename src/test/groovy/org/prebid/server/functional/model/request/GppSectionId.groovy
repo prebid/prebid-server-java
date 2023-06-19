@@ -1,8 +1,13 @@
 package org.prebid.server.functional.model.request
 
+import org.prebid.server.functional.util.PBSUtils
+
 enum GppSectionId {
 
-    TCF_EU_V2("2"), USP_V1("6")
+    TCF_EU_V2("2"),
+    USP_V1("6"),
+    UNKNOWN(PBSUtils.randomNumber.toString()),
+    INVALID(PBSUtils.getRandomString())
 
     final String value
 
@@ -10,7 +15,7 @@ enum GppSectionId {
         this.value = value
     }
 
-    Integer getIntValue(){
+    Integer getIntValue() {
         value.toInteger()
     }
 }
