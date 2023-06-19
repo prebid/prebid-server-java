@@ -22,8 +22,8 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.Feature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -50,7 +50,7 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
-public class VendorListServiceV2Test extends VertxTest {
+public class VendorListServiceTest extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
     private static final long REFRESH_MISSING_LIST_PERIOD_MS = 3600000L;
@@ -70,7 +70,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private VendorListService<VendorList, Vendor> vendorListService;
+    private VendorListService vendorListService;
 
     @Before
     public void setUp() throws JsonProcessingException {
@@ -81,15 +81,13 @@ public class VendorListServiceV2Test extends VertxTest {
         given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
 
-        vendorListService = new VendorListServiceV2(
+        vendorListService = new VendorListService(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
                 false,
-                null,
                 FALLBACK_VENDOR_LIST_PATH,
-                bidderCatalog,
                 vertx,
                 fileSystem,
                 httpClient,
@@ -106,15 +104,13 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV2(
+                () -> new VendorListService(
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
-                        null,
                         FALLBACK_VENDOR_LIST_PATH,
-                        bidderCatalog,
                         vertx,
                         fileSystem,
                         httpClient,
@@ -126,15 +122,13 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
         // given
-        vendorListService = new VendorListServiceV2(
+        vendorListService = new VendorListService(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
                 true,
-                null,
                 FALLBACK_VENDOR_LIST_PATH,
-                bidderCatalog,
                 vertx,
                 fileSystem,
                 httpClient,
@@ -161,15 +155,13 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
-        assertThatThrownBy(() -> new VendorListServiceV2(
+        assertThatThrownBy(() -> new VendorListService(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
                 true,
                 null,
-                null,
-                bidderCatalog,
                 vertx,
                 fileSystem,
                 httpClient,
@@ -186,15 +178,13 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV2(
+                () -> new VendorListService(
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
-                        null,
                         FALLBACK_VENDOR_LIST_PATH,
-                        bidderCatalog,
                         vertx,
                         fileSystem,
                         httpClient,
@@ -212,15 +202,13 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV2(
+                () -> new VendorListService(
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
-                        null,
                         FALLBACK_VENDOR_LIST_PATH,
-                        bidderCatalog,
                         vertx,
                         fileSystem,
                         httpClient,
@@ -238,15 +226,14 @@ public class VendorListServiceV2Test extends VertxTest {
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV2(
+                () -> new VendorListService(
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
-                        null,
                         FALLBACK_VENDOR_LIST_PATH,
-                        bidderCatalog, vertx,
+                        vertx,
                         fileSystem,
                         httpClient,
                         metrics,

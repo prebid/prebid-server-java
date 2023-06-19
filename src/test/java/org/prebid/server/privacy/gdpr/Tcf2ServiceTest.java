@@ -15,6 +15,8 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
@@ -39,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -60,7 +63,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private VendorListServiceV2 vendorListService;
+    private VersionedVendorListService vendorListService;
     @Mock
     private PurposeStrategy purposeStrategyOne;
     @Mock
@@ -108,7 +111,7 @@ public class Tcf2ServiceTest extends VertxTest {
         given(specialFeaturesStrategyOne.getSpecialFeatureId()).willReturn(1);
         specialFeaturesStrategies = singletonList(specialFeaturesStrategyOne);
 
-        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
+        given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(emptyMap()));
 
         initPurposes();
         initSpecialFeatures();
@@ -173,13 +176,13 @@ public class Tcf2ServiceTest extends VertxTest {
 
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
-        verify(vendorListService).forVersion(10);
+        verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
     }
 
     @Test
     public void permissionsForShouldReturnByGdprPurposeAndDowngradeToBasicTypeWhenVendorListServiceIsFailed() {
         // given
-        given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("Bad version"));
+        given(vendorListService.forConsent(any())).willReturn(Future.failedFuture("Bad version"));
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
 
         // when
@@ -205,7 +208,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
-        verify(vendorListService).forVersion(10);
+        verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
     }
 
     @Test
@@ -236,7 +239,7 @@ public class Tcf2ServiceTest extends VertxTest {
                 singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, Vendor.empty(null))),
                 false);
         verify(tcString).getVendorListVersion();
-        verify(vendorListService).forVersion(10);
+        verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
     }
 
     @Test
