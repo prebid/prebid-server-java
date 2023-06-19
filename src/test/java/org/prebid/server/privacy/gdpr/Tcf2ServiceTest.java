@@ -15,7 +15,6 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.settings.model.AccountGdprConfig;
