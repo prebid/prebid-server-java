@@ -15,12 +15,13 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.pricefloors.Country.*
+import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.util.privacy.model.States.ALABAMA
-import static org.prebid.server.functional.util.privacy.model.States.ONTARIO
+import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
+import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 
 class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
@@ -538,11 +539,11 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
-        deviceGeo                                              | conditionGeo
-        null                                                   | ["$USA.value".toString()]
-        new Geo(country: USA)                                  | null
-        new Geo(region: "$ALABAMA.abbreviation")               | ["$USA.value.$ALABAMA.abbreviation".toString()]
-        new Geo(country: CAN, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        deviceGeo                                           | conditionGeo
+        null                                                | [USA.value]
+        new Geo(country: USA)                               | null
+        new Geo(region: ALABAMA.abbreviation)               | [USA.withState(ALABAMA)]
+        new Geo(country: CAN, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
     }
 
     def "PBS auction should disallowed rule when device.geo intersection"() {
@@ -586,10 +587,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA)                               | ["$USA".toString()]
-        new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CAN.$ONTARIO.abbreviation".toString(),
-                                                               "$USA.$ALABAMA.abbreviation".toString()]
+        new Geo(country: USA)                               | [USA.value]
+        new Geo(country: USA)                               | [USA.withState(ALABAMA)]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
     }
 }

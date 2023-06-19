@@ -2,11 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.Activity
-import org.prebid.server.functional.model.request.auction.ActivityRule
-import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Condition
-import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.*
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -17,8 +13,8 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.util.privacy.model.States.ALABAMA
-import static org.prebid.server.functional.util.privacy.model.States.ONTARIO
+import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
+import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
 class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
@@ -667,10 +663,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
 
         where:
-        deviceGeo                                              | conditionGeo
-        new Geo(country: USA,)                                 | null
-        new Geo(region: "$ALABAMA.abbreviation")               | ["$USA.value.$ALABAMA.abbreviation".toString()]
-        new Geo(country: CANADA, region: ALABAMA.abbreviation) | ["$USA.value.$ALABAMA.abbreviation".toString()]
+        deviceGeo                                           | conditionGeo
+        new Geo(country: USA,)                              | null
+        new Geo(region: ALABAMA.abbreviation)               | [USA.withState(ALABAMA)]
+        new Geo(country: CAN, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
     }
 
     def "PBS auction should process rule when device.geo is null and doesn't intersection"() {
@@ -778,10 +774,9 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA)                               | ["$USA".toString()]
-        new Geo(country: USA)                               | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$USA.$ALABAMA.abbreviation".toString()]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | ["$CAN.$ONTARIO.abbreviation".toString(),
-                                                               "$USA.$ALABAMA.abbreviation".toString()]
+        new Geo(country: USA)                               | [USA.value]
+        new Geo(country: USA)                               | [USA.withState(ALABAMA)]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
     }
 }

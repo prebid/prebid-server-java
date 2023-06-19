@@ -313,7 +313,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         postCookieSync(cookieSyncRequest, null, header)
     }
 
-
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
                                     UidsCookie uidsCookie = null,
                                     Map<String, ?> additionalCookies = null,
@@ -336,9 +335,9 @@ class PrebidServerService implements ObjectMapperWrapper {
                                     Map<String, ?> cookies,
                                     Map<String, String> headers) {
         given(requestSpecification).body(encode(cookieSyncRequest))
-                                    .cookies(cookies)
-                                    .headers(headers)
-                                    .post(COOKIE_SYNC_ENDPOINT)
+                                   .cookies(cookies)
+                                   .headers(headers)
+                                   .post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
