@@ -58,7 +58,7 @@ class GppSetuidSpec extends PrivacyBaseSpec {
         given: "Set uid request with invalid GPP"
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.gpp = gpp
-            it.gppSid = gppSid
+            it.gppSid = [UNKNOWN]
             it.uid = UUID.randomUUID().toString()
             it.gdpr = null
             it.gdprConsent = null
@@ -71,19 +71,22 @@ class GppSetuidSpec extends PrivacyBaseSpec {
         assert response.uidsCookie.tempUIDs[GENERIC]
 
         where:
-        gpp                                                  | gppSid
-        new UspV1Consent.Builder().build().encodeSection()   | [UNKNOWN]
-        new TcfEuV2Consent.Builder().build().encodeSection() | [UNKNOWN]
+        gpp << [new UspV1Consent.Builder().build().encodeSection(),
+                new TcfEuV2Consent.Builder().build().encodeSection()]
     }
 
     def "PBS setUid should reject request by TcfEuV2 when gpp, gppSid valid"() {
         given: "Set uid request with invalid GPP"
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.gpp = new TcfEuV2Consent.Builder().setVendorLegitimateInterest([GENERIC_VENDOR_ID]).build().encodeSection()
+            def tcfEuV2Consent = new TcfEuV2Consent.Builder()
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+                    .encodeSection()
+            it.gpp = tcfEuV2Consent
             it.gppSid = [TCF_EU_V2]
             it.uid = UUID.randomUUID().toString()
             it.gdpr = 1
-            it.gdprConsent = new TcfEuV2Consent.Builder().setVendorLegitimateInterest([GENERIC_VENDOR_ID]).build().encodeSection()
+            it.gdprConsent = tcfEuV2Consent
         }
 
         when: "PBS processes send uid request"

@@ -33,12 +33,6 @@ class SetuidRequest {
 
     @JsonSetter
     void setGppSid(List<GppSectionId> sectionIds) {
-        StringBuilder stringBuilder = new StringBuilder()
-        for (sectionId in sectionIds) {
-            if (sectionId) {
-                stringBuilder.append(sectionId.value)
-            }
-        }
-        this.gppSid = stringBuilder.toString()
+        this.gppSid = sectionIds.findAll { it }.collect { it.value }.join(",")
     }
 }
