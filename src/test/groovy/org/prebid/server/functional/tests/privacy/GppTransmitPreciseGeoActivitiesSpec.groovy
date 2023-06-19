@@ -2,7 +2,11 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.*
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -664,7 +668,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA,)                              | null
+        new Geo(country: USA,) | null
         new Geo(region: ALABAMA.abbreviation)               | [USA.withState(ALABAMA)]
         new Geo(country: CAN, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
     }
