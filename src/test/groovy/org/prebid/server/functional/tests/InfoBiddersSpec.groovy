@@ -5,26 +5,26 @@ import org.prebid.server.functional.util.PBSUtils
 
 class InfoBiddersSpec extends BaseSpec {
 
-    def "PBS should get info about active bidders when enabledonly = #enabledonly"() {
+    def "PBS should get info about active bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest("true")
+        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
 
         then: "Response should contain only generic bidder"
         assert response == ["generic"]
 
         where:
-        enabledonly << ["true", "True", "truE"]
+        enabledOnly << ["true", "True", "truE"]
     }
 
-    def "PBS should get info about all bidders when enabledonly = #enabledonly"() {
+    def "PBS should get info about all bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest("false")
+        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
 
         then: "Response should contain info about all bidders"
         assert response.size() > 1
 
         where:
-        enabledonly << ["false", "False", "falsE"]
+        enabledOnly << ["false", "False", "falsE"]
     }
 
     def "PBS should get info about all bidders when enabledonly isn't passed"() {
@@ -35,16 +35,16 @@ class InfoBiddersSpec extends BaseSpec {
         assert response.size() > 1
     }
 
-    def "PBS should return error when enabledonly is incorrect"() {
+    def "PBS should return error when enabledOnly is incorrect"() {
         when: "PBS processes bidders info request"
-        defaultPbsService.sendInfoBiddersRequest(enabledonly)
+        defaultPbsService.sendInfoBiddersRequest(enabledOnly)
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid value for 'enabledonly' query param, must be of boolean type"
+        assert exception.responseBody == "Invalid value for 'enabledOnly' query param, must be of boolean type"
 
         where:
-        enabledonly << [PBSUtils.randomString, ""]
+        enabledOnly << [PBSUtils.randomString, ""]
     }
 }
