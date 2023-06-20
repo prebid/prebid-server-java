@@ -11,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.adhese.model.AdheseOriginData;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -80,12 +79,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
             }
 
             final Bid bid = optionalBid.get();
-            final AdheseOriginData originData = toObjectOfType(bid.getExt().get("adhese"), AdheseOriginData.class);
-            final Bid modifiedBid = bid.toBuilder()
-                    .ext(mapper.mapper().valueToTree(originData)) // unwrap from "adhese"
-                    .build();
-
-            final BidderBid bidderBid = BidderBid.of(modifiedBid, getBidType(bidRequest), bidResponse.getCur());
+            final BidderBid bidderBid = BidderBid.of(bid, getBidType(bidRequest), bidResponse.getCur());
 
             return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {

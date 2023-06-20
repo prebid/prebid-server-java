@@ -254,7 +254,7 @@ public class AdheseBidderTest extends VertxTest {
         final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
                 "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
         final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
-        final ObjectNode adheseExtNode = mapper.createObjectNode().set("adhese", adheseOriginDataNode);
+        final ObjectNode extNode = adheseOriginDataNode.deepCopy();
         final Bid bid = Bid.builder()
                 .id("bidId")
                 .impid("impId")
@@ -263,7 +263,7 @@ public class AdheseBidderTest extends VertxTest {
                 .dealid("888")
                 .w(728)
                 .h(90)
-                .ext(adheseExtNode)
+                .ext(extNode)
                 .build();
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder().bid(singletonList(bid)).build()))
