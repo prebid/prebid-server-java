@@ -1,0 +1,32 @@
+{
+  "ip": "123.123.123.124",
+  "placements": [
+    {
+      "adTypes": [
+        5061
+      ],
+      "count": 1,
+      "divName": "inline",
+      "prebid": {
+        "requestId": "imp_id",
+        "creativeType": "DTX",
+        "publisherNameIdentifier": "wishabi-test-publisher"
+      },
+      "siteId": 1243066,
+      "zoneIds": [
+        285431
+      ],
+      "properties": {
+        "contentCode": "publisher-test-2"
+      },
+      "options": {
+        "startCompact": true,
+        "contentCode": "publisher-test-2"
+      }
+    }
+  ],
+  "url": "http://www.example.com",
+  "user": {
+    "key": "123-123"
+  }
+}

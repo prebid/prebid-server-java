@@ -15,6 +15,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -40,6 +41,7 @@ public class GenericBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .body(mapper.encodeToBytes(bidRequest))
+                        .impIds(BidderUtil.impIds(bidRequest))
                         .payload(bidRequest)
                         .build());
     }

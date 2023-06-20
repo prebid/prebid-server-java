@@ -1,0 +1,17 @@
+adapters:
+  suntContent:
+    endpoint: https://b.suntcontent.se/cds/rtb/bid?ssp=pbs
+    meta-info:
+      maintainer-email: tech@seeding-alliance.de
+      app-media-types:
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 1097
+    usersync:
+      cookie-family-name: suntContent
+      redirect:
+        url: https://dmp.suntcontent.se/set-uuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect_url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

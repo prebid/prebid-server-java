@@ -12,6 +12,9 @@ public class AdnuntiusAd {
 
     AdnuntiusBid bid;
 
+    @JsonProperty("dealId")
+    String dealId;
+
     @JsonProperty("adId")
     String adId;
 

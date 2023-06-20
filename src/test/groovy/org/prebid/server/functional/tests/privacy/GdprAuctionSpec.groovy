@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -11,13 +12,15 @@ import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def setupSpec() {
-        cacheVendorList()
+        cacheVendorList(privacyPbsService)
     }
 
     @PendingFeature
@@ -31,7 +34,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(validConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain debug log"
         assert response.ext?.debug?.privacy
@@ -67,7 +70,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(invalidConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.errors"
         assert !response.ext?.errors
@@ -150,7 +153,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -174,7 +177,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -216,5 +219,28 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         WEB            | PBJS
         PBJS           | WEB
         PBJS           | PBJS
+    }
+
+    def "PBS should populate seatNonBid when bidder is rejected by privacy"() {
+        given: "Default basic BidRequest with banner"
+        def validConsentString = new TcfConsent.Builder().build()
+        def bidRequest = getGdprBidRequest(validConsentString).tap {
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contains seatNonBid"
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REJECTED_BY_PRIVACY
+
+        and: "seatbid should be empty"
+        assert response.seatbid.isEmpty()
     }
 }

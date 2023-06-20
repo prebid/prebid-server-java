@@ -45,6 +45,7 @@ public final class HttpUtil {
                     + StandardCharsets.UTF_8.toString().toLowerCase();
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
+    public static final CharSequence X_REAL_IP_HEADER = HttpHeaders.createOptimized("X-Real-Ip");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
     public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");

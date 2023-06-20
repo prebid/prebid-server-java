@@ -31,10 +31,6 @@ class GppContextUtils {
     }
 
     static void withPrivacy(GppContext.Regions.RegionsBuilder regionsBuilder, Privacy privacy) {
-        if (privacy == null) {
-            throw new IllegalArgumentException("Privacy cannot be null");
-        }
-
         if (privacy instanceof TcfEuV2Privacy tcfEuV2Privacy) {
             regionsBuilder.tcfEuV2Privacy(tcfEuV2Privacy);
         } else if (privacy instanceof UspV1Privacy uspV1Privacy) {

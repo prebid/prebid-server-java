@@ -1,13 +1,15 @@
 package org.prebid.server.bidder.sharethrough;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.bidder.Bidder;
@@ -40,8 +42,8 @@ import java.util.Objects;
 public class SharethroughBidder implements Bidder<BidRequest> {
 
     private static final String ADAPTER_VERSION = "10.0";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final BidType DEFAULT_BID_TYPE = BidType.banner;
+    private static final String BID_CURRENCY = "USD";
+    private static final JsonPointer BID_TYPE_POINTER = JsonPointer.valueOf("/prebid/type");
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -107,9 +109,9 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 bidFloorPrice.getValue(),
                 bidRequest,
                 bidFloorPrice.getCurrency(),
-                DEFAULT_BID_CURRENCY);
+                BID_CURRENCY);
 
-        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+        return Price.of(BID_CURRENCY, convertedPrice);
     }
 
     private static Imp modifyImp(Imp imp, String tagId, Price bidFloorPrice) {
@@ -167,32 +169,24 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encodeToBytes(request))
-                .build();
+        return BidderUtil.defaultRequest(request, endpointUrl, mapper);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final BidType bidType = resolveBidType(httpCall.getRequest().getPayload());
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final BidResponse bidResponse;
 
-            return Result.withValues(extractBids(bidResponse, bidType));
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+
+        final List<BidderError> errors = new ArrayList<>();
+        return Result.of(extractBids(bidResponse, errors), errors);
     }
 
-    private static BidType resolveBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
-    }
-
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidType bidType) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -202,7 +196,34 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY))
+                .filter(Objects::nonNull)
+                .map(bid -> constructBidderBid(bid, errors))
+                .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private BidderBid constructBidderBid(Bid bid, List<BidderError> errors) {
+        final JsonNode extNode = bid.getExt();
+        final JsonNode bidTypeNode = extNode != null ? extNode.at(BID_TYPE_POINTER) : null;
+
+        if (bidTypeNode == null || !bidTypeNode.isTextual()) {
+            errors.add(BidderError.badServerResponse(
+                    "Failed to parse bid media type for impression " + bid.getImpid()));
+            return null;
+        }
+
+        final BidType bidType = parseBidType(bidTypeNode, errors);
+        return bidType != null
+                ? BidderBid.of(bid, bidType, BID_CURRENCY)
+                : null;
+    }
+
+    private BidType parseBidType(JsonNode bidTypeNode, List<BidderError> errors) {
+        try {
+            return mapper.mapper().convertValue(bidTypeNode, BidType.class);
+        } catch (IllegalArgumentException ignore) {
+            errors.add(BidderError.badServerResponse("invalid BidType: " + bidTypeNode.asText()));
+            return null;
+        }
     }
 }

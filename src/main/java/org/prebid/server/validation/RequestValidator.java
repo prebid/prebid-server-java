@@ -36,6 +36,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -561,10 +562,6 @@ public class RequestValidator {
 
             final List<Eid> eids = user.getEids();
             if (eids != null) {
-                if (eids.isEmpty()) {
-                    throw new ValidationException(
-                            "request.user.eids must contain at least one element or be undefined");
-                }
                 for (int index = 0; index < eids.size(); index++) {
                     final Eid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -673,7 +670,9 @@ public class RequestValidator {
         try {
             return mapper.mapper().readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
-            throw new ValidationException("Error while parsing request.imp[%d].native.request", impIndex);
+            throw new ValidationException("Error while parsing request.imp[%d].native.request: %s",
+                    impIndex,
+                    ExceptionUtils.getMessage(e));
         }
     }
 

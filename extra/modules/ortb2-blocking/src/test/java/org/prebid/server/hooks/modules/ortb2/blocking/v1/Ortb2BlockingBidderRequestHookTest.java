@@ -161,10 +161,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         });
 
         final PayloadUpdate<BidderRequestPayload> payloadUpdate = invocationResult.payloadUpdate();
-        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder()
-                .badv(singletonList("overriddendomain1.com"))
-                .bcat(singletonList("overriddencat1"))
-                .build());
+        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder().build());
         assertThat(payloadUpdate.apply(payloadToUpdate)).isEqualTo(BidderRequestPayloadImpl.of(
                 BidRequest.builder()
                         .badv(singletonList("domain1.com"))

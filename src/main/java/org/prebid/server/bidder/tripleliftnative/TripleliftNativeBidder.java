@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -25,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -78,14 +78,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .imp(validImps)
                 .build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .body(mapper.encodeToBytes(updatedRequest))
-                                .headers(HttpUtil.headers())
-                                .payload(updatedRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(updatedRequest, endpointUrl, mapper)),
                 errors);
     }
 

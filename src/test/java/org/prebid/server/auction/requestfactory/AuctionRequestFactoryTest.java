@@ -132,7 +132,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(auctionGppService.apply(any(), any()))
+        given(auctionGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(auctionGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -171,6 +172,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -417,7 +420,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final JsonNode eidPermissionNode = mapper.convertValue(
                 ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
 
-        requestNode.with("ext").with("prebid").with("data").set("eidpermissions", eidPermissionNode);
+        requestNode
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
+                .set("eidpermissions", eidPermissionNode);
 
         given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
 
@@ -449,9 +456,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         eidPermissionNode.put("bidders", "notArrayValue");
 
         final ArrayNode arrayNode = requestNode
-                .with("ext")
-                .with("prebid")
-                .with("data")
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
                 .putArray("eidpermissions");
         arrayNode.add(eidPermissionNode);
 

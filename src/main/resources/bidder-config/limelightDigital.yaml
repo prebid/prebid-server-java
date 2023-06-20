@@ -1,0 +1,27 @@
+adapters:
+  limelightDigital:
+    endpoint: http://ads-pbs.ortb.net/openrtb/{{PublisherID}}?host={{Host}}
+    aliases:
+      iionads:
+        enabled: false
+        endpoint: http://ads-pbs.iionads.com/openrtb/{{PublisherID}}?host={{Host}}
+      evtech:
+        enabled: false
+        endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
+      adsyield:
+        enabled: false
+        endpoint: http://ads-pbs.open-adsyield.com/openrtb/{{PublisherID}}?host={{Host}}
+    meta-info:
+      maintainer-email: engineering@project-limelight.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 0

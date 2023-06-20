@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -19,6 +20,7 @@ import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -205,6 +207,8 @@ public class PrivacyExtractorTest extends VertxTest {
         final HttpServerRequest request = mock(HttpServerRequest.class);
         given(request.getParam(eq("gdpr"))).willReturn("0");
         given(request.getParam(eq("gdpr_consent"))).willReturn("consent");
+        given(request.getParam(eq("gpp"))).willReturn("gpp");
+        given(request.getParam(eq("gpp_sid"))).willReturn("1,2");
 
         // when
         final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(request);
@@ -216,9 +220,20 @@ public class PrivacyExtractorTest extends VertxTest {
                         .consentString("consent")
                         .ccpa(Ccpa.EMPTY)
                         .coppa(0)
-                        .gpp("")
-                        .gppSid(emptyList())
+                        .gpp("gpp")
+                        .gppSid(List.of(1, 2))
                         .build());
+    }
+
+    @Test
+    public void shouldThrowExceptionOnInvalidGppSid() {
+        // given
+        final HttpServerRequest request = mock(HttpServerRequest.class);
+        given(request.getParam(eq("gpp_sid"))).willReturn("1-2");
+
+        // when and then
+        assertThatExceptionOfType(InvalidRequestException.class)
+                .isThrownBy(() -> privacyExtractor.validPrivacyFromSetuidRequest(request));
     }
 
     @Test

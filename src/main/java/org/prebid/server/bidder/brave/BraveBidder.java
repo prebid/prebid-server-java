@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -21,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brave.ExtImpBrave;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -60,14 +60,7 @@ public class BraveBidder implements Bidder<BidRequest> {
                 .imp(removeFirstImpExt(request.getImp()))
                 .build();
 
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build());
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, url, mapper));
     }
 
     private ExtImpBrave parseImpExt(Imp imp) {

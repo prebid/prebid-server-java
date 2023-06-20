@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import lombok.experimental.Delegate;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 
@@ -13,6 +14,8 @@ public class AuctionInvocationContextImpl implements AuctionInvocationContext {
 
     @Delegate
     InvocationContext invocationContext;
+
+    AuctionContext auctionContext;
 
     boolean debugEnabled;
 

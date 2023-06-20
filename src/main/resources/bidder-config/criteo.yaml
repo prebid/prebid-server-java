@@ -1,12 +1,23 @@
 adapters:
   criteo:
-    endpoint: https://bidder.criteo.com/cdb?profileId=230
+    endpoint: https://ssp-bidder.criteo.com/openrtb/pbs/auction/request?profile=230
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 91
-    generate-slot-id: true
+    usersync:
+      cookie-family-name: criteo
+      redirect:
+        url: https://ssp-sync.criteo.com/user-sync/redirect?gdprapplies={{gdpr}}&gdpr={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}&profile=230
+        support-cors: false
+        uid-macro: '${CRITEO_USER_ID}'
+      iframe:
+        url: https://ssp-sync.criteo.com/user-sync/iframe?gdprapplies={{gdpr}}&gdpr={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}&profile=230
+        support-cors: false
+        uid-macro: '${CRITEO_USER_ID}'

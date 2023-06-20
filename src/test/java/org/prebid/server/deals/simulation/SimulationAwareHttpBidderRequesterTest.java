@@ -16,6 +16,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -59,6 +60,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private BidderAliases bidderAliases;
+    @Mock
+    private BidRejectionTracker bidRejectionTracker;
     @Mock
     private BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory;
     @Mock
@@ -110,6 +113,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 .requestBids(
                         null,
                         bidderRequest,
+                        bidRejectionTracker,
                         null,
                         requestHeaders,
                         bidderAliases,
@@ -148,6 +152,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final Future<BidderSeatBid> result = bidderRequester.requestBids(
                 null,
                 bidderRequest,
+                bidRejectionTracker,
                 null,
                 requestHeaders,
                 bidderAliases,
@@ -186,6 +191,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final Future<BidderSeatBid> result = bidderRequester.requestBids(
                 null,
                 bidderRequest,
+                bidRejectionTracker,
                 null,
                 requestHeaders,
                 bidderAliases,
@@ -225,6 +231,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 .requestBids(
                         null,
                         bidderRequest,
+                        bidRejectionTracker,
                         null,
                         requestHeaders,
                         bidderAliases,
@@ -249,6 +256,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 .requestBids(
                         null,
                         bidderRequest,
+                        bidRejectionTracker,
                         null,
                         requestHeaders,
                         bidderAliases,
@@ -280,6 +288,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 .requestBids(
                         null,
                         bidderRequest,
+                        bidRejectionTracker,
                         null,
                         requestHeaders,
                         bidderAliases,

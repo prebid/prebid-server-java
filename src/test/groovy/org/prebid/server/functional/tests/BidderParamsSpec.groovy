@@ -23,7 +23,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
@@ -610,26 +609,6 @@ class BidderParamsSpec extends BaseSpec {
         then: "imp[].ext.tid object should be passed to a bidder"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp?.first()?.ext?.tid == tid
-    }
-
-    def "PBS should apply compression type for bidder alias when adapters.BIDDER.endpoint-compression = gzip"() {
-        given: "PBS with adapter configuration"
-        def compressionType = GZIP.value
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.generic.endpoint-compression": compressionType])
-
-        and: "Default bid request with alias"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = [("alias"): GENERIC]
-            imp[0].ext.prebid.bidder.alias = new Generic()
-        }
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain header Content-Encoding = gzip"
-        assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
-                       ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
     def "PBS auction should populate imp[0].secure depend which value in imp stored request"() {

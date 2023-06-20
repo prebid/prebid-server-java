@@ -35,7 +35,7 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    private final AuctionGppService gppProcessor;
+    private final AuctionGppService gppService;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
@@ -50,7 +50,7 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                                 AuctionGppService gppProcessor,
+                                 AuctionGppService gppService,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
@@ -63,7 +63,7 @@ public class AuctionRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
-        this.gppProcessor = Objects.requireNonNull(gppProcessor);
+        this.gppService = Objects.requireNonNull(gppService);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
@@ -98,6 +98,12 @@ public class AuctionRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> gppService.contextFrom(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
@@ -186,7 +192,7 @@ public class AuctionRequestFactory {
 
         return Future.succeededFuture(auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> gppProcessor.apply(bidRequest, auctionContext))
+                .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(
                         bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
     }

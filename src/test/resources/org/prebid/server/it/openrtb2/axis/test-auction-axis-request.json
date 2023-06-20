@@ -1,0 +1,31 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id1",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "axis": {
+              "integration": "intgrn",
+              "token": "tokenA"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

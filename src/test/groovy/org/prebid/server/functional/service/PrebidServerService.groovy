@@ -125,6 +125,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.as(CookieSyncResponse)
     }
 
+    @Step("[POST] /cookie_sync with headers")
+    CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, Map<String, String> headers) {
+        def response = postCookieSync(request, headers)
+
+        checkResponseStatusCode(response)
+        response.as(CookieSyncResponse)
+    }
+
     @Step("[POST] /cookie_sync with uids cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
         def response = postCookieSync(request, uidsCookie)
@@ -144,11 +152,12 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     @Step("[GET] /setuid")
-    SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie) {
+    SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie, Map header = [:]) {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
         def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
                                                   .queryParams(toMap(request))
+                                                  .headers(header)
                                                   .get(SET_UID_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -287,7 +296,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
-    PrebidServerService withWarmup(){
+    PrebidServerService withWarmup() {
         sendAuctionRequest(BidRequest.defaultBidRequest)
         this
     }
@@ -300,9 +309,14 @@ class PrebidServerService implements ObjectMapperWrapper {
                                    .post(AUCTION_ENDPOINT)
     }
 
+    private Response postCookieSync(CookieSyncRequest cookieSyncRequest, Map<String, String> header) {
+        postCookieSync(cookieSyncRequest, null, header)
+    }
+
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
                                     UidsCookie uidsCookie = null,
-                                    Map<String, ?> additionalCookies = null) {
+                                    Map<String, ?> additionalCookies = null,
+                                    Map<String, String> header = null) {
 
         def cookies = [:]
 
@@ -314,14 +328,24 @@ class PrebidServerService implements ObjectMapperWrapper {
             cookies.put(UIDS_COOKIE_NAME, Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
         }
 
-        postCookieSync(cookieSyncRequest, cookies)
+        postCookieSync(cookieSyncRequest, cookies, header)
     }
 
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
-                                    Map<String, ?> cookies) {
-        given(requestSpecification).body(encode(cookieSyncRequest))
-                                   .cookies(cookies)
-                                   .post(COOKIE_SYNC_ENDPOINT)
+                                    Map<String, ?> cookies,
+                                    Map<String, ?> headers) {
+        def requestSpecification = given(requestSpecification)
+                .body(encode(cookieSyncRequest))
+
+        if (cookies) {
+            requestSpecification.cookies(cookies)
+        }
+
+        if (headers) {
+            requestSpecification.headers(headers)
+        }
+
+        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
@@ -352,18 +376,16 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    List<String> getLogsByTime(Instant testStart,
-                               Instant testEnd = Instant.now()) {
-        if (!testEnd.isAfter(testStart)) {
+    List<String> getLogsByTime(Instant testStart, Instant testEnd = Instant.now()) {
+        if (testEnd.isBefore(testStart)) {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                                       .withZone(ZoneId.from(UTC))
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                         .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
-        def deltaTime = Duration.between(testStart, testEnd).seconds
+        def deltaTime = Duration.between(testStart, testEnd).plusSeconds(1).seconds
 
         for (int i = 0; i <= deltaTime; i++) {
             def time = testStart.plusSeconds(i)

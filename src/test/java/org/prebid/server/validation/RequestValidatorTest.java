@@ -2035,7 +2035,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidsIsEmpty() {
+    public void validateShouldNotReturnValidationMessageWhenEidsIsEmpty() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
@@ -2047,8 +2047,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.eids must contain at least one element or be undefined");
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -2245,7 +2244,10 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.imp[0].native.request");
+                .allSatisfy(error -> {
+                    assertThat(error)
+                            .startsWith("Error while parsing request.imp[0].native.request: JsonParseException:");
+                });
     }
 
     @Test

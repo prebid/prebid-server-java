@@ -5,7 +5,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -83,13 +82,7 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, List<Imp> imp) {
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imp).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {

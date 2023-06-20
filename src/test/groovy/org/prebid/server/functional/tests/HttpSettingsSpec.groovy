@@ -124,7 +124,6 @@ class HttpSettingsSpec extends BaseSpec {
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie.bday
         assert !response.uidsCookie.tempUIDs
         assert !response.uidsCookie.uids
         assert response.responseBody ==

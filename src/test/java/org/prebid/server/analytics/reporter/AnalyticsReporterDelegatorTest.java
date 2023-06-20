@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -18,8 +20,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
@@ -41,6 +48,8 @@ import static java.util.Collections.singleton;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
@@ -69,6 +78,9 @@ public class AnalyticsReporterDelegatorTest {
     private AnalyticsReporter secondReporter;
 
     private AnalyticsReporterDelegator target;
+
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     @Before
     public void setUp() {
@@ -269,6 +281,111 @@ public class AnalyticsReporterDelegatorTest {
 
         // then
         verify(vertx, never()).runOnContext(any());
+    }
+
+    @Test
+    public void shouldNotPassAuctionEventToDisallowedDelegates() {
+        // given
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
+                .willReturn(false);
+
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .activityInfrastructure(activityInfrastructure)
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(auctionEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, never()).runOnContext(any());
+    }
+
+    @Test
+    public void shouldNotPassAmpEventToDisallowedDelegates() {
+        // given
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
+                .willReturn(false);
+
+        final AmpEvent ampEvent = AmpEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .activityInfrastructure(activityInfrastructure)
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(ampEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, never()).runOnContext(any());
+    }
+
+    @Test
+    public void shouldNotPassNotificationEventToDisallowedDelegates() {
+        // given
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.REPORT_ANALYTICS),
+                argThat(argument -> argument.componentType().equals(ComponentType.ANALYTICS))))
+                .willReturn(false);
+
+        final NotificationEvent notificationEvent = NotificationEvent.builder()
+                .activityInfrastructure(activityInfrastructure)
+                .build();
+
+        // when
+        target.processEvent(notificationEvent);
+
+        // then
+        verify(vertx, never()).runOnContext(any());
+    }
+
+    @Test
+    public void shouldUpdateAuctionEventToConsideringActivitiesRestrictions() {
+        // given
+        given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any())).willReturn(true);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
+
+        given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
+                .willReturn(User.builder().id("masked").build());
+        given(privacyEnforcementService.maskDeviceConsideringActivityRestrictions(any(), eq(true), eq(true)))
+                .willReturn(Device.builder().model("masked").build());
+
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder()
+                                .user(User.builder().id("original").build())
+                                .device(Device.builder().model("original").build())
+                                .build())
+                        .activityInfrastructure(activityInfrastructure)
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(auctionEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(secondReporter).processEvent(auctionEventCaptor.capture());
+        assertThat(auctionEventCaptor.getValue())
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .satisfies(bidRequest -> {
+                    assertThat(bidRequest.getUser())
+                            .extracting(User::getId)
+                            .isEqualTo("masked");
+
+                    assertThat(bidRequest.getDevice())
+                            .extracting(Device::getModel)
+                            .isEqualTo("masked");
+                });
     }
 
     @SuppressWarnings("unchecked")

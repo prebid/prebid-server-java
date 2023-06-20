@@ -7,13 +7,12 @@ import org.prebid.server.auction.gpp.model.privacy.Privacy;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 
-import java.util.List;
 import java.util.Set;
 
-public record GppContext(Scope scope, Regions regions, List<String> errors) {
+public record GppContext(Scope scope, Regions regions) {
 
     public GppContext with(Privacy privacy) {
-        return new GppContext(scope, GppContextUtils.withPrivacy(regions, privacy), errors);
+        return new GppContext(scope, GppContextUtils.withPrivacy(regions, privacy));
     }
 
     @Value(staticConstructor = "of")

@@ -4,27 +4,33 @@ import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.TcfEuV2;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.UpdateResult;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class TcfEuV2ContextProcessor implements GppContextProcessor {
 
     @Override
-    public GppContext process(GppContext gppContext) {
+    public GppContextWrapper process(GppContext gppContext) {
+        final List<String> errors = new ArrayList<>();
+        return GppContextWrapper.of(process(gppContext, errors), errors);
+    }
+
+    private static GppContext process(GppContext gppContext, List<String> errors) {
         final GppContext.Scope scope = gppContext.scope();
         final Set<Integer> sectionsIds = scope.getSectionsIds();
         final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
 
-        final List<String> errors = gppContext.errors();
-
-        final UpdateResult<Integer> resolvedGdpr = resolveGdpr(tcfEuV2Privacy.getGdpr(), sectionsIds, errors);
+        final UpdateResult<Integer> resolvedGdpr = resolveGdpr(
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getGdpr() : null, sectionsIds, errors);
         final UpdateResult<String> resolvedConsent = resolveConsent(
-                tcfEuV2Privacy.getConsent(), scope.getGppModel(), sectionsIds, errors);
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getConsent() : null, scope.getGppModel(), sectionsIds, errors);
 
         return resolvedGdpr.isUpdated() || resolvedConsent.isUpdated()
                 ? gppContext.with(TcfEuV2Privacy.of(resolvedGdpr.getValue(), resolvedConsent.getValue()))

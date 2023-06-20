@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -1347,6 +1348,55 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("win_notifications").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementRequestsActivityDisallowedCount() {
+        // when
+        metrics.updateRequestsActivityDisallowedCount(Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("requests.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountActivityDisallowedCount() {
+        // when
+        metrics.updateAccountActivityDisallowedCount("account_id", Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAdapterActivityDisallowedCount() {
+        // when
+        metrics.updateAdapterActivityDisallowedCount("adapter", Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.adapter.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateRequestsActivityProcessedRulesCount() {
+        // when
+        metrics.updateRequestsActivityProcessedRulesCount(2);
+
+        // then
+        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountActivityProcessedRulesCount() {
+        // when
+        metrics.updateAccountActivityProcessedRulesCount("account_id", 2);
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.activity.processedrules.count").getCount())
+                .isEqualTo(2);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

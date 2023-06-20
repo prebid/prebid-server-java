@@ -11,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrain;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrainPublisher;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -76,13 +76,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         final BidRequest updatedRequest = updateBidRequest(request, modifiedImps, extImpOutbrain);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encodeToBytes(updatedRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(updatedRequest)
-                        .build()), errors);
+                BidderUtil.defaultRequest(updatedRequest, endpointUrl, mapper)), errors);
     }
 
     private ExtImpOutbrain parseImpExt(Imp imp) {
