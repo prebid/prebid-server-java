@@ -334,10 +334,15 @@ class PrebidServerService implements ObjectMapperWrapper {
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
                                     Map<String, ?> cookies,
                                     Map<String, String> headers) {
-        given(requestSpecification).body(encode(cookieSyncRequest))
-                                   .cookies(cookies)
-                                   .headers(headers)
-                                   .post(COOKIE_SYNC_ENDPOINT)
+        def requestSpecification = given(requestSpecification)
+                                .body(encode(cookieSyncRequest))
+                                .cookies(cookies)
+
+        if (headers) {
+            requestSpecification.headers(headers)
+        }
+
+        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
