@@ -10,9 +10,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 import static java.util.Collections.emptySet;
@@ -43,11 +43,11 @@ public class UspV1ContextProcessorTest {
         final GppContext gppContext = givenGppContext(null, UspV1Privacy.of(null));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).isEmpty();
+        assertThat(result.getGppContext()).isSameAs(gppContext);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -59,11 +59,11 @@ public class UspV1ContextProcessorTest {
         final GppContext gppContext = givenGppContext(emptySet(), UspV1Privacy.of(null));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).isEmpty();
+        assertThat(result.getGppContext()).isSameAs(gppContext);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -75,11 +75,11 @@ public class UspV1ContextProcessorTest {
         final GppContext gppContext = givenGppContext(Set.of(UspV1.ID), UspV1Privacy.of(null));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).isEmpty();
+        assertThat(result.getGppContext()).isSameAs(gppContext);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -93,12 +93,12 @@ public class UspV1ContextProcessorTest {
                 UspV1Privacy.of(null));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result.regions().getUspV1Privacy())
+        assertThat(result.getGppContext().regions().getUspV1Privacy())
                 .isEqualTo(UspV1Privacy.of("usPrivacy"));
-        assertThat(result.errors()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -112,11 +112,11 @@ public class UspV1ContextProcessorTest {
                 UspV1Privacy.of("usPrivacy"));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).isEmpty();
+        assertThat(result.getGppContext()).isSameAs(gppContext);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -130,11 +130,11 @@ public class UspV1ContextProcessorTest {
                 UspV1Privacy.of("usPrivacy"));
 
         // when
-        final GppContext result = uspV1ContextProcessor.process(gppContext);
+        final GppContextWrapper result = uspV1ContextProcessor.process(gppContext);
 
         // then
-        assertThat(result).isSameAs(gppContext);
-        assertThat(result.errors()).containsExactly("USP string does not match regs.us_privacy");
+        assertThat(result.getGppContext()).isSameAs(gppContext);
+        assertThat(result.getErrors()).containsExactly("USP string does not match regs.us_privacy");
     }
 
     private GppContext givenGppContext(Set<Integer> sectionsIds, UspV1Privacy uspV1Privacy) {
@@ -142,7 +142,6 @@ public class UspV1ContextProcessorTest {
                 GppContext.Scope.of(gppModel, sectionsIds),
                 GppContext.Regions.builder()
                         .uspV1Privacy(uspV1Privacy)
-                        .build(),
-                new ArrayList<>());
+                        .build());
     }
 }

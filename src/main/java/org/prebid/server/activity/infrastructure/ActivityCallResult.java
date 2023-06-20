@@ -1,9 +1,9 @@
-package org.prebid.server.activity;
+package org.prebid.server.activity.infrastructure;
 
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class ActivityContextResult {
+public class ActivityCallResult {
 
     boolean isAllowed;
 

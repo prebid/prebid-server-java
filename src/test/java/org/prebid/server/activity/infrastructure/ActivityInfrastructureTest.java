@@ -1,10 +1,14 @@
-package org.prebid.server.activity;
+package org.prebid.server.activity.infrastructure;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 
@@ -48,13 +52,14 @@ public class ActivityInfrastructureTest {
     @Test
     public void isAllowedShouldReturnTrueAndUpdateMetrics() {
         // given
-        given(activityConfiguration.isAllowed(argThat(arg -> arg.getComponentType().equals(ComponentType.BIDDER))))
-                .willReturn(ActivityContextResult.of(true, 3));
+        given(activityConfiguration.isAllowed(argThat(arg -> arg.componentType().equals(ComponentType.BIDDER))))
+                .willReturn(ActivityCallResult.of(true, 3));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.verbose);
+        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
-        final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+        final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
         assertThat(result).isEqualTo(true);
@@ -70,12 +75,13 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldNotUpdateMetricsIfAllowedAndZeroProcessedRules() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(true, 0));
+                .willReturn(ActivityCallResult.of(true, 0));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.basic);
+        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
-        infrastructure.isAllowed(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+        infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
         verify(metrics, never()).updateRequestsActivityProcessedRulesCount(anyInt());
@@ -89,12 +95,13 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldUpdateExpectedMetricsIfDisallowedAndTraceLevelIsBasic() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(false, 1));
+                .willReturn(ActivityCallResult.of(false, 1));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.basic);
+        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
-        infrastructure.isAllowed(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+        infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
         verify(metrics).updateRequestsActivityProcessedRulesCount(eq(1));
@@ -108,12 +115,13 @@ public class ActivityInfrastructureTest {
     public void isAllowedShouldUpdateExpectedMetricsIfDisallowedAndTraceLevelIsVerbose() {
         // given
         given(activityConfiguration.isAllowed(any()))
-                .willReturn(ActivityContextResult.of(false, 1));
+                .willReturn(ActivityCallResult.of(false, 1));
 
         final ActivityInfrastructure infrastructure = activityInfrastructure(TraceLevel.verbose);
+        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
-        infrastructure.isAllowed(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+        infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
         verify(metrics).updateRequestsActivityProcessedRulesCount(eq(1));
