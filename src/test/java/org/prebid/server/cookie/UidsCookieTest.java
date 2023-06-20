@@ -238,12 +238,10 @@ public class UidsCookieTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40.123456789Z")));
 
-        final UidsCookie uidsCookie = new UidsCookie(
-                Uids.builder().uids(uids).bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z")).build(),
-                jacksonMapper);
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\","
-                + "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
+                + "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}}}");
     }
 }
