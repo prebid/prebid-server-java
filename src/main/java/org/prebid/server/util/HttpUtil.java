@@ -72,6 +72,7 @@ public final class HttpUtil {
     private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
     public static final CharSequence PG_IGNORE_PACING = HttpHeaders.createOptimized("X-Prebid-PG-ignore-pacing");
+    public static final CharSequence SEC_GPC = HttpHeaders.createOptimized("Sec-GPC");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
 

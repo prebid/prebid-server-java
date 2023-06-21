@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Regs;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.DebugResolver;
@@ -20,11 +21,13 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Used in OpenRTB request processing.
@@ -149,7 +152,8 @@ public class AuctionRequestFactory {
             final String referer = paramsExtractor.refererFrom(httpRequest);
             ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
-            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
+            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode))
+                    .map(bidRequest -> fillWithValuesFromHttpRequest(bidRequest, httpRequest));
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
@@ -169,6 +173,36 @@ public class AuctionRequestFactory {
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
+    }
+
+    private BidRequest fillWithValuesFromHttpRequest(BidRequest bidRequest, HttpRequestContext httpRequest) {
+        return !containsRegsExtGpc(bidRequest)
+                ? bidRequest.toBuilder()
+                .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
+                .build()
+                : bidRequest;
+    }
+
+    private boolean containsRegsExtGpc(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getRegs())
+                .map(Regs::getExt)
+                .map(ExtRegs::getGpc)
+                .isPresent();
+    }
+
+    private Regs fillRegsWithValuesFromHttpRequest(Regs regs, HttpRequestContext httpRequest) {
+        final Integer gpc = paramsExtractor.gpcFrom(httpRequest);
+        if (gpc == null) {
+            return regs;
+        }
+
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        return (regs != null ? regs.toBuilder() : Regs.builder())
+                .ext(ExtRegs.of(
+                        extRegs != null ? extRegs.getGdpr() : null,
+                        extRegs != null ? extRegs.getUsPrivacy() : null,
+                        gpc))
+                .build();
     }
 
     /**

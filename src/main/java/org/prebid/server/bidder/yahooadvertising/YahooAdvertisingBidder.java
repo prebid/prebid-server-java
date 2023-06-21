@@ -181,7 +181,10 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         final String gpp = regs.getGpp();
         final List<Integer> gppSid = regs.getGppSid();
 
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
+        final Integer gpc = Optional.ofNullable(regs.getExt())
+                .map(ExtRegs::getGpc)
+                .orElse(null);
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
         extRegs.addProperty("gpp", TextNode.valueOf(gpp));
         if (!CollectionUtils.isEmpty(gppSid)) {
             final ArrayNode gppArrayNode = mapper.mapper().createArrayNode();

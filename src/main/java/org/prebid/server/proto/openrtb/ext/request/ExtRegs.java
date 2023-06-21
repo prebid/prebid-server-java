@@ -26,4 +26,11 @@ public class ExtRegs extends FlexibleExtension {
      * https://iabtechlab.com/wp-content/uploads/2019/10/CCPA_Compliance_Framework_OpenRTB_Extension_Proposal_US_Privacy_IABTechLab_DRAFT_for_Public_Comment.pdf
      */
     String usPrivacy;
+
+    /**
+     * This value should exactly replicate the value in the Global Privacy Control signal setting
+     * that will be available at both the header and window level. Where GPC is set to 1 this
+     * should be set to 1 and where it is not present this property should not be present.
+     */
+    Integer gpc;
 }

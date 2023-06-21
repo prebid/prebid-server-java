@@ -1549,7 +1549,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return regs;
         }
 
-        final ExtRegs extRegs = copyProperties(regs.getExt(), ExtRegs.of(gdpr, usPrivacy));
+        final ExtRegs originalExtRegs = regs.getExt();
+        final Integer gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
+        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc));
 
         return regs.toBuilder()
                 .gdpr(null)
