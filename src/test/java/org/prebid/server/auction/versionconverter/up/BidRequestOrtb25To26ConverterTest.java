@@ -112,7 +112,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final Integer gdpr = 1;
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder().ext(ExtRegs.of(gdpr, null)).build()));
+                Regs.builder().ext(ExtRegs.of(gdpr, null, null)).build()));
 
         // when
         final BidRequest result = converter.convert(bidRequest);
@@ -135,7 +135,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final Integer gdpr = 1;
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder().gdpr(gdpr).ext(ExtRegs.of(0, null)).build()));
+                Regs.builder().gdpr(gdpr).ext(ExtRegs.of(0, null, null)).build()));
 
         // when
         final BidRequest result = converter.convert(bidRequest);
@@ -158,7 +158,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final String usPrivacy = "privacy";
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder().ext(ExtRegs.of(null, usPrivacy)).build()));
+                Regs.builder().ext(ExtRegs.of(null, usPrivacy, null)).build()));
 
         // when
         final BidRequest result = converter.convert(bidRequest);
@@ -181,7 +181,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final String usPrivacy = "privacy";
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder().usPrivacy(usPrivacy).ext(ExtRegs.of(null, "anotherPrivacy")).build()));
+                Regs.builder().usPrivacy(usPrivacy).ext(ExtRegs.of(null, "anotherPrivacy", null)).build()));
 
         // when
         final BidRequest result = converter.convert(bidRequest);
