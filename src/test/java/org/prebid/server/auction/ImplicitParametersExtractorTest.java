@@ -197,7 +197,7 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
-    public void gcpFromShouldReturn1() {
+    public void gpcFromShouldReturn1() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.builder()
@@ -206,23 +206,23 @@ public class ImplicitParametersExtractorTest {
                 .build();
 
         // when
-        final Integer gcp = extractor.gpcFrom(httpRequest);
+        final Integer gpc = extractor.gpcFrom(httpRequest);
 
         // then
-        assertThat(gcp).isEqualTo(1);
+        assertThat(gpc).isEqualTo(1);
     }
 
     @Test
-    public void gcpFromShouldReturnNull() {
+    public void gpcFromShouldReturnNull() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build();
 
         // when
-        final Integer gcp = extractor.gpcFrom(httpRequest);
+        final Integer gpc = extractor.gpcFrom(httpRequest);
 
         // then
-        assertThat(gcp).isNull();
+        assertThat(gpc).isNull();
     }
 }
