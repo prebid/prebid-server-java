@@ -104,6 +104,6 @@ public class ImplicitParametersExtractor {
 
     public Integer gpcFrom(HttpRequestContext httpRequest) {
         final String gpcAsString = httpRequest.getHeaders().get(HttpUtil.SEC_GPC);
-        return "1".equals(gpcAsString) ? Integer.parseInt(gpcAsString) : null;
+        return "1".equals(gpcAsString) ? 1 : null;
     }
 }
