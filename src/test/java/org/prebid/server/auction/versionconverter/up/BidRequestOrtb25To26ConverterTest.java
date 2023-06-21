@@ -158,7 +158,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
         // given
         final String usPrivacy = "privacy";
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder().ext(ExtRegs.of(null, usPrivacy, null)).build()));
+                Regs.builder().ext(ExtRegs.of(null, usPrivacy, 1)).build()));
 
         // when
         final BidRequest result = converter.convert(bidRequest);
@@ -172,7 +172,7 @@ public class BidRequestOrtb25To26ConverterTest extends VertxTest {
                             .isSameAs(usPrivacy);
                     assertThat(regs)
                             .extracting(Regs::getExt)
-                            .isNull();
+                            .isEqualTo(ExtRegs.of(null, null, 1));
                 });
     }
 

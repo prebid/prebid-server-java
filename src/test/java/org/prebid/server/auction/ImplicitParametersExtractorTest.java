@@ -195,4 +195,34 @@ public class ImplicitParametersExtractorTest {
                 .build();
         assertThat(extractor.secureFrom(httpRequest)).isNull();
     }
+
+    @Test
+    public void gcpFromShouldReturn1() {
+        // given
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.SEC_GPC, "1")
+                        .build())
+                .build();
+
+        // when
+        final Integer gcp = extractor.gpcFrom(httpRequest);
+
+        // then
+        assertThat(gcp).isEqualTo(1);
+    }
+
+    @Test
+    public void gcpFromShouldReturnNull() {
+        // given
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
+                .build();
+
+        // when
+        final Integer gcp = extractor.gpcFrom(httpRequest);
+
+        // then
+        assertThat(gcp).isNull();
+    }
 }

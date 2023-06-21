@@ -426,6 +426,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .usPrivacy("1YNN")
                         .gpp("gppconsent")
                         .gppSid(List.of(6))
+                        .ext(ExtRegs.of(null, null, 1))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -441,6 +442,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getGpc()).isEqualTo(1);
         assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
         assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
     }
