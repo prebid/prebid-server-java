@@ -46,6 +46,14 @@ adapters:
           vendor-id: 0
         usersync:
           cookie-family-name: pgam
+      copper6:
+        enabled: false
+        endpoint: http://ghb.app.copper6.com/pbs/ortb
+        meta-info:
+          maintainer-email: info@copper6.com
+          vendor-id: 0
+        usersync:
+          cookie-family-name: copper6
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:

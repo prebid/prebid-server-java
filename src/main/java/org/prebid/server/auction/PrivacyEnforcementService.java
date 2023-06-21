@@ -13,8 +13,11 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.GeoActivityCallPayloadImpl;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -692,10 +695,16 @@ public class PrivacyEnforcementService {
         final User user = bidderPrivacyResult.getUser();
         final Device device = bidderPrivacyResult.getDevice();
 
+        final Geo geo = device != null ? device.getGeo() : null;
+        final ActivityCallPayload activityCallPayload = GeoActivityCallPayloadImpl.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                geo != null ? geo.getCountry() : null,
+                geo != null ? geo.getRegion() : null);
+
         final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_UFPD, ComponentType.BIDDER, bidder);
+                Activity.TRANSMIT_UFPD, activityCallPayload);
         final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_GEO, ComponentType.BIDDER, bidder);
+                Activity.TRANSMIT_GEO, activityCallPayload);
 
         final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
                 ? maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo)

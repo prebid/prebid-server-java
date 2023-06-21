@@ -17,7 +17,6 @@ import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.metric.Metrics;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -138,17 +137,6 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         assertThat(uidsCookie).isNotNull();
-    }
-
-    @Test
-    public void shouldReturnNewUidsCookieWithBday() throws IOException {
-        // when
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
-        final String uidsCookieBase64 = uidsCookieService.toCookie(uidsCookie).getValue();
-
-        // then
-        final Uids uids = mapper.readValue(Base64.getUrlDecoder().decode(uidsCookieBase64), Uids.class);
-        assertThat(uids.getBday()).isCloseTo(ZonedDateTime.now(Clock.systemUTC()), within(10, ChronoUnit.SECONDS));
     }
 
     @Test

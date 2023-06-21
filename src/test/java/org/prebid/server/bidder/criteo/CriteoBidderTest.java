@@ -179,6 +179,47 @@ public class CriteoBidderTest extends VertxTest {
                 .containsExactly("CUR");
     }
 
+    @Test
+    public void makeBidsShouldReturnBidWithNetworkNameFromExtPrebid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(givenBidResponse(
+                        bid -> bid
+                                .impid("123")
+                                .ext(givenBidExtWithNetwork("anyNetworkName")))));
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("meta"))
+                .containsExactly(mapper.createObjectNode().put("networkName", "anyNetworkName"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyNetworkNameWhenBidExtPrebidNotContainNetworkName()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(givenBidResponse(
+                        bid -> bid.ext(givenBidExtWithNetwork(null)))));
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("meta"))
+                .doesNotContain(mapper.createObjectNode().put("networkName", "anyNetworkName"));
+    }
+
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
@@ -200,4 +241,13 @@ public class CriteoBidderTest extends VertxTest {
         ext.putObject("prebid").put("type", bidType.getName());
         return ext;
     }
+
+    private static ObjectNode givenBidExtWithNetwork(String networkNameValue) {
+        final ObjectNode ext = mapper.createObjectNode();
+        final ObjectNode prebid = ext.putObject("prebid");
+        prebid.put("type", BidType.banner.getName());
+        prebid.put("networkName", networkNameValue);
+        return ext;
+    }
+
 }

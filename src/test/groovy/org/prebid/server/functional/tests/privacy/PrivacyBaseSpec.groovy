@@ -52,7 +52,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                              "adapters.${OPENX.value}.enabled" : 'true']
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
-    private static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties
+    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties
 
     @Shared
     protected PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)

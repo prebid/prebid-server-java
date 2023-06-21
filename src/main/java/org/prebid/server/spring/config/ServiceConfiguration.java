@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -37,6 +38,7 @@ import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.GppService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
@@ -327,10 +329,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    SetuidGppService setuidGppService(GppService gppService) {
+        return new SetuidGppService(gppService);
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             RequestValidator requestValidator,
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -351,6 +359,7 @@ public class ServiceConfiguration {
                 logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 auctionTimeoutResolver,
                 timeoutFactory,

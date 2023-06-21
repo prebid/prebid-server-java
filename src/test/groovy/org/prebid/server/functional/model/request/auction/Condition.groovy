@@ -10,9 +10,15 @@ class Condition {
     List<GppSectionId> gppSig
     List<ConditionType> componentType
     List<String> componentName
+    List<Integer> gppSid
+    List<String> geo
 
     static Condition getBaseCondition(String componentName = BidderName.GENERIC.value) {
-        new Condition(componentName: [componentName], componentType: [ConditionType.BIDDER])
+        new Condition().tap {
+            it.gppSid = [GppSectionId.TCF_EU_V2.getIntValue()]
+            it.componentType = [ConditionType.BIDDER]
+            it.componentName = [componentName]
+        }
     }
 
     enum ConditionType {
