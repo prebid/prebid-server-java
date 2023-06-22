@@ -241,7 +241,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         and: "Set up gcp"
         def gpc = "1"
 
-        when: "PBS processes auction request"
+        when: "PBS processes auction request with headers"
         privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpc])
 
         then: "Bidder request should contain gpc from header"
@@ -255,7 +255,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
             regs.ext.gpc = null
         }
 
-        when: "PBS processes auction request"
+        when: "PBS processes auction request with headers"
         privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": PBSUtils.randomNumber.toString()])
 
         then: "Bidder request shouldn't contain gpc from header"
@@ -270,7 +270,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
             regs.ext.gpc = randomNumber
         }
 
-        when: "PBS processes auction request"
+        when: "PBS processes auction request with headers"
         privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": "1"])
 
         then: "Bidder request should contain gpc from header"
