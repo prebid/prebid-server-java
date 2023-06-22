@@ -39,13 +39,11 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
                                                              "settings.default-account-config": encode(defaultAccountConfigSettings)]
-    private static final Map<String, String> getExternalCurrencyConverterConfig() {
-        ["auction.ad-server-currency"                          : USD as String,
-         "currency-converter.external-rates.enabled"           : "true",
-         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-         "currency-converter.external-rates.default-timeout-ms": "4000",
-         "currency-converter.external-rates.refresh-period-ms" : "900000"]
-    }
+    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : USD as String,
+                                                                          "currency-converter.external-rates.enabled"           : "true",
+                                                                          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+                                                                          "currency-converter.external-rates.default-timeout-ms": "4000",
+                                                                          "currency-converter.external-rates.refresh-period-ms" : "900000"]
 
     protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
