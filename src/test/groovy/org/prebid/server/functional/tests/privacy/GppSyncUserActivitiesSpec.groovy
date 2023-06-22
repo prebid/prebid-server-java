@@ -645,7 +645,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -687,7 +687,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes request without cookies"
@@ -728,7 +728,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -774,7 +774,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -815,7 +815,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(prebidServerService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request with header"
@@ -867,7 +867,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(prebidServerService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request with header"
@@ -921,7 +921,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(prebidServerService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes set uid request with header"
@@ -977,7 +977,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(prebidServerService)
 
         and: "Set up account for allow activities"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes set uid request"
