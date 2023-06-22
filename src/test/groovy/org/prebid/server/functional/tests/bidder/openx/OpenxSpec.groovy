@@ -7,12 +7,10 @@ import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-@Ignore
 class OpenxSpec extends BaseSpec {
 
     private static final Map OPENX_CONFIG = ["adapters.openx.enabled" : "true",
