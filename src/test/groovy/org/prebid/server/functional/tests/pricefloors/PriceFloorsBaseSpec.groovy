@@ -62,7 +62,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
 
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + CURRENCY_CONVERTER_CONFIG)
 
     def setupSpec() {
         floorsProvider.setResponse()
