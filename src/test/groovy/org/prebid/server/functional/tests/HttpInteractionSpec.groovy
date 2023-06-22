@@ -13,7 +13,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 
-
 class HttpInteractionSpec extends BaseSpec {
 
     @Retry
