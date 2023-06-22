@@ -249,7 +249,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.regs.ext.gpc == gpc.toInteger()
     }
 
-    def "PBS should populate gpc when header sec-gpc hasn't 1 value"() {
+    def "PBS shouldn't populate gpc when header sec-gpc hasn't 1 value"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.ext.gpc = null
