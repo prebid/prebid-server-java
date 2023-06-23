@@ -17,6 +17,7 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class PrecisoTest extends IntegrationTest {
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromPreciso() throws IOException, JSONException {
         // given

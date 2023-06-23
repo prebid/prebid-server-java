@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @Value
 @Builder(toBuilder = true)
 public class ExtImpPreciso {
+
     @JsonProperty("publisherId")
     String publisherId;
 

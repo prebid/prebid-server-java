@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 public class PrecisoBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private PrecisoBidder precisoBidder;

@@ -19,6 +19,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/preciso.yaml", factory = YamlPropertySourceFactory.class)
 public class PrecisoConfiguration {
+
     private static final String BIDDER_NAME = "preciso";
 
     @Bean("precisoConfigurationProperties")
