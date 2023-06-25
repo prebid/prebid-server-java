@@ -1,9 +1,11 @@
-package org.prebid.server.bidder.appush;
+package org.prebid.server.bidder.mgidx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,7 +21,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.appush.ExtImpAppush;
+import org.prebid.server.proto.openrtb.ext.request.mgidx.ExtImpMgidx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -29,71 +31,69 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
-public class AppushBidder implements Bidder<BidRequest> {
+public class MgidxBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAppush>> APPUSH_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpMgidx>> MGIDX_EXT_TYPE_REFERENCE = new TypeReference<>() {
+
     };
 
     private static final String PUBLISHER_PROPERTY = "publisher";
     private static final String NETWORK_PROPERTY = "network";
     private static final String BIDDER_PROPERTY = "bidder";
+    private static final String PREBID_EXT = "prebid";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public AppushBidder(String endpointUrl, JacksonMapper mapper) {
+    public MgidxBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpAppush extImpAppush;
+            final ExtImpMgidx extImpMgidx;
             try {
-                extImpAppush = parseExtImp(imp);
+                extImpMgidx = parseExtImp(imp);
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
-            final Imp modifiedImp = modifyImp(imp, extImpAppush);
+            final Imp modifiedImp = modifyImp(imp, extImpMgidx);
             httpRequests.add(makeHttpRequest(request, modifiedImp));
         }
 
         return Result.withValues(httpRequests);
     }
 
-    private Imp modifyImp(Imp imp, ExtImpAppush extImpAppush) {
-
-        final AppushImpExtBidder impExtAppushWithType = resolveImpExt(extImpAppush);
-
+    private Imp modifyImp(Imp imp, ExtImpMgidx extImpMgidx) {
+        final AppushImpExtBidder impExtAppushWithType = resolveImpExt(extImpMgidx);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-
         modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtAppushWithType));
 
         return imp.toBuilder().ext(modifiedImpExtBidder).build();
     }
 
-    private AppushImpExtBidder resolveImpExt(ExtImpAppush extImpAppush) {
-
+    private AppushImpExtBidder resolveImpExt(ExtImpMgidx extImpMgidx) {
         final AppushImpExtBidder.AppushImpExtBidderBuilder builder = AppushImpExtBidder.builder();
 
-        if (StringUtils.isNotEmpty(extImpAppush.getPlacementId())) {
-            builder.type(PUBLISHER_PROPERTY).placementId(extImpAppush.getPlacementId());
-        } else if (StringUtils.isNotEmpty(extImpAppush.getEndpointId())) {
-            builder.type(NETWORK_PROPERTY).endpointId(extImpAppush.getEndpointId());
+        if (StringUtils.isNotEmpty(extImpMgidx.getPlacementId())) {
+            builder.type(PUBLISHER_PROPERTY).placementId(extImpMgidx.getPlacementId());
+        } else if (StringUtils.isNotEmpty(extImpMgidx.getEndpointId())) {
+            builder.type(NETWORK_PROPERTY).endpointId(extImpMgidx.getEndpointId());
         }
 
         return builder.build();
     }
 
-    private ExtImpAppush parseExtImp(Imp imp) {
+    private ExtImpMgidx parseExtImp(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), APPUSH_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), MGIDX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -116,7 +116,7 @@ public class AppushBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -127,24 +127,29 @@ public class AppushBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-                break;
-            }
+    private BidType getBidType(Bid bid) {
+        final JsonNode typeNode = Optional.ofNullable(bid.getExt())
+                .map(extNode -> extNode.get("prebid"))
+                .map(extPrebidNode -> extPrebidNode.get("type"))
+                .orElse(null);
+
+        final BidType bidType;
+        try {
+            bidType = mapper.mapper().convertValue(typeNode, BidType.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Failed to parse bid.ext.prebid.type for bid.id: '%s'"
+                    .formatted(bid.getId()));
         }
 
-        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
+        if (bidType == null) {
+            throw new PreBidException("bid.ext.prebid.type is not present for bid.id: '%s'"
+                    .formatted(bid.getId()));
+        }
+
+        return bidType;
     }
 }
