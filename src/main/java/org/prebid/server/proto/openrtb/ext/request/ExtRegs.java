@@ -32,5 +32,5 @@ public class ExtRegs extends FlexibleExtension {
      * that will be available at both the header and window level. Where GPC is set to 1 this
      * should be set to 1 and where it is not present this property should not be present.
      */
-    Integer gpc;
+    String gpc;
 }
