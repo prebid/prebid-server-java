@@ -261,7 +261,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build();
 
         givenBidRequest(receivedBidRequest);
-        given(paramsExtractor.gpcFrom(any())).willReturn(1);
+        given(paramsExtractor.gpcFrom(any())).willReturn("1");
 
         // when
         target.fromRequest(routingContext, 0L);
@@ -274,7 +274,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(capturedRequest.getRegs())
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
-                .containsExactly(0, "us_privacy", 1);
+                .containsExactly(0, "us_privacy", "1");
     }
 
     @Test
