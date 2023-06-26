@@ -169,10 +169,12 @@ public class GeoRuleTest {
     @Test
     public void matchesShouldReturnTrueIfGpcMatched() {
         // given
-        final Rule rule = new GeoRule(null, null, true, null, 2, true);
+        final Rule rule = new GeoRule(null, null, true, null, "2", true);
         final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
                 null,
-                BidRequest.builder().regs(Regs.builder().ext(ExtRegs.of(null, null, 2)).build()).build());
+                BidRequest.builder()
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2")).build())
+                        .build());
 
         // when
         final boolean matches = rule.matches(payload);
@@ -184,10 +186,12 @@ public class GeoRuleTest {
     @Test
     public void matchesShouldReturnFalseIfGpcNotMatched() {
         // given
-        final Rule rule = new GeoRule(null, null, true, null, 2, true);
+        final Rule rule = new GeoRule(null, null, true, null, "2", true);
         final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
                 null,
-                BidRequest.builder().regs(Regs.builder().ext(ExtRegs.of(null, null, 1)).build()).build());
+                BidRequest.builder()
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "1")).build())
+                        .build());
 
         // when
         final boolean matches = rule.matches(payload);
@@ -204,13 +208,13 @@ public class GeoRuleTest {
                 singleton("bidder"),
                 true,
                 singletonList(GeoRule.GeoCode.of("Country", "Region")),
-                2,
+                "2",
                 true);
         final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 BidRequest.builder()
                         .device(Device.builder().geo(Geo.builder().country("country").region("region").build()).build())
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, 2)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2")).build())
                         .build());
 
         // when

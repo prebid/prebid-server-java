@@ -40,7 +40,7 @@ public class BidRequestActivityCallPayload implements GeoActivityCallPayload, Gp
     }
 
     @Override
-    public Integer gpc() {
+    public String gpc() {
         return Optional.ofNullable(bidRequest.getRegs())
                 .map(Regs::getExt)
                 .map(ExtRegs::getGpc)

@@ -15,14 +15,14 @@ public final class GeoRule implements Rule {
     private final ComponentRule componentRule;
     private final boolean sidsMatched;
     private final List<GeoCode> geoCodes;
-    private final Integer gpc;
+    private final String gpc;
     private final boolean allowed;
 
     public GeoRule(Set<ComponentType> componentTypes,
                    Set<String> componentNames,
                    boolean sidsMatched,
                    List<GeoCode> geoCodes,
-                   Integer gpc,
+                   String gpc,
                    boolean allowed) {
 
         this.componentRule = new ComponentRule(componentTypes, componentNames, allowed);

@@ -48,7 +48,7 @@ public class GeoRuleCreatorTest {
                         singletonList("name"),
                         asList(1, 2),
                         asList(null, "country1", "country2.", "country3.region"),
-                        2),
+                        "2"),
                 false);
         final GppContext gppContext = GppContextCreator.from(null, asList(2, 3)).build().getGppContext();
 
@@ -78,7 +78,7 @@ public class GeoRuleCreatorTest {
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name"),
                 BidRequest.builder()
                         .device(Device.builder().geo(Geo.builder().country("country1").build()).build())
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, 2)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2")).build())
                         .build());
         assertThat(rule.matches(payload4)).isTrue();
 
