@@ -25,16 +25,20 @@ public class ExceptionHandler implements Handler<Throwable> {
 
     @Override
     public void handle(Throwable exception) {
-        if (!isConnectionResetException(exception)) {
+        if (shouldLogException(exception)) {
             logger.warn("Generic error handler: {0}, cause: {1}",
                     errorMessageFrom(exception), errorMessageFrom(exception.getCause()));
         }
         metrics.updateConnectionAcceptErrors();
     }
 
-    private boolean isConnectionResetException(Throwable throwable) {
-        return throwable instanceof IOException &&
-                StringUtils.equals("Connection reset by peer", throwable.getMessage());
+    private static boolean shouldLogException(Throwable exception) {
+        return !isConnectionResetException(exception);
+    }
+
+    private static boolean isConnectionResetException(Throwable exception) {
+        return exception instanceof IOException &&
+                StringUtils.equals("Connection reset by peer", exception.getMessage());
     }
 
     private static String errorMessageFrom(Throwable exception) {
