@@ -239,14 +239,14 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         }
 
         when: "PBS processes auction request with headers"
-        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcHeadre])
+        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcHeader])
 
         then: "Bidder request should contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.regs.ext.gpc == gpcHeadre as String
+        assert bidderRequests.regs.ext.gpc == gpcHeader as String
 
         where:
-        gpcHeadre << ["1", 1]
+        gpcHeader << ["1", 1]
     }
 
     def "PBS shouldn't populate gpc when header sec-gpc has #gpcInvalid value"() {
