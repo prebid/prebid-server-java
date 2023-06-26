@@ -1120,10 +1120,10 @@ class OrtbConverterSpec extends BaseSpec {
 
     def "PBS shouldn't remove regs.ext.gpc when ortb request support ortb 2.6"() {
         given: "Default bid request with regs.ext object"
-        def randomGpcNumber = PBSUtils.randomNumber
+        def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpcNumber
+                ext.gpc = randomGpc
             }
         }
 
@@ -1132,16 +1132,16 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "BidResponse should contain the same regs as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            regs.ext.gpc == randomGpcNumber
+            regs.ext.gpc == randomGpc
         }
     }
 
     def "PBS shouldn't remove regs.ext.gpc when ortb request doesn't support ortb 2.6"() {
         given: "Default bid request with regs.ext object"
-        def randomGpcNumber = PBSUtils.randomNumber
+        def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpcNumber
+                ext.gpc = randomGpc
             }
         }
 
@@ -1150,7 +1150,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "BidResponse should contain the same regs as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            regs.ext.gpc == randomGpcNumber
+            regs.ext.gpc == randomGpc
         }
     }
 }

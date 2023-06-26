@@ -238,15 +238,15 @@ class GppAuctionSpec extends PrivacyBaseSpec {
             regs.ext.gpc = null
         }
 
-        and: "Set up gcp"
-        def gpc = "1"
-
         when: "PBS processes auction request with headers"
-        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpc])
+        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcHeadre])
 
         then: "Bidder request should contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.regs.ext.gpc == gpc.toInteger()
+        assert bidderRequests.regs.ext.gpc == gpcHeadre as String
+
+        where:
+        gpcHeadre << ["1", 1]
     }
 
     def "PBS shouldn't populate gpc when header sec-gpc has #gpcInvalid value"() {
@@ -269,9 +269,9 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS should take precedence from request gpc when header sec-gpc has 1 value"() {
         given: "Default bid request with gpc"
-        int randomNumber = PBSUtils.randomNumber
+        def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = randomNumber
+            regs.ext.gpc = randomGpc
         }
 
         when: "PBS processes auction request with headers"
@@ -279,6 +279,6 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.regs.ext.gpc == randomNumber
+        assert bidderRequests.regs.ext.gpc == randomGpc
     }
 }
