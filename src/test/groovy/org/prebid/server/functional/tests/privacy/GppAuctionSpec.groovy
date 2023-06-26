@@ -264,7 +264,6 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
         where:
         gpcInvalid << [PBSUtils.randomNumber as String, PBSUtils.randomNumber, PBSUtils.randomString, Boolean.TRUE]
-
     }
 
     def "PBS should take precedence from request gpc when header sec-gpc has 1 value"() {
