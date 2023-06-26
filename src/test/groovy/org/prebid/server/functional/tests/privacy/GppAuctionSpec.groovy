@@ -249,18 +249,22 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.regs.ext.gpc == gpc.toInteger()
     }
 
-    def "PBS shouldn't populate gpc when header sec-gpc hasn't 1 value"() {
+    def "PBS shouldn't populate gpc when header sec-gpc has #gpcInvalid value"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.ext.gpc = null
         }
 
         when: "PBS processes auction request with headers"
-        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": PBSUtils.randomNumber.toString()])
+        privacyPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcInvalid])
 
         then: "Bidder request shouldn't contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequests.regs.ext
+
+        where:
+        gpcInvalid << [PBSUtils.randomNumber as String, PBSUtils.randomNumber, PBSUtils.randomString, Boolean.TRUE]
+
     }
 
     def "PBS should take precedence from request gpc when header sec-gpc has 1 value"() {
