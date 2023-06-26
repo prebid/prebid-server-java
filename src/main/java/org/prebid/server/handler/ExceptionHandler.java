@@ -37,8 +37,8 @@ public class ExceptionHandler implements Handler<Throwable> {
     }
 
     private static boolean isConnectionResetException(Throwable exception) {
-        return exception instanceof IOException &&
-                StringUtils.equals("Connection reset by peer", exception.getMessage());
+        return exception instanceof IOException
+                && StringUtils.equals("Connection reset by peer", exception.getMessage());
     }
 
     private static String errorMessageFrom(Throwable exception) {
