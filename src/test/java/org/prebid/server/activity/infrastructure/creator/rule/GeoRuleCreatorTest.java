@@ -1,14 +1,20 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Regs;
 import org.junit.Test;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.GeoActivityCallPayloadImpl;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 
 import static java.util.Arrays.asList;
@@ -41,7 +47,8 @@ public class GeoRuleCreatorTest {
                         singletonList(ComponentType.BIDDER),
                         singletonList("name"),
                         asList(1, 2),
-                        asList(null, "country1", "country2.", "country3.region")),
+                        asList(null, "country1", "country2.", "country3.region"),
+                        2),
                 false);
         final GppContext gppContext = GppContextCreator.from(null, asList(2, 3)).build().getGppContext();
 
@@ -66,6 +73,14 @@ public class GeoRuleCreatorTest {
                 "country3",
                 "region");
         assertThat(rule.matches(payload3)).isTrue();
+
+        final ActivityCallPayload payload4 = BidRequestActivityCallPayload.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name"),
+                BidRequest.builder()
+                        .device(Device.builder().geo(Geo.builder().country("country1").build()).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, 2)).build())
+                        .build());
+        assertThat(rule.matches(payload4)).isTrue();
 
         assertThat(rule.allowed()).isFalse();
     }
