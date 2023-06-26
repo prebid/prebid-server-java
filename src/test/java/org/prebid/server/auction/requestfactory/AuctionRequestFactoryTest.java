@@ -261,7 +261,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build();
 
         givenBidRequest(receivedBidRequest);
-        given(paramsExtractor.gpcFrom(any())).willReturn(1);
+        given(paramsExtractor.gpcFrom(any())).willReturn("1");
 
         // when
         target.fromRequest(routingContext, 0L);

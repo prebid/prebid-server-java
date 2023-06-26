@@ -181,7 +181,7 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         final String gpp = regs.getGpp();
         final List<Integer> gppSid = regs.getGppSid();
 
-        final Integer gpc = Optional.ofNullable(regs.getExt())
+        final String gpc = Optional.ofNullable(regs.getExt())
                 .map(ExtRegs::getGpc)
                 .orElse(null);
         final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);

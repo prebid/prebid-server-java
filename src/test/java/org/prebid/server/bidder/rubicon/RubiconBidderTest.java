@@ -1921,7 +1921,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.regs(Regs.builder()
                         .gdpr(50)
                         .usPrivacy("us")
-                        .ext(ExtRegs.of(null, null, 1))
+                        .ext(ExtRegs.of(null, null, "1"))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -1934,7 +1934,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
-                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us", 1)).build());
+                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us", "1")).build());
     }
 
     @Test

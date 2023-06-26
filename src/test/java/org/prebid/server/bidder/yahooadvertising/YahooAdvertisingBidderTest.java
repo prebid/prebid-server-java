@@ -426,7 +426,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .usPrivacy("1YNN")
                         .gpp("gppconsent")
                         .gppSid(List.of(6))
-                        .ext(ExtRegs.of(null, null, 1))
+                        .ext(ExtRegs.of(null, null, "1"))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when

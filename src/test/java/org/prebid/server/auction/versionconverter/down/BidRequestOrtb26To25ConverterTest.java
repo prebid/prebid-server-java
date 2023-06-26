@@ -134,7 +134,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(Regs::getGdpr, Regs::getUsPrivacy)
                             .containsOnlyNulls();
 
-                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy", 1);
+                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy", "1");
                     expectedRegsExt.addProperty("someField", TextNode.valueOf("someValue"));
                     assertThat(regs)
                             .extracting(Regs::getExt)

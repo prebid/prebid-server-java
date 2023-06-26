@@ -191,7 +191,7 @@ public class AuctionRequestFactory {
     }
 
     private Regs fillRegsWithValuesFromHttpRequest(Regs regs, HttpRequestContext httpRequest) {
-        final Integer gpc = paramsExtractor.gpcFrom(httpRequest);
+        final String gpc = paramsExtractor.gpcFrom(httpRequest);
         if (gpc == null) {
             return regs;
         }
