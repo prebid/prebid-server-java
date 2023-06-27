@@ -49,6 +49,7 @@ public class PrecisoBidder implements Bidder<BidRequest> {
     public PrecisoBidder(String endpointUrl,
                          CurrencyConversionService currencyConversionService,
                          JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -96,10 +97,14 @@ public class PrecisoBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        return bidResponse.getSeatbid().stream().filter(Objects::nonNull)
-                .map(SeatBid::getBid).filter(Objects::nonNull)
-                .flatMap(Collection::stream).filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur())).toList();
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .toList();
     }
 
     private ExtImpPreciso parseImpExt(Imp imp) {
@@ -108,6 +113,13 @@ public class PrecisoBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
+        return imp.toBuilder()
+                .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
+                .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
+                .build();
     }
 
     private Price resolveBidFloor(Imp imp, ExtImpPreciso impExt, BidRequest bidRequest) {
@@ -140,12 +152,6 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
                     bidFloorCur, BIDDER_CURRENCY, impId));
         }
-    }
-
-    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-
-        return imp.toBuilder().bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
-                              .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue)).build();
     }
 
     private static BidType getBidType(Bid bid) {
