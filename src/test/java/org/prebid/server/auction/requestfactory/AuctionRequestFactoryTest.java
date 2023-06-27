@@ -8,6 +8,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import io.vertx.core.Future;
@@ -43,6 +44,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -247,6 +249,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
                 .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldFillBidRequestWithValuesFromHttpRequest() {
+        // given
+        final BidRequest receivedBidRequest = BidRequest.builder()
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(0, "us_privacy", null))
+                        .build())
+                .build();
+
+        givenBidRequest(receivedBidRequest);
+        given(paramsExtractor.gpcFrom(any())).willReturn("1");
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), captor.capture(), anyLong());
+
+        final BidRequest capturedRequest = captor.getValue();
+        assertThat(capturedRequest.getRegs())
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
+                .containsExactly(0, "us_privacy", "1");
     }
 
     @Test

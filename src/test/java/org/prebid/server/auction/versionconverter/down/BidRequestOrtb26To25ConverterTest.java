@@ -116,7 +116,11 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                 Regs.builder()
                         .gdpr(1)
                         .usPrivacy("usPrivacy")
-                        .ext(mapper.convertValue(Map.of("someField", "someValue"), ExtRegs.class))
+                        .ext(mapper.convertValue(
+                                Map.of(
+                                        "someField", "someValue",
+                                        "gpc", "1"),
+                                ExtRegs.class))
                         .build()));
 
         // when
@@ -130,7 +134,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(Regs::getGdpr, Regs::getUsPrivacy)
                             .containsOnlyNulls();
 
-                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy");
+                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy", "1");
                     expectedRegsExt.addProperty("someField", TextNode.valueOf("someValue"));
                     assertThat(regs)
                             .extracting(Regs::getExt)
