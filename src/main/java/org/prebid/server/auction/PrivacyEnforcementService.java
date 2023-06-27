@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -17,7 +18,7 @@ import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.GeoActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityCallPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -36,6 +37,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -55,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -243,8 +246,7 @@ public class PrivacyEnforcementService {
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
                         bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
                 .map(gdprResult -> merge(ccpaResult, gdprResult))
-                .map(bidderPrivacyResults -> applyActivityRestrictions(
-                        bidderPrivacyResults, auctionContext.getActivityInfrastructure()));
+                .map(bidderPrivacyResults -> applyActivityRestrictions(bidderPrivacyResults, auctionContext));
     }
 
     public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
@@ -681,25 +683,31 @@ public class PrivacyEnforcementService {
     }
 
     private List<BidderPrivacyResult> applyActivityRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
-                                                                ActivityInfrastructure activityInfrastructure) {
+                                                                AuctionContext auctionContext) {
 
         return bidderPrivacyResults.stream()
-                .map(bidderPrivacyResult -> applyActivityRestrictions(bidderPrivacyResult, activityInfrastructure))
+                .map(bidderPrivacyResult -> applyActivityRestrictions(bidderPrivacyResult, auctionContext))
                 .toList();
     }
 
     private BidderPrivacyResult applyActivityRestrictions(BidderPrivacyResult bidderPrivacyResult,
-                                                          ActivityInfrastructure activityInfrastructure) {
+                                                          AuctionContext auctionContext) {
+
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
         final User user = bidderPrivacyResult.getUser();
         final Device device = bidderPrivacyResult.getDevice();
 
         final Geo geo = device != null ? device.getGeo() : null;
-        final ActivityCallPayload activityCallPayload = GeoActivityCallPayloadImpl.of(
+        final ActivityCallPayload activityCallPayload = PrivacyEnforcementServiceActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
                 geo != null ? geo.getCountry() : null,
-                geo != null ? geo.getRegion() : null);
+                geo != null ? geo.getRegion() : null,
+                Optional.ofNullable(auctionContext.getBidRequest().getRegs())
+                        .map(Regs::getExt)
+                        .map(ExtRegs::getGpc)
+                        .orElse(null));
 
         final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
                 Activity.TRANSMIT_UFPD, activityCallPayload);

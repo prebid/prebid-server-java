@@ -9,7 +9,7 @@ import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.GeoActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityCallPayload;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
 import static java.util.Collections.singleton;
@@ -94,10 +94,11 @@ public class GeoRuleTest {
     public void matchesShouldReturnTrueIfGeoCodeWithoutRegionMatched() {
         // given
         final Rule rule = new GeoRule(null, null, true, singletonList(GeoRule.GeoCode.of("Country", null)), null, true);
-        final ActivityCallPayload payload = GeoActivityCallPayloadImpl.of(
+        final ActivityCallPayload payload = PrivacyEnforcementServiceActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 "country",
-                "region");
+                "region",
+                null);
 
         // when
         final boolean matches = rule.matches(payload);
@@ -110,10 +111,11 @@ public class GeoRuleTest {
     public void matchesShouldReturnFalseIfCountryDoesNotMatched() {
         // given
         final Rule rule = new GeoRule(null, null, true, singletonList(GeoRule.GeoCode.of("Country", null)), null, true);
-        final ActivityCallPayload payload = GeoActivityCallPayloadImpl.of(
+        final ActivityCallPayload payload = PrivacyEnforcementServiceActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 "otherCountry",
-                "region");
+                "region",
+                null);
 
         // when
         final boolean matches = rule.matches(payload);
@@ -132,10 +134,11 @@ public class GeoRuleTest {
                 singletonList(GeoRule.GeoCode.of("Country", "Region")),
                 null,
                 true);
-        final ActivityCallPayload payload = GeoActivityCallPayloadImpl.of(
+        final ActivityCallPayload payload = PrivacyEnforcementServiceActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 "country",
-                "region");
+                "region",
+                null);
 
         // when
         final boolean matches = rule.matches(payload);
@@ -154,10 +157,11 @@ public class GeoRuleTest {
                 singletonList(GeoRule.GeoCode.of("Country", "Region")),
                 null,
                 true);
-        final ActivityCallPayload payload = GeoActivityCallPayloadImpl.of(
+        final ActivityCallPayload payload = PrivacyEnforcementServiceActivityCallPayload.of(
                 ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 "country",
-                "otherRegion");
+                "otherRegion",
+                null);
 
         // when
         final boolean matches = rule.matches(payload);
