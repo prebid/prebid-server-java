@@ -1,5 +1,5 @@
 adapters:
-  yahooAdvertising:
+  yahooAds:
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
     ortb-version: "2.6"
     aliases:
@@ -7,8 +7,10 @@ adapters:
         enabled: false
       yahoossp:
         enabled: false
+      yahooAdvertising:
+        enabled: false
     meta-info:
-      maintainer-email: dsp-supply-prebid@verizonmedia.com
+      maintainer-email: hb-fe-tech@yahooinc.com
       app-media-types:
         - banner
         - video
@@ -18,7 +20,7 @@ adapters:
       supported-vendors:
       vendor-id: 25
     usersync:
-      cookie-family-name: yahooAdvertising
+      cookie-family-name: yahooAds
       redirect:
         url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
         support-cors: false

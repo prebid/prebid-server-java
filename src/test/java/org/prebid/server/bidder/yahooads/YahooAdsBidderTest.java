@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.yahooadvertising;
+package org.prebid.server.bidder.yahooads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -30,7 +30,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.yahooadvertising.ExtImpYahooAdvertising;
+import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 
 import java.util.List;
 import java.util.Map;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class YahooAdvertisingBidderTest extends VertxTest {
+public class YahooAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
@@ -59,18 +59,18 @@ public class YahooAdvertisingBidderTest extends VertxTest {
     @Mock
     private BidRequestOrtbVersionConversionManager conversionManager;
 
-    private YahooAdvertisingBidder yahooAdvertisingBidder;
+    private YahooAdsBidder yahooAdsBidder;
 
     @Before
     public void setUp() {
         when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
                 .thenAnswer(answer -> answer.getArgument(0));
-        yahooAdvertisingBidder = new YahooAdvertisingBidder(ENDPOINT_URL, conversionManager, jacksonMapper);
+        yahooAdsBidder = new YahooAdsBidder(ENDPOINT_URL, conversionManager, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YahooAdvertisingBidder("invalid_url",
+        assertThatIllegalArgumentException().isThrownBy(() -> new YahooAdsBidder("invalid_url",
                 conversionManager, jacksonMapper));
     }
 
@@ -83,7 +83,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -96,11 +96,11 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAdvertising.of("", null)))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAds.of("", null)))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -113,11 +113,11 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAdvertising.of("dcn", "")))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAds.of("dcn", "")))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -132,12 +132,12 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAdvertising.of("dcn", ""))))),
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAds.of("dcn", ""))))),
                         givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -155,7 +155,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -172,7 +172,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -190,7 +190,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -209,7 +209,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -225,7 +225,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -241,7 +241,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -257,7 +257,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -276,7 +276,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.site(null).device(Device.builder().ua("UA").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -294,7 +294,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -310,7 +310,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -324,7 +324,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -338,7 +338,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -359,7 +359,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -384,7 +384,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -409,7 +409,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = yahooAdvertisingBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooAdsBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -429,7 +429,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -455,7 +455,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yahooAdvertisingBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -479,7 +479,7 @@ public class YahooAdvertisingBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .tagid("tagId")
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAdvertising.of("dcn", "pos")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooAds.of("dcn", "pos")))))
                 .build();
     }
 
