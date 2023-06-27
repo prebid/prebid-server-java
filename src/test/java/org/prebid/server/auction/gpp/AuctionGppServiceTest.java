@@ -304,7 +304,7 @@ public class AuctionGppServiceTest {
 
         return BidRequest.builder()
                 .user(User.builder().ext(ExtUser.builder().consent(consent).build()).build())
-                .regs(Regs.builder().gpp(gpp).gppSid(gppSid).ext(ExtRegs.of(gdpr, usPrivacy)).build())
+                .regs(Regs.builder().gpp(gpp).gppSid(gppSid).ext(ExtRegs.of(gdpr, usPrivacy, null)).build())
                 .build();
     }
 

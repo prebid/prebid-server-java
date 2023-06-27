@@ -418,14 +418,15 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldRemoveTheOpenRTB26Regs() throws JsonProcessingException {
+    public void makeBidsShouldRemoveTheOpenRTB26Regs() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
-                                .gdpr(1)
-                                .usPrivacy("1YNN")
-                                .gpp("gppconsent")
-                                .gppSid(List.of(6))
+                        .gdpr(1)
+                        .usPrivacy("1YNN")
+                        .gpp("gppconsent")
+                        .gppSid(List.of(6))
+                        .ext(ExtRegs.of(null, null, "1"))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -441,17 +442,18 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getGpc()).isEqualTo("1");
         assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
         assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
     }
 
     @Test
-    public void makeBidsShouldOverwriteRegsExtValues() throws JsonProcessingException {
+    public void makeBidsShouldOverwriteRegsExtValues() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
-                        .ext(ExtRegs.of(0, "1YNN"))
+                        .ext(ExtRegs.of(0, "1YNN", null))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
