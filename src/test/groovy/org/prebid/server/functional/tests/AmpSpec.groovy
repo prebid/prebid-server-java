@@ -13,7 +13,6 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_INVALID
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -168,7 +167,7 @@ class AmpSpec extends BaseSpec {
 
         and: "Default stored request with gpp"
         def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(tcfVersion.value)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .build()
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             site = Site.defaultSite
@@ -192,20 +191,21 @@ class AmpSpec extends BaseSpec {
         assert metric["privacy.gvl.v2.requests"] == 1
 
         where:
-        tcfVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
     def "PBS cookie sync with invalid consent.tcfPolicyVersion parameter should reject request and update metrics"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
-        and: "Default stored request with gpp"
-        def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(TCF_POLICY_INVALID.value)
+        and: "Default stored request with tcf consent"
+        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(invalidTcfPolicyVersion)
                 .build()
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             site = Site.defaultSite
-            user = new User(consent: gppConsent)
+            user = new User(consent: tcfConsent)
         }
 
         and: "Stored request in DB"
@@ -215,13 +215,9 @@ class AmpSpec extends BaseSpec {
         when: "PBS processes amp request"
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.errors[ErrorType.PREBID]*.message == ["Incoming TCF string is invalid"]
-
-        and: "Metric should contain tcf and gvl blocked"
-        def metric = defaultPbsService.sendCollectedMetricsRequest()
-        assert metric["privacy.tcf.v2.vendorlist.missing"] == 1
-        assert metric["privacy.gvl.v2.vendorlist.missing"] == 1
+        then: "Bid response should contain warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 }

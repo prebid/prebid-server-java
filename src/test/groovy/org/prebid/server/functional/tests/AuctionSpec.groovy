@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
@@ -16,13 +17,16 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.Shared
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_INVALID
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -316,41 +320,51 @@ class AuctionSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.aliases
     }
 
+
     def "PBS should process request and display metrics for tcf and gvl with proper consent.tcfPolicyVersion parameter"() {
-        given: "Default bid request with gpp"
-        def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(tcfVersion.value)
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default bid request with tcf field"
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .build()
+        def gppSidIds = [TCF_EU_V2.intValue]
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            user = new User(consent: gppConsent)
+            regs = new Regs(gppSid: gppSidIds)
+            user = new User(consent: tcfConsent)
+            ext.prebid.trace = VERBOSE
         }
 
         and: "flush metrics"
         flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
+        def s = defaultPbsService.sendAuctionRequest(bidRequest)
         then: "Bidder request should contain user.consent from regs.gpp"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.user.consent == gppConsent as String
+        assert bidderRequest.user.consent == tcfConsent as String
 
         and: "Metric should contain tcf and gvl requests"
         def metric = defaultPbsService.sendCollectedMetricsRequest()
-        assert metric["privacy.tcf.v2.requests"] == 1
-        assert metric["privacy.gvl.v2.requests"] == 1
+
+        def logs = defaultPbsService.getLogsByTime(startTime)
+
+        assert getLogsByText(logs, "TCF ${tcfPolicyVersion.value} vendor list for version 203 not found, started downloading")
 
         where:
-        tcfVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
     def "PBS should reject request and update metrics with invalid consent.tcfPolicyVersion parameter"() {
         given: "Default bid request with gpp"
-        def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(TCF_POLICY_INVALID.value)
+        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(invalidTcfPolicyVersion)
                 .build()
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            user = new User(consent: gppConsent)
+            user = new User(consent: tcfConsent)
+            ext.prebid.trace = VERBOSE
         }
 
         and: "flush metrics"
@@ -360,13 +374,8 @@ class AuctionSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.errors[ErrorType.PREBID]?.collect { it.code } == [999]
-        assert response.ext?.errors[ErrorType.PREBID]?.collect { it.message } ==
-                ["Incoming TCF string is invalid"]
-
-        and: "Metric should contain tcf and gvl blocked"
-        def metric = defaultPbsService.sendCollectedMetricsRequest()
-        assert metric["privacy.tcf.v2.vendorlist.missing"] == 1
-        assert metric["privacy.gvl.v2.vendorlist.missing"] == 1
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 }

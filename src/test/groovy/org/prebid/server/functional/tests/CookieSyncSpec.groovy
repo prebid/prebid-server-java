@@ -35,7 +35,6 @@ import static org.prebid.server.functional.testcontainers.Dependencies.networkSe
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_INVALID
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -1301,12 +1300,13 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync with proper content.tcfPolicyVersion parameter should process bidder sync and display metrics"() {
         given: "Valid consent string"
-        def validConsentString = new TcfConsent.Builder(tcfVersion)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .build()
 
         and: "Cookie sync request with gdpr and gdprConsent"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            gdprConsent = validConsentString
+            gdprConsent = tcfConsent
         }
 
         and: "flush metrics"
@@ -1326,18 +1326,23 @@ class CookieSyncSpec extends BaseSpec {
         assert metric["privacy.gvl.v2.requests"] == 1
 
         where:
-        tcfVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
     def "PBS cookie sync with invalid content.tcfPolicyVersion parameter should reject bidder sycn and update metrics"() {
         given: "Invalid consent string"
-        def consentString = new TcfConsent.Builder()
-                .setTcfPolicyVersion(TCF_POLICY_INVALID.value)
+        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(invalidTcfPolicyVersion)
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Cookie sync request with gdpr and gdprConsent"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            gdprConsent = consentString
+            gdpr = 2
+            coopSync = true
+            gdprConsent = tcfConsent
         }
 
         and: "flush metrics"
@@ -1348,12 +1353,8 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain error"
         def bidderStatus = response.getBidderUserSync(GENERIC)
-        assert bidderStatus.error == "Rejected by TCF"
-
-        and: "Metric should contain tcf and gvl blocked"
-        def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 1
-        assert metric["cookie_sync.generic.gvl.blocked"] == 1
+        assert bidderStatus.error ==
+                "Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported"
     }
 
     def "PBS cookie sync with ccpa should reject bidder sync"() {
