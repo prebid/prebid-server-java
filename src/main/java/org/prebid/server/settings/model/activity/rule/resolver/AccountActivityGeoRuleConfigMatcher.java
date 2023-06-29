@@ -8,13 +8,15 @@ public class AccountActivityGeoRuleConfigMatcher implements AccountActivityRuleC
 
     @Override
     public boolean matches(JsonNode ruleNode) {
-        if (ruleNode == null || !ruleNode.isObject()) {
-            return false;
-        }
+        final JsonNode conditionNode = isNotNullObjectNode(ruleNode) ? ruleNode.get("condition") : null;
+        return isNotNullObjectNode(conditionNode)
+                && (conditionNode.has("gppSid")
+                || conditionNode.has("geo")
+                || conditionNode.has("gpc"));
+    }
 
-        final JsonNode conditionNode = ruleNode.get("condition");
-        return conditionNode != null && conditionNode.isObject()
-                && (conditionNode.has("gppSid") || conditionNode.has("geo"));
+    private static boolean isNotNullObjectNode(JsonNode jsonNode) {
+        return jsonNode != null && jsonNode.isObject();
     }
 
     @Override

@@ -99,7 +99,7 @@ public class AccountActivityGeoRuleConfigMatcherTest {
     public void matchesShouldReturnTrueOnConfigWithGpc() {
         // given
         final ObjectNode config = mapper.createObjectNode();
-        config.put("gpc", 1);
+        config.putObject("condition").put("gpc", 1);
 
         // when
         final boolean result = target.matches(config);
