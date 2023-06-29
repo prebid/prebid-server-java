@@ -2,6 +2,7 @@ package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -33,6 +34,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +56,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SharethroughBidderTest extends VertxTest {
 
@@ -282,56 +288,69 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnValidBidderBids() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                BidResponse.builder()
+                        .seatbid(givenSeatBid(
+                                givenBid("123", banner),
+                                givenBid("456", video),
+                                givenBid("44454", xNative)))
+                        .build());
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactlyInAnyOrder(
+                        BidderBid.of(givenBid("123", banner), banner, "USD"),
+                        BidderBid.of(givenBid("456", video), video, "USD"),
+                        BidderBid.of(givenBid("44454", xNative), xNative, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenExtBidTypeNotFound() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(List.of(SeatBid.builder()
+                                .bid(List.of(givenBid("124", null, bidBuilder -> bidBuilder.ext(null))))
+                                .build()))
+                        .build()));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("Failed to parse bid media type for impression 124"));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenUnrecognisedTypeAndOneValue() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final ObjectNode givenExt = getExtUnknownTypeJsonNode();
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(List.of(SeatBid.builder()
+                                .bid(List.of(
+                                        givenBid("123", banner, identity()),
+                                        givenBid("124", null, bidBuilder -> bidBuilder.ext(givenExt))))
+                                .build()))
+                        .build()));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("invalid BidType: unknownType"));
     }
 
     @NotNull
@@ -378,5 +397,32 @@ public class SharethroughBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
+        return BidderCall.succeededHttp(
+                null,
+                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
+                null);
+    }
+
+    private static List<SeatBid> givenSeatBid(Bid... bids) {
+        return singletonList(SeatBid.builder().bid(asList(bids)).build());
+    }
+
+    private static Bid givenBid(String impid, BidType bidType, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()
+                        .impid(impid)
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
+                .build();
+    }
+
+    private static Bid givenBid(String impid, BidType bidType) {
+        return givenBid(impid, bidType, UnaryOperator.identity());
+    }
+
+    private static ObjectNode getExtUnknownTypeJsonNode() {
+        final ObjectNode givenExtPrebid = mapper.createObjectNode().put("type", "unknownType");
+        return mapper.createObjectNode().set("prebid", givenExtPrebid);
     }
 }

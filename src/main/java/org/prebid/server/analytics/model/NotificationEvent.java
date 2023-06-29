@@ -1,8 +1,9 @@
 package org.prebid.server.analytics.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
@@ -29,6 +30,7 @@ public class NotificationEvent {
 
     HttpRequestContext httpContext;
 
+    @JsonIgnore
     ActivityInfrastructure activityInfrastructure;
 
     public enum Type {

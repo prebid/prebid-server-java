@@ -225,7 +225,8 @@ public class KargoBidderTest extends VertxTest {
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKargo.of("adSlotId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpKargo.of("placementId", "adSlotId")))))
                 .build();
     }
 
