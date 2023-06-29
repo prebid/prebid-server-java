@@ -26,7 +26,8 @@ import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
-import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -320,14 +321,20 @@ class AuctionSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.aliases
     }
 
-
     def "PBS should process request and display metrics for tcf and gvl with proper consent.tcfPolicyVersion parameter"() {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Default bid request with tcf field"
+        and: "PBS service with vendor list version config configuration"
+        def prebidServerService = pbsServiceFactory.getService(
+                "gdpr.vendorlist.v2.http-endpoint-template": "vendor-list/v2/archives/vendor-list-v{VERSION}.json",
+                "gdpr.vendorlist.v3.http-endpoint-template": "vendor-list/v3/archives/vendor-list-v{VERSION}.json")
+
+        and: "Bid request with tcf setup"
         def tcfConsent = new TcfConsent.Builder()
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def gppSidIds = [TCF_EU_V2.intValue]
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -336,21 +343,18 @@ class AuctionSpec extends BaseSpec {
             ext.prebid.trace = VERBOSE
         }
 
-        and: "flush metrics"
-        flushMetrics(defaultPbsService)
-
         when: "PBS processes auction request"
-        def s = defaultPbsService.sendAuctionRequest(bidRequest)
-        then: "Bidder request should contain user.consent from regs.gpp"
+        prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain user.consent"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.consent == tcfConsent as String
 
-        and: "Metric should contain tcf and gvl requests"
-        def metric = defaultPbsService.sendCollectedMetricsRequest()
+        and: "Logs should contain proper vendor list version url"
+        def logs = prebidServerService.getLogsByTime(startTime)
 
-        def logs = defaultPbsService.getLogsByTime(startTime)
-
-        assert getLogsByText(logs, "TCF ${tcfPolicyVersion.value} vendor list for version 203 not found, started downloading")
+        assert getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.vendorListVersion}/archives/vendor-list-v2.json")
+        assert !getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.reversedListVersion}/archives/vendor-list-v2.json")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
