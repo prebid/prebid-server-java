@@ -103,7 +103,7 @@ public class ImplicitParametersExtractor {
     }
 
     public String gpcFrom(HttpRequestContext httpRequest) {
-        final String gpcAsString = httpRequest.getHeaders().get(HttpUtil.SEC_GPC);
+        final String gpcAsString = httpRequest.getHeaders().get(HttpUtil.SEC_GPC_HEADER);
         return "1".equals(gpcAsString) || "\"1\"".equals(gpcAsString) ? "1" : null;
     }
 }

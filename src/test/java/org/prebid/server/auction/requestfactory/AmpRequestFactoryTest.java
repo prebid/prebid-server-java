@@ -48,6 +48,7 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -1487,6 +1488,22 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .gpp("someGppString")
                         .gppSid(List.of(1, 2, 3))
                         .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithGpc() {
+        // given
+        given(implicitParametersExtractor.gpcFrom(any())).willReturn("1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isEqualTo(Regs.builder()
+                .ext(ExtRegs.of(null, null, "1"))
+                .build());
     }
 
     @Test
