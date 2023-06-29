@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.GeoActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.GpcActivityCallPayload;
 
 import java.util.List;
 import java.util.Set;
@@ -14,17 +15,20 @@ public final class GeoRule implements Rule {
     private final ComponentRule componentRule;
     private final boolean sidsMatched;
     private final List<GeoCode> geoCodes;
+    private final String gpc;
     private final boolean allowed;
 
     public GeoRule(Set<ComponentType> componentTypes,
                    Set<String> componentNames,
                    boolean sidsMatched,
                    List<GeoCode> geoCodes,
+                   String gpc,
                    boolean allowed) {
 
         this.componentRule = new ComponentRule(componentTypes, componentNames, allowed);
         this.sidsMatched = sidsMatched;
         this.geoCodes = geoCodes;
+        this.gpc = gpc;
         this.allowed = allowed;
     }
 
@@ -32,6 +36,7 @@ public final class GeoRule implements Rule {
     public boolean matches(ActivityCallPayload activityCallPayload) {
         return sidsMatched
                 && (geoCodes == null || matchesOneOfGeoCodes(activityCallPayload))
+                && (gpc == null || matchesGpc(activityCallPayload))
                 && componentRule.matches(activityCallPayload);
     }
 
@@ -47,6 +52,14 @@ public final class GeoRule implements Rule {
         final String region = geoCode.getRegion();
         return StringUtils.equalsIgnoreCase(geoCode.getCountry(), geoPayload.country())
                 && (region == null || StringUtils.equalsIgnoreCase(region, geoPayload.region()));
+    }
+
+    private boolean matchesGpc(ActivityCallPayload activityCallPayload) {
+        if (activityCallPayload instanceof GpcActivityCallPayload gpcActivityCallPayload) {
+            return gpc.equals(gpcActivityCallPayload.gpc());
+        }
+
+        return true;
     }
 
     @Override

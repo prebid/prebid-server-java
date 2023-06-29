@@ -96,6 +96,19 @@ public class AccountActivityGeoRuleConfigMatcherTest {
     }
 
     @Test
+    public void matchesShouldReturnTrueOnConfigWithGpc() {
+        // given
+        final ObjectNode config = mapper.createObjectNode();
+        config.putObject("condition").put("gpc", 1);
+
+        // when
+        final boolean result = target.matches(config);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
     public void typeShouldReturnExpectedResult() {
         // when
         final Class<? extends AccountActivityRuleConfig> result = target.type();

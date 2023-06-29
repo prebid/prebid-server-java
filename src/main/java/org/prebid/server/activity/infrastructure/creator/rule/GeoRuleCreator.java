@@ -30,6 +30,7 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
                 condition != null ? setOf(condition.getComponentNames()) : null,
                 sidsMatched(condition, gppContext.scope().getSectionsIds()),
                 condition != null ? geoCodes(condition.getGeoCodes()) : null,
+                condition != null ? condition.getGpc() : null,
                 allow);
     }
 
