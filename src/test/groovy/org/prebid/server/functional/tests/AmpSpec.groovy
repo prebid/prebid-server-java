@@ -4,12 +4,23 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.TcfConsent
 
+import java.time.Instant
+
+import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class AmpSpec extends BaseSpec {
 
@@ -154,5 +165,79 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+    }
+
+    def "PBS cookie sync with proper consent.tcfPolicyVersion parameter should process request and display metrics for tcf and gvl"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "PBS service with vendor list version config configuration"
+        def prebidServerService = pbsServiceFactory.getService(
+                "gdpr.vendorlist.v2.http-endpoint-template": "vendor-list/v2/archives/vendor-list-v{VERSION}.json",
+                "gdpr.vendorlist.v3.http-endpoint-template": "vendor-list/v3/archives/vendor-list-v{VERSION}.json")
+
+
+        and: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
+
+        and: "Default stored request with tcf setup"
+        def gppConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+        def gppSidIds = [TCF_EU_V2.intValue]
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            regs = new Regs(gppSid: gppSidIds)
+            user = new User(consent: gppConsent)
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        prebidServerService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain parameters from the stored request"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.consent == gppConsent as String
+
+        and: "Logs should contain proper vendor list version url"
+        def logs = prebidServerService.getLogsByTime(startTime)
+
+        assert getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.vendorListVersion}/archives/vendor-list-v2.json")
+        assert !getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.reversedListVersion}/archives/vendor-list-v2.json")
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+    }
+
+    def "PBS cookie sync with invalid consent.tcfPolicyVersion parameter should reject request and update metrics"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
+
+        and: "Default stored request with tcf consent"
+        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(invalidTcfPolicyVersion)
+                .build()
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            user = new User(consent: tcfConsent)
+        }
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bid response should contain warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 }

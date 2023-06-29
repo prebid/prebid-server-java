@@ -7,8 +7,6 @@ import static io.restassured.RestAssured.given
 
 class TcfConsent implements ConsentString {
 
-    private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
-    private static final Integer VENDOR_LIST_VERSION = vendorListVersion
     public static final Integer RUBICON_VENDOR_ID = 52
     public static final Integer GENERIC_VENDOR_ID = RUBICON_VENDOR_ID
 
@@ -18,8 +16,9 @@ class TcfConsent implements ConsentString {
         this.tcStringEncoder = builder.tcStringEncoder
     }
 
-    static Integer getVendorListVersion() {
-        def vendorListVersion = given().get(VENDOR_LIST_URL).path("vendorListVersion") as Integer
+    private static Integer getVendorListVersion(TcfPolicyVersion version = TcfPolicyVersion.TCF_POLICY_V2) {
+        def vendorListVersion = given().get("https://vendor-list.consensu.org/v3/archives/vendor-list-v${version.vendorListVersion}.json")
+                .path("vendorListVersion") as Integer
         if (!vendorListVersion) {
             throw new IllegalStateException("Vendor list version is null")
         } else {
@@ -46,7 +45,7 @@ class TcfConsent implements ConsentString {
             tcStringEncoder = TCStringEncoder.newBuilder()
             setVersion(2)
             setTcfPolicyVersion(2)
-            setVendorListVersion(VENDOR_LIST_VERSION)
+            setVendorListVersion(getVendorListVersion())
         }
 
         Builder setVersion(Integer version) {
@@ -100,6 +99,26 @@ class TcfConsent implements ConsentString {
 
         PurposeId(int value) {
             this.value = value
+        }
+    }
+
+    enum TcfPolicyVersion {
+
+        TCF_POLICY_V2(2),
+        TCF_POLICY_V3(4)
+
+        final int value
+
+        TcfPolicyVersion(int value) {
+            this.value = value
+        }
+
+        int getVendorListVersion() {
+            (this == TCF_POLICY_V3) ? 3 : 2
+        }
+
+        int getReversedListVersion() {
+            (this == TCF_POLICY_V3) ? 2 : 3
         }
     }
 }
