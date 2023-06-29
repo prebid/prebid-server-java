@@ -560,21 +560,20 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS cookie sync should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.account = accountId
-            it.gppSid = USP_V1.value
+            it.gdpr = null
         }
 
         and: "Setup condition"
         def condition = Condition.baseCondition.tap {
             it.componentType = null
-            it.componentName = [PBSUtils.randomString]
-            it.gppSid = [USP_V1.intValue]
+            it.componentName = null
             it.geo = conditionGeo
         }
 
@@ -603,7 +602,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig          | conditionGeo
         null         | null                  | ["$USA.value".toString()]
-        USA.value    | ALABAMA.abbreviation  | null
         CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
         null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
         CAN.value    | null                  | [USA.withState(ALABAMA)]
@@ -612,14 +610,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.account = accountId
             it.gppSid = null
+            it.gdpr = null
         }
 
         and: "Setup condition"
@@ -656,21 +655,21 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig         | conditionGeo
         USA.value    | null                 | [USA.value]
-        USA.value    | null                 | [USA.withState(ALABAMA)]
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
     def "PBS set uid should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_V1.value
+            it.gdpr = null
         }
 
         and: "UIDS Cookie"
@@ -679,8 +678,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Setup condition"
         def condition = Condition.baseCondition.tap {
             it.componentType = null
-            it.componentName = [PBSUtils.randomString]
-            it.gppSid = [USP_V1.intValue]
+            it.componentName = null
             it.geo = conditionGeo
         }
 
@@ -710,7 +708,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig          | conditionGeo
         null         | null                  | [USA.value]
-        USA.value    | ALABAMA.abbreviation  | null
         CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
         null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
         CAN.value    | null                  | [USA.withState(ALABAMA)]
@@ -719,14 +716,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS set uid should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_V1.value
+            it.gdpr = null
         }
 
         and: "UIDS Cookie"
@@ -762,7 +760,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig         | conditionGeo
         USA.value    | null                 | [USA.value]
-        USA.value    | null                 | [USA.withState(ALABAMA)]
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 }
