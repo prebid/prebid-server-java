@@ -227,6 +227,7 @@ public class UserAdditionalInfoService {
 
         final Geo.GeoBuilder geoBuilder = geo != null ? geo.toBuilder() : Geo.builder();
         return geoBuilder
+                .country(geoInfo.getCountry())
                 .region(geoInfo.getRegion())
                 .metro(geoInfo.getMetroGoogle())
                 .lat(geoInfo.getLat())

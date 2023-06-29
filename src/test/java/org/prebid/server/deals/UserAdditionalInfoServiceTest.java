@@ -208,6 +208,7 @@ public class UserAdditionalInfoServiceTest extends VertxTest {
         assertThat(result.getBidRequest().getDevice()).isEqualTo(Device.builder()
                 .geo(Geo.builder()
                         .zip("zip")
+                        .country("country")
                         .region("region")
                         .metro("metroGoogle")
                         .lat(11.11F)
