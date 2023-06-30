@@ -113,7 +113,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
         final ObjectNode adheseExtInnerNode = mapper.mapper().valueToTree(parameterMap);
         final ObjectNode adheseExtNode = mapper.mapper().createObjectNode().set("adhese", adheseExtInnerNode);
 
-        Imp imp = bidRequest.getImp().get(0).toBuilder()
+        final Imp imp = bidRequest.getImp().get(0).toBuilder()
                 .ext(adheseExtNode)
                 .build();
 
@@ -153,7 +153,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(BidRequest bidRequest) {
-        List<Imp> impList = bidRequest.getImp();
+        final List<Imp> impList = bidRequest.getImp();
 
         if (impList == null || impList.isEmpty()) {
             throw new PreBidException("No Imps available");
