@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -242,6 +245,26 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSplitImpressionsByMediaType() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .video(Video.builder().w(1).h(1).build())
+                        .xNative(Native.builder().build())
+                        .audio(Audio.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -366,7 +389,7 @@ public class SharethroughBidderTest extends VertxTest {
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
+                .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -376,12 +399,12 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
-                                "pkey",
-                                singletonList("imp.ext.badv"),
-                                singletonList("imp.ext.bcat"))))))
+                .id("123")
+                .banner(Banner.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                        "pkey",
+                        singletonList("imp.ext.badv"),
+                        singletonList("imp.ext.bcat"))))))
                 .build();
     }
 
@@ -412,8 +435,8 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static Bid givenBid(String impid, BidType bidType, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
-                        .impid(impid)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
+                .impid(impid)
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
                 .build();
     }
 
