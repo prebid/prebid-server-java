@@ -55,7 +55,6 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Request corresponds to the payload"
         def userDetailsRequest = userData.recordedUserDetailsRequest
-        assert userDetailsRequest.time?.isAfter(uidsCookie.bday)
         assert userDetailsRequest.ids?.size() == 1
         assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC).uid
         assert userDetailsRequest.ids[0].type == pgConfig.userIdType

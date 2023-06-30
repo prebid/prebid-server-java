@@ -8,11 +8,17 @@ import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Network
 import org.prebid.server.functional.model.request.auction.Producer
 import org.prebid.server.functional.model.request.auction.Publisher
+import org.prebid.server.functional.model.request.auction.Qty
+import org.prebid.server.functional.model.request.auction.RefSettings
+import org.prebid.server.functional.model.request.auction.RefType
+import org.prebid.server.functional.model.request.auction.Refresh
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.Source
+import org.prebid.server.functional.model.request.auction.SourceType
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserAgent
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
@@ -366,7 +372,7 @@ class OrtbConverterSpec extends BaseSpec {
             }
         }
 
-        when: "Requesting PBS auction with ortb 2.5"
+        when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "BidResponse should contain the app.content.langb as on request"
@@ -588,6 +594,7 @@ class OrtbConverterSpec extends BaseSpec {
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
+                plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
             }
         }
 
@@ -603,6 +610,7 @@ class OrtbConverterSpec extends BaseSpec {
             !imp[0].video.podseq
             !imp[0].video.mincpmpersec
             !imp[0].video.slotinpod
+            !imp[0].video.plcmt
         }
     }
 
@@ -615,6 +623,7 @@ class OrtbConverterSpec extends BaseSpec {
         def podseqRandomNumber = PBSUtils.randomNumber
         def mincpmpersecRandomNumber = PBSUtils.randomDecimal
         def slotinpodRandomNumber = PBSUtils.randomNumber
+        def plcmtRandomEnum = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
                 rqddurs = rqddursListOfRandomNumber
@@ -624,6 +633,7 @@ class OrtbConverterSpec extends BaseSpec {
                 podseq = podseqRandomNumber
                 mincpmpersec = mincpmpersecRandomNumber
                 slotinpod = slotinpodRandomNumber
+                plcmt = plcmtRandomEnum
             }
         }
 
@@ -639,6 +649,7 @@ class OrtbConverterSpec extends BaseSpec {
             imp[0].video.podseq == podseqRandomNumber
             imp[0].video.mincpmpersec == mincpmpersecRandomNumber
             imp[0].video.slotinpod == slotinpodRandomNumber
+            imp[0].video.plcmt == plcmtRandomEnum
         }
     }
 
@@ -1053,7 +1064,93 @@ class OrtbConverterSpec extends BaseSpec {
         then: "BidderRequest should contain the regs.gpp and regs.gppSid as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             regs.gpp == bidRequest.regs.gpp
-            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value}
+            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value }
+        }
+    }
+
+    def "PBS should remove imp[0].refresh/qty when we don't support ortb 2.6"() {
+        given: "Default bid request with imp[0].refresh/qty"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].tap {
+                refresh = new Refresh(count: PBSUtils.randomNumber, refSettings: [new RefSettings(
+                        refType: PBSUtils.getRandomEnum(RefType),
+                        minInt: PBSUtils.randomNumber)])
+                qty = new Qty(multiplier: PBSUtils.randomDecimal,
+                        sourceType: PBSUtils.getRandomEnum(SourceType),
+                        vendor: PBSUtils.randomString)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse shouldn't contain the imp[0].refresh/qty as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            !imp[0].refresh
+            !imp[0].qty
+        }
+    }
+
+    def "PBS shouldn't remove imp[0].refresh/qty when we support ortb 2.6"() {
+        given: "Default bid request with imp[0].refresh/qty"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].tap {
+                refresh = new Refresh(count: PBSUtils.randomNumber, refSettings: [new RefSettings(
+                        refType: PBSUtils.getRandomEnum(RefType),
+                        minInt: PBSUtils.randomNumber)])
+                qty = new Qty(multiplier: PBSUtils.randomDecimal,
+                        sourceType: PBSUtils.getRandomEnum(SourceType),
+                        vendor: PBSUtils.randomString)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the imp[0].refresh/qty as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            imp[0].refresh.count == bidRequest.imp[0].refresh.count
+            imp[0].refresh.refSettings[0].refType == bidRequest.imp[0].refresh.refSettings[0].refType
+            imp[0].refresh.refSettings[0].minInt == bidRequest.imp[0].refresh.refSettings[0].minInt
+            imp[0].qty.multiplier == bidRequest.imp[0].qty.multiplier
+            imp[0].qty.sourceType == bidRequest.imp[0].qty.sourceType
+            imp[0].qty.vendor == bidRequest.imp[0].qty.vendor
+        }
+    }
+
+    def "PBS shouldn't remove regs.ext.gpc when ortb request support ortb 2.6"() {
+        given: "Default bid request with regs.ext object"
+        def randomGpc = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = Regs.defaultRegs.tap {
+                ext.gpc = randomGpc
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same regs as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            regs.ext.gpc == randomGpc
+        }
+    }
+
+    def "PBS shouldn't remove regs.ext.gpc when ortb request doesn't support ortb 2.6"() {
+        given: "Default bid request with regs.ext object"
+        def randomGpc = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = Regs.defaultRegs.tap {
+                ext.gpc = randomGpc
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same regs as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            regs.ext.gpc == randomGpc
         }
     }
 }

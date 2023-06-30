@@ -37,6 +37,8 @@ class Imp {
     Integer rwdd
     Integer ssai
     Integer exp
+    Qty qty
+    Refresh refresh
     ImpExt ext
 
     static Imp getDefaultImpression(MediaType mediaType = BANNER) {

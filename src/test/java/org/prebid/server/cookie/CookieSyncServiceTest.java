@@ -10,8 +10,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
@@ -58,6 +58,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -98,7 +99,7 @@ public class CookieSyncServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HostVendorTcfResponse.allowedVendor()));
         given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), "country")));
-        given(activityInfrastructure.isAllowed(any(), any(), any()))
+        given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
         givenCookieSyncService(Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -517,8 +518,8 @@ public class CookieSyncServiceTest extends VertxTest {
 
         given(activityInfrastructure.isAllowed(
                 eq(Activity.SYNC_USER),
-                eq(ComponentType.BIDDER),
-                eq("requested-bidder")))
+                argThat(argument -> argument.componentType().equals(ComponentType.BIDDER)
+                        && argument.componentName().equals("requested-bidder"))))
                 .willReturn(false);
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->

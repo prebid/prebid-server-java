@@ -14,8 +14,11 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -159,19 +162,32 @@ public class AnalyticsReporterDelegator {
 
     private static <T> boolean isAllowedAdapter(T event, String adapter) {
         final ActivityInfrastructure activityInfrastructure;
+        final ActivityCallPayload activityCallPayload;
         if (event instanceof AuctionEvent auctionEvent) {
             final AuctionContext auctionContext = auctionEvent.getAuctionContext();
             activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+            activityCallPayload = auctionContext != null
+                    ? BidRequestActivityCallPayload.of(activityCallPayload(adapter), auctionContext.getBidRequest())
+                    : null;
         } else if (event instanceof AmpEvent ampEvent) {
             final AuctionContext auctionContext = ampEvent.getAuctionContext();
             activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+            activityCallPayload = auctionContext != null
+                    ? BidRequestActivityCallPayload.of(activityCallPayload(adapter), auctionContext.getBidRequest())
+                    : null;
         } else if (event instanceof NotificationEvent notificationEvent) {
             activityInfrastructure = notificationEvent.getActivityInfrastructure();
+            activityCallPayload = activityCallPayload(adapter);
         } else {
             activityInfrastructure = null;
+            activityCallPayload = null;
         }
 
-        return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, adapter);
+        return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, activityCallPayload);
+    }
+
+    private static ActivityCallPayload activityCallPayload(String adapterName) {
+        return ActivityCallPayloadImpl.of(ComponentType.ANALYTICS, adapterName);
     }
 
     private <T> T updateEvent(T event, String adapter) {
@@ -206,8 +222,14 @@ public class AnalyticsReporterDelegator {
                                         String adapter,
                                         ActivityInfrastructure infrastructure) {
 
-        final boolean disallowTransmitUfpd = !isAllowedActivity(infrastructure, Activity.TRANSMIT_UFPD, adapter);
-        final boolean disallowTransmitGeo = !isAllowedActivity(infrastructure, Activity.TRANSMIT_GEO, adapter);
+        final ActivityCallPayload activityCallPayload = BidRequestActivityCallPayload.of(
+                activityCallPayload(adapter),
+                bidRequest);
+
+        final boolean disallowTransmitUfpd = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_UFPD, activityCallPayload);
+        final boolean disallowTransmitGeo = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_GEO, activityCallPayload);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
         final User resolvedUser = privacyEnforcementService
@@ -231,10 +253,10 @@ public class AnalyticsReporterDelegator {
 
     private static boolean isAllowedActivity(ActivityInfrastructure activityInfrastructure,
                                              Activity activity,
-                                             String adapterName) {
+                                             ActivityCallPayload activityCallPayload) {
 
         return activityInfrastructure != null
-                ? activityInfrastructure.isAllowed(activity, ComponentType.ANALYTICS, adapterName)
+                ? activityInfrastructure.isAllowed(activity, activityCallPayload)
                 : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 

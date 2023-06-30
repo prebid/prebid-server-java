@@ -12,6 +12,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Network;
 import com.iab.openrtb.request.Producer;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Qty;
+import com.iab.openrtb.request.RefSettings;
+import com.iab.openrtb.request.Refresh;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -113,7 +116,11 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                 Regs.builder()
                         .gdpr(1)
                         .usPrivacy("usPrivacy")
-                        .ext(mapper.convertValue(Map.of("someField", "someValue"), ExtRegs.class))
+                        .ext(mapper.convertValue(
+                                Map.of(
+                                        "someField", "someValue",
+                                        "gpc", "1"),
+                                ExtRegs.class))
                         .build()));
 
         // when
@@ -127,7 +134,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(Regs::getGdpr, Regs::getUsPrivacy)
                             .containsOnlyNulls();
 
-                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy");
+                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy", "1");
                     expectedRegsExt.addProperty("someField", TextNode.valueOf("someValue"));
                     assertThat(regs)
                             .extracting(Regs::getExt)
@@ -199,6 +206,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .rqddurs(singletonList(1))
                                 .slotinpod(1)
                                 .mincpmpersec(BigDecimal.ONE)
+                                .plcmt(1)
                                 .build())
                         .audio(Audio.builder()
                                 .poddur(1)
@@ -209,6 +217,10 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .mincpmpersec(BigDecimal.ONE)
                                 .maxseq(1)
                                 .build())
+                        .refresh(Refresh.builder().count(1)
+                                .refsettings(singletonList(RefSettings.builder().minint(1).build()))
+                                .build())
+                        .qty(Qty.builder().multiplier(BigDecimal.ONE).build())
                         .ssai(1))))
                 .site(Site.builder()
                         .cattax(1)

@@ -20,7 +20,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -129,7 +129,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
                 .willReturn("2001:0db8:85a3:0000::");
 
-        given(activityInfrastructure.isAllowed(any(), any(), any()))
+        given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
@@ -1663,11 +1663,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldMaskCorrespondingToActivitiesRestrictions() {
         // given
-        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any(), any())).willReturn(false);
-        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any(), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
         given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000::"))).willReturn("2001:0db8:85a3:0000::");
 
         final User user = User.builder()
+                .id("id")
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
@@ -1698,6 +1699,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final BidderPrivacyResult expected = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
                 .user(User.builder()
+                        .id(null)
                         .buyeruid(null)
                         .yob(null)
                         .gender(null)
@@ -1727,6 +1729,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUser() {
         // given
         final User user = User.builder()
+                .id("id")
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
@@ -1741,6 +1744,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(User.builder()
+                .id(null)
                 .buyeruid(null)
                 .yob(null)
                 .gender(null)

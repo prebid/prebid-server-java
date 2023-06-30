@@ -1,0 +1,15 @@
+adapters:
+  motorik:
+    endpoint: http://lb-east.motorik.io/?k={{AccountID}}&name={{SourceId}}
+    meta-info:
+      maintainer-email: support@motorik.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

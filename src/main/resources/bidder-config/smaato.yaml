@@ -1,6 +1,7 @@
 adapters:
   smaato:
     endpoint: https://prebid.ad.smaato.net/oapi/prebid
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@smaato.com
       app-media-types:
