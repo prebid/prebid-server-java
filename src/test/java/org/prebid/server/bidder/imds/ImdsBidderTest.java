@@ -37,13 +37,13 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class ImdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://pbs.endpoint.com/{{AccountID}}?src={{SourceId}}&adapter=imds";
+    private static final String PREBID_VERSION = "pbs-java/0.1.2";
 
     private ImdsBidder imdsBidder;
 
@@ -55,14 +55,13 @@ public class ImdsBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("pbs-java/0.1.2");
-        imdsBidder = new ImdsBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
+        imdsBidder = new ImdsBidder(ENDPOINT_URL, PREBID_VERSION, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ImdsBidder("invalid_url", prebidVersionProvider, jacksonMapper));
+                () -> new ImdsBidder("invalid_url", PREBID_VERSION, jacksonMapper));
     }
 
     @Test

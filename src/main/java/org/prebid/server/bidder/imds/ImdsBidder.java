@@ -25,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.request.imds.ExtRequestImds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.version.PrebidVersionProvider;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -45,9 +44,9 @@ public class ImdsBidder implements Bidder<BidRequest> {
     private final String prebidVersion;
     private final JacksonMapper mapper;
 
-    public ImdsBidder(String endpointUrl, PrebidVersionProvider prebidVersionProvider, JacksonMapper mapper) {
+    public ImdsBidder(String endpointUrl, String prebidVersion, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.prebidVersion = Objects.requireNonNull(prebidVersionProvider.getNameVersionRecord());
+        this.prebidVersion = Objects.requireNonNull(prebidVersion);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -83,16 +82,24 @@ public class ImdsBidder implements Bidder<BidRequest> {
                 .ext(mapper.fillExtension(ExtRequest.empty(), ExtRequestImds.of(firstExtImp.getSeatId())))
                 .build();
 
-        return Result.of(Collections.singletonList(
+        return Result.of(
+                Collections.singletonList(
                         BidderUtil.defaultRequest(
-                                outgoingRequest,
-                                endpointUrl
-                                        .replaceAll("\\{\\{AccountID}}",
-                                                URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8))
-                                        .replaceAll("\\{\\{SourceId}}",
-                                                URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8)),
-                                mapper)),
-                errors);
+                            outgoingRequest,
+                            generateEndpointUrl(firstExtImp),
+                            mapper
+                    )
+                ),
+                errors
+        );
+    }
+
+    private String generateEndpointUrl(ExtImpImds firstExtImp) {
+        final String accountId = URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8);
+        final String sourceId = URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8);
+        return endpointUrl
+                .replaceAll("\\{\\{AccountID}}", accountId)
+                .replaceAll("\\{\\{SourceId}}", sourceId);
     }
 
     private ExtImpImds parseAndValidateExtImp(ObjectNode impExt) {
@@ -149,7 +156,7 @@ public class ImdsBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
+        for (final Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;

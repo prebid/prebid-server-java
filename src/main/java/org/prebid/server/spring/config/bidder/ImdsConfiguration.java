@@ -37,7 +37,11 @@ public class ImdsConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(imdsConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new ImdsBidder(config.getEndpoint(), prebidVersionProvider, mapper))
+                .bidderCreator(config -> new ImdsBidder(
+                        config.getEndpoint(),
+                        prebidVersionProvider.getNameVersionRecord(),
+                        mapper)
+                )
                 .assemble();
     }
 }
