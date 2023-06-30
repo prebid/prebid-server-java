@@ -141,11 +141,10 @@ public class AdheseBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<Bid> getBid(BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Optional.empty();
-        }
-
-        return bidResponse.getSeatbid().stream()
+        return Optional.ofNullable(bidResponse)
+                .map(BidResponse::getSeatbid)
+                .stream()
+                .flatMap(Collection::stream)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
