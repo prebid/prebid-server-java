@@ -69,30 +69,6 @@ public class AdheseBidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(modifiedBidRequest, uri, mapper));
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final Optional<Bid> optionalBid = getBid(bidResponse);
-
-            if (optionalBid.isEmpty()) {
-                return Result.empty();
-            }
-
-            final Bid bid = optionalBid.get();
-            final AdheseOriginData originData = toObjectOfType(bid.getExt().get("adhese"), AdheseOriginData.class);
-            final Bid modifiedBid = bid.toBuilder()
-                    .ext(mapper.mapper().valueToTree(originData)) // unwrap from "adhese"
-                    .build();
-
-            final BidderBid bidderBid = BidderBid.of(modifiedBid, getBidType(bidRequest), bidResponse.getCur());
-
-            return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
     private ExtImpAdhese parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADHESE_EXT_TYPE_REFERENCE).getBidder();
@@ -140,6 +116,30 @@ public class AdheseBidder implements Bidder<BidRequest> {
         return Collections.singletonMap(SLOT_PARAMETER, Collections.singletonList(slot));
     }
 
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final Optional<Bid> optionalBid = getBid(bidResponse);
+
+            if (optionalBid.isEmpty()) {
+                return Result.empty();
+            }
+
+            final Bid bid = optionalBid.get();
+            final AdheseOriginData originData = toObjectOfType(bid.getExt().get("adhese"), AdheseOriginData.class);
+            final Bid modifiedBid = bid.toBuilder()
+                    .ext(mapper.mapper().valueToTree(originData)) // unwrap from "adhese"
+                    .build();
+
+            final BidderBid bidderBid = BidderBid.of(modifiedBid, getBidType(bidRequest), bidResponse.getCur());
+
+            return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
     private static Optional<Bid> getBid(BidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
                 .map(BidResponse::getSeatbid)
@@ -149,6 +149,14 @@ public class AdheseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .findFirst();
+    }
+
+    private <T> T toObjectOfType(JsonNode jsonNode, Class<T> clazz) {
+        try {
+            return mapper.mapper().treeToValue(jsonNode, clazz);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private static BidType getBidType(BidRequest bidRequest) {
@@ -169,14 +177,6 @@ public class AdheseBidder implements Bidder<BidRequest> {
             return BidType.audio;
         } else {
             throw new PreBidException("Failed to obtain BidType");
-        }
-    }
-
-    private <T> T toObjectOfType(JsonNode jsonNode, Class<T> clazz) {
-        try {
-            return mapper.mapper().treeToValue(jsonNode, clazz);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
         }
     }
 }
