@@ -79,7 +79,21 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                 .cur(Collections.singletonList(BIDDER_CURRENCY)).imp(modifiedImps).build();
 
         return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
+    }
 
+    private ExtImpPreciso parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), PRECISO_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
+        return imp.toBuilder()
+                .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
+                .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
+                .build();
     }
 
     @Override
@@ -105,21 +119,6 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
-    }
-
-    private ExtImpPreciso parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), PRECISO_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-        return imp.toBuilder()
-                .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
-                .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
-                .build();
     }
 
     private Price resolveBidFloor(Imp imp, ExtImpPreciso impExt, BidRequest bidRequest) {
