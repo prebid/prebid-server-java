@@ -398,6 +398,20 @@ class PrebidServerService implements ObjectMapperWrapper {
         filteredLogs
     }
 
+    <T> T getValueFromContainer(String path, Class<T> clazz) {
+        pbsContainer.copyFileFromContainer(path, { inputStream ->
+            return decode(inputStream, clazz)
+        })
+    }
+
+    Boolean isFileExist(String path) {
+        pbsContainer.execInContainer("test", "-f", path).getExitCode() == 0
+    }
+
+    void deleteFilesInDirectory(String directoryPath) {
+        pbsContainer.execInContainer("find", directoryPath, "-maxdepth", "${Integer.MAX_VALUE}", "-type", "f", "-exec", "rm", "-f", "{}", "+")
+    }
+
     private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
         new RequestSpecBuilder().setBaseUri(uri)
                                 .setAuth(authScheme)

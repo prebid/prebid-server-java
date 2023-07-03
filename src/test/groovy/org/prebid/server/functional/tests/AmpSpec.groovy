@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
+import org.prebid.server.functional.util.privacy.VendorListConsent
 
 import java.time.Instant
 
@@ -171,12 +172,6 @@ class AmpSpec extends BaseSpec {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "PBS service with vendor list version config configuration"
-        def prebidServerService = pbsServiceFactory.getService(
-                "gdpr.vendorlist.v2.http-endpoint-template": "vendor-list/v2/archives/vendor-list-v{VERSION}.json",
-                "gdpr.vendorlist.v3.http-endpoint-template": "vendor-list/v3/archives/vendor-list-v{VERSION}.json")
-
-
         and: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
@@ -197,18 +192,24 @@ class AmpSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
+        and: "Flush cache for existed vendor lists"
+        flushCacheDirectory(defaultPbsService)
+
         when: "PBS processes amp request"
-        prebidServerService.sendAmpRequest(ampRequest)
+        defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain parameters from the stored request"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.user.consent == gppConsent as String
+        then: "Used vendor list have proper specification version of GVL"
+        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/2.json"
+        PBSUtils.waitUntil {defaultPbsService.isFileExist(properVendorListPath)}
+        def vendorList = defaultPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.gvlSpecificationVersion == tcfPolicyVersion.vendorListVersion
 
-        and: "Logs should contain proper vendor list version url"
-        def logs = prebidServerService.getLogsByTime(startTime)
+        and: "Logs should contain proper vendor list version"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
 
-        assert getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.vendorListVersion}/archives/vendor-list-v2.json")
-        assert !getLogsByText(logs, "vendor-list/v${tcfPolicyVersion.reversedListVersion}/archives/vendor-list-v2.json")
+        and: "Another version of vendorList file was not called"
+        assert !defaultPbsService.isFileExist("/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.reversedListVersion}/2.json")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
