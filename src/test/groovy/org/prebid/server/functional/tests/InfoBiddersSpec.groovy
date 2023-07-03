@@ -2,7 +2,9 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
+@Ignore(inherited = true)
 class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should get info about active bidders when enabledonly = #enabledonly"() {

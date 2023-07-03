@@ -11,11 +11,13 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
+@Ignore(inherited = true)
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {

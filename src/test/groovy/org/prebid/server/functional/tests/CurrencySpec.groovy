@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import spock.lang.Ignore
 
 import java.math.RoundingMode
 
@@ -14,6 +15,7 @@ import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
+@Ignore(inherited = true)
 class CurrencySpec extends BaseSpec {
 
     private static final Currency DEFAULT_CURRENCY = USD

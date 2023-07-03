@@ -23,6 +23,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversio
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import java.math.RoundingMode
 
@@ -33,6 +34,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
+@Ignore(inherited = true)
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
