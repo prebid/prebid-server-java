@@ -331,6 +331,7 @@ class AuctionSpec extends BaseSpec {
         def tcfConsent = new TcfConsent.Builder()
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setPurposesLITransparency(BASIC_ADS)
+                .setVendorListVersion(2)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def gppSidIds = [TCF_EU_V2.intValue]
@@ -348,7 +349,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Used vendor list have proper specification version of GVL"
         def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/2.json"
-        PBSUtils.waitUntil {defaultPbsService.isFileExist(properVendorListPath)}
+        PBSUtils.waitUntil { defaultPbsService.isFileExist(properVendorListPath) }
         def vendorList = defaultPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.gvlSpecificationVersion == tcfPolicyVersion.vendorListVersion
 

@@ -179,6 +179,7 @@ class AmpSpec extends BaseSpec {
         def gppConsent = new TcfConsent.Builder()
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setPurposesLITransparency(BASIC_ADS)
+                .setVendorListVersion(2)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def gppSidIds = [TCF_EU_V2.intValue]
