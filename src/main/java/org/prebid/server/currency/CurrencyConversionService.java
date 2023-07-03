@@ -103,7 +103,7 @@ public class CurrencyConversionService implements Initializable {
         }
 
         final String body = response.getBody();
-        System.out.println("Currency rate body: " + body);
+        logger.error("Currency rate body: " + body);
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
@@ -205,8 +205,8 @@ public class CurrencyConversionService implements Initializable {
             secondPriorityRates = requestCurrencyRates;
         }
 
-        System.out.println("CURRENCY first priority rates : " + firstPriorityRates);
-        System.out.println("CURRENCY second priority rates : " + secondPriorityRates);
+        logger.error("CURRENCY first priority rates : " + firstPriorityRates);
+        logger.error("CURRENCY second priority rates : " + secondPriorityRates);
 
         final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates,
                 secondPriorityRates,
