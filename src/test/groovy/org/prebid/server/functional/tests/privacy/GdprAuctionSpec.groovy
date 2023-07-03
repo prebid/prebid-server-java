@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -12,7 +11,6 @@ import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS

@@ -16,8 +16,8 @@ class TcfConsent implements ConsentString {
         this.tcStringEncoder = builder.tcStringEncoder
     }
 
-    private static Integer getVendorListVersion(TcfPolicyVersion version = TcfPolicyVersion.TCF_POLICY_V2) {
-        def vendorListVersion = given().get("https://vendor-list.consensu.org/v3/archives/vendor-list-v${version.vendorListVersion}.json")
+    private static Integer getVendorListVersion() {
+        def vendorListVersion = given().get("https://vendor-list.consensu.org/v2/vendor-list.json")
                 .path("vendorListVersion") as Integer
         if (!vendorListVersion) {
             throw new IllegalStateException("Vendor list version is null")
