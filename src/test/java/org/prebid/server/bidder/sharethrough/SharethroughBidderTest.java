@@ -247,21 +247,67 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSplitImpressionsByMediaType() {
         // given
+        final Banner banner = Banner.builder().w(1).h(1).build();
+        final Video video = Video.builder().w(2).h(2).build();
+        final Native xNative = Native.builder().request("some request").build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 impBuilder -> impBuilder
                         .id("123")
-                        .banner(Banner.builder().w(1).h(1).build())
-                        .video(Video.builder().w(1).h(1).build())
-                        .xNative(Native.builder().build())
-                        .audio(Audio.builder().build()));
+                        .banner(banner)
+                        .video(video)
+                        .xNative(xNative)
+                        .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(3);
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        assertThat(httpRequests).hasSize(3);
+
+        // Each split bid request has only 1 impression
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .allSatisfy(impressions -> assertThat(impressions).hasSize(1));
+
+        // All split bid requests share the same impression ID
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(impressions -> impressions.get(0))
+                .allSatisfy(impression -> assertThat(impression.getId()).isEqualTo("123"));
+
+        // The multiformat bid request is split into a bid request per media type
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(impressions -> impressions.get(0))
+                .satisfiesExactlyInAnyOrder(
+                        impression -> {
+                            assertThat(impression.getBanner()).isEqualTo(banner);
+                            assertThat(impression.getVideo()).isNull();
+                            assertThat(impression.getXNative()).isNull();
+                        },
+                        impression -> {
+                            assertThat(impression.getVideo()).isEqualTo(video);
+                            assertThat(impression.getBanner()).isNull();
+                            assertThat(impression.getXNative()).isNull();
+                        },
+                        impression -> {
+                            assertThat(impression.getXNative()).isEqualTo(xNative);
+                            assertThat(impression.getBanner()).isNull();
+                            assertThat(impression.getVideo()).isNull();
+                        });
+
+        // Ignore audio impressions because it is currently not supported
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(impressions -> impressions.get(0))
+                .allSatisfy(impression -> assertThat(impression.getAudio()).isNull());
     }
 
     @Test
