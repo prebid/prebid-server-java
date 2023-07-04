@@ -250,7 +250,7 @@ public class SharethroughBidderTest extends VertxTest {
         final Banner banner = Banner.builder().w(1).h(1).build();
         final Video video = Video.builder().w(2).h(2).build();
         final Native xNative = Native.builder().request("some request").build();
-        final BidRequest bidRequest = givenBidRequest(
+        final BidRequest multiformatBidRequest = givenBidRequest(
                 identity(),
                 impBuilder -> impBuilder
                         .id("123")
@@ -260,7 +260,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(multiformatBidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
