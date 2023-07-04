@@ -5,7 +5,7 @@ adapters:
       colossusssp:
         enabled: false
     meta-info:
-      maintainer-email: support@huddledmasses.com
+      maintainer-email: support@colossusmediassp.com
       app-media-types:
         - banner
         - video

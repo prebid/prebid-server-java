@@ -11,6 +11,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.SY
 
 @ToString(includeNames = true, ignoreNulls = true)
 class AllowActivities {
+
     Activity syncUser
     Activity fetchBids
     Activity enrichUfpd

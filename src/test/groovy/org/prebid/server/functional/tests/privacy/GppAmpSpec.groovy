@@ -174,4 +174,47 @@ class GppAmpSpec extends PrivacyBaseSpec {
         assert bidderRequest.regs.usPrivacy == gppConsent.encodeSection()
         assert bidderRequest.regs.gppSid == [USP_V1.intValue]
     }
+
+    def "PBS should populate regs.ext.gpc from header when sec-gpc header has value 1"() {
+        given: "Default amp request"
+        def ampRequest = getGppAmpRequest(new TcfEuV2Consent.Builder().build().toString())
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            regs.ext.gpc = null
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request with header"
+        defaultPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": VALID_VALUE_FOR_GPC_HEADER])
+
+        then: "Bidder request should contain gpc value from header"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.regs.ext.gpc == gpcHeader as String
+
+        where:
+        gpcHeader << [VALID_VALUE_FOR_GPC_HEADER as Integer, VALID_VALUE_FOR_GPC_HEADER]
+    }
+
+    def "PBS shouldn't populate regs.ext.gpc from header when sec-gpc header hasn't value 1"() {
+        given: "Default amp request with valid consent_string and gpp consent_type"
+        def gppConsent = new TcfEuV2Consent.Builder().build()
+        def gppSidIds = TCF_EU_V2.value
+        def ampRequest = getGppAmpRequest(gppConsent.toString(), gppSidIds)
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            regs.ext.gpc = null
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request with header"
+        defaultPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": PBSUtils.randomNumber as String])
+
+        then: "Bidder request shouldn't contain gpc value from header"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.regs.ext
+    }
 }

@@ -9,11 +9,13 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +28,8 @@ public class PrivacyExtractor {
 
     private static final String SETUID_GDPR_PARAM = "gdpr";
     private static final String SETUID_GDPR_CONSENT_PARAM = "gdpr_consent";
+    private static final String SETUID_GPP_PARAM = "gpp";
+    private static final String SETUID_GPP_SID_PARAM = "gpp_sid";
 
     private static final String DEFAULT_CONSENT_VALUE = "";
     private static final String DEFAULT_GDPR_VALUE = "";
@@ -62,8 +66,27 @@ public class PrivacyExtractor {
     public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
         final String gdpr = request.getParam(SETUID_GDPR_PARAM);
         final String gdprConsent = request.getParam(SETUID_GDPR_CONSENT_PARAM);
+        final String gpp = request.getParam(SETUID_GPP_PARAM);
+        final List<Integer> gppSid = parseGppSid(request.getParam(SETUID_GPP_SID_PARAM));
 
-        return toValidPrivacy(gdpr, gdprConsent, null, null, null, null, null);
+        return toValidPrivacy(gdpr, gdprConsent, null, null, gpp, gppSid, null);
+    }
+
+    private static List<Integer> parseGppSid(String gppSid) {
+        if (gppSid == null) {
+            return DEFAULT_GPP_SID_VALUE;
+        }
+
+        try {
+            return Arrays.stream(gppSid.split(","))
+                    .map(StringUtils::strip)
+                    .filter(StringUtils::isNotBlank)
+                    .map(Integer::parseInt)
+                    .toList();
+        } catch (NumberFormatException e) {
+            throw new InvalidRequestException("invalid %s value. Comma separated integers expected."
+                    .formatted(SETUID_GPP_SID_PARAM));
+        }
     }
 
     private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {

@@ -418,8 +418,10 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
-        copyProperties(regs.getExt(), extRegs);
+        final ExtRegs originalExtRegs = regs.getExt();
+        final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
+        copyProperties(originalExtRegs, extRegs);
 
         return regs.toBuilder()
                 .gdpr(null)

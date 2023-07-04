@@ -5,5 +5,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpKargo {
 
+    String placementId;
+
     String adSlotID;
 }

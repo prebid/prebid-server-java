@@ -1233,4 +1233,40 @@ class OrtbConverterSpec extends BaseSpec {
             dooh.content.id == bidRequest.dooh.content.id
         }
     }
+
+    def "PBS shouldn't remove regs.ext.gpc when ortb request support ortb 2.6"() {
+        given: "Default bid request with regs.ext object"
+        def randomGpc = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = Regs.defaultRegs.tap {
+                ext.gpc = randomGpc
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same regs as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            regs.ext.gpc == randomGpc
+        }
+    }
+
+    def "PBS shouldn't remove regs.ext.gpc when ortb request doesn't support ortb 2.6"() {
+        given: "Default bid request with regs.ext object"
+        def randomGpc = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            regs = Regs.defaultRegs.tap {
+                ext.gpc = randomGpc
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "BidResponse should contain the same regs as on request"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            regs.ext.gpc == randomGpc
+        }
+    }
 }

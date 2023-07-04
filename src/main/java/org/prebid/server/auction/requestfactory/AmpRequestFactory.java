@@ -39,6 +39,7 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -88,7 +89,7 @@ public class AmpRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    private final AmpGppService ampGppService;
+    private final AmpGppService gppService;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
@@ -100,7 +101,7 @@ public class AmpRequestFactory {
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
                              BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                             AmpGppService ampGppService,
+                             AmpGppService gppService,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
                              Ortb2ImplicitParametersResolver paramsResolver,
@@ -112,7 +113,7 @@ public class AmpRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
-        this.ampGppService = Objects.requireNonNull(ampGppService);
+        this.gppService = Objects.requireNonNull(gppService);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
@@ -141,6 +142,9 @@ public class AmpRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> gppService.contextFrom(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
@@ -183,13 +187,14 @@ public class AmpRequestFactory {
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest);
+        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
                 .user(createUser(consentParam, addtlConsent))
-                .regs(createRegs(consentParam, gppSidExtraction, gdpr))
+                .regs(createRegs(consentParam, gppSidExtraction, gdpr, gpc))
                 .test(debug)
                 .tmax(timeout)
                 .ext(createExt(httpRequest, tagId, debug))
@@ -268,7 +273,9 @@ public class AmpRequestFactory {
 
     private static Regs createRegs(ConsentParam consentParam,
                                    GppSidExtraction gppSidExtraction,
-                                   Integer gdpr) {
+                                   Integer gdpr,
+                                   String gpc) {
+
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         final boolean isSuccessGppSidExtraction = gppSidExtraction.isSuccessExtraction();
@@ -277,12 +284,13 @@ public class AmpRequestFactory {
                 ? consentParam.getConsentString()
                 : null;
 
-        return gdpr != null || usPrivacy != null || gppSid != null || gpp != null
+        return gdpr != null || usPrivacy != null || gppSid != null || gpp != null || gpc != null
                 ? Regs.builder()
                 .gdpr(gdpr)
                 .usPrivacy(usPrivacy)
                 .gppSid(gppSid)
                 .gpp(gpp)
+                .ext(gpc != null ? ExtRegs.of(null, null, gpc) : null)
                 .build()
                 : null;
     }
@@ -383,7 +391,7 @@ public class AmpRequestFactory {
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> ampGppService.apply(bidRequest, auctionContext))
+                .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
