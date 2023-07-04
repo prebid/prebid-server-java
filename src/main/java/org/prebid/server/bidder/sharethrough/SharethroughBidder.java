@@ -109,13 +109,13 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         }
 
         if (video != null) {
-            splitImpressions.add(impression.toBuilder().banner(null).xNative(null).build());
+            splitImpressions.add(impression.toBuilder().banner(null).xNative(null).audio(null).build());
         }
         if (banner != null) {
-            splitImpressions.add(impression.toBuilder().video(null).xNative(null).build());
+            splitImpressions.add(impression.toBuilder().video(null).xNative(null).audio(null).build());
         }
         if (xNative != null) {
-            splitImpressions.add(impression.toBuilder().banner(null).video(null).build());
+            splitImpressions.add(impression.toBuilder().banner(null).video(null).audio(null).build());
         }
 
         return splitImpressions;
