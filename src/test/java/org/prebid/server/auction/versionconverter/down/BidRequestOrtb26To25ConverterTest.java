@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Channel;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Network;
@@ -224,6 +225,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .ssai(1))))
                 .site(Site.builder()
                         .cattax(1)
+                        .inventorypartnerdomain("inventorypartnerdomain")
                         .publisher(Publisher.builder().cattax(1).build())
                         .content(Content.builder()
                                 .producer(Producer.builder().cattax(1).build())
@@ -237,6 +239,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .build())
                 .app(App.builder()
                         .cattax(1)
+                        .inventorypartnerdomain("inventorypartnerdomain")
                         .publisher(Publisher.builder().cattax(1).build())
                         .content(Content.builder()
                                 .producer(Producer.builder().cattax(1).build())
@@ -248,6 +251,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .build())
                         .kwarray(singletonList("kwarray"))
                         .build())
+                .dooh(Dooh.builder().build())
                 .device(Device.builder().sua(UserAgent.builder().build()).langb("langb").build())
                 .user(User.builder().kwarray(singletonList("kwarray")).build())
                 .wlangb(singletonList("wlangb"))
