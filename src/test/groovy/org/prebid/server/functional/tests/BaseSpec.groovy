@@ -33,7 +33,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final int MAX_TIMEOUT = MIN_TIMEOUT + 1000
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
-    private static final String DEFAULT_CACHE_DIRECTORY="/app/prebid-server/data"
+    private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
 
     protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
