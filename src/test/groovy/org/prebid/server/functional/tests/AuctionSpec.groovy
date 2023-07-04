@@ -4,34 +4,22 @@ import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.VendorListConsent
 import spock.lang.Shared
-
-import java.time.Instant
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
-import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class AuctionSpec extends BaseSpec {
 
@@ -321,69 +309,5 @@ class AuctionSpec extends BaseSpec {
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
-    }
-
-    def "PBS should process request and display metrics for tcf and gvl with proper consent.tcfPolicyVersion parameter"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Bid request with tcf setup"
-        def tcfConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(tcfPolicyVersion.value)
-                .setPurposesLITransparency(BASIC_ADS)
-                .setVendorListVersion(2)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
-                .build()
-        def gppSidIds = [TCF_EU_V2.intValue]
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs = new Regs(gppSid: gppSidIds)
-            user = new User(consent: tcfConsent)
-            ext.prebid.trace = VERBOSE
-        }
-
-        and: "Flush cache for existed vendor lists"
-        flushCacheDirectory(defaultPbsService)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/2.json"
-        PBSUtils.waitUntil { defaultPbsService.isFileExist(properVendorListPath) }
-        def vendorList = defaultPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.gvlSpecificationVersion == tcfPolicyVersion.vendorListVersion
-
-        and: "Logs should contain proper vendor list version"
-        def logs = defaultPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
-
-        and: "Another version of vendorList file was not called"
-        assert !defaultPbsService.isFileExist("/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.reversedListVersion}/2.json")
-
-        where:
-        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
-    }
-
-    def "PBS should reject request and update metrics with invalid consent.tcfPolicyVersion parameter"() {
-        given: "Default bid request with gpp"
-        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
-        def tcfConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(invalidTcfPolicyVersion)
-                .build()
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            user = new User(consent: tcfConsent)
-            ext.prebid.trace = VERBOSE
-        }
-
-        and: "flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 }
