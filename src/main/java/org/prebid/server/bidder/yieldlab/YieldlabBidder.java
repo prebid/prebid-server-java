@@ -291,7 +291,7 @@ public class YieldlabBidder implements Bidder<Void> {
         }
         final Bid.BidBuilder updatedBid = Bid.builder();
 
-        BidType bidType;
+        final BidType bidType;
         if (currentImp.getVideo() != null) {
             bidType = BidType.video;
             updatedBid.nurl(makeNurl(bidRequest, matchedExtImp, yieldlabResponse));
