@@ -2,29 +2,17 @@ package org.prebid.server.functional.util.privacy
 
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
-
-import static io.restassured.RestAssured.given
+import org.prebid.server.functional.util.PBSUtils
 
 class TcfConsent implements ConsentString {
 
-    public static final Integer RUBICON_VENDOR_ID = 52
+    public static final Integer RUBICON_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
     public static final Integer GENERIC_VENDOR_ID = RUBICON_VENDOR_ID
 
     private final TCStringEncoder.Builder tcStringEncoder
 
     private TcfConsent(Builder builder) {
         this.tcStringEncoder = builder.tcStringEncoder
-    }
-
-    private static Integer getVendorListVersion() {
-        def vendorListVersion = given().get("https://vendor-list.consensu.org/v2/vendor-list.json")
-                .path("vendorListVersion") as Integer
-        if (!vendorListVersion) {
-            throw new IllegalStateException("Vendor list version is null")
-        } else {
-            return vendorListVersion
-        }
-
     }
 
     @Override
@@ -45,7 +33,7 @@ class TcfConsent implements ConsentString {
             tcStringEncoder = TCStringEncoder.newBuilder()
             setVersion(2)
             setTcfPolicyVersion(2)
-            setVendorListVersion(getVendorListVersion())
+            setVendorListVersion(2)
         }
 
         Builder setVersion(Integer version) {

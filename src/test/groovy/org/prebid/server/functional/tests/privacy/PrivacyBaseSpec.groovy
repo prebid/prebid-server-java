@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsPgConfig
+import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
@@ -40,7 +41,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2
     @Shared
-    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+    protected PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
+            ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
 
     private static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
                                                                            "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
@@ -48,13 +50,26 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                          "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
     private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${OPENX.value}.enabled" : 'true']
+    private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
+                                                                        "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
-    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties
+    protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)
+
+    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
+            GDPR_VENDOR_LIST_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
 
     @Shared
     protected PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
+
+    void setup() {
+        vendorListResponse.setResponse()
+    }
+
+    void cleanup() {
+        vendorListResponse.reset()
+    }
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
