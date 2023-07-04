@@ -476,13 +476,6 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
