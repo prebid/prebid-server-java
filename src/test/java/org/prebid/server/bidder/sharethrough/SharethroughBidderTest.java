@@ -311,6 +311,28 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorWhenCalledWithUnsupportedMediaType() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .banner(null)
+                        .video(null)
+                        .xNative(null)
+                        .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        List<BidderError> errors = result.getErrors();
+        assertThat(errors).hasSize(1);
+        assertThat(errors.get(0).getMessage())
+                .isEqualTo("Invalid MediaType. Sharethrough only supports Banner, Video and Native.");
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
