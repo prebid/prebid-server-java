@@ -2,10 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.model.request.auction.Regs
-import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
@@ -18,9 +15,7 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
-import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -28,10 +23,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
-
-    def setupSpec() {
-        cacheVendorList(privacyPbsService)
-    }
 
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
@@ -254,63 +245,57 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert response.seatbid.isEmpty()
     }
 
-    def "PBS should process request and display metrics for tcf and gvl with proper consent.tcfPolicyVersion parameter"() {
+    def "PBS auction should process request and cache correct vendorList file with proper consent.tcfPolicyVersion parameter"() {
         given: "Test start time"
-        def startTime = Instant.now()
+        // 5000 sec due to container starts match more earlier that this test run
+        def startTime = Instant.now().minusSeconds(5000)
 
-        and: "Bid request with tcf setup"
+        and: "Tcf consent setup"
         def tcfConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setPurposesLITransparency(BASIC_ADS)
-                .setVendorListVersion(2)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
-        def gppSidIds = [TCF_EU_V2.intValue]
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs = new Regs(gppSid: gppSidIds)
-            user = new User(consent: tcfConsent)
-            ext.prebid.trace = VERBOSE
-        }
 
-        and: "Flush cache for existed vendor lists"
-        flushCacheDirectory(defaultPbsService)
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/2.json"
-        PBSUtils.waitUntil { defaultPbsService.isFileExist(properVendorListPath) }
-        def vendorList = defaultPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.gvlSpecificationVersion == tcfPolicyVersion.vendorListVersion
+        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
-        def logs = defaultPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
-
-        and: "Another version of vendorList file was not called"
-        assert !defaultPbsService.isFileExist("/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.reversedListVersion}/2.json")
+        def logs = privacyPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
-    def "PBS should reject request and update metrics with invalid consent.tcfPolicyVersion parameter"() {
-        given: "Default bid request with gpp"
+    def "PBS auction should reject request with proper warning when incoming consent.tcfPolicyVersion have invalid parameter"() {
+        given: "Tcf consent string"
         def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
         def tcfConsent = new TcfConsent.Builder()
                 .setTcfPolicyVersion(invalidTcfPolicyVersion)
                 .build()
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            user = new User(consent: tcfConsent)
-            ext.prebid.trace = VERBOSE
-        }
 
-        and: "flush metrics"
-        flushMetrics(defaultPbsService)
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]

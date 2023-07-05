@@ -6,11 +6,7 @@ import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Regs
-import org.prebid.server.functional.model.request.auction.Site
-import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -21,7 +17,6 @@ import spock.lang.PendingFeature
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -33,10 +28,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class GdprAmpSpec extends PrivacyBaseSpec {
-
-    def setupSpec() {
-        cacheVendorList(privacyPbsService)
-    }
 
     @PendingFeature
     def "PBS should add debug log for amp request when valid gdpr was passed"() {
@@ -299,74 +290,67 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: false)]
     }
 
-    def "PBS cookie sync with proper consent.tcfPolicyVersion parameter should process request and display metrics for tcf and gvl"() {
+    def "PBS amp with proper consent.tcfPolicyVersion parameter should process request and cache correct vendorList file"() {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "AMP request"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
-
-        and: "Default stored request with tcf setup"
-        def gppConsent = new TcfConsent.Builder()
-                .setTcfPolicyVersion(tcfPolicyVersion.value)
+        and: "Prepare tcf consent string"
+        def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .setVendorListVersion(2)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
-        def gppSidIds = [TCF_EU_V2.intValue]
-        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            site = Site.defaultSite
-            regs = new Regs(gppSid: gppSidIds)
-            user = new User(consent: gppConsent)
-        }
+
+        and: "AMP request"
+        def ampRequest = getGdprAmpRequest(tcfConsent)
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
-        and: "Flush cache for existed vendor lists"
-        flushCacheDirectory(defaultPbsService)
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/2.json"
-        PBSUtils.waitUntil {defaultPbsService.isFileExist(properVendorListPath)}
-        def vendorList = defaultPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.gvlSpecificationVersion == tcfPolicyVersion.vendorListVersion
+        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
-        def logs = defaultPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
-
-        and: "Another version of vendorList file was not called"
-        assert !defaultPbsService.isFileExist("/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.reversedListVersion}/2.json")
+        def logs = privacyPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
-    def "PBS cookie sync with invalid consent.tcfPolicyVersion parameter should reject request and update metrics"() {
-        given: "AMP request"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
-
-        and: "Default stored request with tcf consent"
+    def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and include proper warning"() {
+        given: "Tcf consent string"
         def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
         def tcfConsent = new TcfConsent.Builder()
                 .setTcfPolicyVersion(invalidTcfPolicyVersion)
                 .build()
-        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            site = Site.defaultSite
-            user = new User(consent: tcfConsent)
-        }
+
+        and: "AMP request"
+        def ampRequest = getGdprAmpRequest(tcfConsent)
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
