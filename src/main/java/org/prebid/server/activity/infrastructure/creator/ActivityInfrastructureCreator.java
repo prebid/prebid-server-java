@@ -2,7 +2,7 @@ package org.prebid.server.activity.infrastructure.creator;
 
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.ActivityConfiguration;
+import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
@@ -41,7 +41,7 @@ public class ActivityInfrastructureCreator {
                 metrics);
     }
 
-    Map<Activity, ActivityConfiguration> parse(Account account, GppContext gppContext) {
+    Map<Activity, ActivityController> parse(Account account, GppContext gppContext) {
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration =
                 Optional.ofNullable(account)
                         .map(Account::getPrivacy)
@@ -56,9 +56,9 @@ public class ActivityInfrastructureCreator {
                         enumMapFactory()));
     }
 
-    private ActivityConfiguration from(AccountActivityConfiguration activityConfiguration, GppContext gppContext) {
+    private ActivityController from(AccountActivityConfiguration activityConfiguration, GppContext gppContext) {
         if (activityConfiguration == null) {
-            return ActivityConfiguration.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, Collections.emptyList());
+            return ActivityController.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, Collections.emptyList());
         }
 
         final boolean allow = allowFromConfig(activityConfiguration.getAllow());
@@ -67,14 +67,14 @@ public class ActivityInfrastructureCreator {
                 .map(ruleConfiguration -> activityRuleFactory.from(ruleConfiguration, gppContext))
                 .toList();
 
-        return ActivityConfiguration.of(allow, rules);
+        return ActivityController.of(allow, rules);
     }
 
     private static boolean allowFromConfig(Boolean configValue) {
         return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
-    private static Supplier<Map<Activity, ActivityConfiguration>> enumMapFactory() {
+    private static Supplier<Map<Activity, ActivityController>> enumMapFactory() {
         return () -> new EnumMap<>(Activity.class);
     }
 }

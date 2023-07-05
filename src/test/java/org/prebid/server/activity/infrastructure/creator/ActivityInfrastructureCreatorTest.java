@@ -8,7 +8,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityCallResult;
-import org.prebid.server.activity.infrastructure.ActivityConfiguration;
+import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.rule.TestRule;
 import org.prebid.server.auction.gpp.model.GppContext;
@@ -47,10 +47,10 @@ public class ActivityInfrastructureCreatorTest {
     @Test
     public void parseShouldReturnExpectedResultIfAccountNull() {
         // when
-        final Map<Activity, ActivityConfiguration> configuration = creator.parse(null, null);
+        final Map<Activity, ActivityController> controllers = creator.parse(null, null);
 
         // then
-        assertThat(configuration.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
     }
 
     @Test
@@ -59,10 +59,10 @@ public class ActivityInfrastructureCreatorTest {
         final Account account = Account.builder().build();
 
         // when
-        final Map<Activity, ActivityConfiguration> configuration = creator.parse(account, null);
+        final Map<Activity, ActivityController> controllers = creator.parse(account, null);
 
         // then
-        assertThat(configuration.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
     }
 
     @Test
@@ -71,10 +71,10 @@ public class ActivityInfrastructureCreatorTest {
         final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null)).build();
 
         // when
-        final Map<Activity, ActivityConfiguration> configuration = creator.parse(account, null);
+        final Map<Activity, ActivityController> controllers = creator.parse(account, null);
 
         // then
-        assertThat(configuration.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
     }
 
     @Test
@@ -96,21 +96,21 @@ public class ActivityInfrastructureCreatorTest {
                 .willReturn(TestRule.disallowIfMatches(payload -> true));
 
         // when
-        final Map<Activity, ActivityConfiguration> configuration = creator.parse(account, gppContext);
+        final Map<Activity, ActivityController> controllers = creator.parse(account, gppContext);
 
         // then
-        assertThat(configuration.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
 
-        assertThat(configuration.get(Activity.SYNC_USER).isAllowed(null))
+        assertThat(controllers.get(Activity.SYNC_USER).isAllowed(null))
                 .isEqualTo(ActivityCallResult.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, 0));
 
-        assertThat(configuration.get(Activity.CALL_BIDDER).isAllowed(null))
+        assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null))
                 .isEqualTo(ActivityCallResult.of(false, 0));
 
-        assertThat(configuration.get(Activity.MODIFY_UFDP).isAllowed(null))
+        assertThat(controllers.get(Activity.MODIFY_UFDP).isAllowed(null))
                 .isEqualTo(ActivityCallResult.of(true, 0));
 
-        assertThat(configuration.get(Activity.TRANSMIT_UFPD).isAllowed(null))
+        assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null))
                 .isEqualTo(ActivityCallResult.of(false, 1));
     }
 }
