@@ -7,7 +7,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -92,7 +92,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
     }
 
     /**
-     * Purpose is flexible when {@link VendorV2} flexiblePurposes contains it.
+     * Purpose is flexible when {@link Vendor} flexiblePurposes contains it.
      * When it is not flexible:
      * <li>When it is contained in GVL purposes we reject REQUIRE_LEGITIMATE_INTEREST {@link RestrictionType}
      * and check purposeConsent and vendorConsent;</li>
@@ -117,7 +117,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
         }
 
         final Integer vendorId = vendorPermissionWithGvl.getVendorPermission().getVendorId();
-        final VendorV2 vendorGvl = vendorPermissionWithGvl.getVendorV2();
+        final Vendor vendorGvl = vendorPermissionWithGvl.getVendor();
 
         final EnumSet<PurposeCode> flexiblePurposes = vendorGvl.getFlexiblePurposes();
         final boolean isFlexible = CollectionUtils.isNotEmpty(flexiblePurposes) && flexiblePurposes.contains(purpose);
