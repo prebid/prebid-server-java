@@ -24,10 +24,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
-    def setupSpec() {
-        cacheVendorList(privacyPbsService)
-    }
-
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
         given: "Default gdpr BidRequest"
@@ -249,7 +245,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert response.seatbid.isEmpty()
     }
 
-    def "PBS auction should process request and display metrics for tcf and gvl with proper consent.tcfPolicyVersion parameter"() {
+    def "PBS auction should process request and cache correct vendorList file with proper consent.tcfPolicyVersion parameter"() {
         given: "Test start time"
         // 5000 sec due to container starts match more earlier that this test run
         def startTime = Instant.now().minusSeconds(5000)
@@ -279,13 +275,13 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
-    def "PBS auction should reject request and update metrics with invalid consent.tcfPolicyVersion parameter"() {
+    def "PBS auction should reject request with proper warning when incoming consent.tcfPolicyVersion have invalid parameter"() {
         given: "Tcf consent string"
         def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
         def tcfConsent = new TcfConsent.Builder()

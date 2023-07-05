@@ -290,7 +290,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: false)]
     }
 
-    def "PBS amp with proper consent.tcfPolicyVersion parameter should process request and display metrics for tcf and gvl"() {
+    def "PBS amp with proper consent.tcfPolicyVersion parameter should process request and cache correct vendorList file"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -326,13 +326,13 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version 2")
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 
-    def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and update metrics"() {
+    def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and include proper warning"() {
         given: "Tcf consent string"
         def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
         def tcfConsent = new TcfConsent.Builder()
