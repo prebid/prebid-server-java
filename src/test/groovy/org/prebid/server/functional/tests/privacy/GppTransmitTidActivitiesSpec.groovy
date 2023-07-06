@@ -380,8 +380,8 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def response = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } == ["Invalid allowActivities config for account: " + accountId]
-        // TODO replace with actual error message
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
+                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -432,7 +432,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should leave tid fields in request"() {
+    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should remove tid fields in request"() {
         given: "Generic BidRequests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -500,7 +500,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
     }
 
     def "PBS amp call when bidder allowed in activities should leave tid fields in request and update processed metrics"() {
@@ -942,7 +942,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain proper warning"
         assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
+                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1090,6 +1090,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
     }
 }

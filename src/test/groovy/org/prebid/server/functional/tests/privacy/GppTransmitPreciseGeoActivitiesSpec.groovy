@@ -251,880 +251,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when privacy regulation match and disabled should not round lat/lon data"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-        }
-
-        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == bidRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
-            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
-            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
-            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
-        }
-
-        where:
-        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
-    }
-
-    def "PBS auction call when privacy regulation restring but sid excluded should not round lat/lon data"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-        }
-
-        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == bidRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
-            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
-            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
-            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation not exist for account should not round lat/lon data"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-
-        }
-
-        and: "Activities set for transmitPreciseGeo with non-existed privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Existed account with empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == bidRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
-            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
-            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
-            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation have duplicate should include first, not round lat/lon data and populate metric"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-        }
-
-        and: "Activities set for transmitPreciseGeo with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        and: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == bidRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
-            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
-            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
-            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation match and rejecting should round lat/lon data to 2 digits"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-        }
-
-        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-        when: "PBS processes auction request"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation match and allowing by first element in hierarchy should not round lat/lon data"() {
-        given: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-
-        }
-
-        and: "Activities set for transmit tid with rejecting privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
-
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Default basic generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-
-        }
-
-        and: "Activities set for transmit tid with invalid privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction request"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain error"
-        def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
-    }
-
-
-    def "PBS amp call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-    }
-
-    def "PBS amp call with bidder rejected in activities should round lat/lon data to 2 digits and update disallowed metrics"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-
-        and: "Metrics for disallowed activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
-    }
-
-    def "PBS amp call when default activity setting set to false should round lat/lon data to 2 digits"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Allow activities setup"
-        def activity = new Activity(defaultAction: false)
-        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
-        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Response should contain error"
-        def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
-                "contains conditional rule with empty array").size() == 1
-
-        where:
-        conditions                       | isAllowed
-        new Condition(componentType: []) | true
-        new Condition(componentType: []) | false
-        new Condition(componentName: []) | true
-        new Condition(componentName: []) | false
-    }
-
-    def "PBS amp call when first rule allowing in activities should not round lat/lon data"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Activity rules with same priority"
-        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
-        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
-
-        and: "Activities set for bidder allowed by hierarchy structure"
-        def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when first rule disallowing in activities should round lat/lon data to 2 digits"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
-        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
-        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
-
-        and: "Activities set for bidder disallowing by hierarchy structure"
-        def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
-        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-
-    def "PBS amp call when privacy regulation match and disabled should not round lat/lon data"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
-
-        where:
-        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
-    }
-
-    def "PBS amp call when privacy regulation restring but sid excluded should leave tid fields in request"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmit tid with rejecting privacy regulation and sid exception"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
-
-        and: "Existed account with cookie sync and allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Generic bidder request should leave source.tid and imp.ext.tid"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequest.imp.ext.tid == ampStoredRequest.imp.ext.tid
-            bidderRequest.source.tid == ampStoredRequest.source.tid
-        }
-    }
-
-    def "PBS amp call when privacy regulation not exist for account should not round lat/lon data"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation and sid exception"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when privacy regulation have duplicate should include first, not round lat/lon data and populate metric"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmitPreciseGeo with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        and: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when privacy regulation match and rejecting should round lat/lon data to 2 digits"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmitPreciseGeo with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when privacy regulation match and allowing by first element in hierarchy should not round lat/lon data"() {
-        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set for transmitPreciseGeo with multiple privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
-        }
-
-        def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_ALL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
-
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Generic BidRequests with TID fields and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo.tap {
-            setAccountId(accountId)
-        }
-
-        and: "Activities set for transmit tid with invalid privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Response should contain error"
-        def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with multiple array").size() == 1
-    }
-
     def "PBS auction should allow rule when gppSid not intersect"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
@@ -1395,5 +521,878 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         new Geo(country: USA)                               | [USA.withState(ALABAMA)]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
+    }
+
+    def "PBS auction call when privacy regulation match and disabled should not round lat/lon data"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [privacyAllowRegulations]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
+    }
+
+    def "PBS auction call when privacy regulation restring but sid excluded should not round lat/lon data"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+    }
+
+    def "PBS auction call when privacy regulation not exist for account should not round lat/lon data"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmitPreciseGeo with non-existed privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Existed account with empty privacy regulations settings"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+    }
+
+    def "PBS auction call when privacy regulation have duplicate should include first, not round lat/lon data and populate metric"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Account gpp privacy regulation configs with conflict"
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
+                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+    }
+
+    def "PBS auction call when privacy regulation match and rejecting should round lat/lon data to 2 digits"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS auction call when privacy regulation match and allowing by first element in hierarchy should round lat/lon data to 2 digits"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmit precise geo with rejecting privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS auction call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+            regs.gppSid = [USP_NAT_V1.intValue]
+        }
+
+        and: "Activities set for transmit precise geo with invalid privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
+    }
+
+    def "PBS amp call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+    }
+
+    def "PBS amp call with bidder rejected in activities should round lat/lon data to 2 digits and update disallowed metrics"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS amp call when default activity setting set to false should round lat/lon data to 2 digits"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def activity = new Activity(defaultAction: false)
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
+                "contains conditional rule with empty array").size() == 1
+
+        where:
+        conditions                       | isAllowed
+        new Condition(componentType: []) | true
+        new Condition(componentType: []) | false
+        new Condition(componentName: []) | true
+        new Condition(componentName: []) | false
+    }
+
+    def "PBS amp call when first rule allowing in activities should not round lat/lon data"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activity rules with same priority"
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
+
+        and: "Activities set for bidder allowed by hierarchy structure"
+        def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when first rule disallowing in activities should round lat/lon data to 2 digits"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
+        def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
+        def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
+
+        and: "Activities set for bidder disallowing by hierarchy structure"
+        def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation match and disabled should not round lat/lon data"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [privacyAllowRegulations]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
+    }
+
+    def "PBS amp call when privacy regulation restring but sid excluded should not round lat/lon data"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmit precise geo with rejecting privacy regulation and sid exception"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation not exist for account should not round lat/lon data"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation and sid exception"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Existed account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation have duplicate should include first, not round lat/lon data and populate metric"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Account gpp privacy regulation configs with conflict"
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain proper warning"
+        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
+                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation match and rejecting should round lat/lon data to 2 digits"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation match and allowing by first element in hierarchy should round lat/lon data to 2 digits"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "Activities set for transmitPreciseGeo with multiple privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC]
+        }
+
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+    }
+
+    def "PBS amp call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic BidRequests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for transmit precise geo with invalid privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
     }
 }
