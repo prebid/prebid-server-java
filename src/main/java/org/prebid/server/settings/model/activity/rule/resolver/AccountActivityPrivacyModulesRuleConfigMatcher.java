@@ -1,10 +1,10 @@
 package org.prebid.server.settings.model.activity.rule.resolver;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.prebid.server.settings.model.activity.rule.AccountActivityAppliedPrivacyModulesRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityPrivacyModulesRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
-public class AccountActivityAppliedPrivacyModulesRuleConfigMatcher implements AccountActivityRuleConfigMatcher {
+public class AccountActivityPrivacyModulesRuleConfigMatcher implements AccountActivityRuleConfigMatcher {
 
     @Override
     public boolean matches(JsonNode ruleNode) {
@@ -17,6 +17,6 @@ public class AccountActivityAppliedPrivacyModulesRuleConfigMatcher implements Ac
 
     @Override
     public Class<? extends AccountActivityRuleConfig> type() {
-        return AccountActivityAppliedPrivacyModulesRuleConfig.class;
+        return AccountActivityPrivacyModulesRuleConfig.class;
     }
 }

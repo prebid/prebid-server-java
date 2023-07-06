@@ -6,8 +6,8 @@ import lombok.Value;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class AccountActivityAppliedPrivacyModulesRuleConfig implements AccountActivityRuleConfig {
+public class AccountActivityPrivacyModulesRuleConfig implements AccountActivityRuleConfig {
 
     @JsonProperty("privacyreg")
-    List<String> appliedPrivacyModules;
+    List<String> privacyModules;
 }

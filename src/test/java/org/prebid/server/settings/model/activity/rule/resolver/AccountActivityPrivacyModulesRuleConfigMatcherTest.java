@@ -5,17 +5,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.settings.model.activity.rule.AccountActivityAppliedPrivacyModulesRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityPrivacyModulesRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AccountActivityAppliedPrivacyModulesRuleConfigMatcherTest {
+public class AccountActivityPrivacyModulesRuleConfigMatcherTest {
 
     private final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
-    private final AccountActivityAppliedPrivacyModulesRuleConfigMatcher target =
-            new AccountActivityAppliedPrivacyModulesRuleConfigMatcher();
+    private final AccountActivityPrivacyModulesRuleConfigMatcher target =
+            new AccountActivityPrivacyModulesRuleConfigMatcher();
 
     @Test
     public void matchesShouldReturnFalseOnNull() {
@@ -63,6 +63,6 @@ public class AccountActivityAppliedPrivacyModulesRuleConfigMatcherTest {
         final Class<? extends AccountActivityRuleConfig> result = target.type();
 
         // then
-        assertThat(result).isEqualTo(AccountActivityAppliedPrivacyModulesRuleConfig.class);
+        assertThat(result).isEqualTo(AccountActivityPrivacyModulesRuleConfig.class);
     }
 }
