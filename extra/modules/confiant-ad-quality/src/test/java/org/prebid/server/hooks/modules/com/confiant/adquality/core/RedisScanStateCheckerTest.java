@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,7 +27,7 @@ public class RedisScanStateCheckerTest {
 
     @Before
     public void setUp() {
-        scanStateChecker = new RedisScanStateChecker(redisClient, 1000L);
+        scanStateChecker = new RedisScanStateChecker(redisClient, 1000L, Vertx.vertx());
     }
 
     @Test
@@ -41,7 +43,7 @@ public class RedisScanStateCheckerTest {
     @Test
     public void shouldHaveValidScanDisabledWhenRedisClientReturnsTrue() {
         // given
-        doReturn(true).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(true)).when(redisClient).isScanDisabled();
 
         // when
         scanStateChecker.run();
@@ -53,7 +55,7 @@ public class RedisScanStateCheckerTest {
     @Test
     public void shouldHaveValidScanDisabledWhenRedisClientReturnsFalse() throws InterruptedException {
         // given
-        doReturn(false).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(false)).when(redisClient).isScanDisabled();
 
         // when
         scanStateChecker.run();
@@ -66,7 +68,7 @@ public class RedisScanStateCheckerTest {
     @Test
     public void shouldProperlyInitCheckerTimerAndCallRedisClient() throws InterruptedException {
         // given
-        doReturn(false).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(false)).when(redisClient).isScanDisabled();
 
         // when
         scanStateChecker.run();
@@ -81,7 +83,8 @@ public class RedisScanStateCheckerTest {
     @Test
     public void shouldProperlyManageDisabledFlagByTimer() throws InterruptedException {
         // given
-        doReturn(true, false).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(true), Future.succeededFuture(false))
+                .when(redisClient).isScanDisabled();
 
         // when
         scanStateChecker.run();

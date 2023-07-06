@@ -17,7 +17,7 @@ hooks:
                 "all-processed-bid-responses": {
                   "groups": [
                     {
-                      "timeout": 5,
+                      "timeout": 100,
                       "hook-sequence": [
                         {
                           "module-code": "confiant-ad-quality",
@@ -40,6 +40,7 @@ And configure
 - `redis-host` - Host value of the Confiant's Redis server.
 - `redis-port` - Port value of the Confiant's Redis server.
 - `redis-password` - User password value of the Confiant's Redis server.
+- `scan-state-check-delay` - Delay in milliseconds between periodic calls to check if scan state is enabled on the side of Redis server.
 
 ```yaml
 hooks:
@@ -49,6 +50,7 @@ hooks:
       redis-host: "127.0.0.1"
       redis-port: 8000
       redis-password: "JhgYYttq76"
+      scan-state-check-delay: 100000
 ```
 
 ## Maintainer contacts

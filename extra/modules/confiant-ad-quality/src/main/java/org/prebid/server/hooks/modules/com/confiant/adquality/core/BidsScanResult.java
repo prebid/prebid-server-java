@@ -16,7 +16,7 @@ public class BidsScanResult {
     }
 
     public boolean hasIssues() {
-        return !result.getValue().isEmpty() && result.getValue().stream()
+        return result.getValue() != null && !result.getValue().isEmpty() && result.getValue().stream()
                 .anyMatch(result -> result.getIssues() != null && result.getIssues().size() > 0);
     }
 
@@ -29,7 +29,7 @@ public class BidsScanResult {
 
     public List<String> getIssuesMessages() {
         return result.getValue().stream()
-                .map(r -> r.getTagKey() + ": " + r.getIssues().toString())
+                .map(r -> r.getTagKey() + ": " + (r.getIssues() == null ? "no issues" : r.getIssues().toString()))
                 .toList();
     }
     public List<String> getDebugMessages() {

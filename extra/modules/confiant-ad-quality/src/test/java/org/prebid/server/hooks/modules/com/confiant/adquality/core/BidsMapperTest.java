@@ -23,25 +23,25 @@ public class BidsMapperTest {
     @Test
     public void shouldMapBidResponsesToRedisBids() {
         // given
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .id("bidId")
                 .imp(List.of(Imp.builder().id("impId").build()))
                 .cur(List.of("EUR"))
                 .build();
 
-        BidderResponse bidderResponse1 = getBidderResponse("a", "idA");
-        BidderResponse bidderResponse2 = getBidderResponse("b", "idB");
+        final BidderResponse bidderResponse1 = getBidderResponse("a", "idA");
+        final BidderResponse bidderResponse2 = getBidderResponse("b", "idB");
 
-        List<BidderResponse> bidderResponses = List.of(bidderResponse1, bidderResponse2);
+        final List<BidderResponse> bidderResponses = List.of(bidderResponse1, bidderResponse2);
 
         // when
-        RedisBidsData result = BidsMapper.bidResponsesToRedisBids(bidRequest, bidderResponses);
+        final RedisBidsData result = BidsMapper.bidResponsesToRedisBids(bidRequest, bidderResponses);
 
         // then
         assertThat(result.getBreq()).isEqualTo(bidRequest);
         assertThat(result.getBresps()).hasSize(2);
 
-        RedisBidResponseData redisBidResponseData1 = result.getBresps().get(0);
+        final RedisBidResponseData redisBidResponseData1 = result.getBresps().get(0);
         assertThat(redisBidResponseData1.getDspId()).isEqualTo(bidderResponse1.getBidder());
         assertThat(redisBidResponseData1.getBidresponse().getId()).isEqualTo(bidRequest.getId());
         assertThat(redisBidResponseData1.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().get(0));
@@ -50,12 +50,13 @@ public class BidsMapperTest {
         assertThat(seatBid1.getBid()).hasSize(1);
         assertThat(seatBid1.getBid().get(0).getId()).isEqualTo(bidderResponse1.getSeatBid().getBids().get(0).getBid().getId());
 
-        RedisBidResponseData redisBidResponseData2 = result.getBresps().get(1);
+        final RedisBidResponseData redisBidResponseData2 = result.getBresps().get(1);
         assertThat(redisBidResponseData2.getDspId()).isEqualTo(bidderResponse2.getBidder());
         assertThat(redisBidResponseData2.getBidresponse().getId()).isEqualTo(bidRequest.getId());
         assertThat(redisBidResponseData2.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().get(0));
         assertThat(redisBidResponseData2.getBidresponse().getSeatbid()).hasSize(1);
-        SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().get(0);
+
+        final SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().get(0);
         assertThat(seatBid2.getBid()).hasSize(1);
         assertThat(seatBid2.getBid().get(0).getId()).isEqualTo(bidderResponse2.getSeatBid().getBids().get(0).getBid().getId());
     }

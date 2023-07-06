@@ -31,6 +31,8 @@ gdpr:
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
 admin-endpoints:
   logging-changelevel:
     enabled: true
@@ -48,7 +50,7 @@ hooks:
             "all-processed-bid-responses": {
               "groups": [
                 {
-                  "timeout": 5,
+                  "timeout": 100,
                   "hook-sequence": [
                     {
                       "module-code": "confiant-ad-quality",
@@ -62,3 +64,10 @@ hooks:
         }
       }
     }
+  modules:
+    confiant-ad-quality:
+      api-key: "hgr876cerg7655"
+      redis-host: "127.0.0.1"
+      redis-port: 8467
+      redis-password: "password-master"
+      scan-state-check-delay: 600000

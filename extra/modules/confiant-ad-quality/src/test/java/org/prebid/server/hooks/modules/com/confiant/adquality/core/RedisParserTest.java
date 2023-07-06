@@ -15,10 +15,10 @@ public class RedisParserTest {
     @Test
     public void shouldParseBidsScanResult() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
 
         // when
-        OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
         assertThat(actualScanResults.getValue().get(0).getTagKey()).isEqualTo("key_a");
@@ -31,7 +31,7 @@ public class RedisParserTest {
     @Test
     public void shouldParseFullBidsScanResult() {
         // given
-        String redisResponse = "[[[{\n" +
+        final String redisResponse = "[[[{\n" +
                 "  \"tag_key\": \"tg\",\n" +
                 "  \"imp_id\": \"123\",\n" +
                 "  \"known_creative\": true,\n" +
@@ -79,7 +79,7 @@ public class RedisParserTest {
                 "}]]]";
 
         // when
-        OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
         assertThat(actualScanResults.getValue().get(0).getTagKey()).isEqualTo("tg");
@@ -90,10 +90,10 @@ public class RedisParserTest {
     @Test
     public void shouldParseBidsScanResultWithError() {
         // given
-        String redisResponse = "{\"code\": \"123\", \"message\": \"error message\", \"error\": true, \"dsp_id\": \"cri\"}";
+        final String redisResponse = "{\"code\": \"123\", \"message\": \"error message\", \"error\": true, \"dsp_id\": \"cri\"}";
 
         // when
-        OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
         assertThat(actualScanResults.getValue().size()).isEqualTo(0);
@@ -103,10 +103,10 @@ public class RedisParserTest {
     @Test
     public void shouldParseBidsScanResultWithInvalidResponse() {
         // given
-        String redisResponse = "invalid redis response";
+        final String redisResponse = "invalid redis response";
 
         // when
-        OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
         assertThat(actualScanResults.getValue().size()).isEqualTo(0);

@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
@@ -29,8 +30,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
 
     public ConfiantAdQualityBidResponsesScanHook(
             RedisClient redisClient,
-            RedisScanStateChecker redisScanStateChecker
-    ) {
+            RedisScanStateChecker redisScanStateChecker) {
         this.redisClient = redisClient;
         this.redisScanStateChecker = redisScanStateChecker;
     }
@@ -38,17 +38,28 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
     @Override
     public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
             AllProcessedBidResponsesPayload allProcessedBidResponsesPayload,
-            AuctionInvocationContext auctionInvocationContext
-    ) {
+            AuctionInvocationContext auctionInvocationContext) {
         final BidRequest bidRequest = auctionInvocationContext.bidRequest();
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final boolean isScanDisabled = redisScanStateChecker.isScanDisabled();
 
-        final BidsScanResult bidsScanResult = isScanDisabled
-            ? new BidsScanResult(OperationResult.empty())
-            : redisClient.submitBids(BidsMapper.bidResponsesToRedisBids(bidRequest, responses));
+        if (isScanDisabled) {
+            return getResult(new BidsScanResult(OperationResult.empty()), auctionInvocationContext);
+        }
 
-        final boolean hasIssues = !isScanDisabled && bidsScanResult.hasIssues();
+        final Promise<InvocationResult<AllProcessedBidResponsesPayload>> processed = Promise.promise();
+
+        redisClient.submitBids(BidsMapper.bidResponsesToRedisBids(bidRequest, responses))
+                .onComplete(result -> processed
+                        .complete(getResult(result.result(), auctionInvocationContext).result()));
+
+        return processed.future();
+    }
+
+    private Future<InvocationResult<AllProcessedBidResponsesPayload>> getResult(
+            BidsScanResult bidsScanResult,
+            AuctionInvocationContext auctionInvocationContext) {
+        final boolean hasIssues = bidsScanResult.hasIssues();
         final boolean debugEnabled = auctionInvocationContext.debugEnabled();
 
         final InvocationResultImpl.InvocationResultImplBuilder<AllProcessedBidResponsesPayload> resultBuilder =

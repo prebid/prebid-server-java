@@ -68,22 +68,22 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void shouldReturnResultWithNoActionWhenRedisHasNoAnswer() {
         // given
-        BidsScanResult bidsScanResult = new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
+        final BidsScanResult bidsScanResult = new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
                 .value(Collections.emptyList())
                 .debugMessages(Collections.emptyList())
                 .build());
 
-        doReturn(bidsScanResult).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
 
         // when
-        Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
                 allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
 
-        InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
+        final InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
@@ -94,21 +94,20 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void shouldReturnResultWithUpdateActionWhenRedisHasFoundSomeIssues() {
         // given
-        BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"
-        ));
+        final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
+                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"));
 
-        doReturn(bidsScanResult).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
 
         // when
-        Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
                 allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
 
-        InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
+        final InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
@@ -119,12 +118,11 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void shouldSubmitBidsToRedisWhenScanIsNotDisabled() {
         // given
-        BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"
-        ));
+        final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
+                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"));
 
         doReturn(false).when(redisScanStateChecker).isScanDisabled();
-        doReturn(bidsScanResult).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
@@ -148,22 +146,20 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void shouldReturnResultWithDebugInfoWhenDebugIsEnabledAndRequestIsBroken() {
         // given
-        BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
-                "[[[{\"t"
-        ));
+        final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult("[[[{\"t"));
 
-        doReturn(bidsScanResult).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
         doReturn(true).when(auctionInvocationContext).debugEnabled();
 
         // when
-        Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
                 allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
 
-        InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
+        final InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
@@ -174,22 +170,20 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void shouldReturnResultWithoutDebugInfoWhenDebugIsDisabledAndRequestIsBroken() {
         // given
-        BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
-                "[[[{\"t"
-        ));
+        final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult("[[[{\"t"));
 
-        doReturn(bidsScanResult).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
         doReturn(false).when(auctionInvocationContext).debugEnabled();
 
         // when
-        Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
                 allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
 
-        InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
+        final InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);

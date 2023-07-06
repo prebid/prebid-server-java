@@ -1,84 +1,67 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.redis.client.RedisAPI;
+import io.vertx.redis.client.Response;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.Collections;
 import java.util.List;
 
 public class RedisClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedisClient.class);
-
     private final RedisParser redisParser = new RedisParser();
 
     private final String apiKey;
 
-    private Jedis jedis;
+    private final RedisVerticle redisVerticle;
 
-    public RedisClient(
-            String apiKey,
-            String host,
-            int port,
-            String password
-    ) {
+    public RedisClient(RedisVerticle redisVerticle, String apiKey) {
         this.apiKey = apiKey;
-
-        try {
-            this.jedis = createJedis(host, port, password);
-        } catch (JedisException e) {
-            logger.info("Can't establish Redis connection {0}", e.getMessage());
-        }
+        this.redisVerticle = redisVerticle;
     }
 
-    private Jedis createJedis(String host, int port, String password) {
-        DefaultJedisClientConfig config = DefaultJedisClientConfig
-                .builder()
-                .password(password)
-                .build();
-
-        return new Jedis(host, port, config);
+    public void start(Promise<Void> startFuture) {
+        redisVerticle.start(startFuture);
     }
 
-    public BidsScanResult submitBids(RedisBidsData bids) {
-        if (jedis != null && bids.getBresps().size() > 0) {
-            try {
-                final String submitHash = jedis.get("function_submit_bids");
-                final String response = jedis.evalsha(submitHash, 0, bids.toJson(), apiKey).toString();
-                final OperationResult<List<BidScanResult>> parserResult = redisParser.parseBidsScanResult(response);
+    public Future<BidsScanResult> submitBids(RedisBidsData bids) {
+        final Promise<BidsScanResult> scanResult = Promise.promise();
+        final RedisAPI redisAPI = this.redisVerticle.getRedisAPI();
+        if (redisAPI != null && bids.getBresps().size() > 0) {
+            redisAPI.get("function_submit_bids", submitHash -> redisAPI
+                    .evalsha(List.of(submitHash.result().toString(), "0", bids.toJson(), apiKey), response -> {
+                        final OperationResult<List<BidScanResult>> parserResult = redisParser
+                                .parseBidsScanResult(response.result().toString());
 
-                return new BidsScanResult(parserResult);
-            } catch (JedisException e) {
-                logger.info(e.getMessage());
-                return new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
-                        .value(Collections.emptyList())
-                        .debugMessages(List.of(e.getMessage()))
-                        .build());
-            }
+                        scanResult.complete(new BidsScanResult(parserResult));
+                    }));
+
+            return scanResult.future();
         }
 
-        return new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
+        return Future.succeededFuture(new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
                 .value(Collections.emptyList())
                 .debugMessages(Collections.emptyList())
-                .build());
+                .build()));
     }
 
-    public boolean isScanDisabled() {
-        if (jedis != null) {
-            try {
-                return jedis.get("scan-disabled").equals("true");
-            } catch (JedisException e) {
-                logger.info(e.getMessage());
-                return true;
-            }
+    public Future<Boolean> isScanDisabled() {
+        final RedisAPI redisAPI = this.redisVerticle.getRedisAPI();
+        final Promise<Boolean> isDisabled = Promise.promise();
+
+        if (redisAPI != null) {
+            redisAPI.get("scan-disabled", scanDisabledValue -> {
+                final Response scanDisabled = scanDisabledValue.result();
+                isDisabled.complete(scanDisabled != null && scanDisabled.toString().equals("true"));
+            });
+
+            return isDisabled.future();
         }
 
-        return true;
+        return Future.succeededFuture(true);
     }
 }

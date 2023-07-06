@@ -22,12 +22,12 @@ public class BidsScanResultTest {
     @Test
     public void shouldNotHaveIssuesInTheResult() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]]]";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
         // when
-        boolean hasIssues = bidsScanResult.hasIssues();
+        final boolean hasIssues = bidsScanResult.hasIssues();
 
         // then
         assertThat(hasIssues).isFalse();
@@ -36,12 +36,12 @@ public class BidsScanResultTest {
     @Test
     public void shouldHaveIssuesInTheResult() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
         // when
-        boolean hasIssues = bidsScanResult.hasIssues();
+        final boolean hasIssues = bidsScanResult.hasIssues();
 
         // then
         assertThat(hasIssues).isTrue();
@@ -50,12 +50,12 @@ public class BidsScanResultTest {
     @Test
     public void shouldProperlyGetIssuesMessage() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
         // when
-        List<String> issues = bidsScanResult.getIssuesMessages();
+        final List<String> issues = bidsScanResult.getIssuesMessages();
 
         // then
         assertThat(issues.size()).isEqualTo(1);
@@ -65,12 +65,12 @@ public class BidsScanResultTest {
     @Test
     public void shouldProperlyGetDebugMessage() {
         // given
-        String redisResponse = "invalid redis response";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "invalid redis response";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
         // when
-        List<String> messages = bidsScanResult.getDebugMessages();
+        final List<String> messages = bidsScanResult.getDebugMessages();
 
         // then
         assertThat(messages.size()).isEqualTo(1);
@@ -80,11 +80,11 @@ public class BidsScanResultTest {
     @Test
     public void shouldProperlyFilterInvalidBids() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
-        BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
+        final BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
                 .bids(Collections.singletonList(BidderBid.builder()
                         .type(BidType.banner)
                         .bid(Bid.builder()
@@ -97,7 +97,7 @@ public class BidsScanResultTest {
                         .build()))
                 .build(), 11);
 
-        BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
+        final BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
                 .bids(Collections.singletonList(BidderBid.builder()
                         .type(BidType.banner)
                         .bid(Bid.builder()
@@ -111,7 +111,7 @@ public class BidsScanResultTest {
                 .build(), 11);
 
         // when
-        List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
+        final List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
 
         // then
         assertThat(validResponses.size()).isEqualTo(1);
@@ -121,11 +121,11 @@ public class BidsScanResultTest {
     @Test
     public void shouldProperlyFilterWhenNoInvalidBids() {
         // given
-        String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
-        OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
 
-        BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
+        final BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
                 .bids(Collections.singletonList(BidderBid.builder()
                         .type(BidType.banner)
                         .bid(Bid.builder()
@@ -138,7 +138,7 @@ public class BidsScanResultTest {
                         .build()))
                 .build(), 11);
 
-        BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
+        final BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
                 .bids(Collections.singletonList(BidderBid.builder()
                         .type(BidType.banner)
                         .bid(Bid.builder()
@@ -152,7 +152,7 @@ public class BidsScanResultTest {
                 .build(), 11);
 
         // when
-        List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
+        final List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
 
         // then
         assertThat(validResponses.size()).isEqualTo(2);

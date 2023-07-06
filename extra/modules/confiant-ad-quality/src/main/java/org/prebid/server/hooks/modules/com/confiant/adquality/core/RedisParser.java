@@ -20,8 +20,8 @@ public class RedisParser {
         final ObjectMapper objectMapper = new ObjectMapper();
 
         try {
-            BidScanResult[][][] draftResponse = objectMapper.readValue(redisResponse, BidScanResult[][][].class);
-            List<BidScanResult> scanResultsFlat = Arrays.stream(draftResponse)
+            final BidScanResult[][][] draftResponse = objectMapper.readValue(redisResponse, BidScanResult[][][].class);
+            final List<BidScanResult> scanResultsFlat = Arrays.stream(draftResponse)
                     .flatMap(Arrays::stream)
                     .map(array -> array[0])
                     .toList();

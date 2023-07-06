@@ -15,8 +15,8 @@ public class BidsMapper {
 
     public static RedisBidsData bidResponsesToRedisBids(
             BidRequest bidRequest,
-            List<BidderResponse> bidderResponses
-    ) {
+            List<BidderResponse> bidderResponses) {
+
         final List<RedisBidResponseData> confiantBidResponses = bidderResponses
                 .stream().map(bidResponse -> RedisBidResponseData
                         .builder()
@@ -28,8 +28,7 @@ public class BidsMapper {
                                         .bid(bidResponse.getSeatBid().getBids().stream().map(BidderBid::getBid).toList())
                                         .build()))
                                 .build())
-                        .build()
-                ).toList();
+                        .build()).toList();
 
         return RedisBidsData.builder()
                 .breq(bidRequest)

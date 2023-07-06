@@ -46,4 +46,11 @@ public class BidScanResult {
      * Only available if known_creative is true.
      */
     String adinstance;
+
+    /** Screenshot of the creative */
+    String screenshot;
+
+    /** Identifier of the tag */
+    @JsonProperty("tag_id")
+    String tagId;
 }
