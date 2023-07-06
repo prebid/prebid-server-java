@@ -11,6 +11,7 @@ public class AccountActivityRuleConfigResolver {
     }
 
     private static final List<AccountActivityRuleConfigMatcher> MATCHERS = List.of(
+            new AccountActivityAppliedPrivacyModulesRuleConfigMatcher(),
             new AccountActivityGeoRuleConfigMatcher(),
             new AccountActivityDefaultRuleConfigMatcher());
 
