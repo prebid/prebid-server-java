@@ -1,9 +1,13 @@
 package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.field.UspCtV1Field
+import com.iab.gpp.encoder.section.EncodableSection
+import com.iab.gpp.encoder.section.UspCtV1
 import org.prebid.server.functional.util.privacy.gpp.data.UsConnecticutSensitiveData
+import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
+import org.prebid.server.functional.util.privacy.gpp.data.UsVirginiaSensitiveData
 
-class UspCtV1Consent extends GppConsent {
+class UspCtV1Consent extends UsConsent {
 
     private static final Section SECTION = Section.USP_CT_V1
 
@@ -14,6 +18,62 @@ class UspCtV1Consent extends GppConsent {
     @Override
     protected String encodeSection() {
         gppModel.encodeSection(SECTION.name)
+    }
+
+    @Override
+    UspNatV1Consent normaliseToNational() {
+        def uspCtV1 = ((UspCtV1) this.gppModel.getSection(SECTION.name))
+
+        new UspNatV1Consent.Builder()
+                .setSensitiveDataProcessing(normaliseSensitiveData(uspCtV1))
+                .setKnownChildSensitiveDataConsents(normalizeChildConsents(uspCtV1))
+                .setSaleOptOutNotice(uspCtV1.saleOptOutNotice)
+                .setTargetedAdvertisingOptOutNotice(uspCtV1.targetedAdvertisingOptOutNotice)
+                .setTargetedAdvertisingOptOut(uspCtV1.targetedAdvertisingOptOut)
+                .setSharingNotice(uspCtV1.sharingNotice)
+                .setSaleOptOut(uspCtV1.saleOptOut)
+                .setMspaCoveredTransaction(uspCtV1.mspaCoveredTransaction)
+                .setMspaOptOutOptionMode(uspCtV1.mspaOptOutOptionMode)
+                .setMspaServiceProviderMode(uspCtV1.mspaServiceProviderMode)
+                .build() as UspNatV1Consent
+    }
+
+    @Override
+    protected UsNationalSensitiveData normaliseSensitiveData(EncodableSection uspCtV1) {
+        def virginiaSensitiveData = UsVirginiaSensitiveData.fromList(((UspCtV1)uspCtV1).sensitiveDataProcessing)
+
+        new UsNationalSensitiveData().tap {
+            racialEthnicOrigin = virginiaSensitiveData.racialEthnicOrigin
+            religiousBeliefs = virginiaSensitiveData.religiousBeliefs
+            healthInfo = virginiaSensitiveData.healthInfo
+            orientation = virginiaSensitiveData.orientation
+            citizenshipStatus = virginiaSensitiveData.citizenshipStatus
+            geneticId = virginiaSensitiveData.geneticId
+            biometricId = virginiaSensitiveData.biometricId
+            geolocation = virginiaSensitiveData.geolocation
+            idNumbers = 0
+            accountInfo = 0
+            unionMembership = 0
+            communicationContents = 0
+        }
+    }
+
+    @Override
+    protected List<Integer> normalizeChildConsents(EncodableSection uspCtV1) {
+        List<Integer> childDataConsents = ((UspCtV1)uspCtV1).knownChildSensitiveDataConsents
+        // no consent (2) for under 13
+        Integer childUnder13 = childDataConsents[1] != 0 ? 1 : 0
+        Integer childFrom13to16 = 1
+
+        if (childDataConsents[1] == 0 && childDataConsents[2] == 0) {
+            // when child from13 to 16 is not applicable (0)
+            childFrom13to16 = 0
+        } else if (childDataConsents[1] == 2 && childDataConsents[2] == 2) {
+            // when child from13 to 16 is consent (2)
+            childFrom13to16 = 2
+        }
+
+        [childFrom13to16, childUnder13]
     }
 
     static class Builder extends GppConsent.Builder {
