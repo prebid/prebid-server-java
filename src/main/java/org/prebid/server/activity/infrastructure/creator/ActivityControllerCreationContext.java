@@ -10,7 +10,7 @@ import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
 
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Value(staticConstructor = "of")
@@ -18,7 +18,7 @@ public class ActivityControllerCreationContext {
 
     Activity activity;
 
-    List<AccountPrivacyModuleConfig> privacyModulesConfigs;
+    Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> privacyModulesConfigs;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)

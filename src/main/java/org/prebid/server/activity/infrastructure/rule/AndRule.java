@@ -7,9 +7,9 @@ import java.util.Objects;
 
 public class AndRule implements Rule {
 
-    private final List<Rule> rules;
+    private final List<? extends Rule> rules;
 
-    public AndRule(List<Rule> rules) {
+    public AndRule(List<? extends Rule> rules) {
         this.rules = Objects.requireNonNull(rules);
     }
 

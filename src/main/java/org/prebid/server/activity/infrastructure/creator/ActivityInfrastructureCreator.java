@@ -4,6 +4,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.metric.Metrics;
@@ -49,9 +50,11 @@ public class ActivityInfrastructureCreator {
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getActivities)
                 .orElseGet(Collections::emptyMap);
-        final List<AccountPrivacyModuleConfig> modulesConfigs = accountPrivacyConfig
+        final Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getModules)
-                .orElseGet(Collections::emptyList);
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .collect(Collectors.toMap(AccountPrivacyModuleConfig::getCode, UnaryOperator.identity()));
 
         return Arrays.stream(Activity.values())
                 .collect(Collectors.toMap(
@@ -63,7 +66,7 @@ public class ActivityInfrastructureCreator {
 
     private ActivityController from(Activity activity,
                                     AccountActivityConfiguration activityConfiguration,
-                                    List<AccountPrivacyModuleConfig> modulesConfigs,
+                                    Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs,
                                     GppContext gppContext) {
 
         if (activityConfiguration == null) {
