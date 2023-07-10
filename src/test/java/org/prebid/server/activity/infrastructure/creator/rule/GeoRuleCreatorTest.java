@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import org.junit.Test;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
@@ -28,9 +29,10 @@ public class GeoRuleCreatorTest {
         // given
         final AccountActivityGeoRuleConfig config = AccountActivityGeoRuleConfig.of(null, null);
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
+        final ActivityControllerCreationContext creationContext = creationContext(gppContext);
 
         // when
-        final Rule rule = target.from(config, gppContext);
+        final Rule rule = target.from(config, creationContext);
 
         // then
         assertThat(rule.proceed(null)).isEqualTo(Rule.Result.ALLOW);
@@ -48,9 +50,10 @@ public class GeoRuleCreatorTest {
                         "2"),
                 false);
         final GppContext gppContext = GppContextCreator.from(null, asList(2, 3)).build().getGppContext();
+        final ActivityControllerCreationContext creationContext = creationContext(gppContext);
 
         // when
-        final Rule rule = target.from(config, gppContext);
+        final Rule rule = target.from(config, creationContext);
 
         // then
         final ActivityCallPayload payload1 = BidRequestActivityCallPayload.of(
@@ -79,5 +82,9 @@ public class GeoRuleCreatorTest {
                 .device(Device.builder().geo(Geo.builder().country(country).region(region).build()).build())
                 .regs(Regs.builder().ext(ExtRegs.of(null, null, gpc)).build())
                 .build();
+    }
+
+    private static ActivityControllerCreationContext creationContext(GppContext gppContext) {
+        return ActivityControllerCreationContext.of(null, null, gppContext);
     }
 }

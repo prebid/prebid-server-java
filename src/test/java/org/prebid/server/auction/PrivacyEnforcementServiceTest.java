@@ -529,6 +529,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                 AccountCcpaConfig.builder()
                                         .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
                                         .build(),
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
@@ -578,7 +579,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final AuctionContext context = AuctionContext.builder()
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(true).build(), null))
+                        .privacy(AccountPrivacyConfig.of(
+                                null,
+                                AccountCcpaConfig.builder().enabled(true).build(),
+                                null,
+                                null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
@@ -630,6 +635,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .privacy(AccountPrivacyConfig.of(
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build(),
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(null)
@@ -1510,7 +1516,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(false).build(), null))
+                .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(false).build(), null, null))
                 .build();
 
         // when and then
@@ -1543,6 +1549,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         null,
                         AccountCcpaConfig.builder().enabled(true).build(),
+                        null,
                         null))
                 .build();
 

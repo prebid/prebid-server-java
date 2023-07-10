@@ -23,6 +23,7 @@ import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 
@@ -68,7 +69,7 @@ public class ActivityInfrastructureCreatorTest {
     @Test
     public void parseShouldReturnExpectedResultIfAccountPrivacyActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null)).build();
+        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null, null)).build();
 
         // when
         final Map<Activity, ActivityController> controllers = creator.parse(account, null);
@@ -81,18 +82,22 @@ public class ActivityInfrastructureCreatorTest {
     public void parseShouldReturnExpectedResult() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
-                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
-                        Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
-                        Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
-                                AccountActivityComponentRuleConfig.of(null, null))))))
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        Map.of(
+                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
+                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
+                                Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
+                                        AccountActivityComponentRuleConfig.of(null, null)))),
+                        null))
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
         given(activityRuleFactory.from(
                 same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().get(0)),
-                same(gppContext)))
+                argThat(arg -> arg.getGppContext() == gppContext)))
                 .willReturn(TestRule.disallowIfMatches(payload -> true));
 
         // when

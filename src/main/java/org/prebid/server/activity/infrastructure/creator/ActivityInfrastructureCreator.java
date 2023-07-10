@@ -11,6 +11,7 @@ import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
+import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,29 +43,42 @@ public class ActivityInfrastructureCreator {
     }
 
     Map<Activity, ActivityController> parse(Account account, GppContext gppContext) {
-        final Map<Activity, AccountActivityConfiguration> activitiesConfiguration =
-                Optional.ofNullable(account)
-                        .map(Account::getPrivacy)
-                        .map(AccountPrivacyConfig::getActivities)
-                        .orElse(Collections.emptyMap());
+        final Optional<AccountPrivacyConfig> accountPrivacyConfig = Optional.ofNullable(account)
+                .map(Account::getPrivacy);
+
+        final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
+                .map(AccountPrivacyConfig::getActivities)
+                .orElseGet(Collections::emptyMap);
+        final List<AccountPrivacyModuleConfig> modulesConfigs = accountPrivacyConfig
+                .map(AccountPrivacyConfig::getModules)
+                .orElseGet(Collections::emptyList);
 
         return Arrays.stream(Activity.values())
                 .collect(Collectors.toMap(
                         UnaryOperator.identity(),
-                        activity -> from(activitiesConfiguration.get(activity), gppContext),
+                        activity -> from(activity, activitiesConfiguration.get(activity), modulesConfigs, gppContext),
                         (oldValue, newValue) -> newValue,
                         enumMapFactory()));
     }
 
-    private ActivityController from(AccountActivityConfiguration activityConfiguration, GppContext gppContext) {
+    private ActivityController from(Activity activity,
+                                    AccountActivityConfiguration activityConfiguration,
+                                    List<AccountPrivacyModuleConfig> modulesConfigs,
+                                    GppContext gppContext) {
+
         if (activityConfiguration == null) {
             return ActivityController.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, Collections.emptyList());
         }
 
+        final ActivityControllerCreationContext creationContext = ActivityControllerCreationContext.of(
+                activity,
+                modulesConfigs,
+                gppContext);
+
         final boolean allow = allowFromConfig(activityConfiguration.getAllow());
         final List<Rule> rules = ListUtils.emptyIfNull(activityConfiguration.getRules()).stream()
                 .filter(Objects::nonNull)
-                .map(ruleConfiguration -> activityRuleFactory.from(ruleConfiguration, gppContext))
+                .map(ruleConfiguration -> activityRuleFactory.from(ruleConfiguration, creationContext))
                 .toList();
 
         return ActivityController.of(allow, rules);

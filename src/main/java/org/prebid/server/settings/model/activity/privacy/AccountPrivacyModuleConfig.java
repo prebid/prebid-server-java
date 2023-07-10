@@ -1,6 +1,5 @@
 package org.prebid.server.settings.model.activity.privacy;
 
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
