@@ -889,17 +889,120 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
     }
 
+    def "PBS cookie sync should process rule when geo doesn't intersection"() {
+        given: "Pbs config with geo location"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
+
+        and: "Cookie sync request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.account = accountId
+            it.gdpr = null
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.geo = conditionGeo
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request with header"
+        def response = prebidServerService
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": "209.232.44.21"])
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+
+        where:
+        countyConfig | regionConfig          | conditionGeo
+        null         | null                  | ["$USA.value".toString()]
+        CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
+        null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
+        CAN.value    | null                  | [USA.withState(ALABAMA)]
+    }
+
+    def "PBS cookie sync should disallowed rule when device.geo intersection"() {
+        given: "Pbs config with geo location"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
+
+        and: "Cookie sync request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.account = accountId
+            it.gppSid = null
+            it.gdpr = null
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = null
+            it.geo = conditionGeo
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request with header"
+        def response = prebidServerService
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": "209.232.44.21"])
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        countyConfig | regionConfig         | conditionGeo
+        USA.value    | null                 | [USA.value]
+        USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+    }
+
+    def "PBS set uid should process rule when geo doesn't intersection"() {
     def "PBS setuid should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_V1.value
+            it.gdpr = null
         }
 
         and: "UIDS Cookie"
@@ -908,8 +1011,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Setup condition"
         def condition = Condition.baseCondition.tap {
             it.componentType = null
-            it.componentName = [PBSUtils.randomString]
-            it.gppSid = [USP_V1.intValue]
+            it.componentName = null
             it.geo = conditionGeo
         }
 
@@ -939,7 +1041,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig          | conditionGeo
         null         | null                  | [USA.value]
-        USA.value    | ALABAMA.abbreviation  | null
         CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
         null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
         CAN.value    | null                  | [USA.withState(ALABAMA)]
@@ -948,14 +1049,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS setuid should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                ["geolocation.configurations.[0].geo-info.country": countyConfig,
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_V1.value
+            it.gdpr = null
         }
 
         and: "UIDS Cookie"
@@ -991,7 +1093,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         countyConfig | regionConfig         | conditionGeo
         USA.value    | null                 | [USA.value]
-        USA.value    | null                 | [USA.withState(ALABAMA)]
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 

@@ -14,7 +14,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -101,15 +101,15 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission4 = VendorPermission.of(4, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission5 = VendorPermission.of(5, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl requireConsentPermission = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl notAllowedPermission = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(2));
+                Vendor.empty(2));
         final VendorPermissionWithGvl excludedNotMentionedPermission = VendorPermissionWithGvl.of(vendorPermission3,
-                VendorV2.empty(3));
+                Vendor.empty(3));
         final VendorPermissionWithGvl excludedNotAllowedPermission = VendorPermissionWithGvl.of(vendorPermission4,
-                VendorV2.empty(4));
+                Vendor.empty(4));
         final VendorPermissionWithGvl notMentionedPermission = VendorPermissionWithGvl.of(vendorPermission5,
-                VendorV2.empty(5));
+                Vendor.empty(5));
 
         // when
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
@@ -145,15 +145,15 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission4 = VendorPermission.of(4, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission5 = VendorPermission.of(5, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl requireConsentPermission = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.builder().id(1).purposes(EnumSet.of(PURPOSE_CODE)).build());
+                Vendor.builder().id(1).purposes(EnumSet.of(PURPOSE_CODE)).build());
         final VendorPermissionWithGvl notAllowedPermission = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.builder().id(2).purposes(EnumSet.of(PURPOSE_CODE)).build());
+                Vendor.builder().id(2).purposes(EnumSet.of(PURPOSE_CODE)).build());
         final VendorPermissionWithGvl excludedNotMentionedPermission = VendorPermissionWithGvl.of(vendorPermission3,
-                VendorV2.builder().id(3).purposes(EnumSet.of(PURPOSE_CODE)).build());
+                Vendor.builder().id(3).purposes(EnumSet.of(PURPOSE_CODE)).build());
         final VendorPermissionWithGvl excludedNotAllowedPermission = VendorPermissionWithGvl.of(vendorPermission4,
-                VendorV2.builder().id(4).purposes(EnumSet.of(PURPOSE_CODE)).build());
+                Vendor.builder().id(4).purposes(EnumSet.of(PURPOSE_CODE)).build());
         final VendorPermissionWithGvl notMentionedPermission = VendorPermissionWithGvl.of(vendorPermission5,
-                VendorV2.builder().id(5).purposes(EnumSet.of(PURPOSE_CODE)).build());
+                Vendor.builder().id(5).purposes(EnumSet.of(PURPOSE_CODE)).build());
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
@@ -173,7 +173,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowed() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -197,7 +197,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -223,7 +223,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -249,7 +249,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAllowed() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -274,7 +274,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndVendorConsentAllowedAndEnforced() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -300,7 +300,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndVendorLIAllowedAndEnforced() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -328,7 +328,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -352,7 +352,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -378,7 +378,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -405,7 +405,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforced() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -431,7 +431,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAllowedAndVendorConsentAllowedAndEnforced() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .build();
@@ -462,7 +462,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -488,7 +488,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -516,7 +516,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAllowedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -542,7 +542,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -570,7 +570,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorLIAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -597,7 +597,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -624,7 +624,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -650,7 +650,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -678,7 +678,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeLIAllowedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -704,7 +704,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -732,7 +732,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -760,7 +760,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorConsentAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .purposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -792,7 +792,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -818,7 +818,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -846,7 +846,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAllowedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -872,7 +872,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -900,7 +900,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorLIAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -928,7 +928,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -958,7 +958,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -984,7 +984,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -1012,7 +1012,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAllowedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -1038,7 +1038,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -1066,7 +1066,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -1094,7 +1094,7 @@ public class FullEnforcePurposeStrategyTest {
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorConsentAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
-        final VendorV2 vendorGvl = VendorV2.builder()
+        final Vendor vendorGvl = Vendor.builder()
                 .legIntPurposes(EnumSet.of(PURPOSE_CODE))
                 .flexiblePurposes(EnumSet.of(PURPOSE_CODE))
                 .build();
@@ -1125,9 +1125,9 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(2));
+                Vendor.empty(2));
 
         // when
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,

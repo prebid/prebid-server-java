@@ -6,6 +6,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.metric.Metrics;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public class ExceptionHandler implements Handler<Throwable> {
@@ -24,9 +25,20 @@ public class ExceptionHandler implements Handler<Throwable> {
 
     @Override
     public void handle(Throwable exception) {
-        logger.warn("Generic error handler: {0}, cause: {1}",
-                errorMessageFrom(exception), errorMessageFrom(exception.getCause()));
+        if (shouldLogException(exception)) {
+            logger.warn("Generic error handler: {0}, cause: {1}",
+                    errorMessageFrom(exception), errorMessageFrom(exception.getCause()));
+        }
         metrics.updateConnectionAcceptErrors();
+    }
+
+    private static boolean shouldLogException(Throwable exception) {
+        return !isConnectionResetException(exception);
+    }
+
+    private static boolean isConnectionResetException(Throwable exception) {
+        return exception instanceof IOException
+                && StringUtils.equals("Connection reset by peer", exception.getMessage());
     }
 
     private static String errorMessageFrom(Throwable exception) {

@@ -56,7 +56,7 @@ public class AppushBidder implements Bidder<BidRequest> {
             final ExtImpAppush extImpAppush;
             try {
                 extImpAppush = parseExtImp(imp);
-            } catch (IllegalArgumentException e) {
+            } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
@@ -109,8 +109,7 @@ public class AppushBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
-            Result.empty();
+            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
             return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));

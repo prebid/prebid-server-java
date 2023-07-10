@@ -1496,6 +1496,362 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
     }
 
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        deviceGeo                                           | conditionGeo
+        new Geo(country: USA)                               | [USA.value]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
+        new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
+    }
+
+    def "PBS auction should process rule when regs.ext.gpc doesn't intersection with condition.gpc"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = PBSUtils.randomNumber as String
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+    }
+
+    def "PBS auction should disallowed rule when regs.ext.gpc intersection with condition.gpc"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def gpc = PBSUtils.randomNumber as String
+        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = gpc
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = gpc
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.data
+        }
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS auction should process rule when header gpc doesn't intersection with condition.gpc"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = PBSUtils.randomNumber as String
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": "1"])
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+    }
+
+    def "PBS auction should disallowed rule when header gpc intersection with condition.gpc"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = null
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = VALID_VALUE_FOR_GPC_HEADER
+        }
+
+        and: "Setup activities"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests with header"
+        activityPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": VALID_VALUE_FOR_GPC_HEADER])
+
+        then: "Generic bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.data
+        }
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS amp should disallowed rule when header.gpc intersection with condition.gpc"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            regs.ext.gpc = null
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = VALID_VALUE_FOR_GPC_HEADER
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": VALID_VALUE_FOR_GPC_HEADER])
+
+        then: "Generic bidder request should have empty UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll {
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
+        }
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS amp should allowed rule when gpc header doesn't intersection with condition.gpc"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": VALID_VALUE_FOR_GPC_HEADER])
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
+            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.id == ampStoredRequest.user.id
+            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            genericBidderRequest.user.yob == ampStoredRequest.user.yob
+            genericBidderRequest.user.gender == ampStoredRequest.user.gender
+            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+            genericBidderRequest.user.data == ampStoredRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+    }
+
+    private BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {
     private BidRequest generateBidRequestWithAccountAndUfpdData(String accountId) {
         BidRequest.getDefaultBidRequest().tap {
             it.setAccountId(accountId)

@@ -18,7 +18,7 @@ public class AccountActivityRuleConfigResolverTest {
     public void matchesShouldReturnGeoRuleTypeForCertainConfig() {
         //given
         final ObjectNode config = mapper.createObjectNode();
-        config.put("gppSid", 1);
+        config.putObject("condition").put("gppSid", 1);
 
         // when
         final Class<? extends AccountActivityRuleConfig> result = AccountActivityRuleConfigResolver.resolve(config);

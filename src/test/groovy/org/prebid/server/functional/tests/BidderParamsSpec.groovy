@@ -56,7 +56,6 @@ class BidderParamsSpec extends BaseSpec {
         adapterDefault | generic | adapterConfig
         "true"         | "true"  | ["adapter-defaults.enabled"   : adapterDefault,
                                     "adapters.facebook.enabled"  : "false",
-                                    "adapters.brightroll.enabled": "false",
                                     "adapters.generic.enabled"   : generic]
         "false"        | "true"  | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
@@ -81,7 +80,6 @@ class BidderParamsSpec extends BaseSpec {
                                     "adapters.generic.enabled": generic]
         "true"         | "false" | ["adapter-defaults.enabled"   : adapterDefault,
                                     "adapters.facebook.enabled"  : "false",
-                                    "adapters.brightroll.enabled": "false",
                                     "adapters.generic.enabled"   : generic]
     }
 

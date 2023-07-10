@@ -1104,4 +1104,255 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def logs = activityPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
     }
+
+    def "PBS auction should disallowed rule when regs.ext.gpc intersect"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def randomGpc = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = randomGpc
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = randomGpc
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder request should be ignored"
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
+
+    def "PBS auction shouldn't disallowed rule when regs.ext.gpc doesn't intersect"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+            it.regs.ext.gpc = PBSUtils.randomNumber as String
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(generalBidRequest.id)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+    }
+
+    def "PBS auction should disallowed rule when header sec-gpc intersect with condition.gpc"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = VALID_VALUE_FOR_GPC_HEADER
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests with headers"
+        activityPbsService.sendAuctionRequest(generalBidRequest, ["Sec-GPC": gpcHeader])
+
+        then: "Generic bidder request should be ignored"
+        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        gpcHeader << [VALID_VALUE_FOR_GPC_HEADER as Integer, VALID_VALUE_FOR_GPC_HEADER]
+    }
+
+    def "PBS auction shouldn't disallowed rule when header sec-gpc doesn't intersect with condition"() {
+        given: "Generic bid request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+        }
+
+        and: "Setup activity"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Set up account for allow activities"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests with headers"
+        activityPbsService.sendAuctionRequest(generalBidRequest, ["Sec-GPC": gpcHeader])
+
+        then: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(generalBidRequest.id)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+
+        where:
+        gpcHeader << [1, "1"]
+    }
+
+    def "PBS amp should process rule when header gpc doesn't intersection with condition.gpc"() {
+        given: "Default bid request with allow activities settings for fetch bid that decline bidders in selection"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = PBSUtils.randomNumber as String
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def allowSetup = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request with header"
+        activityPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": PBSUtils.randomNumber as String])
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+    }
+
+    def "PBS amp should disallow rule when header gpc intersection with condition.gpc"() {
+        given: "Default amp stored request"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "Amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Allow activities setup"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gpc = VALID_VALUE_FOR_GPC_HEADER
+        }
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Saved account config with allow activities into DB"
+        def account = getAccountWithAllowActivities(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request with header"
+        activityPbsService.sendAmpRequest(ampRequest, ["Sec-GPC": VALID_VALUE_FOR_GPC_HEADER])
+
+        then: "Bidder request should not contain bidRequest from amp request"
+        assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+    }
 }
