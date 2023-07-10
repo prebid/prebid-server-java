@@ -11,7 +11,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PROMETHEUS_PORT
 
-@Ignore(inherited = true)
 class PrometheusSpec extends BaseSpec {
 
     private static final String PROMETHEUS_METRIC_NAME_REGEX = "[a-zA-Z_]?[a-zA-Z0-9_]*"

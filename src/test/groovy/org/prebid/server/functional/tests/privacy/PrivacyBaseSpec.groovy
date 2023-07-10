@@ -37,7 +37,6 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-@Ignore(inherited = true)
 abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2

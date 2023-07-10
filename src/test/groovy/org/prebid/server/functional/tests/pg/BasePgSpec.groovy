@@ -18,7 +18,6 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 @Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
-@Ignore(inherited = true)
 abstract class BasePgSpec extends Specification {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer)

@@ -24,7 +24,7 @@ import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFOR
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 
-@Ignore
+
 class GppCookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT

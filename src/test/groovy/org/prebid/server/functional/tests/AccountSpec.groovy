@@ -13,7 +13,7 @@ import spock.lang.Ignore
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
-@Ignore
+
 class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with inactive account"() {

@@ -13,7 +13,7 @@ import spock.lang.Ignore
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@Ignore(inherited = true)
+
 class TargetingSpec extends BaseSpec {
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {

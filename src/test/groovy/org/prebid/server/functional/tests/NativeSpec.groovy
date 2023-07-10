@@ -18,7 +18,7 @@ import spock.lang.Ignore
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 
-@Ignore(inherited = true)
+
 class NativeSpec extends BaseSpec {
 
     def "PBS should emit error when stored response asset doesn't contain id"() {

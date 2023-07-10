@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests
 
 import spock.lang.Ignore
 
-@Ignore(inherited = true)
+
 class StoredRequestSpec extends BaseSpec {
 
     def "PBS should only look up stored requests for provided AMP account"() {

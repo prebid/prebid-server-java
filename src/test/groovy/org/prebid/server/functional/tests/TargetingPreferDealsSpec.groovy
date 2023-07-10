@@ -10,7 +10,7 @@ import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@Ignore(inherited = true)
+
 class TargetingPreferDealsSpec extends BaseSpec {
 
     def "PBS should choose bid with deal when preferdeals flag equal true"() {

@@ -17,7 +17,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
-@Ignore(inherited = true)
+
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {

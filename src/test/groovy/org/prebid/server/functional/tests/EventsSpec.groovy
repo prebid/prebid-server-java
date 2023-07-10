@@ -10,7 +10,7 @@ import spock.lang.Ignore
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-@Ignore(inherited = true)
+
 class EventsSpec extends BaseSpec {
 
     def "PBS should generate event tracker URLs when events are enabled for account"() {

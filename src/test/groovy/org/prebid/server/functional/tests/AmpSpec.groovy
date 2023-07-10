@@ -12,7 +12,6 @@ import spock.lang.Ignore
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
-@Ignore
 class AmpSpec extends BaseSpec {
 
     def "PBS should return version in response header for #description"() {

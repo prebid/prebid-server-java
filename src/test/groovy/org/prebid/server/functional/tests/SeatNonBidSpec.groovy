@@ -14,7 +14,7 @@ import static org.prebid.server.functional.model.response.auction.BidRejectionRe
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.TIMED_OUT
 
-@Ignore(inherited = true)
+
 class SeatNonBidSpec extends BaseSpec {
 
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder didn't bid"() {

@@ -18,7 +18,7 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 
-@Ignore(inherited = true)
+
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString

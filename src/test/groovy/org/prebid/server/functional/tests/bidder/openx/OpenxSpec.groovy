@@ -12,7 +12,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-@Ignore(inherited = true)
 class OpenxSpec extends BaseSpec {
 
     private static final Map OPENX_CONFIG = ["adapters.openx.enabled" : "true",
