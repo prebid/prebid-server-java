@@ -17,7 +17,7 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.After;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -83,8 +83,8 @@ public abstract class IntegrationTest extends VertxTest {
     private static final String USER_SERVICE_PATH = "/user-data-details";
     private static final String USER_SERVICE_ENDPOINT = "http://" + HOST_AND_PORT + USER_SERVICE_PATH;
 
-    @BeforeClass
-    public static void setUp() throws IOException {
+    @Before
+    public void setUp() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
