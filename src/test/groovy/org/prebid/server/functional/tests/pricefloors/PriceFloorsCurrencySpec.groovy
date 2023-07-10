@@ -7,6 +7,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
@@ -77,6 +79,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
 
+        println(floorsPbsService.getLogsByTime(Instant.now().minusSeconds(10000000)))
+
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorValue,
                 floorsResponse.modelGroups[0].currency, bidRequest.cur[0], currencyRatesResponse)
@@ -90,6 +94,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        println(floorsPbsService.getLogsByTime(Instant.now().minusSeconds(10000000)))
 
         then: "PBS should suppress bids lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.collect { it.price } == [convertedMinFloorValue]
@@ -292,6 +298,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Get currency rates"
         def currencyRatesResponse = floorsPbsService.sendCurrencyRatesRequest()
 
+        println(floorsPbsService.getLogsByTime(Instant.now().minusSeconds(10000000)))
+
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP
         def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue,
@@ -314,6 +322,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorCur
         }
+
+        println(floorsPbsService.getLogsByTime(Instant.now().minusSeconds(10000000)))
 
         and: "PBS should suppress bids lower than floorRuleValue"
         def convertedFloorValueEur = getPriceAfterCurrencyConversion(winBidPrice,
