@@ -7,10 +7,11 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisParser;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -74,6 +75,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .build());
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
@@ -98,6 +100,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"));
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
@@ -123,6 +126,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         doReturn(false).when(redisScanStateChecker).isScanDisabled();
         doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
@@ -135,6 +139,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     public void shouldNotSubmitBidsToRedisWhenScanIsDisabled() {
         // given
         doReturn(true).when(redisScanStateChecker).isScanDisabled();
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
@@ -150,6 +155,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
         doReturn(true).when(auctionInvocationContext).debugEnabled();
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
@@ -174,6 +180,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
         doReturn(false).when(auctionInvocationContext).debugEnabled();
+        doReturn(AuctionContext.builder().build()).when(auctionInvocationContext).auctionContext();
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(

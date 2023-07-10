@@ -39,7 +39,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
     public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
             AllProcessedBidResponsesPayload allProcessedBidResponsesPayload,
             AuctionInvocationContext auctionInvocationContext) {
-        final BidRequest bidRequest = auctionInvocationContext.bidRequest();
+        final BidRequest bidRequest = auctionInvocationContext.auctionContext().getBidRequest();
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final boolean isScanDisabled = redisScanStateChecker.isScanDisabled();
 

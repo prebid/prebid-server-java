@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.v1.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
@@ -28,8 +27,6 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
     ObjectNode accountConfig;
 
     String bidder;
-
-    BidRequest bidRequest;
 
     public static BidderInvocationContext of(String bidder, ObjectNode accountConfig, boolean debugEnabled) {
         return BidderInvocationContextImpl.builder()

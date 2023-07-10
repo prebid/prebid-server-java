@@ -388,8 +388,7 @@ public class HookStageExecutor {
                 auctionContext,
                 auctionContext.getDebugContext().isDebugEnabled(),
                 accountConfigFor(auctionContext.getAccount(), hookId),
-                moduleContext,
-                auctionContext.getBidRequest());
+                moduleContext);
     }
 
     private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(

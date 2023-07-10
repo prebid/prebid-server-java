@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.execution.v1.auction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import lombok.experimental.Delegate;
@@ -23,6 +22,4 @@ public class AuctionInvocationContextImpl implements AuctionInvocationContext {
     ObjectNode accountConfig;
 
     Object moduleContext;
-
-    BidRequest bidRequest;
 }
