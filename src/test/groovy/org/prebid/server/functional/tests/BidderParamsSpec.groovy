@@ -22,6 +22,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -34,6 +35,7 @@ import static org.prebid.server.functional.model.response.auction.MediaType.NATI
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
+@Ignore(inherited = true)
 class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {

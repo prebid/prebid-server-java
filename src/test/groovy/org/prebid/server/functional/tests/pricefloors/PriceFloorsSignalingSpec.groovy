@@ -17,6 +17,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Ignore
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.USD

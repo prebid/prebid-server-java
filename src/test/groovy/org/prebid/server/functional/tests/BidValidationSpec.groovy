@@ -13,6 +13,7 @@ import spock.lang.Ignore
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 @Ignore(inherited = true)
 class BidValidationSpec extends BaseSpec {
 

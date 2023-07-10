@@ -34,7 +34,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
-@Ignore(inherited = true)
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
