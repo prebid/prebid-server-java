@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "synacormedia",
+      "seat": "imds",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "synacormedia": "{{ synacormedia.response_time_ms }}"
+      "imds": "{{ imds.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

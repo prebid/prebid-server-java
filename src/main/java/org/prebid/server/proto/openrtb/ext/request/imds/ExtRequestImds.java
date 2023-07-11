@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.synacormedia;
+package org.prebid.server.proto.openrtb.ext.request.imds;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtRequestSynacormedia {
+public class ExtRequestImds {
 
     @JsonProperty("seatId")
     String seatId;
