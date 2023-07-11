@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
-import spock.lang.Ignore
 
 import java.math.RoundingMode
 
