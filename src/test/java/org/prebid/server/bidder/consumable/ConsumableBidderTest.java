@@ -261,7 +261,7 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetGppAndGppSidWhenGppAndGppSidAbsentInRequest() {
+    public void makeHttpRequestsShouldNotSetGppAndGppSidWhenGppAndGppSidAbsentInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                         bidRequestBuilder.regs(Regs.builder().gpp(null).gppSid(null).build()),
