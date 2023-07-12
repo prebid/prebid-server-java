@@ -156,8 +156,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
             }
 
-            boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
-            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+            final boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+            final boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
 
             if (!eventsEnabledForAccount && eventsEnabledForRequest) {
                 respondWithUnauthorized(routingContext,

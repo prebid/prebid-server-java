@@ -230,7 +230,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            int value = i;
+            final int value = i;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(singletonList(Format.builder().w(value).h(value).build())).build())));
         }
@@ -280,7 +280,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            int value = i;
+            final int value = i;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(asList(
                             Format.builder().w(value).h(value).build(),
@@ -303,8 +303,8 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i <= REQUEST_LIMIT; i++) {
-            int priority = i;
-            int other = i + 25;
+            final int priority = i;
+            final int other = i + 25;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(asList(
                             Format.builder().w(priority).h(priority).build(),

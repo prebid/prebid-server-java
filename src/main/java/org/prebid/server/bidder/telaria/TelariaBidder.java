@@ -59,8 +59,8 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         final String publisherId = getPublisherId(bidRequest);
-        String seatCode;
-        ExtImpTelaria extImp;
+        final String seatCode;
+        final ExtImpTelaria extImp;
         Imp modifyImp = bidRequest.getImp().get(0);
 
         try {
