@@ -1,0 +1,14 @@
+adapters:
+  bluesea:
+    endpoint: https://bid.bluevoox.com/rtb/prebid
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: prebid@blueseasx.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0
