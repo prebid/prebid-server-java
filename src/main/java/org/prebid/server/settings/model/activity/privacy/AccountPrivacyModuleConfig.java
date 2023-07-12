@@ -16,4 +16,6 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 public sealed interface AccountPrivacyModuleConfig permits AccountUSNatModuleConfig {
 
     PrivacyModuleQualifier getCode();
+
+    Boolean enabled();
 }
