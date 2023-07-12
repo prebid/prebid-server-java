@@ -23,6 +23,7 @@ adapters:
         support-cors: true
         uid-macro: '[USER_ID]'
       redirect:
+        # IMDS does not support syncing outside of the US/Canada
         url: "https://sync.technoratimedia.com/services?srv=cs&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&cb={{redirect_url}}"
         support-cors: true
         uid-macro: '[USER_ID]'
