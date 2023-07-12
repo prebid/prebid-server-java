@@ -126,8 +126,23 @@ public class PrivacyModulesRuleCreatorTest {
         final AccountActivityPrivacyModulesRuleConfig config = AccountActivityPrivacyModulesRuleConfig.of(
                 singletonList(PrivacyModuleQualifier.US_NAT.moduleName()));
         final ActivityControllerCreationContext creationContext = creationContext(Map.of(
-                PrivacyModuleQualifier.US_NAT, AccountUSNatModuleConfig.of(null, null)));
+                PrivacyModuleQualifier.US_NAT, AccountUSNatModuleConfig.of(true, null)));
         creationContext.use(PrivacyModuleQualifier.US_NAT);
+
+        // when
+        final Rule rule = target.from(config, creationContext);
+
+        // then
+        assertThat(rule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
+    }
+
+    @Test
+    public void fromShouldSkipDisabledPrivacyModule() {
+        // given
+        final AccountActivityPrivacyModulesRuleConfig config = AccountActivityPrivacyModulesRuleConfig.of(
+                singletonList(PrivacyModuleQualifier.US_NAT.moduleName()));
+        final ActivityControllerCreationContext creationContext = creationContext(Map.of(
+                PrivacyModuleQualifier.US_NAT, AccountUSNatModuleConfig.of(false, null)));
 
         // when
         final Rule rule = target.from(config, creationContext);

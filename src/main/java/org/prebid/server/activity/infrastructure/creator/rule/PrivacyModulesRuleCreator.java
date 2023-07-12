@@ -8,6 +8,7 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
+import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityPrivacyModulesRuleConfig;
 
 import java.util.Collection;
@@ -57,9 +58,16 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
         }
 
         final String moduleNamePattern = eraseWildcard(configuredModuleName);
-        return creationContext.getPrivacyModulesConfigs().keySet().stream()
+        return creationContext.getPrivacyModulesConfigs().entrySet().stream()
+                .filter(entry -> isModuleEnabled(entry.getValue()))
+                .map(Map.Entry::getKey)
                 .filter(qualifier -> qualifier.moduleName().startsWith(moduleNamePattern))
                 .toList();
+    }
+
+    private static boolean isModuleEnabled(AccountPrivacyModuleConfig accountPrivacyModuleConfig) {
+        final Boolean enabled = accountPrivacyModuleConfig.enabled();
+        return enabled == null || enabled;
     }
 
     private static String eraseWildcard(String configuredModuleName) {
