@@ -45,4 +45,10 @@ public class ConsumableBidRequest {
     String usPrivacy;
 
     ConsumableBidGdpr gdpr;
+
+    @JsonProperty("gpp")
+    String gpp;
+
+    @JsonProperty("gpp_sid")
+    List<Integer> gppSid;
 }
