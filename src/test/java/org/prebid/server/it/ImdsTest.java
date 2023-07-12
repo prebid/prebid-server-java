@@ -16,21 +16,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class BrightrollTest extends IntegrationTest {
+public class ImdsTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromBrightroll() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromImds() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/brightroll/test-brightroll-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/brightroll/test-brightroll-bid-response-1.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/imds-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/imds/test-imds-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/imds/test-imds-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/brightroll/test-auction-brightroll-request.json",
+        final Response response = responseFor("openrtb2/imds/test-auction-imds-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/brightroll/test-auction-brightroll-response.json", response,
-                singletonList("brightroll"));
+        assertJsonEquals("openrtb2/imds/test-auction-imds-response.json", response,
+                singletonList("imds"));
     }
 }

@@ -8,8 +8,9 @@
         "h": 250
       },
       "ext": {
-        "brightroll": {
-          "publisher": "ACCOUNT"
+        "imds": {
+          "seatId": "seat_id",
+          "tagId": "tag_id"
         }
       }
     }
