@@ -1,12 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.synacormedia.SynacormediaBidder;
+import org.prebid.server.bidder.imds.ImdsBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,26 +17,31 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/synacormedia.yaml", factory = YamlPropertySourceFactory.class)
-public class SynacormediaConfiguration {
+@PropertySource(value = "classpath:/bidder-config/imds.yaml", factory = YamlPropertySourceFactory.class)
+public class ImdsConfiguration {
 
-    private static final String BIDDER_NAME = "synacormedia";
+    private static final String BIDDER_NAME = "imds";
 
-    @Bean("synacormediaConfigurationProperties")
-    @ConfigurationProperties("adapters.synacormedia")
+    @Bean("imdsConfigurationProperties")
+    @ConfigurationProperties("adapters.imds")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps synacormediaBidderDeps(BidderConfigurationProperties synacormediaConfigurationProperties,
-                                      @NotBlank @Value("${external-url}") String externalUrl,
-                                      JacksonMapper mapper) {
+    BidderDeps imdsBidderDeps(BidderConfigurationProperties imdsConfigurationProperties,
+                              @NotBlank @Value("${external-url}") String externalUrl,
+                              PrebidVersionProvider prebidVersionProvider,
+                              JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(synacormediaConfigurationProperties)
+                .withConfig(imdsConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SynacormediaBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ImdsBidder(
+                        config.getEndpoint(),
+                        prebidVersionProvider.getNameVersionRecord(),
+                        mapper)
+                )
                 .assemble();
     }
 }

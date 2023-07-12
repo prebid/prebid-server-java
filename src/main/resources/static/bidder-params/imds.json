@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Synacormedia Adapter Params",
-  "description": "A schema which validates params accepted by the Synacormedia adapter",
+  "title": "iMDS Adapter Params",
+  "description": "A schema which validates params accepted by the iMDS adapter",
   "type": "object",
   "properties": {
     "seatId": {

@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.synacormedia;
+package org.prebid.server.bidder.imds;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,29 +20,33 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
-import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
+import org.prebid.server.proto.openrtb.ext.request.imds.ExtImpImds;
+import org.prebid.server.proto.openrtb.ext.request.imds.ExtRequestImds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class SynacormediaBidder implements Bidder<BidRequest> {
+public class ImdsBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpImds>> IMDS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointUrl;
+    private final String prebidVersion;
     private final JacksonMapper mapper;
 
-    public SynacormediaBidder(String endpointUrl, JacksonMapper mapper) {
+    public ImdsBidder(String endpointUrl, String prebidVersion, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.prebidVersion = Objects.requireNonNull(prebidVersion);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -50,22 +54,22 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
-        ExtImpSynacormedia firstExtImp = null;
+        ExtImpImds firstExtImp = null;
 
         for (Imp imp : bidRequest.getImp()) {
-            final ExtImpSynacormedia extImpSynacormedia;
+            final ExtImpImds extImpImds;
             try {
-                extImpSynacormedia = parseAndValidateExtImp(imp.getExt());
+                extImpImds = parseAndValidateExtImp(imp.getExt());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput("Invalid Impression: " + e.getMessage()));
                 continue;
             }
 
-            final Imp updatedImp = imp.toBuilder().tagid(extImpSynacormedia.getTagId()).build();
+            final Imp updatedImp = imp.toBuilder().tagid(extImpImds.getTagId()).build();
             validImps.add(updatedImp);
 
             if (firstExtImp == null) {
-                firstExtImp = extImpSynacormedia;
+                firstExtImp = extImpImds;
             }
         }
 
@@ -75,19 +79,31 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(validImps)
-                .ext(mapper.fillExtension(ExtRequest.empty(), ExtRequestSynacormedia.of(firstExtImp.getSeatId())))
+                .ext(mapper.fillExtension(ExtRequest.empty(), ExtRequestImds.of(firstExtImp.getSeatId())))
                 .build();
 
-        return Result.of(Collections.singletonList(
+        return Result.of(
+                Collections.singletonList(
                         BidderUtil.defaultRequest(
-                                outgoingRequest,
-                                endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()),
-                                mapper)),
-                errors);
+                            outgoingRequest,
+                            generateEndpointUrl(firstExtImp),
+                            mapper
+                    )
+                ),
+                errors
+        );
     }
 
-    private ExtImpSynacormedia parseAndValidateExtImp(ObjectNode impExt) {
-        final ExtImpSynacormedia extImp = parseExtImp(impExt);
+    private String generateEndpointUrl(ExtImpImds firstExtImp) {
+        final String accountId = URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8);
+        final String sourceId = URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8);
+        return endpointUrl
+                .replaceAll("\\{\\{AccountID}}", accountId)
+                .replaceAll("\\{\\{SourceId}}", sourceId);
+    }
+
+    private ExtImpImds parseAndValidateExtImp(ObjectNode impExt) {
+        final ExtImpImds extImp = parseExtImp(impExt);
 
         if (StringUtils.isBlank(extImp.getSeatId()) || StringUtils.isBlank(extImp.getTagId())) {
             throw new PreBidException("imp.ext has no seatId or tagId");
@@ -96,9 +112,9 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
         return extImp;
     }
 
-    private ExtImpSynacormedia parseExtImp(ObjectNode impExt) {
+    private ExtImpImds parseExtImp(ObjectNode impExt) {
         try {
-            return mapper.mapper().convertValue(impExt, SYNACORMEDIA_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(impExt, IMDS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -140,7 +156,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
+        for (final Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
