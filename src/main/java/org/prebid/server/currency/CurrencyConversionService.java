@@ -204,7 +204,6 @@ public class CurrencyConversionService implements Initializable {
             secondPriorityRates = requestCurrencyRates;
         }
 
-
         final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates,
                 secondPriorityRates,
                 effectiveFromCurrency,
