@@ -256,7 +256,8 @@ public class ConsumableBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .allSatisfy(consumableBidRequest -> {
                     assertThat(consumableBidRequest.getGpp()).isEqualTo(bidRequest.getRegs().getGpp());
-                    assertThat(consumableBidRequest.getGppSid()).containsExactlyElementsOf(bidRequest.getRegs().getGppSid());
+                    assertThat(consumableBidRequest.getGppSid())
+                            .containsExactlyElementsOf(bidRequest.getRegs().getGppSid());
                 });
     }
 
