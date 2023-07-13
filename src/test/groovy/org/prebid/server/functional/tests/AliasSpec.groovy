@@ -13,7 +13,6 @@ import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
-
 class AliasSpec extends BaseSpec {
 
     def "PBS should be able to take alias from request"() {

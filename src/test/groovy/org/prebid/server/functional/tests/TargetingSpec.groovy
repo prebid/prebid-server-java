@@ -12,7 +12,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-
 class TargetingSpec extends BaseSpec {
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {

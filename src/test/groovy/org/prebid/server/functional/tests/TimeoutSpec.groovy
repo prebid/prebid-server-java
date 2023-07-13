@@ -14,7 +14,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 
-
 class TimeoutSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()

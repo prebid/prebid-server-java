@@ -27,7 +27,6 @@ import spock.lang.Shared
 import static org.prebid.server.functional.model.request.auction.Content.Channel
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 
-
 class OrtbConverterSpec extends BaseSpec {
 
     private final static String ORTB_PROPERTY_VERSION = "adapters.generic.ortb-version"

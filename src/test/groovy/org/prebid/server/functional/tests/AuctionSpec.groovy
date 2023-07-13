@@ -21,7 +21,6 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
-
 class AuctionSpec extends BaseSpec {
 
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"

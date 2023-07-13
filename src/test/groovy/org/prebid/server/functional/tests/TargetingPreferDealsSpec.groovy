@@ -9,7 +9,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-
 class TargetingPreferDealsSpec extends BaseSpec {
 
     def "PBS should choose bid with deal when preferdeals flag equal true"() {

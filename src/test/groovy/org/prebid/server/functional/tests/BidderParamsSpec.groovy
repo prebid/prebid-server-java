@@ -34,7 +34,6 @@ import static org.prebid.server.functional.model.response.auction.MediaType.NATI
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
-
 class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {

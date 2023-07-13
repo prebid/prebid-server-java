@@ -9,7 +9,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-
 class MultibidSpec extends BaseSpec {
 
     def "PBS should not return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = false"() {

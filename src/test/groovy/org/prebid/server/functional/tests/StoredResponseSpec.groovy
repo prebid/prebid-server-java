@@ -11,7 +11,6 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-
 class StoredResponseSpec extends BaseSpec {
 
     @PendingFeature

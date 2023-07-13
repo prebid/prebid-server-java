@@ -10,7 +10,6 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
 
-
 class MetricsSpec extends BaseSpec {
 
     def setup() {

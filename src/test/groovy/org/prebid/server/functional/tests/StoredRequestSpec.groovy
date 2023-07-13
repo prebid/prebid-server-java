@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-
 class StoredRequestSpec extends BaseSpec {
 
     def "PBS should only look up stored requests for provided AMP account"() {

@@ -10,7 +10,6 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
-
 class UserSyncSpec extends BaseSpec {
 
     private static final Map<String, String> GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),

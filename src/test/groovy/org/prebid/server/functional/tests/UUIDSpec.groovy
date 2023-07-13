@@ -12,7 +12,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
-
 class UUIDSpec extends BaseSpec {
 
     def "PBS auction should generate UUID for APP BidRequest id and merge StoredRequest when generate-storedrequest-bidrequest-id = #generateBidRequestId"() {

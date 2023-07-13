@@ -12,7 +12,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
-
 class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with inactive account"() {
