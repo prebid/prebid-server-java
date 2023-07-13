@@ -46,7 +46,6 @@ public class ConsumableBidRequest {
 
     ConsumableBidGdpr gdpr;
 
-    @JsonProperty("gpp")
     String gpp;
 
     @JsonProperty("gpp_sid")
