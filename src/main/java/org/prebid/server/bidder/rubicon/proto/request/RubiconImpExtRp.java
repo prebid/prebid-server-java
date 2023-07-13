@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class RubiconImpExtRp {
 
     Integer zoneId;
@@ -13,4 +12,6 @@ public class RubiconImpExtRp {
     JsonNode target;
 
     RubiconImpExtRpTrack track;
+
+    RubiconImpExtRpRtb rtb;
 }
