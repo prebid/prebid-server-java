@@ -22,7 +22,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC

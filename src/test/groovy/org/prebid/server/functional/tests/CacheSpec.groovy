@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 
 class CacheSpec extends BaseSpec {

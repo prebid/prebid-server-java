@@ -12,7 +12,6 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatis
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Retry
 import spock.lang.Shared
 import spock.lang.Specification

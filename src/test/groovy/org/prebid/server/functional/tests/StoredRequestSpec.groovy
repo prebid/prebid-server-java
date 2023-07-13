@@ -1,7 +1,5 @@
 package org.prebid.server.functional.tests
 
-import spock.lang.Ignore
-
 
 class StoredRequestSpec extends BaseSpec {
 

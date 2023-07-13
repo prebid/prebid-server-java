@@ -6,7 +6,6 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.prometheus.PrometheusLabelsConfigHelper
 import org.testcontainers.containers.wait.strategy.Wait
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PROMETHEUS_PORT

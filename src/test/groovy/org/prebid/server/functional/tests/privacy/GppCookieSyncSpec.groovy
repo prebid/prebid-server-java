@@ -12,7 +12,6 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2

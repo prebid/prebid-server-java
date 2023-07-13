@@ -13,7 +13,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE

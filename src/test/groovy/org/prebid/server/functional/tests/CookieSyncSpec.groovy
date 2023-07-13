@@ -19,7 +19,6 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Ignore
 
 import java.time.Instant
 

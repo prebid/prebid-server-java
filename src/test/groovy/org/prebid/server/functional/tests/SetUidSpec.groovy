@@ -9,7 +9,6 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import java.time.Clock

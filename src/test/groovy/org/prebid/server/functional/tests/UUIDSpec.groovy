@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE

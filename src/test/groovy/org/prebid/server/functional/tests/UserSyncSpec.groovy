@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.util.HttpUtil
-import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Format.BLANK

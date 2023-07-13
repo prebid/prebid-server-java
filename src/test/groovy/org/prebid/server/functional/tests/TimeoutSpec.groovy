@@ -10,7 +10,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR

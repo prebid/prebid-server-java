@@ -12,7 +12,6 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC

@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 
 class InfoBiddersSpec extends BaseSpec {

@@ -22,7 +22,6 @@ import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Content.Channel

@@ -15,7 +15,6 @@ import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC

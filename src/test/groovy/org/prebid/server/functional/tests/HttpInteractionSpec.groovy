@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.bidder.Rubicon
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Retry
 
 import java.time.Instant

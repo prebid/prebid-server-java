@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC

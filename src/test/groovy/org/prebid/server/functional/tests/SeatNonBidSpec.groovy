@@ -4,7 +4,6 @@ import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
 import static org.mockserver.model.HttpStatusCode.OK_200

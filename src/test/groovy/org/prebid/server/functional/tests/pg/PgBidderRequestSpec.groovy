@@ -13,7 +13,6 @@ import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRe
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 
 class PgBidderRequestSpec extends BasePgSpec {
 

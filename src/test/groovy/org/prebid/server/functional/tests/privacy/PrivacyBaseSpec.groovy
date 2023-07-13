@@ -23,7 +23,6 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.Ignore
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
