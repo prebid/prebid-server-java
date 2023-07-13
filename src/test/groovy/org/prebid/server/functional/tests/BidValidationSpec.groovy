@@ -13,7 +13,6 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-
 class BidValidationSpec extends BaseSpec {
 
     @PendingFeature
