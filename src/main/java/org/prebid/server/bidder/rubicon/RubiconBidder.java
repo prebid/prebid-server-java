@@ -248,28 +248,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                                        String language,
                                                        List<BidderError> errors) {
 
-        final Set<ImpMediaType> formats = new HashSet<>();
-        final List<Imp> singleFormatImps = new ArrayList<>();
 
-        if (imp.getBanner() != null) {
-            formats.add(ImpMediaType.banner);
-            singleFormatImps.add(imp.toBuilder().video(null).xNative(null).audio(null).build());
-        }
-        if (imp.getVideo() != null) {
-            formats.add(ImpMediaType.video);
-            singleFormatImps.add(imp.toBuilder().banner(null).xNative(null).audio(null).build());
-        }
-        if (imp.getXNative() != null) {
-            formats.add(ImpMediaType.xNative);
-            singleFormatImps.add(imp.toBuilder().banner(null).video(null).audio(null).build());
-        }
-        if (imp.getAudio() != null) {
-            formats.add(ImpMediaType.audio);
-            singleFormatImps.add(imp.toBuilder().banner(null).video(null).xNative(null).build());
-        }
-
+        final Map<ImpMediaType, Imp> impByType = splitByMediaType(imp);
+        final Set<ImpMediaType> formats = impByType.keySet();
         final List<BidRequest> bidRequests = new ArrayList<>();
-        for (Imp singleFormatImp : singleFormatImps) {
+
+        for (Imp singleFormatImp : impByType.values()) {
             try {
                 bidRequests.add(createSingleRequest(bidRequest, singleFormatImp, impExt, formats, language, errors));
             } catch (PreBidException e) {
@@ -278,6 +262,24 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return bidRequests;
+    }
+
+    private Map<ImpMediaType, Imp> splitByMediaType(Imp imp) {
+        final Map<ImpMediaType, Imp> impByType = new HashMap<>();
+        if (imp.getBanner() != null) {
+            impByType.put(ImpMediaType.banner, imp.toBuilder().video(null).xNative(null).audio(null).build());
+        }
+        if (imp.getVideo() != null) {
+            impByType.put(ImpMediaType.video, imp.toBuilder().banner(null).xNative(null).audio(null).build());
+        }
+        if (imp.getXNative() != null) {
+            impByType.put(ImpMediaType.xNative, imp.toBuilder().banner(null).video(null).audio(null).build());
+        }
+        if (imp.getAudio() != null) {
+            impByType.put(ImpMediaType.audio, imp.toBuilder().banner(null).video(null).xNative(null).build());
+        }
+
+        return impByType;
     }
 
     private List<HttpRequest<BidRequest>> createImpHttpRequests(Imp imp, List<BidRequest> impBidRequests, String uri) {
