@@ -383,7 +383,8 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconImpExt.builder()
                         .rp(RubiconImpExtRp.of(4001,
                                 mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                                RubiconImpExtRpTrack.of("", "")))
+                                RubiconImpExtRpTrack.of("", ""),
+                                null))
                         .skadn(givenSkadn)
                         .maxbids(1)
                         .build());
@@ -2152,7 +2153,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.builder()
-                                .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", ""), null))
                                 .maxbids(1)
                                 .build()))
                         .build()))
@@ -2163,7 +2164,7 @@ public class RubiconBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
                                 RubiconImpExt.builder()
-                                        .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                        .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", ""), null))
                                         .maxbids(1)
                                         .build()))
                         .build()))

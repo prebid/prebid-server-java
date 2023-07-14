@@ -229,26 +229,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
             try {
                 final Imp imp = impToExt.getKey();
                 final ExtImpRubicon impExt = impToExt.getValue();
-                final List<BidRequest> bidRequests = createImpBidRequests(bidRequest, imp, impExt, language, errors);
-                httpRequests.addAll(createImpHttpRequests(imp, bidRequests, uri));
+                final List<BidRequest> impBidRequests = isMultiformatEnabled(impExt)
+                        ? createMultiFormatRequests(bidRequest, imp, impExt, language, errors)
+                        : List.of(createSingleRequest(bidRequest, imp, impExt, null, language, errors));
+
+                httpRequests.addAll(createImpHttpRequests(imp, impBidRequests, uri));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return Result.of(httpRequests, errors);
-    }
-
-    private List<BidRequest> createImpBidRequests(BidRequest bidRequest,
-                                                  Imp imp,
-                                                  ExtImpRubicon extImpRubicon,
-                                                  String language,
-                                                  List<BidderError> errors) {
-
-        return isMultiformatEnabled(extImpRubicon)
-                ? createMultiFormatRequests(bidRequest, imp, extImpRubicon, language, errors)
-                : Collections.singletonList(
-                createSingleRequest(bidRequest, imp, extImpRubicon, Collections.emptySet(), language, errors));
     }
 
     private List<BidRequest> createMultiFormatRequests(BidRequest bidRequest,
@@ -277,9 +268,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
             singleFormatImps.add(imp.toBuilder().banner(null).video(null).xNative(null).build());
         }
 
-        return singleFormatImps.stream()
-                .map(cleanedImp -> createSingleRequest(bidRequest, cleanedImp, impExt, formats, language, errors))
-                .toList();
+        final List<BidRequest> bidRequests = new ArrayList<>();
+        for (Imp singleFormatImp : singleFormatImps) {
+            try {
+                bidRequests.add(createSingleRequest(bidRequest, singleFormatImp, impExt, formats, language, errors));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        return bidRequests;
     }
 
     private List<HttpRequest<BidRequest>> createImpHttpRequests(Imp imp, List<BidRequest> impBidRequests, String uri) {
@@ -670,11 +668,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
                 : null;
 
+        final RubiconImpExtRpRtb rubiconImpExtRpRtb = CollectionUtils.isNotEmpty(formats)
+                ? RubiconImpExtRpRtb.of(formats)
+                : null;
+
         final RubiconImpExtRp rubiconImpExtRp = RubiconImpExtRp.of(
                 rubiconImpExt.getZoneId(),
                 makeTarget(imp, rubiconImpExt, site, app, context),
                 RubiconImpExtRpTrack.of("", ""),
-                RubiconImpExtRpRtb.of(formats));
+                rubiconImpExtRpRtb);
 
         return RubiconImpExt.builder()
                 .rp(rubiconImpExtRp)
