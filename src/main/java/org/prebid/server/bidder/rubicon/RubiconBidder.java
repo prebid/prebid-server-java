@@ -103,6 +103,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconParams;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -244,11 +245,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                                   String language,
                                                   List<BidderError> errors) {
 
-
         return isMultiformatEnabled(extImpRubicon)
                 ? createMultiFormatRequests(bidRequest, imp, extImpRubicon, language, errors)
                 : Collections.singletonList(
-                    createSingleRequest(bidRequest, imp, extImpRubicon, Collections.emptySet(), language, errors));
+                createSingleRequest(bidRequest, imp, extImpRubicon, Collections.emptySet(), language, errors));
     }
 
     private List<BidRequest> createMultiFormatRequests(BidRequest bidRequest,
@@ -478,6 +478,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
         final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp, impType, priceFloorsWarnings);
+        final Set<ImpMediaType> resolvedFormats = resolveFormats(extImpRubicon, formats);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null
@@ -495,7 +496,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                 imp,
                                 bidRequest,
                                 extImpRubicon,
-                                formats,
+                                resolvedFormats,
                                 site,
                                 app,
                                 extRequest,
@@ -669,12 +670,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
                 : null;
 
+        final RubiconImpExtRp rubiconImpExtRp = RubiconImpExtRp.of(
+                rubiconImpExt.getZoneId(),
+                makeTarget(imp, rubiconImpExt, site, app, context),
+                RubiconImpExtRpTrack.of("", ""),
+                RubiconImpExtRpRtb.of(formats));
+
         return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.of(
-                        rubiconImpExt.getZoneId(),
-                        makeTarget(imp, rubiconImpExt, site, app, context),
-                        RubiconImpExtRpTrack.of("", ""),
-                        RubiconImpExtRpRtb.of(resolveFormats(rubiconImpExt, formats))))
+                .rp(rubiconImpExtRp)
                 .viewabilityvendors(mapVendorsNamesToUrls(imp.getMetric()))
                 .maxbids(getMaxBids(extRequest))
                 .gpid(getGpid(imp.getExt()))
@@ -684,11 +687,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Set<ImpMediaType> resolveFormats(ExtImpRubicon extImpRubicon, Set<ImpMediaType> impFormats) {
-        return impFormats;
-//        final Set<ImpMediaType> extMediaTypes = SetUtils.union(
-//                Optional.ofNullable(extImpRubicon).map(ExtImpRubicon::getFormats).orElse(Collections.emptySet()),
-//                Optional.ofNullable(extImpRubicon).map(e->e.getP)
-//        )
+        return Optional.ofNullable(extImpRubicon.getFormats())
+                .or(() -> Optional.ofNullable(extImpRubicon.getParams()).map(ExtImpRubiconParams::getFormats))
+                .orElse(impFormats);
     }
 
     private ExtImpContext extImpContext(Imp imp) {
