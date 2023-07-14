@@ -56,6 +56,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpRtb;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconNative;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
@@ -102,6 +103,7 @@ import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconParams;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -112,6 +114,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -263,6 +266,86 @@ public class RubiconBidderTest extends VertxTest {
                         assertThat(imp.getBanner()).isNull();
                     }
                 });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToImpExtFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder
+                        .formats(Set.of(ImpMediaType.video, ImpMediaType.banner)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .flatExtracting(RubiconImpExtRpRtb::getFormats)
+                .containsExactlyInAnyOrder(ImpMediaType.video, ImpMediaType.banner);
+
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToImpExtParamsFormatsWhenImpExtFormatsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder
+                        .params(ExtImpRubiconParams.of(Set.of(ImpMediaType.video, ImpMediaType.banner))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .flatExtracting(RubiconImpExtRpRtb::getFormats)
+                .containsExactlyInAnyOrder(ImpMediaType.video, ImpMediaType.banner);
+
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToSuppliedImpFormatsWhenBidOnMultiFormatTrue() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(300).h(200).build())
+                        .video(Video.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .extracting(RubiconImpExtRpRtb::getFormats)
+                .containsExactlyInAnyOrder(
+                        Set.of(ImpMediaType.video, ImpMediaType.banner),
+                        Set.of(ImpMediaType.video, ImpMediaType.banner));
+
     }
 
     @Test
