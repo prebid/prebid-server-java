@@ -248,7 +248,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                                        String language,
                                                        List<BidderError> errors) {
 
-
         final Map<ImpMediaType, Imp> impByType = splitByMediaType(imp);
         final Set<ImpMediaType> formats = impByType.keySet();
         final List<BidRequest> bidRequests = new ArrayList<>();
