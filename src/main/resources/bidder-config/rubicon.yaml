@@ -1,6 +1,5 @@
 adapters:
   rubicon:
-    enabled: true
     ortb-version: "2.6"
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     meta-info:
