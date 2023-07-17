@@ -695,7 +695,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Set<ImpMediaType> resolveFormats(ExtImpRubicon extImpRubicon, Set<ImpMediaType> impFormats) {
         return Optional.ofNullable(extImpRubicon.getFormats())
-                .or(() -> Optional.ofNullable(extImpRubicon.getParams()).map(ExtImpRubiconParams::getFormats))
+                .or(() -> Optional.ofNullable(extImpRubicon.getParams())
+                        .map(ExtImpRubiconParams::getFormats))
                 .orElse(impFormats);
     }
 
