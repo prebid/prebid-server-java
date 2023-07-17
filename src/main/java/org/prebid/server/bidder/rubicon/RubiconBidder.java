@@ -250,8 +250,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final Map<ImpMediaType, Imp> impByType = splitByMediaType(imp);
         final Set<ImpMediaType> formats = impByType.keySet();
-        final List<BidRequest> bidRequests = new ArrayList<>();
+        if (formats.size() == 1) {
+            return Collections.singletonList(
+                    createSingleRequest(bidRequest, imp, impExt, null, language, errors));
+        }
 
+        final List<BidRequest> bidRequests = new ArrayList<>();
         for (Imp singleFormatImp : impByType.values()) {
             try {
                 bidRequests.add(createSingleRequest(bidRequest, singleFormatImp, impExt, formats, language, errors));
@@ -1638,7 +1642,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ObjectNode modifiedTargetNode = targetNode.put("line_item", extLineItemId);
         final RubiconImpExtRp modifiedImpExtRp = RubiconImpExtRp.of(impExtRp.getZoneId(), modifiedTargetNode,
-                impExtRp.getTrack(), null);
+                impExtRp.getTrack(), impExtRp.getRtb());
 
         return mapper.mapper().valueToTree(rubiconImpExt.toBuilder()
                 .rp(modifiedImpExtRp)
