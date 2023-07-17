@@ -12,7 +12,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,7 +57,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
@@ -73,7 +73,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
@@ -89,7 +89,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
@@ -107,7 +107,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
@@ -125,7 +125,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
@@ -143,7 +143,7 @@ public class NoEnforcePurposeStrategyTest {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
@@ -162,9 +162,9 @@ public class NoEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2);
 
@@ -187,9 +187,9 @@ public class NoEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2);
         given(allowedVendors.contains(eq(1))).willReturn(true);
@@ -209,9 +209,9 @@ public class NoEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2);
 
@@ -234,9 +234,9 @@ public class NoEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2);
 
@@ -257,9 +257,9 @@ public class NoEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.empty(1));
+                Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.empty(1));
+                Vendor.empty(1));
 
         // when
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,

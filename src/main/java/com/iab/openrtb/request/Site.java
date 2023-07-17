@@ -103,6 +103,12 @@ public class Site {
     List<String> kwarray;
 
     /**
+     * A domain to be used for inventory authorization in the case of inventory sharing
+     * arrangements between a site owner and content owner.
+     */
+    String inventorypartnerdomain;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ExtSite ext;

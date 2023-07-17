@@ -17,6 +17,7 @@ class BidRequest {
     List<Imp> imp
     Site site
     App app
+    Dooh dooh
     Device device
     User user
     Integer test

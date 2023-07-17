@@ -82,7 +82,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String,?> headers = [:]) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
@@ -165,6 +165,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def setuidResponse = new SetuidResponse()
         setuidResponse.uidsCookie = getDecodedUidsCookie(response)
         setuidResponse.responseBody = response.asByteArray()
+        setuidResponse.headers = response.headers()
         setuidResponse
     }
 
@@ -301,7 +302,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         this
     }
 
-    private Response postAuction(BidRequest bidRequest, Map<String,?> headers = [:]) {
+    private Response postAuction(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def payload = encode(bidRequest)
 
         given(requestSpecification).headers(headers)
@@ -396,6 +397,20 @@ class PrebidServerService implements ObjectMapperWrapper {
             }
         }
         filteredLogs
+    }
+
+    <T> T getValueFromContainer(String path, Class<T> clazz) {
+        pbsContainer.copyFileFromContainer(path, { inputStream ->
+            return decode(inputStream, clazz)
+        })
+    }
+
+    Boolean isFileExist(String path) {
+        pbsContainer.execInContainer("test", "-f", path).getExitCode() == 0
+    }
+
+    void deleteFilesInDirectory(String directoryPath) {
+        pbsContainer.execInContainer("find", directoryPath, "-maxdepth", "${Integer.MAX_VALUE}", "-type", "f", "-exec", "rm", "-f", "{}", "+")
     }
 
     private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
