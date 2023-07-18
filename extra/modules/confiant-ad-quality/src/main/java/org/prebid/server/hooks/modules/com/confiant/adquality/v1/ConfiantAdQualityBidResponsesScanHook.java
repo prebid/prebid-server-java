@@ -1,8 +1,17 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.v1;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
@@ -28,18 +37,22 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
 
     private final RedisScanStateChecker redisScanStateChecker;
 
+    private final PrivacyEnforcementService privacyEnforcementService;
+
     public ConfiantAdQualityBidResponsesScanHook(
             RedisClient redisClient,
-            RedisScanStateChecker redisScanStateChecker) {
+            RedisScanStateChecker redisScanStateChecker,
+            PrivacyEnforcementService privacyEnforcementService) {
         this.redisClient = redisClient;
         this.redisScanStateChecker = redisScanStateChecker;
+        this.privacyEnforcementService = privacyEnforcementService;
     }
 
     @Override
     public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
             AllProcessedBidResponsesPayload allProcessedBidResponsesPayload,
             AuctionInvocationContext auctionInvocationContext) {
-        final BidRequest bidRequest = auctionInvocationContext.auctionContext().getBidRequest();
+        final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final boolean isScanDisabled = redisScanStateChecker.isScanDisabled();
 
@@ -54,6 +67,26 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                         .complete(getResult(result.result(), auctionInvocationContext).result()));
 
         return processed.future();
+    }
+
+    private BidRequest getBidRequest(AuctionInvocationContext auctionInvocationContext) {
+        final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final ActivityCallPayload activityCallPayload = BidRequestActivityCallPayload.of(
+                ActivityCallPayloadImpl.of(ComponentType.GENERAL_MODULE, ConfiantAdQualityModule.CODE),
+                bidRequest);
+        final boolean disallowTransmitGeo = !auctionContext.getActivityInfrastructure()
+                .isAllowed(Activity.TRANSMIT_GEO, activityCallPayload);
+
+        final User maskedUser = privacyEnforcementService
+                .maskUserConsideringActivityRestrictions(bidRequest.getUser(), true, disallowTransmitGeo);
+        final Device maskedDevice = privacyEnforcementService
+                .maskDeviceConsideringActivityRestrictions(bidRequest.getDevice(), true, disallowTransmitGeo);
+
+        return bidRequest.toBuilder()
+                .user(maskedUser)
+                .device(maskedDevice)
+                .build();
     }
 
     private Future<InvocationResult<AllProcessedBidResponsesPayload>> getResult(

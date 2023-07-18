@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.config;
 
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisVerticle;
@@ -31,7 +32,8 @@ public class ConfiantAdQualityModuleConfiguration {
             @Value("${hooks.modules.confiant-ad-quality.redis-port}") int port,
             @Value("${hooks.modules.confiant-ad-quality.redis-password}") String password,
             @Value("${hooks.modules.confiant-ad-quality.scan-state-check-delay}") int checkDelay,
-            Vertx vertx) {
+            Vertx vertx,
+            PrivacyEnforcementService privacyEnforcementService) {
         final RedisVerticle redisVerticle = new RedisVerticle(vertx, host, port, password);
         final RedisClient redisClient = new RedisClient(redisVerticle, apiKey);
         final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(redisClient, checkDelay, vertx);
@@ -43,6 +45,6 @@ public class ConfiantAdQualityModuleConfiguration {
         redisClient.start(startClient);
 
         return new ConfiantAdQualityModule(List.of(
-                new ConfiantAdQualityBidResponsesScanHook(redisClient, redisScanStateChecker)));
+                new ConfiantAdQualityBidResponsesScanHook(redisClient, redisScanStateChecker, privacyEnforcementService)));
     }
 }
