@@ -103,7 +103,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconParams;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -481,7 +480,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
         final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp, impType, priceFloorsWarnings);
-        final Set<ImpMediaType> resolvedFormats = resolveFormats(extImpRubicon, formats);
+        final Set<ImpMediaType> resolvedFormats = ObjectUtils.defaultIfNull(extImpRubicon.getFormats(), formats);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null
@@ -691,13 +690,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .skadn(getSkadn(imp.getExt()))
                 .prebid(rubiconImpExtPrebid)
                 .build();
-    }
-
-    private Set<ImpMediaType> resolveFormats(ExtImpRubicon extImpRubicon, Set<ImpMediaType> impFormats) {
-        return Optional.ofNullable(extImpRubicon.getFormats())
-                .or(() -> Optional.ofNullable(extImpRubicon.getParams())
-                        .map(ExtImpRubiconParams::getFormats))
-                .orElse(impFormats);
     }
 
     private ExtImpContext extImpContext(Imp imp) {

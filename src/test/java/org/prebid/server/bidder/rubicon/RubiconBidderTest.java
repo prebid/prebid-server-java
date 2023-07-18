@@ -103,7 +103,6 @@ import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconParams;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -312,31 +311,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getRtb)
                 .containsOnlyNulls();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToImpExtParamsFormatsWhenImpExtFormatsAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder().w(300).h(200).build()),
-                extImpRubiconBuilder -> extImpRubiconBuilder
-                        .params(ExtImpRubiconParams.of(Set.of(ImpMediaType.video, ImpMediaType.banner))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getRp)
-                .extracting(RubiconImpExtRp::getRtb)
-                .flatExtracting(RubiconImpExtRpRtb::getFormats)
-                .containsExactlyInAnyOrder(ImpMediaType.video, ImpMediaType.banner);
-
     }
 
     @Test

@@ -41,7 +41,5 @@ public class ExtImpRubicon {
 
     Set<ImpMediaType> formats;
 
-    ExtImpRubiconParams params;
-
     ExtImpRubiconDebug debug;
 }
