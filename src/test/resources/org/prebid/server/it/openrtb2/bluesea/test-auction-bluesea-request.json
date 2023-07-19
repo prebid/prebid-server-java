@@ -8,9 +8,9 @@
         "h": 250
       },
       "ext": {
-        "synacormedia": {
-          "seatId": "seat_id",
-          "tagId": "tag_id"
+        "bluesea": {
+          "pubid": "12345",
+          "token": "123testToken4567"
         }
       }
     }

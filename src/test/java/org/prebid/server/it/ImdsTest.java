@@ -16,22 +16,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class SynacormediaTest extends IntegrationTest {
+public class ImdsTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromSynacorMedia() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromImds() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/synacormedia-exchange/seat_id"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/synacormedia/test-synacormedia-bid-request.json")))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/imds-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/imds/test-imds-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/synacormedia/test-synacormedia-bid-response.json"))));
+                        jsonFrom("openrtb2/imds/test-imds-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/synacormedia/test-auction-synacormedia-request.json",
+        final Response response = responseFor("openrtb2/imds/test-auction-imds-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/synacormedia/test-auction-synacormedia-response.json", response,
-                singletonList("synacormedia"));
+        assertJsonEquals("openrtb2/imds/test-auction-imds-response.json", response,
+                singletonList("imds"));
     }
 }

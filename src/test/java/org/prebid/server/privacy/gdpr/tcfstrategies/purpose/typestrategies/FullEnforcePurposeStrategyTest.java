@@ -387,7 +387,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        RestrictionType requireConsent = RestrictionType.REQUIRE_CONSENT;
+        final RestrictionType requireConsent = RestrictionType.REQUIRE_CONSENT;
         setRestriction(requireConsent);
 
         given(purposesLI.contains(anyInt())).willReturn(true);

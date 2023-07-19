@@ -71,7 +71,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void hasLiveUidsShouldReturnFalse() {
         // given
-        Map<String, UidWithExpiry> uids = new HashMap<>();
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.expired("J5VLCWQP-26-CWFT"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
@@ -82,7 +82,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void hasLiveUidsShouldReturnTrue() {
         // given
-        Map<String, UidWithExpiry> uids = new HashMap<>();
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
@@ -93,7 +93,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void hasLiveUidFromFamilyNameShouldReturnExpectedValue() {
         // given
-        Map<String, UidWithExpiry> uids = new HashMap<>();
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.expired("12345"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);

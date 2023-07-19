@@ -380,7 +380,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
-        Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
