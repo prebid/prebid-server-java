@@ -8,9 +8,6 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
-import java.util.ArrayList;
-import java.util.Set;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,51 +74,39 @@ public class USNatTransmitGeoTest {
     }
 
     @Test
-    public void proceedShouldDisallowIfSensitiveDataProcessingOptOutNoticeEquals0AndOnCertainSensitiveDataProcessing() {
-        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11)) {
-            // given
-            given(gppReader.getSensitiveDataProcessingOptOutNotice()).willReturn(0);
-
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-            data.remove(i);
-            data.add(i, 2);
-            given(gppReader.getSensitiveDataProcessing()).willReturn(data);
-
-            final PrivacyModule target = new USNatTransmitGeo(gppReader);
-
-            // when
-            final Rule.Result result = target.proceed(null);
-
-            // then
-            assertThat(result).isEqualTo(Rule.Result.DISALLOW);
-        }
-    }
-
-    @Test
-    public void proceedShouldDisallowIfSensitiveDataLimitUseNoticeEquals0AndOnCertainSensitiveDataProcessing() {
-        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11)) {
-            // given
-            given(gppReader.getSensitiveDataLimitUseNotice()).willReturn(0);
-
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-            data.remove(i);
-            data.add(i, 2);
-            given(gppReader.getSensitiveDataProcessing()).willReturn(data);
-
-            final PrivacyModule target = new USNatTransmitGeo(gppReader);
-
-            // when
-            final Rule.Result result = target.proceed(null);
-
-            // then
-            assertThat(result).isEqualTo(Rule.Result.DISALLOW);
-        }
-    }
-
-    @Test
-    public void proceedShouldDisallowIfSensitiveDataProcessingAtCertainIndicesEquals1() {
+    public void proceedShouldDisallowIfSensitiveDataProcessingOptOutNoticeIs0AndIfSensitiveDataProcessing8Is2() {
         // given
-        given(gppReader.getSensitiveDataProcessing()).willReturn(asList(0, 0, 0, 0, 0, 0, 1));
+        given(gppReader.getSensitiveDataProcessingOptOutNotice()).willReturn(0);
+        given(gppReader.getSensitiveDataProcessing()).willReturn(asList(0, 0, 0, 0, 0, 0, 0, 2));
+
+        final PrivacyModule target = new USNatTransmitGeo(gppReader);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
+    public void proceedShouldDisallowIfSensitiveDataLimitUseNoticeEquals0AndIfSensitiveDataProcessing8Equals2() {
+        // given
+        given(gppReader.getSensitiveDataLimitUseNotice()).willReturn(0);
+        given(gppReader.getSensitiveDataProcessing()).willReturn(asList(0, 0, 0, 0, 0, 0, 0, 2));
+
+        final PrivacyModule target = new USNatTransmitGeo(gppReader);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
+    public void proceedShouldDisallowIfSensitiveDataProcessing8Equals1() {
+        // given
+        given(gppReader.getSensitiveDataProcessing()).willReturn(asList(0, 0, 0, 0, 0, 0, 0, 1));
         final PrivacyModule target = new USNatTransmitGeo(gppReader);
 
         // when
@@ -145,9 +130,22 @@ public class USNatTransmitGeoTest {
     }
 
     @Test
-    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2NotEquals0() {
+    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2Equals1() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 1));
+        final PrivacyModule target = new USNatTransmitGeo(gppReader);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
+    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2Equals2() {
+        // given
+        given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 2));
         final PrivacyModule target = new USNatTransmitGeo(gppReader);
 
         // when

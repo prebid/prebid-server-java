@@ -127,6 +127,20 @@ public class USNatSyncUserTest {
     }
 
     @Test
+    public void proceedShouldDisallowIfSharingNoticeEquals0AndSharingOptOutEquals2() {
+        // given
+        given(gppReader.getSharingOptOut()).willReturn(2);
+        given(gppReader.getSharingNotice()).willReturn(0);
+        final PrivacyModule target = new USNatSyncUser(gppReader);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
     public void proceedShouldDisallowIfSharingOptOutNoticeEquals0AndSharingOptOutEquals2() {
         // given
         given(gppReader.getSharingOptOut()).willReturn(2);
@@ -194,9 +208,22 @@ public class USNatSyncUserTest {
     }
 
     @Test
-    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2NotEquals0() {
+    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2Equals1() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 1));
+        final PrivacyModule target = new USNatSyncUser(gppReader);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
+    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2Equals2() {
+        // given
+        given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 2));
         final PrivacyModule target = new USNatSyncUser(gppReader);
 
         // when

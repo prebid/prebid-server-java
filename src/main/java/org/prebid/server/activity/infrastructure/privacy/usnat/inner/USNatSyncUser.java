@@ -40,12 +40,14 @@ public class USNatSyncUser implements PrivacyModule {
     }
 
     private static boolean checkSharing(USNatGppReader gppReader) {
+        final Integer sharingNotice = gppReader.getSharingNotice();
         final Integer sharingOptOut = gppReader.getSharingOptOut();
         final Integer sharingOptOutNotice = gppReader.getSharingOptOutNotice();
 
-        return equals(gppReader.getSharingNotice(), 2)
+        return equals(sharingNotice, 2)
                 || equals(sharingOptOut, 1)
                 || equals(sharingOptOutNotice, 2)
+                || (equals(sharingNotice, 0) && equals(sharingOptOut, 2))
                 || (equals(sharingOptOutNotice, 0) && equals(sharingOptOut, 2));
     }
 
@@ -61,16 +63,13 @@ public class USNatSyncUser implements PrivacyModule {
     private static boolean checkKnownChildSensitiveDataConsents(USNatGppReader gppReader) {
         final List<Integer> knownChildSensitiveDataConsents = gppReader.getKnownChildSensitiveDataConsents();
 
-        return notEqualsAtIndex(0, knownChildSensitiveDataConsents, 1)
-                || equalsAtIndex(1, knownChildSensitiveDataConsents, 0);
+        return equalsAtIndex(1, knownChildSensitiveDataConsents, 0)
+                || equalsAtIndex(1, knownChildSensitiveDataConsents, 1)
+                || equalsAtIndex(2, knownChildSensitiveDataConsents, 1);
     }
 
     private static <T> boolean equalsAtIndex(T expectedValue, List<T> list, int index) {
         return list != null && list.size() > index && equals(list.get(index), expectedValue);
-    }
-
-    private static <T> boolean notEqualsAtIndex(T notExpectedValue, List<T> list, int index) {
-        return list != null && list.size() > index && !equals(list.get(index), notExpectedValue);
     }
 
     private static boolean equals(Object a, Object b) {
