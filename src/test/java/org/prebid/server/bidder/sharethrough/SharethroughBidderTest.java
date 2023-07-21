@@ -264,7 +264,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         assertThat(httpRequests).hasSize(3);
 
         // Each split bid request has only 1 impression
@@ -323,7 +323,7 @@ public class SharethroughBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        List<BidderError> errors = result.getErrors();
+        final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
         assertThat(errors.get(0).getMessage())
                 .isEqualTo("Invalid MediaType. Sharethrough only supports Banner, Video and Native.");
