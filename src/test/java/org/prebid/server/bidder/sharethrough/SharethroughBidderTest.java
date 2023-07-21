@@ -285,29 +285,26 @@ public class SharethroughBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(impressions -> impressions.get(0))
+                // Ignore audio impressions because it is currently not supported
                 .satisfiesExactlyInAnyOrder(
                         impression -> {
                             assertThat(impression.getBanner()).isEqualTo(banner);
                             assertThat(impression.getVideo()).isNull();
                             assertThat(impression.getXNative()).isNull();
+                            assertThat(impression.getAudio()).isNull();
                         },
                         impression -> {
                             assertThat(impression.getVideo()).isEqualTo(video);
                             assertThat(impression.getBanner()).isNull();
                             assertThat(impression.getXNative()).isNull();
+                            assertThat(impression.getAudio()).isNull();
                         },
                         impression -> {
                             assertThat(impression.getXNative()).isEqualTo(xNative);
                             assertThat(impression.getBanner()).isNull();
                             assertThat(impression.getVideo()).isNull();
+                            assertThat(impression.getAudio()).isNull();
                         });
-
-        // Ignore audio impressions because it is currently not supported
-        assertThat(httpRequests)
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.get(0))
-                .allSatisfy(impression -> assertThat(impression.getAudio()).isNull());
     }
 
     @Test
