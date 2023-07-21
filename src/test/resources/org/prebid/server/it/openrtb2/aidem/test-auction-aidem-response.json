@@ -1,0 +1,34 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "mtype": 1,
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId",
+          "ext": {
+            "origbidcpm": 3.33,
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "aidem",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "aidem": "{{ aidem.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

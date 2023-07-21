@@ -229,10 +229,10 @@ public class VideoStoredRequestProcessor {
                 // with this handler we will have one impression per specified duration
                 numImps = Math.max(numImps, durationRangeSec.size());
             }
-            int impDivNumber = numImps / durationRangeSec.size();
+            final int impDivNumber = numImps / durationRangeSec.size();
 
             for (int i = 0; i < numImps; i++) {
-                Integer maxDuration;
+                final Integer maxDuration;
                 Integer minDuration = null;
                 if (BooleanUtils.isTrue(requireExactDuration)) {
                     int durationIndex = i / impDivNumber;

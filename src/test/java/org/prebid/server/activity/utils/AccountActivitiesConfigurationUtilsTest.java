@@ -70,12 +70,13 @@ public class AccountActivitiesConfigurationUtilsTest {
                         Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
                                 AccountActivityGeoRuleConfig.of(null, null),
                                 AccountActivityGeoRuleConfig.of(
-                                        AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
+                                        AccountActivityGeoRuleConfig.Condition.of(null, null, null, null, null),
                                         null),
                                 AccountActivityGeoRuleConfig.of(
                                         AccountActivityGeoRuleConfig.Condition.of(
                                                 singletonList(ComponentType.BIDDER),
                                                 singletonList("bidder"),
+                                                null,
                                                 null,
                                                 null),
                                         null))))))
@@ -113,7 +114,8 @@ public class AccountActivitiesConfigurationUtilsTest {
                 .privacy(AccountPrivacyConfig.of(null, null, Map.of(
                         Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityGeoRuleConfig.of(
-                                        AccountActivityGeoRuleConfig.Condition.of(emptyList(), emptyList(), null, null),
+                                        AccountActivityGeoRuleConfig.Condition.of(
+                                                emptyList(), emptyList(), null, null, null),
                                         null))))))
                 .build();
 
@@ -144,14 +146,15 @@ public class AccountActivitiesConfigurationUtilsTest {
                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
                         AccountActivityGeoRuleConfig.of(null, null),
                         AccountActivityGeoRuleConfig.of(
-                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
-                                null),
-                        AccountActivityGeoRuleConfig.of(
-                                AccountActivityGeoRuleConfig.Condition.of(emptyList(), emptyList(), null, null),
+                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null, null),
                                 null),
                         AccountActivityGeoRuleConfig.of(
                                 AccountActivityGeoRuleConfig.Condition.of(
-                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
+                                        emptyList(), emptyList(), null, null, null),
+                                null),
+                        AccountActivityGeoRuleConfig.of(
+                                AccountActivityGeoRuleConfig.Condition.of(
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null, null),
                                 null))));
 
         // when
@@ -173,11 +176,11 @@ public class AccountActivitiesConfigurationUtilsTest {
                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
                         AccountActivityGeoRuleConfig.of(null, null),
                         AccountActivityGeoRuleConfig.of(
-                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null),
+                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null, null),
                                 null),
                         AccountActivityGeoRuleConfig.of(
                                 AccountActivityGeoRuleConfig.Condition.of(
-                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null),
+                                        singletonList(ComponentType.BIDDER), singletonList("bidder"), null, null, null),
                                 null)))));
     }
 }

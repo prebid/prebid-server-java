@@ -161,7 +161,7 @@ public class AdxcgBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidAndErrorIfNativeAndEmptyImpsArePresent() throws JsonProcessingException {
         // given
-        BidResponse bidResponse = BidResponse.builder()
+        final BidResponse bidResponse = BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.asList(Bid.builder().impid("123").build(),

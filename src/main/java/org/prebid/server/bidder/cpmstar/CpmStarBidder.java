@@ -58,7 +58,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
     private BidRequest processRequest(BidRequest bidRequest) {
         final List<Imp> validImpList = new ArrayList<>();
         for (final Imp imp : bidRequest.getImp()) {
-            ExtImpCpmStar extImpCpmStar = parseImp(imp);
+            final ExtImpCpmStar extImpCpmStar = parseImp(imp);
             validImpList.add(createImp(extImpCpmStar, imp));
         }
         return bidRequest.toBuilder().imp(validImpList).build();

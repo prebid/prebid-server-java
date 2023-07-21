@@ -33,6 +33,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final int MAX_TIMEOUT = MIN_TIMEOUT + 1000
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
+    private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
 
     protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
@@ -59,6 +60,10 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static void flushMetrics(PrebidServerService pbsService) {
         // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
         pbsService.sendCollectedMetricsRequest()
+    }
+
+    protected static void flushCacheDirectory(PrebidServerService pbsService) {
+        pbsService.deleteFilesInDirectory(DEFAULT_CACHE_DIRECTORY)
     }
 
     protected static List<String> getLogsByText(List<String> logs, String text) {

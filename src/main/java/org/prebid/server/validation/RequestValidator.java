@@ -895,7 +895,7 @@ public class RequestValidator {
             }
 
             for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
-                int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
+                final int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
                 if (method < EventTrackingMethod.IMAGE.getValue() || (method > EventTrackingMethod.JS.getValue()
                         && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
                     throw new ValidationException(

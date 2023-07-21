@@ -15,10 +15,10 @@ adapters:
     usersync:
       cookie-family-name: triplelift
       iframe:
-        url: https://eb2.3lift.com/sync?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        url: https://eb2.3lift.com/sync?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
       redirect:
-        url: https://eb2.3lift.com/getuid?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        url: https://eb2.3lift.com/getuid?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
