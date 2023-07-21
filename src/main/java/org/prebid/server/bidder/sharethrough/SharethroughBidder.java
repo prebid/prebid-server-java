@@ -105,7 +105,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         if (ObjectUtils.allNull(video, banner, xNative)) {
             errors.add(BidderError
                     .badInput("Invalid MediaType. Sharethrough only supports Banner, Video and Native."));
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         if (video != null) {
