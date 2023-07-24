@@ -13,6 +13,7 @@ pipeline {
                    if [[ $BRANCH_NAME =~ "release-" ]]; then echo "${BRANCH_NAME}.${BUILD_ID}"; else echo "${BRANCH_NAME}.${BUILD_ID}-SNAPSHOT"; fi
                 '''
         ).trim()
+        DO_API_TOKEN = vault path: 'jenkins/digitalocean', key: 'ro_token'
     }
     options {
         disableConcurrentBuilds()
