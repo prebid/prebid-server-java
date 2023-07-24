@@ -95,6 +95,8 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+
+        <start-class>org.prebid.server.Application</start-class>
     </properties>
 
     <distributionManagement>
