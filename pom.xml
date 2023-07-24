@@ -833,6 +833,8 @@
                 <configuration>
                     <attach>false</attach>
                     <executable>true</executable>
+                    <mainClass>org.prebid.server.Application</mainClass>
+                    <layout>JAR</layout>
                 </configuration>
                 <executions>
                     <execution>
