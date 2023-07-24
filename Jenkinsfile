@@ -24,14 +24,14 @@ pipeline {
             steps {
                 script {
                     sh "echo ${BRANCH_NAME} ${GIT_BRANCH} ${GIT_COMMIT} ${MY_VERSION} ${MY_ENV}"
-			        sh "mvn clean package -DskipUnitTest=true -Dbuild.version=${MY_VERSION}"
+			        sh "mvn clean package -Dmaven.skip.test=true -Dbuild.version=${MY_VERSION}"
                 }
             }
         }
         stage('Publish') {
             steps {
                 script {
-   		            sh "mvn deploy -DskipUnitTest=true -Dbuild.version=${MY_VERSION}"
+   		            sh "mvn deploy -Dmaven.skip.test=true -Dbuild.version=${MY_VERSION}"
                 }
             }
         }
