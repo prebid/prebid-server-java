@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>prebid-server</artifactId>
+    <version>${build.version}</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -21,7 +22,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
+        <java.version>11</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
@@ -95,6 +96,17 @@
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>artifactory.alkimi-onboarding-dev.com</id>
+            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-snapshot-local</url>
+        </snapshotRepository>
+        <repository>
+            <id>artifactory.alkimi-onboarding-dev.com</id>
+            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-release-local</url>
+        </repository>
+    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
