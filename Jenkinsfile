@@ -30,7 +30,7 @@ pipeline {
         stage('Publish') {
             steps {
                 script {
-   		            sh "mvn deploy -Dbuild.version=${MY_VERSION}"
+   		            sh "mvn deploy -Dmaven.test.skip=true -Dbuild.version=${MY_VERSION}"
                 }
             }
         }
