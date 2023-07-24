@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     sh "echo ${BRANCH_NAME} ${GIT_BRANCH} ${GIT_COMMIT} ${MY_VERSION} ${MY_ENV}"
-			        sh "mvn clean package -Dbuild.version=${MY_VERSION}"
+			        sh "mvn clean package -DskipTests=true -Dbuild.version=${MY_VERSION}"
                 }
             }
         }
@@ -32,6 +32,15 @@ pipeline {
                 script {
    		            sh "mvn deploy -Dbuild.version=${MY_VERSION}"
                 }
+            }
+        }
+        stage('Deploy to dev') {
+            when {
+                branch "master"
+            }
+            steps {
+                git branch: 'master', url: "git@github.com:Alkimi-Exchange/alkimi-ansible.git", credentialsId: 'ssh-alkimi-ansible'
+                sh "ansible-playbook ./apps/dev/prebid-server.yml"
             }
         }
     }
