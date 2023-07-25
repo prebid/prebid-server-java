@@ -19,7 +19,7 @@ pipeline {
     options {
         disableConcurrentBuilds()
         buildDiscarder(logRotator(artifactNumToKeepStr: '3'))
-        copyArtifactPermission('deployment')
+        // copyArtifactPermission('deployment')
     }
     agent any
     stages {
@@ -45,6 +45,15 @@ pipeline {
             steps {
                 git branch: 'master', url: "git@github.com:Alkimi-Exchange/alkimi-ansible.git", credentialsId: 'ssh-alkimi-ansible'
                 sh "ansible-playbook ./apps/dev/prebid-server.yml --extra-vars='artifactPath=${env.WORKSPACE}/target/prebid-server.jar'"
+            }
+        }
+    }
+    post {
+        always {
+            script{
+                if (env.BRANCH_NAME == 'master') {
+                    archiveArtifacts artifacts: '**/target/prebid-server*.jar',  onlyIfSuccessful: false
+                }
             }
         }
     }
