@@ -1,6 +1,6 @@
 status-response: "ok"
 adapters:
-  admaru:
+  alkimi:
     enabled: true
 metrics:
   prefix: prebid
