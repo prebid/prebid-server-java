@@ -11,7 +11,7 @@ pipeline {
         ).trim()
         MY_VERSION = sh(returnStdout: true, script:
                 '''#!/bin/bash
-                   if [[ $BRANCH_NAME =~ "release-" ]]; then echo "${BRANCH_NAME}.${BUILD_ID}"; else echo "${BRANCH_NAME}.${BUILD_ID}-SNAPSHOT"; fi
+                   if [[ $BRANCH_NAME =~ "release-" ]]; then echo "${BUILD_ID}.0.0"; else echo "${BUILD_ID}.0.0-SNAPSHOT"; fi
                 '''
         ).trim()
         DO_API_TOKEN = vault path: 'jenkins/digitalocean', key: 'ro_token'
