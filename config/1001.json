@@ -1,0 +1,13 @@
+{
+  "tmax": 100000,
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": "low"
+      }
+    }
+  },
+  "user": {
+    "buyeruid": 954
+  }
+}

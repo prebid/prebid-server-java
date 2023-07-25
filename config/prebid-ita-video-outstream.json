@@ -1,0 +1,15 @@
+{
+  "id": "impId002",
+  "video": {
+    "w": 300,
+    "h": 250,
+    "mimes": ["video/mp4"]
+  },
+  "bidfloor": 0.01,
+  "ext": {
+    "admaru": {
+      "placementId": "some_placement_id"
+    }
+  },
+  "tagid": "774"
+}

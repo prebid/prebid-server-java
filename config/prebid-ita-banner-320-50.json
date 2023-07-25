@@ -1,0 +1,18 @@
+{
+  "id": "impId001",
+  "banner": {
+    "format": [
+      {
+        "w": 320,
+        "h": 50
+      }
+    ]
+  },
+  "bidfloor": 0.01,
+  "ext": {
+    "admaru": {
+      "placementId": "some_placement_id"
+    }
+  },
+  "tagid": "773"
+}
