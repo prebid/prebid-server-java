@@ -18,6 +18,8 @@ pipeline {
     }
     options {
         disableConcurrentBuilds()
+        buildDiscarder(logRotator(artifactNumToKeepStr: '3'))
+        copyArtifactPermission('deployment')
     }
     agent any
     stages {
@@ -29,20 +31,20 @@ pipeline {
                 }
             }
         }
-        stage('Publish') {
-            steps {
-                script {
-   		            sh "mvn deploy -Dmaven.test.skip=true -Drevision=${MY_VERSION}"
-                }
-            }
-        }
+        // stage('Publish') {
+        //     steps {
+        //         script {
+   		//             sh "mvn deploy -Dmaven.test.skip=true -Drevision=${MY_VERSION}"
+        //         }
+        //     }
+        // }
         stage('Deploy to dev') {
             when {
                 branch "master"
             }
             steps {
                 git branch: 'master', url: "git@github.com:Alkimi-Exchange/alkimi-ansible.git", credentialsId: 'ssh-alkimi-ansible'
-                sh "ansible-playbook ./apps/dev/prebid-server.yml"
+                sh "ansible-playbook ./apps/dev/prebid-server.yml --extra-vars='artifactPath=${env.WORKSPACE}/target/prebid-server.jar'"
             }
         }
     }

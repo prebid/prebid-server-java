@@ -67,9 +67,9 @@
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.0</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
+        <jetty.version>9.4.51.v20230217</jetty.version>
         <restassured.version>4.4.0</restassured.version>
-        <h2.version>2.1.214</h2.version>
+        <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M1-groovy-3.0</spock.version>
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
@@ -95,6 +95,8 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+
+        <start-class>org.prebid.server.Application</start-class>
     </properties>
 
     <distributionManagement>
@@ -829,10 +831,27 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>build-info</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <additionalProperties>-->
+<!--                                <encoding.source>${project.build.sourceEncoding}</encoding.source>-->
+<!--                                <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>-->
+<!--                                <java.source>${java.version}</java.source>-->
+<!--                                <java.target>${java.version}</java.target>-->
+<!--                            </additionalProperties>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
                 <version>${spring.boot.version}</version>
                 <configuration>
                     <attach>false</attach>
                     <executable>true</executable>
+                    <mainClass>org.prebid.server.Application</mainClass>
+                    <layout>JAR</layout>
                 </configuration>
                 <executions>
                     <execution>
