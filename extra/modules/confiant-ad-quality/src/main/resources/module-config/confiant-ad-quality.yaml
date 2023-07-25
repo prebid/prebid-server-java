@@ -5,4 +5,9 @@ hooks:
       redis-host: ""
       redis-port: 8000
       redis-password: ""
-      scan-state-check-delay: 600000
+      redis-retry-config:
+        short-interval-attempts: 60
+        short-interval: 1000
+        long-interval-attempts: 336
+        long-interval: 1800000
+      scan-state-check-interval: 600000

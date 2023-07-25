@@ -32,21 +32,28 @@ public class RedisClient {
         final Promise<BidsScanResult> scanResult = Promise.promise();
         final RedisAPI redisAPI = this.redisVerticle.getRedisAPI();
         if (redisAPI != null && bids.getBresps().size() > 0) {
-            redisAPI.get("function_submit_bids", submitHash -> redisAPI
-                    .evalsha(List.of(submitHash.result().toString(), "0", bids.toJson(), apiKey), response -> {
-                        final OperationResult<List<BidScanResult>> parserResult = redisParser
-                                .parseBidsScanResult(response.result().toString());
+            redisAPI.get("function_submit_bids", submitHash -> {
+                if (submitHash.result() != null) {
+                    redisAPI
+                            .evalsha(List.of(submitHash.result().toString(), "0", bids.toJson(), apiKey), response -> {
+                                if (response.result() != null) {
+                                    final OperationResult<List<BidScanResult>> parserResult = redisParser
+                                            .parseBidsScanResult(response.result().toString());
 
-                        scanResult.complete(new BidsScanResult(parserResult));
-                    }));
+                                    scanResult.complete(new BidsScanResult(parserResult));
+                                } else {
+                                    scanResult.complete(getEmptyScanResult());
+                                }
+                            });
+                } else {
+                    scanResult.complete(getEmptyScanResult());
+                }
+            });
 
             return scanResult.future();
         }
 
-        return Future.succeededFuture(new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
-                .value(Collections.emptyList())
-                .debugMessages(Collections.emptyList())
-                .build()));
+        return Future.succeededFuture(getEmptyScanResult());
     }
 
     public Future<Boolean> isScanDisabled() {
@@ -63,5 +70,12 @@ public class RedisClient {
         }
 
         return Future.succeededFuture(true);
+    }
+
+    private BidsScanResult getEmptyScanResult() {
+        return new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
+                .value(Collections.emptyList())
+                .debugMessages(Collections.emptyList())
+                .build());
     }
 }

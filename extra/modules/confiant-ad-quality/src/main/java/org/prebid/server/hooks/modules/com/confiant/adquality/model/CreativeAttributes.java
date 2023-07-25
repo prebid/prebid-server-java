@@ -1,11 +1,13 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CreativeAttributes {
 
     /** True if the tag is ssl, false otherwise. */

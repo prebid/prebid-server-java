@@ -8,22 +8,22 @@ public class RedisScanStateChecker {
 
     private final RedisClient redisClient;
 
-    private final long timerDelay;
+    private final long checkInterval;
 
     private final Vertx vertx;
 
     public RedisScanStateChecker(
             RedisClient redisClient,
-            long timerDelay,
+            long checkInterval,
             Vertx vertx) {
         this.redisClient = redisClient;
-        this.timerDelay = timerDelay;
+        this.checkInterval = checkInterval;
         this.vertx = vertx;
     }
 
     public void run() {
         verifyScanFlag();
-        vertx.setPeriodic(timerDelay, ignored -> verifyScanFlag());
+        vertx.setPeriodic(checkInterval, ignored -> verifyScanFlag());
     }
 
     public boolean isScanDisabled() {

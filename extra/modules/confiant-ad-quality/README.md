@@ -40,7 +40,12 @@ And configure
 - `redis-host` - Host value of the Confiant's Redis server.
 - `redis-port` - Port value of the Confiant's Redis server.
 - `redis-password` - User password value of the Confiant's Redis server.
-- `scan-state-check-delay` - Delay in milliseconds between periodic calls to check if scan state is enabled on the side of Redis server.
+- `redis-retry-config`
+  - `short-interval-attempts` - Maximum attempts with short interval value to try to reconnect to Confiant's Redis server in case any connection error happens.
+  - `short-interval` - Short time interval in milliseconds after which another one attempt to connect to Redis will be executed.
+  - `long-interval-attempts` - Maximum attempts with long interval value to try to reconnect to Confiant's Redis server in case any connection error happens. This attempts are used when short-attempts were not successful.
+  - `long-interval` - Long time interval in milliseconds after which another one attempt to connect to Redis will be executed.
+- `scan-state-check-interval` - Time interval in milliseconds between periodic calls to check if scan state is enabled on the side of Redis server.
 
 ```yaml
 hooks:
@@ -50,7 +55,12 @@ hooks:
       redis-host: "127.0.0.1"
       redis-port: 8000
       redis-password: "JhgYYttq76"
-      scan-state-check-delay: 100000
+      redis-retry-config:
+        short-interval-attempts: 60
+        short-interval: 1000
+        long-interval-attempts: 336
+        long-interval: 1800000
+      scan-state-check-interval: 100000
 ```
 
 ## Maintainer contacts
