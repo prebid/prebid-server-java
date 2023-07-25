@@ -97,6 +97,17 @@
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>artifactory.alkimi-onboarding-dev.com</id>
+            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-snapshot-local</url>
+        </snapshotRepository>
+        <repository>
+            <id>artifactory.alkimi-onboarding-dev.com</id>
+            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-release-local</url>
+        </repository>
+    </distributionManagement>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
