@@ -3,6 +3,7 @@
 pipeline {
     environment {
         JAVA_HOME = "/opt/java/jdk-17.0.2/"
+        CI = "false"
         MY_ENV = sh(returnStdout: true, script:
                 '''#!/bin/bash
                    if [[ $BRANCH_NAME =~ "release-" ]]; then echo prod; else echo dev; fi
