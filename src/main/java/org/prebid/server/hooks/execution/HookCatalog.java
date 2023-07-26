@@ -24,7 +24,7 @@ public class HookCatalog {
             String hookImplCode,
             StageWithHookType<HOOK> stage) {
 
-        Class<HOOK> clazz = stage.hookType();
+        final Class<HOOK> clazz = stage.hookType();
         return modules.stream()
                 .filter(module -> Objects.equals(module.code(), moduleCode))
                 .map(Module::hooks)

@@ -2,7 +2,7 @@ adapters:
   inmobi:
     endpoint: https://api.w.inmobi.com/showad/openrtb/bidder/prebid
     meta-info:
-      maintainer-email: technology-irv@inmobi.com
+      maintainer-email: prebid-support@inmobi.com
       app-media-types:
         - banner
         - video

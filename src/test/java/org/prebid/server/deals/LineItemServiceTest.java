@@ -1636,8 +1636,8 @@ public class LineItemServiceTest extends VertxTest {
         // when
         final Map<String, Integer> count = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
-            AuctionContext auctionContext = givenAuctionContext(emptyList());
-            MatchLineItemsResult matchLineItemsResult = lineItemService.findMatchingLineItems(
+            final AuctionContext auctionContext = givenAuctionContext(emptyList());
+            final MatchLineItemsResult matchLineItemsResult = lineItemService.findMatchingLineItems(
                     auctionContext.getBidRequest(), imp, "rubicon", bidderAliases, auctionContext);
             count.compute(matchLineItemsResult.getLineItems().get(0).getLineItemId(),
                     (s, integer) -> integer != null ? ++integer : 1);

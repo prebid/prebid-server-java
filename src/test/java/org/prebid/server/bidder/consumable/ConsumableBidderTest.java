@@ -40,10 +40,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -240,6 +241,47 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetGppAndGppSidWhenGppAndGppSidPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.regs(Regs.builder().gpp("ANY_GPP_STRING").gppSid(List.of(1, 2)).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getGpp()).isEqualTo(bidRequest.getRegs().getGpp());
+                    assertThat(consumableBidRequest.getGppSid())
+                            .containsExactlyElementsOf(bidRequest.getRegs().getGppSid());
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetGppAndGppSidWhenGppAndGppSidAbsentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.regs(Regs.builder().gpp(null).gppSid(null).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getGpp()).isNullOrEmpty();
+                    assertThat(consumableBidRequest.getGppSid()).isNullOrEmpty();
+                });
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<ConsumableBidRequest> httpCall = BidderCall.succeededHttp(null,
@@ -324,9 +366,8 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
@@ -337,11 +378,11 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("firstImp")
                         .banner(Banner.builder()

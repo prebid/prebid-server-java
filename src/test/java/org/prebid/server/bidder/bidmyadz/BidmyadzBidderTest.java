@@ -95,7 +95,7 @@ public class BidmyadzBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsIfBidRequestHasMoreThanOneImp() {
         // given
-        BidRequest bidRequestWithTwoImps = givenBidRequest(identity(), identity()).toBuilder()
+        final BidRequest bidRequestWithTwoImps = givenBidRequest(identity(), identity()).toBuilder()
                 .imp(asList(Imp.builder().build(), Imp.builder().build())).build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequestWithTwoImps);
