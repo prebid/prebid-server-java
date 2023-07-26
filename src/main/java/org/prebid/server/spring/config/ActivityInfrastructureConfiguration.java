@@ -3,6 +3,7 @@ package org.prebid.server.spring.config;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.activity.infrastructure.creator.ActivityRuleFactory;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
+import org.prebid.server.activity.infrastructure.creator.privacy.USNatModuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.ComponentRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.GeoRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.PrivacyModulesRuleCreator;
@@ -19,6 +20,10 @@ public class ActivityInfrastructureConfiguration {
     @Configuration
     static class PrivacyModuleCreatorConfiguration {
 
+        @Bean
+        USNatModuleCreator usNatModuleCreator() {
+            return new USNatModuleCreator();
+        }
     }
 
     @Configuration
