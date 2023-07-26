@@ -18,7 +18,7 @@ public class AndRule implements Rule {
         Result result = Result.ABSTAIN;
 
         for (Rule rule : rules) {
-            Result ruleResult = rule.proceed(activityCallPayload);
+            final Result ruleResult = rule.proceed(activityCallPayload);
             if (ruleResult != Result.ABSTAIN) {
                 result = ruleResult;
             }
