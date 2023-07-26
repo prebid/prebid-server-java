@@ -1,25 +1,20 @@
-package org.prebid.server.activity.infrastructure.creator.privacy;
+package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
 
 import com.iab.gpp.encoder.GppModel;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
+import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
-import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatModule;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USCaliforniaGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USColoradoGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USConnecticutGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USUtahGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USVirginiaGppReader;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +24,12 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
             Arrays.stream(USNatSection.values())
                     .map(USNatSection::sectionId)
                     .collect(Collectors.toSet());
+
+    private final USNatGppReaderFactory gppReaderFactory;
+
+    public USNatModuleCreator(USNatGppReaderFactory gppReaderFactory) {
+        this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
+    }
 
     @Override
     public PrivacyModuleQualifier qualifier() {
@@ -61,38 +62,7 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
                 || (skipSectionIds != null && skipSectionIds.contains(sectionId));
     }
 
-    private static PrivacyModule forSection(Activity activity, Integer sectionId, GppModel gppModel) {
-        return new USNatModule(activity, forSection(sectionId, gppModel));
-    }
-
-    private static USNatGppReader forSection(Integer sectionId, GppModel gppModel) {
-        return switch (USNatSection.from(sectionId)) {
-            case NATIONAL -> new USNationalGppReader(gppModel);
-            case CALIFORNIA -> new USCaliforniaGppReader(gppModel);
-            case VIRGINIA -> new USVirginiaGppReader(gppModel);
-            case COLORADO -> new USColoradoGppReader(gppModel);
-            case UTAH -> new USUtahGppReader(gppModel);
-            case CONNECTICUT -> new USConnecticutGppReader(gppModel);
-        };
-    }
-
-    private enum USNatSection {
-
-        NATIONAL,
-        CALIFORNIA,
-        VIRGINIA,
-        COLORADO,
-        UTAH,
-        CONNECTICUT;
-
-        private static final int SHIFT = 7;
-
-        public Integer sectionId() {
-            return ordinal() + SHIFT;
-        }
-
-        public static USNatSection from(Integer sectionId) {
-            return USNatSection.values()[sectionId - SHIFT];
-        }
+    private PrivacyModule forSection(Activity activity, Integer sectionId, GppModel gppModel) {
+        return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel));
     }
 }
