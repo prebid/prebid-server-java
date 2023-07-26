@@ -15,11 +15,12 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -30,7 +31,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.TR
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_TFC_EU
-import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERIC
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
@@ -40,7 +41,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
-    private static final String ALERT_GENERAL = "alert.general"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
 
@@ -764,7 +764,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -795,7 +795,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
     def "PBS auction call when privacy regulation restring but sid excluded should leave UFPD fields in request"() {
@@ -807,13 +807,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with allowing privacy regulation"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -853,7 +853,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with non-existed privacy regulation"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
@@ -886,7 +886,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when privacy regulation have duplicate should include first, leave UFPD fields and populate metric"() {
+    def "PBS auction call when privacy regulation have duplicate respond with error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def genericBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
@@ -895,7 +895,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
@@ -904,40 +904,21 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(genericBidRequest)
 
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } == ["Invalid allowActivities config for account: " + accountId] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        verifyAll {
-            genericBidderRequest.device.didsha1 == genericBidRequest.device.didsha1
-            genericBidderRequest.device.didmd5 == genericBidRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1 == genericBidRequest.device.dpidsha1
-            genericBidderRequest.device.ifa == genericBidRequest.device.ifa
-            genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
-            genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
-            genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
-            genericBidderRequest.user.id == genericBidRequest.user.id
-            genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
-            genericBidderRequest.user.yob == genericBidRequest.user.yob
-            genericBidderRequest.user.gender == genericBidRequest.user.gender
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.data == genericBidRequest.user.data
-            genericBidderRequest.user.ext.data.buyeruid == genericBidRequest.user.ext.data.buyeruid
-        }
+        then: "PBS should respond with an error requiring consent string"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
+        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
+                "values AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])) " +
+                "and AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
     }
 
     def "PBS auction call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -949,13 +930,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -993,7 +974,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def ruleIabAll = new ActivityRule().tap {
@@ -1003,7 +984,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
 
         and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
         def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
@@ -1046,7 +1027,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmit ufpd with invalid privacy regulation"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+            it.privacyRegulation = [IAB_US_GENERAL, IAB_TFC_EU]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
@@ -1373,7 +1354,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1407,7 +1388,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        privacyAllowRegulations << [IAB_US_GENERIC, IAB_ALL, ALL]
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
     def "PBS amp call when privacy regulation restring but sid excluded should leave UFPD fields in request"() {
@@ -1423,13 +1404,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation and sid exception"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [USP_NAT_V1])
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1])
 
         and: "Existed account with and allow activities setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1476,7 +1457,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation and sid exception"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
@@ -1513,7 +1494,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS amp call when privacy regulation have duplicate should include first, leave UFPD fields and populate metric"() {
+    def "PBS amp call when privacy regulation have duplicate should respond with error"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
@@ -1526,7 +1507,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
@@ -1535,8 +1516,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1546,34 +1527,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll {
-            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
-            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
-            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
-            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
-            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
-            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
-            genericBidderRequest.user.id == ampStoredRequest.user.id
-            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
-            genericBidderRequest.user.yob == ampStoredRequest.user.yob
-            genericBidderRequest.user.gender == ampStoredRequest.user.gender
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.data == ampStoredRequest.user.data
-            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
-        }
+        then: "PBS should respond with an error requiring consent string"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
+        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
+                "values AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])) " +
+                "and AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -1589,13 +1550,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC)
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig])
@@ -1641,7 +1602,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmitUfpd with multiple privacy regulation"
         def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC]
+            it.privacyRegulation = [IAB_US_GENERAL]
         }
 
         def ruleIabAll = new ActivityRule().tap {
@@ -1651,7 +1612,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
 
         and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERIC, [], false)
+        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
         def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
 
         and: "Existed account with privacy regulation setup"
@@ -1701,7 +1662,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Activities set for transmit ufpd with invalid privacy regulation"
         def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERIC, IAB_TFC_EU]
+            it.privacyRegulation = [IAB_US_GENERAL, IAB_TFC_EU]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
