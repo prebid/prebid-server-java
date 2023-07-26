@@ -16,6 +16,12 @@ public enum USNatSection {
     }
 
     public static USNatSection from(Integer sectionId) {
-        return USNatSection.values()[sectionId - SHIFT];
+        final USNatSection[] values = USNatSection.values();
+        if (sectionId < SHIFT || sectionId >= values.length + SHIFT) {
+            throw new IllegalArgumentException("US sectionId must be in [%s, %s]."
+                    .formatted(SHIFT, values.length + SHIFT - 1));
+        }
+
+        return values[sectionId - SHIFT];
     }
 }
