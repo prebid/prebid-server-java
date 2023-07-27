@@ -3,6 +3,7 @@ package org.prebid.server.bidder.orbidder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.lang3.StringUtils;
@@ -103,14 +104,16 @@ public class OrbidderBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
+        final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.of(bidderBids, errors);
     }
 
     private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
@@ -118,6 +121,36 @@ public class OrbidderBidder implements Bidder<BidRequest> {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private BidderBid toBidderBid(Bid bid, String cur, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidTypeFromMtype(bid.getMtype());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+
+        return BidderBid.of(bid, bidType, cur);
+    }
+
+    private static BidType getBidTypeFromMtype(Integer mType) {
+        switch (mType) {
+            case 1 -> {
+                return BidType.banner;
+            }
+            case 2 -> {
+                return BidType.video;
+            }
+            case 3 -> {
+                return BidType.audio;
+            }
+            case 4 -> {
+                return BidType.xNative;
+            }
+            default -> throw new PreBidException("Unsupported mType " + mType);
         }
     }
 }

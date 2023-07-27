@@ -6,5 +6,7 @@ adapters:
       app-media-types:
         - banner
       site-media-types:
+        - banner
+        - native
       supported-vendors:
       vendor-id: 559
