@@ -31,8 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static org.prebid.server.util.BidderUtil.isValidPrice;
-
 public class AlkimiBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -75,7 +73,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         return imp.toBuilder()
-                .bidfloor(isValidPrice(bidFloorPrice) ? bidFloorPrice.getValue() : extImpAlkimi.getBidFloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloorPrice) ? bidFloorPrice.getValue() : extImpAlkimi.getBidFloor())
                 .banner(updatedBanner)
                 .video(updatedVideo)
                 .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
