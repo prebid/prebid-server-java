@@ -19,16 +19,15 @@ public abstract class AbstractRuleCreator<T> implements RuleCreator<T> {
     }
 
     @Override
-    public Rule from(Object ruleConfiguration, ActivityControllerCreationContext activityControllerCreationContext) {
+    public Rule from(Object ruleConfiguration, ActivityControllerCreationContext creationContext) {
         if (!relatedConfigurationClass.isInstance(ruleConfiguration)) {
             throw new AssertionError();
         }
 
         return fromConfiguration(
                 relatedConfigurationClass.cast(ruleConfiguration),
-                activityControllerCreationContext);
+                creationContext);
     }
 
-    protected abstract Rule fromConfiguration(T ruleConfiguration,
-                                              ActivityControllerCreationContext activityControllerCreationContext);
+    protected abstract Rule fromConfiguration(T ruleConfiguration, ActivityControllerCreationContext creationContext);
 }
