@@ -1,6 +1,6 @@
 adapters:
   preciso:
-    endpoint: http://ssp-bidder.mndtrk.com/bid_request/openrtb
+    endpoint: https://ssp-bidder.mndtrk.com/bid_request/openrtb
     endpoint-compression: gzip
     meta-info:
       maintainer-email: tech@preciso.net
@@ -17,10 +17,10 @@ adapters:
     usersync:
       cookie-family-name: preciso
       redirect: 
-        url: http://ck.2trk.info/rtb/user/cookiematch.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=2&redir={{redirect_url}}
+        url: https://ck.2trk.info/rtb/user/usersync.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=2&redir={{redirect_url}}
         support-cors: false
         uid-macro: '${PRECISO_USER_ID}'
       iframe:
-        url: http://ck.2trk.info/rtb/user/cookiematch.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=4&redir={{redirect_url}}
+        url: https://ck.2trk.info/rtb/user/usersync.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=4&redir={{redirect_url}}
         support-cors: false
         uid-macro: '${PRECISO_USER_ID}'
