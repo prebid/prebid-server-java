@@ -18,7 +18,7 @@ public class ComponentRuleCreator extends AbstractRuleCreator<AccountActivityCom
 
     @Override
     protected Rule fromConfiguration(AccountActivityComponentRuleConfig ruleConfiguration,
-                                     ActivityControllerCreationContext activityControllerCreationContext) {
+                                     ActivityControllerCreationContext creationContext) {
 
         final boolean allow = allowFromConfig(ruleConfiguration.getAllow());
         final AccountActivityComponentRuleConfig.Condition condition = ruleConfiguration.getCondition();

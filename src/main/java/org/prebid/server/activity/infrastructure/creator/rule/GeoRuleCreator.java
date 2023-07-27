@@ -22,7 +22,7 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
 
     @Override
     protected Rule fromConfiguration(AccountActivityGeoRuleConfig ruleConfiguration,
-                                     ActivityControllerCreationContext activityControllerCreationContext) {
+                                     ActivityControllerCreationContext creationContext) {
 
         final boolean allow = allowFromConfig(ruleConfiguration.getAllow());
         final AccountActivityGeoRuleConfig.Condition condition = ruleConfiguration.getCondition();
@@ -30,7 +30,7 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
         return new GeoRule(
                 condition != null ? setOf(condition.getComponentTypes()) : null,
                 condition != null ? setOf(condition.getComponentNames()) : null,
-                sidsMatched(condition, activityControllerCreationContext.getGppContext().scope().getSectionsIds()),
+                sidsMatched(condition, creationContext.getGppContext().scope().getSectionsIds()),
                 condition != null ? geoCodes(condition.getGeoCodes()) : null,
                 condition != null ? condition.getGpc() : null,
                 allow);
