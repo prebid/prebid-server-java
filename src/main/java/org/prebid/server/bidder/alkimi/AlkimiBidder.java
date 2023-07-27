@@ -73,7 +73,9 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         return imp.toBuilder()
-                .bidfloor(BidderUtil.isValidPrice(bidFloorPrice) ? bidFloorPrice.getValue() : extImpAlkimi.getBidFloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloorPrice)
+                        ? bidFloorPrice.getValue()
+                        : extImpAlkimi.getBidFloor())
                 .banner(updatedBanner)
                 .video(updatedVideo)
                 .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
