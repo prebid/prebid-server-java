@@ -15,6 +15,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -29,6 +30,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import static org.prebid.server.util.BidderUtil.isValidPrice;
 
 public class AlkimiBidder implements Bidder<BidRequest> {
 
@@ -69,8 +72,10 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         final Banner updatedBanner = updateBanner(imp.getBanner(), position);
         final Video updatedVideo = updateVideo(imp.getVideo(), position);
 
+        final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+
         return imp.toBuilder()
-                .bidfloor(extImpAlkimi.getBidFloor())
+                .bidfloor(isValidPrice(bidFloorPrice) ? bidFloorPrice.getValue() : extImpAlkimi.getBidFloor())
                 .banner(updatedBanner)
                 .video(updatedVideo)
                 .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
