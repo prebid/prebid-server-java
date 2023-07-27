@@ -32,7 +32,8 @@ pipeline {
             steps {
                 script {
                     sh "echo ${BRANCH_NAME} ${GIT_BRANCH} ${GIT_COMMIT} ${MY_VERSION} ${MY_ENV}"
-			        sh "mvn clean package -Dmaven.test.skip=true -Drevision=${MY_VERSION}"
+// 			        sh "mvn clean package -Dmaven.test.skip=true -Drevision=${MY_VERSION}"
+			        sh "mvn clean package -Drevision=${MY_VERSION}"
                 }
             }
         }
