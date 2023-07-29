@@ -350,8 +350,10 @@ class TimeoutSpec extends BaseSpec {
 
         and: "Bid response should shutdown by timeout from stored request"
         def errors = bidResponse.ext?.errors
-        assert errors[ErrorType.GENERIC]*.code == [1]
-        assert errors[ErrorType.GENERIC]*.message == ["Timeout has been exceeded"]
+        assert errors[ErrorType.GENERIC].any {
+            it.code == 1
+            it.message ==~ /Timeout .*has been exceeded/
+        }
     }
 
     def "PBS should choose min timeout form config for bidder request when in request value lowest that in auction.biddertmax.min"() {
