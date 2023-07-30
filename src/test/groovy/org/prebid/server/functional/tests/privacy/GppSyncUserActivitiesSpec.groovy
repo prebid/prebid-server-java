@@ -2,16 +2,20 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.config.AccountGppConfig
-import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
-import org.prebid.server.functional.model.request.auction.PrivacyModule
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.gpp.UspCaV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UspCoV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UspCtV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UspUtV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 
 import java.time.Instant
 
@@ -19,9 +23,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
 import static org.prebid.server.functional.util.privacy.model.State.MANITOBA
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ALASKA
@@ -131,7 +138,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
             it.account = accountId
         }
 
-        and: "Activities set for enrich ufpd with invalid input"
+        and: "Activities set for invalid input"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
@@ -389,12 +396,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
-    def "PBS cookie sync call when privacy regulation match and disabled should include proper responded with bidders URLs"() {
+    def "PBS cookie sync call when privacy regulation match and rejecting should exclude bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.value
             it.account = accountId
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
@@ -405,7 +413,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Existed account with cookie sync and privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -414,22 +422,23 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain bidders userSync.urls"
-        assert response.getBidderUserSync(GENERIC).userSync.url
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
 
         where:
-        privacyAllowRegulations << [IAB_US_GENERAL, PrivacyModule.IAB_ALL, PrivacyModule.ALL]
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
-    def "PBS cookie sync call when privacy regulation restring but sid excluded should include proper responded with bidders URLs"() {
+    def "PBS cookie sync call when privacy module contain some part of disallow logic should exclude bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.value
             it.account = accountId
+            it.gpp = disallowGppLogic
         }
 
-        and: "Activities set with rejecting privacy regulation and sid exception"
+        and: "Activities set for cookie sync with allowing privacy regulation"
         def rule = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_GENERAL]
         }
@@ -437,25 +446,87 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
-        and: "Existed account with cookie sync and allow activities setup"
+        and: "Existed account with cookie sync and privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain bidders userSync.urls"
-        assert response.getBidderUserSync(GENERIC).userSync.url
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        where:
+        disallowGppLogic << [
+                SIMPLE_GPC_DISALLOW_LOGIC,
+                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspNatV1Consent.Builder().setSaleOptOut(1).build(),
+                new UspNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingNotice(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOut(1).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
+                new UspNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        ]
     }
 
-    def "PBS cookie sync call when privacy regulation not exist for account should include proper responded with bidders URLs"() {
+    def "PBS cookie sync call when request have different gpp consent but match and rejecting should exclude bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = USP_CT_V1.value
+            it.account = accountId
+            it.gpp = gppConsent
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        where:
+        gppConsent << [
+                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
+        ]
+    }
+
+    def "PBS cookie sync call when privacy modules contain allowing settings should include proper responded with bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.value
             it.account = accountId
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
         and: "Activities set for cookie sync with all bidders allowed"
@@ -467,7 +538,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with cookie sync and empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -475,6 +546,51 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should contain bidders userSync.urls"
         assert response.getBidderUserSync(GENERIC).userSync.url
+
+        where:
+        accountGppConfig << [
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false),
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], true),
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU),
+        ]
+    }
+
+    def "PBS cookie sync call when regs.gpp in request is allowing should include proper responded with bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = USP_NAT_V1.value
+            it.account = accountId
+            it.gpp = regsGpp
+        }
+
+        and: "Activities set for cookie sync with all bidders allowed"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        and: "Account gpp configuration"
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+
+        and: "Existed account with cookie sync and empty privacy regulations settings"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
+
+        where:
+        regsGpp << [
+                "",
+                new UspNatV1Consent.Builder().build(),
+                new UspNatV1Consent.Builder().setGpc(false).build()
+        ]
     }
 
     def "PBS cookie sync call when privacy regulation have duplicate should respond with error"() {
@@ -492,9 +608,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
+        and: "Account gpp privacy regulation configs with conflict"
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
+        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -509,38 +625,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         then: "PBS should respond with an error requiring consent string"
         def error = thrown(PrebidServerException)
         assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])) " +
-                "and AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
-    }
-
-    def "PBS cookie sync call when privacy regulation match and rejecting should exclude bidders URLs"() {
-        given: "Cookie sync request with link to account"
-        def accountId = PBSUtils.randomString
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = USP_NAT_V1.value
-            it.account = accountId
-        }
-
-        and: "Activities set for cookie sync with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
-
-        and: "Existed account with cookie sync and privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes cookie sync request without cookies"
-        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should not contain any URLs for bidders"
-        assert !response.bidderStatus.userSync.url
+        assert error.responseBody == "Unexpected setuid processing error: Duplicate key US_NAT (attempted merging " +
+                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
+                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
     }
 
     def "PBS cookie sync call when privacy regulation match and rejecting by element in hierarchy should exclude bidders URLs"() {
@@ -548,6 +635,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
             it.account = accountId
         }
 
@@ -557,21 +645,21 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [PrivacyModule.IAB_ALL]
+            it.privacyRegulation = [IAB_ALL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
 
         and: "Multiple account gpp privacy regulation config"
         def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], true)
 
         and: "Existed account with cookie sync and privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
-        activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
@@ -585,6 +673,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
             it.account = accountId
         }
 
@@ -991,12 +1080,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
-    def "PBS setuid request when privacy regulation match and disabled should respond with valid bidders UIDs cookies"() {
+    def "PBS setuid request when privacy regulation match and rejecting should reject bidders with status code invalidStatusCode"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
         and: "UIDS Cookie"
@@ -1010,7 +1100,144 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS setuid request when privacy module contain some part of disallow logic should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+            it.gpp = disallowGppLogic
+        }
+
+        and: "UIDS Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        disallowGppLogic << [
+                SIMPLE_GPC_DISALLOW_LOGIC,
+                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspNatV1Consent.Builder().setSaleOptOut(1).build(),
+                new UspNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingNotice(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setSharingOptOut(1).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
+                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
+                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
+                new UspNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        ]
+    }
+
+    def "PBS setuid request when request have different gpp consent but match and rejecting should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_CT_V1.value
+            it.gpp = gppConsent
+        }
+
+        and: "UIDS Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        gppConsent << [
+                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
+        ]
+    }
+
+
+    def "PBS setuid request when privacy modules contain allowing settings should respond with valid bidders UIDs cookies"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
+        }
+
+        and: "UIDS Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1024,15 +1251,21 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
 
         where:
-        privacyAllowRegulations << [IAB_US_GENERAL, PrivacyModule.IAB_ALL, PrivacyModule.ALL]
+        accountGppConfig << [
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false),
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], true),
+                AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU),
+        ]
     }
 
-    def "PBS setuid request when privacy regulation restring but sid excluded should respond with valid bidders UIDs cookies"() {
+
+    def "PBS setuid request when regs.gpp in request is allowing should respond with valid bidders UIDs cookies"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.gpp = regsGpp
         }
 
         and: "UIDS Cookie"
@@ -1045,8 +1278,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, GppSectionId.values() as List<GppSectionId>, false)
+        and: "Account gpp configuration"
+        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Existed account with cookie sync and allow activities setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1058,35 +1291,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         then: "Response should contain uids cookie"
         assert response.uidsCookie
         assert response.responseBody
-    }
 
-    def "PBS setuid request when privacy regulation not exist for account should respond with valid bidders UIDs cookies"() {
-        given: "SetuidRequest with accountId"
-        def accountId = PBSUtils.randomString
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "UIDS Cookie"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set for cookie sync with non-existed privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Existed account with cookie sync and empty privacy regulations settings"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes cookie sync request"
-        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "Response should contain uids cookie"
-        assert response.uidsCookie
-        assert response.responseBody
+        where:
+        regsGpp << [
+                "",
+                new UspNatV1Consent.Builder().build(),
+                new UspNatV1Consent.Builder().setGpc(false).build()
+        ]
     }
 
     def "PBS setuid request when privacy regulation have duplicate should respond with error"() {
@@ -1107,8 +1318,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
+        and: "Account gpp privacy regulation configs with conflict"
+        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
         def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
 
         and: "Flush metrics"
@@ -1123,43 +1334,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         then: "PBS should respond with an error requiring consent string"
         def error = thrown(PrebidServerException)
         assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])) " +
-                "and AccountUSNatModuleConfig(enabled=null, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
-    }
-
-    def "PBS setuid request when privacy regulation match and rejecting should reject bidders with status code invalidStatusCode"() {
-        given: "Cookie sync SetuidRequest with accountId"
-        def accountId = PBSUtils.randomString
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "UIDS Cookie"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set for cookie sync with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
-
-        and: "Existed account with cookie sync and privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes setuid request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == INVALID_STATUS_CODE
-        assert exception.responseBody == INVALID_STATUS_MESSAGE
+        assert error.responseBody == "Unexpected setuid processing error: Duplicate key US_NAT (attempted merging " +
+                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
+                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
     }
 
     def "PBS setuid request when privacy regulation match and allowing by first element in hierarchy should reject bidders with status code invalidStatusCode"() {
@@ -1168,6 +1345,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
         and: "UIDS Cookie"
@@ -1179,14 +1357,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         def ruleIabAll = new ActivityRule().tap {
-            it.privacyRegulation = [PrivacyModule.IAB_ALL]
+            it.privacyRegulation = [IAB_ALL]
         }
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
 
         and: "Multiple account gpp privacy regulation config"
         def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU)
+        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
         accountDao.save(account)
@@ -1209,6 +1387,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
         and: "UIDS Cookie"
