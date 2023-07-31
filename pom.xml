@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>prebid-server</artifactId>
-    <version>${revision}</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -95,20 +94,7 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
-
-        <start-class>org.prebid.server.Application</start-class>
     </properties>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>artifactory.alkimi-onboarding-dev.com</id>
-            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-snapshot-local</url>
-        </snapshotRepository>
-        <repository>
-            <id>artifactory.alkimi-onboarding-dev.com</id>
-            <url>https://artifactory.alkimi-onboarding-dev.com/artifactory/libs-release-local</url>
-        </repository>
-    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -831,27 +817,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>build-info</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <additionalProperties>-->
-<!--                                <encoding.source>${project.build.sourceEncoding}</encoding.source>-->
-<!--                                <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>-->
-<!--                                <java.source>${java.version}</java.source>-->
-<!--                                <java.target>${java.version}</java.target>-->
-<!--                            </additionalProperties>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
                 <version>${spring.boot.version}</version>
                 <configuration>
                     <attach>false</attach>
                     <executable>true</executable>
-                    <mainClass>org.prebid.server.Application</mainClass>
-                    <layout>JAR</layout>
                 </configuration>
                 <executions>
                     <execution>
