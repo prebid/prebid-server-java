@@ -93,9 +93,6 @@ public class AlkimiBidderTest extends VertxTest {
 
     private Banner expectedBanner() {
         return Banner.builder()
-                .pos(5)
-                .w(300)
-                .h(250)
                 .format(Collections.singletonList(Format.builder()
                         .w(300)
                         .h(250)
@@ -109,17 +106,14 @@ public class AlkimiBidderTest extends VertxTest {
                 ExtImpAlkimi.builder()
                         .token(PUB_TOKEN)
                         .bidFloor(BigDecimal.valueOf(0.2))
-                        .pos(5)
-                        .width(300)
-                        .height(250)
-                        .impMediaType(TYPE_BANNER)
+                        .instl(1)
+                        .exp(30)
                         .adUnitCode(DIV_BANNER_ID)
                         .build()));
     }
 
     private Video expectedVideo() {
         return Video.builder()
-                .pos(7)
                 .w(1024)
                 .h(768)
                 .mimes(List.of("video/mp4"))
@@ -133,10 +127,8 @@ public class AlkimiBidderTest extends VertxTest {
                 ExtImpAlkimi.builder()
                         .token(PUB_TOKEN)
                         .bidFloor(BigDecimal.valueOf(0.3))
-                        .pos(7)
-                        .width(1024)
-                        .height(768)
-                        .impMediaType(TYPE_VIDEO)
+                        .instl(1)
+                        .exp(30)
                         .adUnitCode(DIV_VIDEO_ID)
                         .build()));
     }
@@ -216,7 +208,8 @@ public class AlkimiBidderTest extends VertxTest {
                         ExtImpAlkimi.builder()
                                 .token(PUB_TOKEN)
                                 .bidFloor(BigDecimal.valueOf(0.2))
-                                .pos(5)
+                                .instl(1)
+                                .exp(30)
                                 .build())))
         ).build();
     }
@@ -235,7 +228,8 @@ public class AlkimiBidderTest extends VertxTest {
                         ExtImpAlkimi.builder()
                                 .token(PUB_TOKEN)
                                 .bidFloor(BigDecimal.valueOf(0.3))
-                                .pos(7)
+                                .instl(1)
+                                .exp(30)
                                 .build())))
         ).build();
     }
