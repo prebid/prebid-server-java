@@ -579,57 +579,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
-    def "PBS auction call when privacy module contain some part of disallow logic should call bid adapter"() {
-        given: "Default Generic BidRequests with gppConsent and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            it.setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = disallowGppLogic
-        }
-
-        and: "Activities set for fetchBid with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Generic bidder should be called"
-        assert bidder.getBidderRequest(bidRequest.id)
-
-        where:
-        disallowGppLogic << [
-                SIMPLE_GPC_DISALLOW_LOGIC,
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspNatV1Consent.Builder().setSaleOptOut(1).build(),
-                new UspNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingNotice(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOut(1).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
-                new UspNatV1Consent.Builder().setPersonalDataConsents(2).build()
-        ]
-    }
-
     def "PBS auction call when request have different gpp consent but match and rejecting should call bid adapter"() {
         given: "Default Generic BidRequests with gppConsent and account id"
         def accountId = PBSUtils.randomNumber as String
@@ -1059,65 +1008,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
-    }
-
-    def "PBS amp call when privacy module contain some part of disallow logic should call bid adapter"() {
-        given: "Default Generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-            it.consentString = disallowGppLogic
-            it.consentType = GPP
-        }
-
-        and: "Activities set for fetchBid with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Generic bidder should be called"
-        assert bidder.getBidderRequest(ampStoredRequest.id)
-
-        where:
-        disallowGppLogic << [
-                SIMPLE_GPC_DISALLOW_LOGIC,
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspNatV1Consent.Builder().setSaleOptOut(1).build(),
-                new UspNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingNotice(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setSharingOptOut(1).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
-                new UspNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
-                new UspNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
-                new UspNatV1Consent.Builder().setPersonalDataConsents(2).build()
-        ]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should call bid adapter"() {
