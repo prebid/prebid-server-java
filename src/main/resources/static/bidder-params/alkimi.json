@@ -13,12 +13,8 @@
       "type": "number",
       "description": "The minimum CPM price in USD",
       "minimum": 0
-    },
-    "pos": {
-      "type": "number",
-      "description": "Specify the position of the ad as a relative measure of visibility or prominence. Allowed values: Above the fold: `1`; Below the fold: `3`; Middle of the fold: `7`;"
     }
   },
 
-  "required": ["token", "bidFloor"]
+  "required": ["token"]
 }
