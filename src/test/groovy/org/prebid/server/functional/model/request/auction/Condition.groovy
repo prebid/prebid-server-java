@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.request.GppSectionId
 @ToString(includeNames = true, ignoreNulls = true)
 class Condition {
 
-    List<GppSectionId> gppSig
     List<ConditionType> componentType
     List<String> componentName
     List<Integer> gppSid
