@@ -76,12 +76,16 @@ public class AlkimiBidderTest extends VertxTest {
                                 .id(DIV_BANNER_ID)
                                 .bidfloor(BigDecimal.valueOf(0.2))
                                 .banner(expectedBanner())
+                                .instl(1)
+                                .exp(30)
                                 .ext(expectedBannerExt())
                                 .build(),
                         Imp.builder()
                                 .id(DIV_VIDEO_ID)
                                 .bidfloor(BigDecimal.valueOf(0.3))
                                 .video(expectedVideo())
+                                .instl(1)
+                                .exp(30)
                                 .ext(expectedVideoExt())
                                 .build())
                 ).build();

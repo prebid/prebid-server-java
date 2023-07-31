@@ -69,6 +69,8 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                 .bidfloor(BidderUtil.isValidPrice(bidFloorPrice)
                         ? bidFloorPrice.getValue()
                         : extImpAlkimi.getBidFloor())
+                .instl(extImpAlkimi.getInstl())
+                .exp(extImpAlkimi.getExp())
                 .ext(makeImpExt(imp, extImpAlkimi))
                 .build();
     }
