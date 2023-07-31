@@ -1,27 +1,38 @@
 package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
 
+import com.iab.gpp.encoder.section.UspCaV1;
+import com.iab.gpp.encoder.section.UspCoV1;
+import com.iab.gpp.encoder.section.UspCtV1;
+import com.iab.gpp.encoder.section.UspNatV1;
+import com.iab.gpp.encoder.section.UspUtV1;
+import com.iab.gpp.encoder.section.UspVaV1;
+
 public enum USNatSection {
 
-    NATIONAL,
-    CALIFORNIA,
-    VIRGINIA,
-    COLORADO,
-    UTAH,
-    CONNECTICUT;
+    NATIONAL(UspNatV1.ID),
+    CALIFORNIA(UspCaV1.ID),
+    VIRGINIA(UspVaV1.ID),
+    COLORADO(UspCoV1.ID),
+    UTAH(UspUtV1.ID),
+    CONNECTICUT(UspCtV1.ID);
 
-    private static final int SHIFT = 7;
+    private final int sectionId;
 
-    public Integer sectionId() {
-        return ordinal() + SHIFT;
+    USNatSection(int sectionId) {
+        this.sectionId = sectionId;
     }
 
-    public static USNatSection from(Integer sectionId) {
+    public Integer sectionId() {
+        return sectionId;
+    }
+
+    public static USNatSection from(int sectionId) {
         final USNatSection[] values = USNatSection.values();
-        if (sectionId < SHIFT || sectionId >= values.length + SHIFT) {
+        if (sectionId < NATIONAL.sectionId || sectionId > CONNECTICUT.sectionId) {
             throw new IllegalArgumentException("US sectionId must be in [%s, %s]."
-                    .formatted(SHIFT, values.length + SHIFT - 1));
+                    .formatted(NATIONAL.sectionId, CONNECTICUT.sectionId));
         }
 
-        return values[sectionId - SHIFT];
+        return values[sectionId - NATIONAL.sectionId];
     }
 }
