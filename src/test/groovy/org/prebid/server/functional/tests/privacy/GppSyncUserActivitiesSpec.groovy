@@ -23,9 +23,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_UT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
@@ -484,7 +488,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = USP_CT_V1.value
+            it.gppSid = gppSid.value
             it.account = accountId
             it.gpp = gppConsent
         }
@@ -510,14 +514,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert !response.bidderStatus.userSync.url
 
         where:
-        gppConsent << [
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
-        ]
+        gppConsent                                                          | gppSid
+        new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | USP_NAT_V1
+        new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CA_V1
+        new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_VA_V1
+        new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CO_V1
+        new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_UT_V1
+        new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
     }
 
     def "PBS cookie sync call when privacy modules contain allowing settings should include proper responded with bidders URLs"() {
@@ -1179,7 +1182,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
-            it.gppSid = USP_CT_V1.value
+            it.gppSid = gppSid.value
             it.gpp = gppConsent
         }
 
@@ -1209,14 +1212,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         where:
-        gppConsent << [
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
-        ]
+        gppConsent                                                          | gppSid
+        new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | USP_NAT_V1
+        new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CA_V1
+        new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_VA_V1
+        new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CO_V1
+        new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_UT_V1
+        new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
     }
 
 

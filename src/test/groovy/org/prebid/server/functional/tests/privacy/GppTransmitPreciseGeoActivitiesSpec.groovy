@@ -24,9 +24,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_UT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.*
@@ -416,7 +420,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA,) | null
+        new Geo(country: USA,)                              | null
         new Geo(region: ALABAMA.abbreviation)               | [USA.withState(ALABAMA)]
         new Geo(country: CAN, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
     }
@@ -840,7 +844,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
-            regs.gppSid = [USP_CT_V1.intValue]
+            regs.gppSid = [gppSid.intValue]
             regs.gpp = gppConsent
         }
 
@@ -874,14 +878,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent << [
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
-        ]
+        gppConsent                                                          | gppSid
+        new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | USP_NAT_V1
+        new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CA_V1
+        new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_VA_V1
+        new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CO_V1
+        new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_UT_V1
+        new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
     }
 
     def "PBS auction call when privacy modules contain allowing settings should not round lat/lon data"() {
@@ -1587,7 +1590,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
-            it.gppSid = USP_CT_V1.value
+            it.gppSid = gppSid.value
             it.consentString = gppConsent
             it.consentType = GPP
         }
@@ -1626,14 +1629,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent << [
-                new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()
-        ]
+        gppConsent                                                          | gppSid
+        new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | USP_NAT_V1
+        new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CA_V1
+        new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_VA_V1
+        new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CO_V1
+        new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_UT_V1
+        new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
     }
 
     def "PBS amp call when privacy modules contain allowing settings should not round lat/lon data"() {
