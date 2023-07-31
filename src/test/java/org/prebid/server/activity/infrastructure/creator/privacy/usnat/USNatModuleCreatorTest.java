@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -100,12 +99,12 @@ public class USNatModuleCreatorTest {
         target.from(creationContext);
 
         // then
-        verify(gppReaderFactory, times(1)).forSection(eq(7), any());
-        verify(gppReaderFactory, times(1)).forSection(eq(8), any());
-        verify(gppReaderFactory, times(1)).forSection(eq(9), any());
-        verify(gppReaderFactory, times(1)).forSection(eq(10), any());
-        verify(gppReaderFactory, times(1)).forSection(eq(11), any());
-        verify(gppReaderFactory, times(1)).forSection(eq(12), any());
+        verify(gppReaderFactory).forSection(eq(7), any());
+        verify(gppReaderFactory).forSection(eq(8), any());
+        verify(gppReaderFactory).forSection(eq(9), any());
+        verify(gppReaderFactory).forSection(eq(10), any());
+        verify(gppReaderFactory).forSection(eq(11), any());
+        verify(gppReaderFactory).forSection(eq(12), any());
         verifyNoMoreInteractions(gppReaderFactory);
     }
 
@@ -118,7 +117,7 @@ public class USNatModuleCreatorTest {
         target.from(creationContext);
 
         // then
-        verify(gppReaderFactory, times(1)).forSection(eq(7), any());
+        verify(gppReaderFactory).forSection(eq(7), any());
         verifyNoMoreInteractions(gppReaderFactory);
     }
 

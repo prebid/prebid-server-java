@@ -60,7 +60,7 @@ public class AndRuleTest {
         // then
         assertThat(result).isEqualTo(Rule.Result.ALLOW);
         verify(allowRule, times(2)).proceed(any());
-        verify(abstainRule, times(1)).proceed(any());
+        verify(abstainRule).proceed(any());
     }
 
     @Test
@@ -73,6 +73,6 @@ public class AndRuleTest {
 
         // then
         assertThat(result).isEqualTo(Rule.Result.ABSTAIN);
-        verify(abstainRule, times(1)).proceed(any());
+        verify(abstainRule).proceed(any());
     }
 }
