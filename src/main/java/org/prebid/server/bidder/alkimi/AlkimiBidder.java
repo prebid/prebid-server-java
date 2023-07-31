@@ -66,53 +66,18 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, ExtImpAlkimi extImpAlkimi) {
-        final Integer position = extImpAlkimi.getPos();
-        final Banner updatedBanner = updateBanner(imp.getBanner(), position);
-        final Video updatedVideo = updateVideo(imp.getVideo(), position);
-
         final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         return imp.toBuilder()
                 .bidfloor(BidderUtil.isValidPrice(bidFloorPrice)
                         ? bidFloorPrice.getValue()
                         : extImpAlkimi.getBidFloor())
-                .banner(updatedBanner)
-                .video(updatedVideo)
-                .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
+                .ext(makeImpExt(imp, extImpAlkimi))
                 .build();
     }
 
-    private Banner updateBanner(Banner banner, Integer position) {
-        if (banner == null || CollectionUtils.isEmpty(banner.getFormat())) {
-            return banner;
-        }
-
-        final Format firstFormat = banner.getFormat().get(0);
-        return banner.toBuilder()
-                .w(firstFormat.getW())
-                .h(firstFormat.getH())
-                .pos(position)
-                .build();
-    }
-
-    private Video updateVideo(Video video, Integer position) {
-        return video != null ? video.toBuilder().pos(position).build() : null;
-    }
-
-    private ObjectNode makeImpExt(Imp imp, Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
+    private ObjectNode makeImpExt(Imp imp, ExtImpAlkimi extImpAlkimi) {
         final ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = extImpAlkimi.toBuilder();
-
-        if (banner != null) {
-            extBuilder.width(banner.getW());
-            extBuilder.height(banner.getH());
-            extBuilder.impMediaType(TYPE_BANNER);
-        }
-
-        if (video != null) {
-            extBuilder.width(video.getW());
-            extBuilder.height(video.getH());
-            extBuilder.impMediaType(TYPE_VIDEO);
-        }
 
         extBuilder.adUnitCode(imp.getId());
 
