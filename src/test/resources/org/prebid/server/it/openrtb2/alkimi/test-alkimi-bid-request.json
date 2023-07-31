@@ -16,8 +16,6 @@
         "bidder": {
           "token": "XXX",
           "bidFloor": 0.5,
-          "instl": 1,
-          "exp": 30,
           "adUnitCode": "imp_id"
         }
       }
