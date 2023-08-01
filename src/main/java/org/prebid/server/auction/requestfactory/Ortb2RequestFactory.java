@@ -182,7 +182,7 @@ public class Ortb2RequestFactory {
         return Future.succeededFuture(activityInfrastructureCreator.create(
                 auctionContext.getAccount(),
                 auctionContext.getGppContext(),
-                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
+                auctionContext.getDebugContext().getTraceLevel()));
     }
 
     public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {

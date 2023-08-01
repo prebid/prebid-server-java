@@ -28,7 +28,7 @@ public class ActivityInfrastructure {
 
         this.accountId = accountId;
         this.activitiesControllers = activitiesControllers;
-        this.traceLevel = Objects.requireNonNull(traceLevel);
+        this.traceLevel = traceLevel;
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -45,6 +45,10 @@ public class ActivityInfrastructure {
     }
 
     private void updateMetrics(Activity activity, ActivityCallPayload activityCallPayload, ActivityCallResult result) {
+        if (traceLevel == null) {
+            return;
+        }
+
         final int processedRulesCount = result.getProcessedRulesCount();
         if (processedRulesCount > 0) {
             metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);

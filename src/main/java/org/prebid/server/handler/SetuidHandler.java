@@ -46,7 +46,6 @@ import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
@@ -166,7 +165,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .activityInfrastructure(activityInfrastructureCreator.create(
                         setuidContext.getAccount(),
                         setuidContext.getGppContext(),
-                        TraceLevel.basic))
+                        null))
                 .build();
     }
 

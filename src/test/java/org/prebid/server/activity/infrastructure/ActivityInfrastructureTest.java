@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -109,6 +110,26 @@ public class ActivityInfrastructureTest {
         verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
         verify(metrics, never()).updateAccountActivityDisallowedCount(any(), any());
         verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+    }
+
+    @Test
+    public void isAllowedShouldNotUpdateMetricsIfTraceLevelIsNull() {
+        // given
+        given(activityController.isAllowed(any()))
+                .willReturn(ActivityCallResult.of(false, 1));
+
+        final ActivityInfrastructure infrastructure = activityInfrastructure(null);
+        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
+
+        // when
+        infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
+
+        // then
+        verify(metrics, never()).updateRequestsActivityProcessedRulesCount(anyInt());
+        verify(metrics, never()).updateAccountActivityProcessedRulesCount(anyString(), anyInt());
+        verify(metrics, never()).updateRequestsActivityDisallowedCount(any());
+        verify(metrics, never()).updateAccountActivityDisallowedCount(anyString(), any());
+        verify(metrics, never()).updateAdapterActivityDisallowedCount(anyString(), any());
     }
 
     @Test
