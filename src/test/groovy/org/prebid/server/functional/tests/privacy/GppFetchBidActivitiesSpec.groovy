@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.config.SidsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -23,6 +24,7 @@ import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
@@ -37,6 +39,7 @@ import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_TFC_EU
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
@@ -49,6 +52,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${FETCH_BIDS.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${FETCH_BIDS.metricValue}.disallowed.count"
+    private static final String ALERT_GENERAL = "alert.general"
 
     def "PBS auction call when fetch bid activities is allowing should process bid request and update processed metrics"() {
         given: "Default basic generic BidRequest"
@@ -546,13 +550,13 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         gpcHeader << [1, "1"]
     }
 
-    def "PBS auction call when privacy regulation match and rejecting should call bid adapter"() {
+    def "PBS auction call when privacy regulation match should call bid adapter"() {
         given: "Default Generic BidRequests with gppConsent and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
+            regs.gpp = new UspNatV1Consent.Builder().build()
         }
 
         and: "Activities set for fetchBid with rejecting privacy regulation"
@@ -563,7 +567,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -579,10 +583,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
-    def "PBS auction call when request have different gpp consent but match and rejecting should call bid adapter"() {
+    def "PBS auction call when request have different gpp consent should call bid adapter"() {
         given: "Default Generic BidRequests with gppConsent and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppConsent
@@ -596,7 +600,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -609,19 +613,19 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequest(bidRequest.id)
 
         where:
-        gppConsent                                                          | gppSid
-        new UspNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | USP_NAT_V1
-        new UspCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CA_V1
-        new UspVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_VA_V1
-        new UspCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CO_V1
-        new UspUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_UT_V1
-        new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
+        gppConsent                            | gppSid
+        new UspNatV1Consent.Builder().build() | USP_NAT_V1
+        new UspCaV1Consent.Builder().build()  | USP_CA_V1
+        new UspVaV1Consent.Builder().build()  | USP_VA_V1
+        new UspCoV1Consent.Builder().build()  | USP_CO_V1
+        new UspUtV1Consent.Builder().build()  | USP_UT_V1
+        new UspCtV1Consent.Builder().build()  | USP_CT_V1
     }
 
     def "PBS auction call when privacy regulation have duplicate respond with error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = bidRequestWithGeo.tap {
+        def genericBidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             regs.gppSid = [USP_NAT_V1.intValue]
         }
@@ -637,8 +641,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -652,6 +656,41 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
                 "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
                 "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+    }
+
+    def "PBS auction call when privacy module contain invalid property should respond with an error"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def genericBidRequest = BidRequest.defaultBidRequest.tap {
+            regs.gppSid = [USP_NAT_V1.intValue]
+            regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
+            it.setAccountId(accountId)
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppTfcEuConfig = new AccountGppConfig(code: IAB_TFC_EU, enabled: true)
+
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(genericBidRequest)
+
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == UNAUTHORIZED.code()
+        assert error.responseBody == "Unauthorized account id: ${accountId}"
     }
 
     def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
@@ -969,16 +1008,18 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
     }
 
-    def "PBS amp call when privacy regulation match and rejecting should call bid adapter"() {
+    def "PBS amp call when privacy regulation match should call bid adapter"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
-            it.consentString = SIMPLE_GPC_DISALLOW_LOGIC
+            it.consentString = new UspNatV1Consent.Builder().build()
             it.consentType = GPP
         }
 
@@ -990,7 +1031,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1010,10 +1051,12 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
     }
 
-    def "PBS amp call when request have different gpp consent but match and rejecting should call bid adapter"() {
+    def "PBS amp call when request have different gpp consent but match should call bid adapter"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+        }
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1031,7 +1074,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1060,7 +1103,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation have duplicate should respond with error"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo
+        def ampStoredRequest = BidRequest.defaultBidRequest
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1079,8 +1122,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1098,5 +1141,48 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
                 "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
                 "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+    }
+
+    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+            it.consentString = SIMPLE_GPC_DISALLOW_LOGIC
+            it.consentType = GPP
+        }
+
+        def ruleIabAll = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_ALL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleIabAll]))
+
+        and: "Multiple account gpp privacy regulation config"
+        def accountGppTfcEuConfig = new AccountGppConfig(code: IAB_TFC_EU, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppTfcEuConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == UNAUTHORIZED.code()
+        assert error.responseBody == "Unauthorized account id: ${accountId}"
     }
 }

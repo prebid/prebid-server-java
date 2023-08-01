@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.config.SidsConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -21,6 +22,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveDat
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -45,6 +47,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_PRECISE_GEO.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_PRECISE_GEO.metricValue}.disallowed.count"
+    private static final String ALERT_GENERAL = "alert.general"
 
     def "PBS auction call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
         given: "Default basic generic BidRequest"
@@ -748,7 +751,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -790,7 +793,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -856,7 +859,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -924,9 +927,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         accountGppConfig << [
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false),
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], true),
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU),
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -947,7 +949,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -969,11 +971,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        regsGpp << [
-                "",
-                new UspNatV1Consent.Builder().build(),
-                new UspNatV1Consent.Builder().setGpc(false).build()
-        ]
+        regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
     def "PBS auction call when privacy regulation have duplicate respond with error"() {
@@ -995,8 +993,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1010,9 +1008,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
                 "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
                 "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should round lat/lon data to 2 digits"() {
+    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
@@ -1022,68 +1024,25 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
         def ruleIabAll = new ActivityRule().tap {
             it.privacyRegulation = [IAB_ALL]
         }
 
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleIabAll]))
 
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], true)
+        and: "Invalid account gpp privacy regulation config"
+        def accountGppTfcEuConfig = new AccountGppConfig(code: IAB_TFC_EU, enabled: true)
 
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppTfcEuConfig])
         accountDao.save(account)
 
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            bidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            bidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            bidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            bidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS auction call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Generic BidRequests with TID fields and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = bidRequestWithGeo.tap {
-            it.setAccountId(accountId)
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
-        }
-
-        and: "Activities set for transmit geo with invalid privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_TFC_EU, IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction request"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
         then: "Response should contain error"
-        def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} contains conditional rule with multiple array").size() == 1
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == UNAUTHORIZED.code()
+        assert error.responseBody == "Unauthorized account id: ${accountId}"
     }
 
     def "PBS amp call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
@@ -1479,7 +1438,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1529,7 +1488,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1603,7 +1562,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1683,9 +1642,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         accountGppConfig << [
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false),
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], true),
-                AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU),
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -1710,7 +1668,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
-        def accountGppConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
 
         and: "Existed account with privacy regulation setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
@@ -1736,11 +1694,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        regsGpp << [
-                "",
-                new UspNatV1Consent.Builder().build(),
-                new UspNatV1Consent.Builder().setGpc(false).build()
-        ]
+        regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
     def "PBS amp call when privacy regulation have duplicate should respond with error"() {
@@ -1765,8 +1719,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [USP_NAT_V1], false)
-        def accountGppUsNatRejectConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1784,9 +1738,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
                 "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
                 "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should not round lat/lon data"() {
+    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo
@@ -1799,23 +1757,18 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.consentType = GPP
         }
 
-        and: "Activities set for transmitPreciseGeo with multiple privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
+        and: "Activities set for transmitPreciseGeo with privacy regulation"
         def ruleIabAll = new ActivityRule().tap {
             it.privacyRegulation = [IAB_ALL]
         }
 
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric, ruleIabAll]))
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleIabAll]))
 
-        and: "Multiple account gpp privacy regulation config"
-        def accountGppUsNatConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_US_GENERAL, [], false)
-        def accountGppTfcEuConfig = AccountGppConfig.getDefaultAccountGppConfig(IAB_TFC_EU, [], true)
+        and: "Invalid account gpp privacy regulation config"
+        def accountGppTfcEuConfig = new AccountGppConfig(code: IAB_TFC_EU, enabled: true)
 
         and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatConfig, accountGppTfcEuConfig])
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppTfcEuConfig])
         accountDao.save(account)
 
         and: "Stored request in DB"
@@ -1825,56 +1778,9 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == "43.77.114.0"
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
-            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
-            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
-            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
-            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
-        }
-    }
-
-    def "PBS amp call when privacy regulation rule have multiple modules should skip this rule and emit an error"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Default Generic BidRequest"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = bidRequestWithGeo
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-            it.consentString = SIMPLE_GPC_DISALLOW_LOGIC
-            it.consentType = GPP
-        }
-
-        and: "Activities set for transmit geo with invalid privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL, IAB_TFC_EU]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
-
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
-
         then: "Response should contain error"
-        def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
-                "contains conditional rule with multiple array").size() == 1
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == UNAUTHORIZED.code()
+        assert error.responseBody == "Unauthorized account id: ${accountId}"
     }
 }

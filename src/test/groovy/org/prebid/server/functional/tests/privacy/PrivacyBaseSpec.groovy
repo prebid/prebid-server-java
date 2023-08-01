@@ -55,10 +55,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                              "adapters.${OPENX.value}.enabled" : 'true']
     private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
                                                                         "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+    private static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
     protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG
+            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UspNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)

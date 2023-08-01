@@ -4,15 +4,15 @@ import org.prebid.server.functional.util.PBSUtils
 
 class UsConnecticutSensitiveData {
 
-    Integer racialEthnicOrigin
-    Integer religiousBeliefs
-    Integer healthInfo
-    Integer orientation
-    Integer citizenshipStatus
-    Integer geneticId
-    Integer biometricId
-    Integer geolocation
-    Integer idNumbers
+    int racialEthnicOrigin
+    int religiousBeliefs
+    int healthInfo
+    int orientation
+    int citizenshipStatus
+    int geneticId
+    int biometricId
+    int geolocation
+    int idNumbers
 
     static UsConnecticutSensitiveData generateRandomSensitiveData() {
         new UsConnecticutSensitiveData().tap {

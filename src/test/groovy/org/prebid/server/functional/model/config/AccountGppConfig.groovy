@@ -11,12 +11,4 @@ class AccountGppConfig {
     SidsConfig config
     Boolean enabled
     ModuleConfig moduleConfig
-
-    static AccountGppConfig getDefaultAccountGppConfig(PrivacyModule code, List<GppSectionId> skipSids = [], Boolean isEnabled = true) {
-        new AccountGppConfig().tap {
-            it.code = code
-            it.config = new SidsConfig().tap { it.skipSids = skipSids }
-            it.enabled = isEnabled
-        }
-    }
 }

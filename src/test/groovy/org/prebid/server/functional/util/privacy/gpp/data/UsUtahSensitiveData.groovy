@@ -4,14 +4,14 @@ import org.prebid.server.functional.util.PBSUtils
 
 class UsUtahSensitiveData {
 
-    Integer racialEthnicOrigin
-    Integer religiousBeliefs
-    Integer orientation
-    Integer citizenshipStatus
-    Integer healthInfo
-    Integer geneticId
-    Integer biometricId
-    Integer geolocation
+    int racialEthnicOrigin
+    int religiousBeliefs
+    int orientation
+    int citizenshipStatus
+    int healthInfo
+    int geneticId
+    int biometricId
+    int geolocation
 
     static UsUtahSensitiveData generateRandomSensitiveData() {
         new UsUtahSensitiveData().tap {
