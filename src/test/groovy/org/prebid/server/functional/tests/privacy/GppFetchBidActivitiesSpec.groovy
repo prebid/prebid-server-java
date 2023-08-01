@@ -667,7 +667,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def genericBidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
+            regs.gpp = new UspNatV1Consent.Builder().build()
             it.setAccountId(accountId)
         }
 
@@ -1156,7 +1156,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
-            it.consentString = SIMPLE_GPC_DISALLOW_LOGIC
+            it.consentString = new UspNatV1Consent.Builder().build()
             it.consentType = GPP
         }
 
