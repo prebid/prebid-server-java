@@ -10,30 +10,31 @@ public class ActivityController {
 
     private final boolean allowByDefault;
     private final List<Rule> rules;
+    private final ActivityInfrastructureDebug debug;
 
-    private ActivityController(boolean allowByDefault, List<Rule> rules) {
+    private ActivityController(boolean allowByDefault, List<Rule> rules, ActivityInfrastructureDebug debug) {
         this.allowByDefault = allowByDefault;
         this.rules = Objects.requireNonNull(rules);
+        this.debug = Objects.requireNonNull(debug);
     }
 
-    public static ActivityController of(boolean allowByDefault, List<Rule> rules) {
-        return new ActivityController(allowByDefault, rules);
+    public static ActivityController of(boolean allowByDefault, List<Rule> rules, ActivityInfrastructureDebug debug) {
+        return new ActivityController(allowByDefault, rules, debug);
     }
 
-    public ActivityCallResult isAllowed(ActivityCallPayload activityCallPayload) {
-        int processedRulesCount = 0;
+    public boolean isAllowed(ActivityCallPayload activityCallPayload) {
         boolean result = allowByDefault;
 
         for (Rule rule : rules) {
-            processedRulesCount++;
-
             final Rule.Result ruleResult = rule.proceed(activityCallPayload);
+            debug.emitProcessedRule(rule, ruleResult);
+
             if (ruleResult != Rule.Result.ABSTAIN) {
                 result = ruleResult == Rule.Result.ALLOW;
                 break;
             }
         }
 
-        return ActivityCallResult.of(result, processedRulesCount);
+        return result;
     }
 }
