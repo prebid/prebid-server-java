@@ -1,0 +1,29 @@
+adapters:
+  imds:
+    deprecated-names: synacormedia
+    aliases:
+      synacormedia:
+        deprecated-names: null # Must re-declare as empty or the deprecation error in the response is incorrect
+        endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{{AccountID}}?src={{SourceId}}&adapter=synacormedia"
+    endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{{AccountID}}?src={{SourceId}}&adapter=imds"
+    meta-info:
+      maintainer-email: eng-demand@imds.tv
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      # IMDS does not support syncing outside of the US/Canada
+      cookie-family-name: "imds"
+      iframe:
+        url: "https://ad-cdn.technoratimedia.com/html/usersync.html?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&cb={{redirect_url}}"
+        support-cors: true
+        uid-macro: '[USER_ID]'
+      redirect:
+        url: "https://sync.technoratimedia.com/services?srv=cs&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&cb={{redirect_url}}"
+        support-cors: true
+        uid-macro: '[USER_ID]'

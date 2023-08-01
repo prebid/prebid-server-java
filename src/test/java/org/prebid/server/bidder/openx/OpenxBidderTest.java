@@ -249,7 +249,7 @@ public class OpenxBidderTest extends VertxTest {
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
                 .build();
 
         // when
@@ -296,7 +296,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest and impId3 is rewarded video
                         BidRequest.builder()
@@ -323,7 +323,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
                         BidRequest.builder()
@@ -344,7 +344,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
                                 .build());
     }
 
@@ -358,15 +358,12 @@ public class OpenxBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(
                                 Map.of(
                                         "ae", 1,
-                                        "bidder", Map.of(
-                                                "customParams", Map.of("param1", "value1")
-                                        ),
+                                        "bidder", Map.of("customParams", Map.of("param1", "value1")),
                                         "data", Map.of("pbadslot", "adslotvalue"),
                                         "gpid", "gpidvalue",
                                         "prebid", Map.of("foo", "bar"),
                                         "otherfield", "othervalue",
-                                        "skadn", Map.of("version", "2.0")
-                                        )))
+                                        "skadn", Map.of("version", "2.0"))))
                         .build()))
                 .build();
 
@@ -429,8 +426,8 @@ public class OpenxBidderTest extends VertxTest {
                                 .banner(Banner.builder().build())
                                 .tagid("unitId")
                                 .ext(mapper.valueToTree(Map.of("ae", 1, "bidder", Map.of())))
-                                .build())
-                        ).build();
+                                .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);

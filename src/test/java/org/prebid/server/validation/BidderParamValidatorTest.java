@@ -13,7 +13,6 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
-import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -40,7 +39,6 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String FACEBOOK = "audienceNetwork";
@@ -63,7 +61,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 RUBICON,
                 APPNEXUS,
                 APPNEXUS_ALIAS,
-                BRIGHTROLL,
                 SOVRN,
                 ADTELLIGENT,
                 FACEBOOK,
@@ -177,32 +174,6 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // then
         assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldNotReturnValidationMessagesWhenBrightrollImpExtIsOk() {
-        // given
-        final ExtImpBrightroll ext = ExtImpBrightroll.of("publisher");
-
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(BRIGHTROLL, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenBrightrollExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(BRIGHTROLL, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
     }
 
     @Test

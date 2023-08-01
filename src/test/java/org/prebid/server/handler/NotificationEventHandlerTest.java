@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.model.Tuple2;
@@ -23,7 +24,6 @@ import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
@@ -56,13 +56,13 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Mock
     private UserService userService;
     @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private TimeoutFactory timeoutFactory;
     @Mock
     private ApplicationSettings applicationSettings;
-    @Mock
-    private Metrics metrics;
 
     private NotificationEventHandler notificationHandler;
 
@@ -88,12 +88,12 @@ public class NotificationEventHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationEventService,
                 userService,
+                activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
                 1000,
-                true,
-                metrics);
+                true);
     }
 
     @Test
@@ -397,12 +397,12 @@ public class NotificationEventHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationEventService,
                 userService,
+                activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
                 1000,
-                false,
-                metrics);
+                false);
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")

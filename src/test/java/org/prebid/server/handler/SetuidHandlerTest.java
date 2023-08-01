@@ -15,10 +15,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -42,7 +44,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
-import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -85,6 +86,10 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
+    private SetuidGppService gppService;
+    @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -98,6 +103,8 @@ public class SetuidHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;
 
@@ -109,6 +116,11 @@ public class SetuidHandlerTest extends VertxTest {
         tcfContext = TcfContext.builder().inGdprScope(false).build();
         given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
+        given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(gppService.updateSetuidContext(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(activityInfrastructureCreator.create(any(), any(), any()))
+                .willReturn(activityInfrastructure);
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
         given(tcfDefinerService.isAllowedForHostVendorId(any()))
@@ -133,6 +145,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
 
+        given(activityInfrastructure.isAllowed(any(), any()))
+                .willReturn(true);
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(
@@ -141,6 +156,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -230,10 +247,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(emptyUidsCookie());
         given(applicationSettings.getAccountById(eq("accountId"), any()))
-                .willReturn(Future.succeededFuture(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(null, null, Map.of(
-                                Activity.SYNC_USER, AccountActivityConfiguration.of(false, null))))
-                        .build()));
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
+        given(activityInfrastructure.isAllowed(any(), any()))
+                .willReturn(false);
 
         // when
         setuidHandler.handle(routingContext);
@@ -467,6 +484,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -509,6 +528,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -550,6 +571,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -635,8 +658,17 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldSkipTcfChecksAndRespondWithCookieIfHostVendorIdNotDefined() throws IOException {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
-                bidderCatalog, privacyEnforcementService, tcfDefinerService, analyticsReporterDelegator, metrics,
+        setuidHandler = new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
                 new TimeoutFactory(clock));
 
         given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);

@@ -1052,8 +1052,13 @@ public class BidResponseCreator {
      */
     private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
-                .filter(imp -> imp.getExt() != null)
-                .flatMap(imp -> StreamUtil.asStream(imp.getExt().fieldNames()))
+                .flatMap(imp -> Optional.ofNullable(imp.getExt())
+                        .flatMap(ext -> getExtPrebid(ext, ExtImpPrebid.class))
+                        .map(ExtImpPrebid::getBidder)
+                        .map(ObjectNode::fieldNames)
+                        .map(StreamUtil::asStream)
+                        .orElseGet(Stream::empty)
+                )
                 .distinct()
                 .filter(bidderCatalog::isDeprecatedName)
                 .collect(Collectors.toMap(Function.identity(),

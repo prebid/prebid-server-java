@@ -1,12 +1,12 @@
 package org.prebid.server.privacy.gdpr.model;
 
 import lombok.Value;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 @Value(staticConstructor = "of")
 public class VendorPermissionWithGvl {
 
     VendorPermission vendorPermission;
 
-    VendorV2 vendorV2;
+    Vendor vendor;
 }

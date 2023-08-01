@@ -366,7 +366,6 @@ public class ApplicationTest extends IntegrationTest {
                 .isCloseTo(Instant.now().plus(90, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
         final Uids uids = decodeUids(uidsCookie.getValue());
-        assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
         assertThat(uids.getUidsLegacy()).isEmpty();
         assertThat(uids.getUids())
                 .extracting(Map::keySet)
@@ -656,7 +655,7 @@ public class ApplicationTest extends IntegrationTest {
                 final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
                 if (aliasesNode != null && aliasesNode.isObject()) {
-                    Iterator<String> iterator = aliasesNode.fieldNames();
+                    final Iterator<String> iterator = aliasesNode.fieldNames();
                     while (iterator.hasNext()) {
                         aliases.put(iterator.next().trim(), bidderName);
                     }
@@ -673,7 +672,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    "Exception occurred during %s bidder schema processing: %s" .formatted(bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
         }
     }
 }

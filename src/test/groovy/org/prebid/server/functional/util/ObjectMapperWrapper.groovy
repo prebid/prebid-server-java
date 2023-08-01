@@ -21,6 +21,10 @@ trait ObjectMapperWrapper {
         mapper.readValue(jsonString, clazz)
     }
 
+    final static <T> T decode(InputStream inputStream, Class<T> clazz) {
+        mapper.readValue(inputStream, clazz)
+    }
+
     final static <T> T decode(String jsonString, TypeReference<T> typeReference) {
         mapper.readValue(jsonString, typeReference)
     }

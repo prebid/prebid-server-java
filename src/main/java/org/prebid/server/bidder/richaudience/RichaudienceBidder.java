@@ -67,7 +67,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             for (Imp imp : request.getImp()) {
                 validateImp(imp);
 
-                ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
+                final ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
                 final Imp modifiedImp = modifyImp(imp, extImpRichaudience, isSecure);
 
                 if (!isTest && BooleanUtils.isTrue(extImpRichaudience.getTest())) {
