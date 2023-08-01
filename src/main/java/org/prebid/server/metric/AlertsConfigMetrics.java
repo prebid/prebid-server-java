@@ -21,11 +21,11 @@ public class AlertsConfigMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator() {
-        return metricName -> prefix() + metricName;
+        return metricName -> "%s.%s".formatted(prefix(), metricName);
     }
 
     private static String prefix() {
-        return "alerts.";
+        return "alerts";
     }
 
     public AlertsAccountConfigMetric accountConfig(String account) {
