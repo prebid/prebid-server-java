@@ -21,7 +21,6 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveDat
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
@@ -47,7 +46,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_PRECISE_GEO.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_PRECISE_GEO.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alert.general"
+    private static final String ALERT_GENERAL = "alerts.general"
 
     def "PBS auction call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
         given: "Default basic generic BidRequest"
@@ -974,10 +973,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS auction call when privacy regulation have duplicate respond with error"() {
+    def "PBS auction call when privacy regulation have duplicate should process request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = bidRequestWithGeo.tap {
+        def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             regs.gppSid = [USP_NAT_V1.intValue]
         }
@@ -1000,21 +999,26 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == bidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS auction call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+    def "PBS auction call when privacy module contain invalid code should respond with an error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
@@ -1449,7 +1453,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain rounded geo data for device and user to 2 digits"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1499,7 +1503,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain rounded geo data for device and user to 2 digits"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1573,7 +1577,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain rounded geo data for device and user to 2 digits"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1626,7 +1630,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain not rounded geo data for device and user"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1679,7 +1683,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain not rounded geo data for device and user"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1697,7 +1701,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS amp call when privacy regulation have duplicate should respond with error"() {
+    def "PBS amp call when privacy regulation have duplicate should process request and update alerts metrics"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo
@@ -1730,21 +1734,26 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+    def "PBS amp call when privacy module contain invalid code should respond with an error"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo
@@ -1776,7 +1785,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)

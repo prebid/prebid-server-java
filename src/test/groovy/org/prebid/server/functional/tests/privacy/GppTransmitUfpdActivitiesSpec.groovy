@@ -28,7 +28,6 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveDat
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
@@ -57,7 +56,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alert.general"
+    private static final String ALERT_GENERAL = "alerts.general"
 
     def "PBS auction call when transmit UFPD activities is allowing requests should leave UFPD fields in request and update proper metrics"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
@@ -1085,7 +1084,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS auction call when privacy regulation have duplicate respond with error"() {
+    def "PBS auction call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def genericBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
@@ -1112,12 +1111,26 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(genericBidRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Generic bidder request should have data in UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+
+        and: "Generic bidder should be called due to positive allow in activities"
+        verifyAll {
+            genericBidderRequest.device.didsha1 == genericBidRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == genericBidRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == genericBidRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == genericBidRequest.device.ifa
+            genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
+            genericBidderRequest.user.id == genericBidRequest.user.id
+            genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
+            genericBidderRequest.user.yob == genericBidRequest.user.yob
+            genericBidderRequest.user.gender == genericBidRequest.user.gender
+            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+            genericBidderRequest.user.data == genericBidRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == genericBidRequest.user.ext.data.buyeruid
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1282,7 +1295,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1373,7 +1386,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1423,7 +1436,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1595,7 +1608,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1652,7 +1665,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1781,7 +1794,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1841,7 +1854,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1902,7 +1915,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1928,7 +1941,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS amp call when privacy regulation have duplicate should respond with error"() {
+    def "PBS amp call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
@@ -1937,6 +1950,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.consentString = ""
+            it.consentType = GPP
         }
 
         and: "Activities set for transmitUfpd with privacy regulation"
@@ -1961,21 +1976,34 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Generic bidder request should have data in UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
+            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            genericBidderRequest.user.id == ampStoredRequest.user.id
+            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            genericBidderRequest.user.yob == ampStoredRequest.user.yob
+            genericBidderRequest.user.gender == ampStoredRequest.user.gender
+            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+            genericBidderRequest.user.data == ampStoredRequest.user.data
+            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+    def "PBS amp call when privacy module contain invalid property should respond with an error"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
@@ -2006,7 +2034,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
