@@ -2,7 +2,7 @@ package org.prebid.server.activity.infrastructure.creator.rule;
 
 import org.junit.Test;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 
@@ -38,7 +38,7 @@ public class ComponentRuleCreatorTest {
         final Rule rule = target.from(config, null);
 
         // then
-        assertThat(rule.proceed(ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name")))
+        assertThat(rule.proceed(ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "name")))
                 .isEqualTo(Rule.Result.DISALLOW);
     }
 }

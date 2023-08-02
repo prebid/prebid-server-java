@@ -26,11 +26,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -72,7 +73,6 @@ import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
-import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
@@ -565,13 +565,13 @@ public class ExchangeService {
 
     private static boolean isBidderCallActivityAllowed(String bidder, AuctionContext auctionContext) {
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
-        final ActivityCallPayload activityCallPayload = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
                 auctionContext.getBidRequest());
 
         return activityInfrastructure.isAllowed(
-                org.prebid.server.activity.Activity.CALL_BIDDER,
-                activityCallPayload);
+                Activity.CALL_BIDDER,
+                activityInvocationPayload);
     }
 
     /**
@@ -1876,7 +1876,9 @@ public class ExchangeService {
                 .toList());
     }
 
-    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
+    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(
+            org.prebid.server.hooks.v1.analytics.Activity activity) {
+
         return ExtModulesTraceAnalyticsActivity.of(
                 activity.name(),
                 activity.status(),

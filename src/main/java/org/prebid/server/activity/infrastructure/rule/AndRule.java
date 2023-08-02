@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Objects;
@@ -14,11 +14,11 @@ public class AndRule implements Rule {
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         Result result = Result.ABSTAIN;
 
         for (Rule rule : rules) {
-            final Result ruleResult = rule.proceed(activityCallPayload);
+            final Result ruleResult = rule.proceed(activityInvocationPayload);
             if (ruleResult != Result.ABSTAIN) {
                 result = ruleResult;
             }

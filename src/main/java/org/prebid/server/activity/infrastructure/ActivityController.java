@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import java.util.List;
@@ -22,11 +22,12 @@ public class ActivityController {
         return new ActivityController(allowByDefault, rules, debug);
     }
 
-    public boolean isAllowed(ActivityCallPayload activityCallPayload) {
+    public boolean isAllowed(ActivityInvocationPayload activityInvocationPayload) {
+        debug.emitActivityInvocationDefaultResult(allowByDefault);
         boolean result = allowByDefault;
 
         for (Rule rule : rules) {
-            final Rule.Result ruleResult = rule.proceed(activityCallPayload);
+            final Rule.Result ruleResult = rule.proceed(activityInvocationPayload);
             debug.emitProcessedRule(rule, ruleResult);
 
             if (ruleResult != Rule.Result.ABSTAIN) {

@@ -8,8 +8,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -61,7 +61,7 @@ public class ActivityInfrastructureTest {
         given(activityController.isAllowed(argThat(arg -> arg.componentType().equals(ComponentType.BIDDER))))
                 .willReturn(false);
 
-        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
+        final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
         final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
@@ -76,7 +76,7 @@ public class ActivityInfrastructureTest {
         given(activityController.isAllowed(argThat(arg -> arg.componentType().equals(ComponentType.BIDDER))))
                 .willReturn(true);
 
-        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
+        final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
         final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
@@ -90,12 +90,12 @@ public class ActivityInfrastructureTest {
         // given
         given(activityController.isAllowed(any())).willReturn(true);
 
-        final ActivityCallPayload payload = ActivityCallPayloadImpl.of(ComponentType.BIDDER, "bidder");
+        final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "bidder");
 
         // when
         final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
-        verify(debug).emitProcessedActivity(eq(Activity.CALL_BIDDER), same(payload), same(result));
+        verify(debug).emitActivityInvocationResult(eq(Activity.CALL_BIDDER), same(payload), same(result));
     }
 }

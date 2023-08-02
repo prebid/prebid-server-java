@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Gpc;
@@ -28,7 +28,7 @@ public class USNatSyncUser implements PrivacyModule {
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         return result;
     }
 

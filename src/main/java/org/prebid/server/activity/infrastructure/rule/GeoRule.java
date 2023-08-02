@@ -3,9 +3,9 @@ package org.prebid.server.activity.infrastructure.rule;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GeoActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GpcActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GeoActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Set;
@@ -33,30 +33,30 @@ public final class GeoRule extends AbstractMatchRule {
     }
 
     @Override
-    public boolean matches(ActivityCallPayload activityCallPayload) {
+    public boolean matches(ActivityInvocationPayload activityInvocationPayload) {
         return sidsMatched
-                && (geoCodes == null || matchesOneOfGeoCodes(activityCallPayload))
-                && (gpc == null || matchesGpc(activityCallPayload))
-                && componentRule.matches(activityCallPayload);
+                && (geoCodes == null || matchesOneOfGeoCodes(activityInvocationPayload))
+                && (gpc == null || matchesGpc(activityInvocationPayload))
+                && componentRule.matches(activityInvocationPayload);
     }
 
-    private boolean matchesOneOfGeoCodes(ActivityCallPayload activityCallPayload) {
-        if (activityCallPayload instanceof GeoActivityCallPayload geoPayload) {
+    private boolean matchesOneOfGeoCodes(ActivityInvocationPayload activityInvocationPayload) {
+        if (activityInvocationPayload instanceof GeoActivityInvocationPayload geoPayload) {
             return geoCodes.stream().anyMatch(geoCode -> matchesGeoCode(geoCode, geoPayload));
         }
 
         return true;
     }
 
-    private static boolean matchesGeoCode(GeoCode geoCode, GeoActivityCallPayload geoPayload) {
+    private static boolean matchesGeoCode(GeoCode geoCode, GeoActivityInvocationPayload geoPayload) {
         final String region = geoCode.getRegion();
         return StringUtils.equalsIgnoreCase(geoCode.getCountry(), geoPayload.country())
                 && (region == null || StringUtils.equalsIgnoreCase(region, geoPayload.region()));
     }
 
-    private boolean matchesGpc(ActivityCallPayload activityCallPayload) {
-        if (activityCallPayload instanceof GpcActivityCallPayload gpcActivityCallPayload) {
-            return gpc.equals(gpcActivityCallPayload.gpc());
+    private boolean matchesGpc(ActivityInvocationPayload activityInvocationPayload) {
+        if (activityInvocationPayload instanceof GpcActivityInvocationPayload gpcActivityInvocationPayload) {
+            return gpc.equals(gpcActivityInvocationPayload.gpc());
         }
 
         return true;

@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 
 public class USNatDefault implements PrivacyModule {
@@ -12,7 +12,7 @@ public class USNatDefault implements PrivacyModule {
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         return Result.ABSTAIN;
     }
 }

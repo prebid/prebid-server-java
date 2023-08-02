@@ -1,31 +1,31 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 import java.util.Objects;
 import java.util.function.Predicate;
 
 public class TestRule extends AbstractMatchRule {
 
-    private final Predicate<ActivityCallPayload> predicate;
+    private final Predicate<ActivityInvocationPayload> predicate;
     private final boolean allowed;
 
-    private TestRule(Predicate<ActivityCallPayload> predicate, boolean allowed) {
+    private TestRule(Predicate<ActivityInvocationPayload> predicate, boolean allowed) {
         this.predicate = Objects.requireNonNull(predicate);
         this.allowed = allowed;
     }
 
-    public static TestRule allowIfMatches(Predicate<ActivityCallPayload> predicate) {
+    public static TestRule allowIfMatches(Predicate<ActivityInvocationPayload> predicate) {
         return new TestRule(predicate, true);
     }
 
-    public static TestRule disallowIfMatches(Predicate<ActivityCallPayload> predicate) {
+    public static TestRule disallowIfMatches(Predicate<ActivityInvocationPayload> predicate) {
         return new TestRule(predicate, false);
     }
 
     @Override
-    public boolean matches(ActivityCallPayload activityCallPayload) {
-        return predicate.test(activityCallPayload);
+    public boolean matches(ActivityInvocationPayload activityInvocationPayload) {
+        return predicate.test(activityInvocationPayload);
     }
 
     @Override

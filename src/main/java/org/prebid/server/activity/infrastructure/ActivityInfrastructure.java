@@ -2,8 +2,10 @@
 package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -29,10 +31,15 @@ public class ActivityInfrastructure {
         }
     }
 
-    public boolean isAllowed(Activity activity, ActivityCallPayload activityCallPayload) {
-        final boolean result = activitiesControllers.get(activity).isAllowed(activityCallPayload);
-        debug.emitProcessedActivity(activity, activityCallPayload, result);
+    public boolean isAllowed(Activity activity, ActivityInvocationPayload activityInvocationPayload) {
+        debug.emitActivityInvocation(activity, activityInvocationPayload);
+        final boolean result = activitiesControllers.get(activity).isAllowed(activityInvocationPayload);
+        debug.emitActivityInvocationResult(activity, activityInvocationPayload, result);
 
         return result;
+    }
+
+    public List<ExtTraceActivityInfrastructure> debugTrace() {
+        return debug.trace();
     }
 }
