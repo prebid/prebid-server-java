@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -24,6 +25,8 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
+import org.prebid.server.functional.util.privacy.gpp.GppConsent
+import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -52,11 +55,13 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                              "adapters.${OPENX.value}.enabled" : 'true']
     private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
                                                                         "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+    private static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
     protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG
+            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
+    protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UspNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)
 
     @Shared
@@ -159,8 +164,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         new Account(uuid: accountId, config: new AccountConfig(privacy: privacy))
     }
 
-    protected static Account getAccountWithAllowActivities(String accountId, AllowActivities activities) {
-        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities)
+    protected static Account getAccountWithAllowActivitiesAndPrivacyModule(String accountId,
+                                                                           AllowActivities activities,
+                                                                           List<AccountGppConfig> gppConfigs = []) {
+
+        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities, modules: gppConfigs)
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(cookieSync: cookieSyncConfig, privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
