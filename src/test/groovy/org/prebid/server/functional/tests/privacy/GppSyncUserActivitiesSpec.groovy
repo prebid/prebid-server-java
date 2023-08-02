@@ -20,7 +20,6 @@ import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -45,7 +44,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = 'requests.activity.processedrules.count'
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${SYNC_USER.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${SYNC_USER.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alert.general"
+    private static final String ALERT_GENERAL = "alerts.general"
 
     private final static int INVALID_STATUS_CODE = 451
     private final static String INVALID_STATUS_MESSAGE = "Unavailable For Legal Reasons."
@@ -593,7 +592,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS cookie sync call when privacy regulation have duplicate should respond with error"() {
+    def "PBS cookie sync call when privacy regulation have duplicate should include proper responded with bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -620,21 +619,17 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes cookie sync request without cookies"
-        activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Unexpected setuid processing error: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS cookie sync call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+    def "PBS cookie sync call when privacy module contain invalid code should include proper responded with bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -660,8 +655,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes cookie sync request without cookies"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should not contain any URLs for bidders"
-        assert !response.bidderStatus.userSync.url
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
     }
 
     def "PBS setuid request when bidder allowed in activities should respond with valid bidders UIDs cookies and update processed metrics"() {
@@ -1222,7 +1217,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
-
     def "PBS setuid request when regs.gpp in request is allowing should respond with valid bidders UIDs cookies"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
@@ -1260,7 +1254,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
     }
 
-    def "PBS setuid request when privacy regulation have duplicate should respond with error"() {
+    def "PBS setuid request when privacy regulation have duplicate should respond with valid bidders UIDs cookies"() {
         given: "SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -1289,21 +1283,18 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Unexpected setuid processing error: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Response should contain uids cookie"
+        assert response.uidsCookie
+        assert response.responseBody
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS setuid request when privacy regulation match and allowing by first element in hierarchy should reject bidders with status code invalidStatusCode"() {
+    def "PBS setuid request call when privacy module contain invalid code should respond with valid bidders UIDs cookies"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -1329,11 +1320,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == INVALID_STATUS_CODE
-        assert exception.responseBody == INVALID_STATUS_MESSAGE
+        then: "Response should contain uids cookie"
+        assert response.uidsCookie
+        assert response.responseBody
     }
 }

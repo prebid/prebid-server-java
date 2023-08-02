@@ -23,7 +23,6 @@ import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -52,7 +51,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${FETCH_BIDS.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${FETCH_BIDS.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alert.general"
+    private static final String ALERT_GENERAL = "alerts.general"
 
     def "PBS auction call when fetch bid activities is allowing should process bid request and update processed metrics"() {
         given: "Default basic generic BidRequest"
@@ -622,11 +621,12 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new UspCtV1Consent.Builder().build()  | USP_CT_V1
     }
 
-    def "PBS auction call when privacy regulation have duplicate respond with error"() {
+    def "PBS auction call when privacy regulation have duplicate should process request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def genericBidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
+            ext.prebid.trace = VERBOSE
             regs.gppSid = [USP_NAT_V1.intValue]
         }
 
@@ -650,12 +650,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(genericBidRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(genericBidRequest.id)
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -794,7 +790,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should not contain bidRequest from amp request"
         assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
@@ -871,7 +867,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should be present"
         assert bidder.getBidderRequest(ampStoredRequest.id)
@@ -906,7 +902,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should not contain bidRequest from amp request"
         assert bidder.getBidderRequests(ampStoredRequest.id).size() == 0
@@ -1042,7 +1038,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder should be called"
         assert bidder.getBidderRequest(ampStoredRequest.id)
@@ -1085,7 +1081,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder should be called"
         assert bidder.getBidderRequest(ampStoredRequest.id)
@@ -1100,10 +1096,12 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new UspCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | USP_CT_V1
     }
 
-    def "PBS amp call when privacy regulation have duplicate should respond with error"() {
+    def "PBS amp call when privacy regulation have duplicate should process request and update alerts metrics"() {
         given: "Default Generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = BidRequest.defaultBidRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+        }
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1133,21 +1131,17 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "PBS should respond with an error requiring consent string"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert error.responseBody == "Critical error while running the auction: Duplicate key US_NAT (attempted merging " +
-                "values AccountUSNatModuleConfig(enabled=false, config=AccountUSNatModuleConfig.Config(skipSids=[7])) " +
-                "and AccountUSNatModuleConfig(enabled=true, config=AccountUSNatModuleConfig.Config(skipSids=[])))"
+        then: "Generic bidder should be called"
+        assert bidder.getBidderRequest(ampStoredRequest.id)
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS amp call when privacy regulation match and rejecting by element in hierarchy should respond with an error"() {
+    def "PBS amp call when privacy module contain invalid property should respond with an error"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest
@@ -1178,7 +1172,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
