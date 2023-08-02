@@ -4,14 +4,18 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -69,24 +73,52 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (Imp imp : request.getImp()) {
-            final ExtImpSharethrough extImpSharethrough;
-            final Price bidFloorPrice;
-            try {
-                extImpSharethrough = parseImpExt(imp);
-                bidFloorPrice = resolveBidFloor(imp, request);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                continue;
+        for (Imp originalImpression : request.getImp()) {
+            final List<Imp> impressionsByMediaType = splitImpressionsByMediaType(originalImpression, errors);
+            for (Imp impression : impressionsByMediaType) {
+                final ExtImpSharethrough extImpSharethrough;
+                final Price bidFloorPrice;
+                try {
+                    extImpSharethrough = parseImpExt(impression);
+                    bidFloorPrice = resolveBidFloor(impression, request);
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badInput(e.getMessage()));
+                    continue;
+                }
+
+                final Imp modifiedImp = modifyImp(impression, extImpSharethrough.getPkey(), bidFloorPrice);
+                final BidRequest modifiedBidRequest = modifyRequest(request, modifiedImp, extImpSharethrough);
+
+                httpRequests.add(makeHttpRequest(modifiedBidRequest));
             }
-
-            final Imp modifiedImp = modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice);
-            final BidRequest modifiedBidRequest = modifyRequest(request, modifiedImp, extImpSharethrough);
-
-            httpRequests.add(makeHttpRequest(modifiedBidRequest));
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private List<Imp> splitImpressionsByMediaType(Imp impression, List<BidderError> errors) {
+        final List<Imp> splitImpressions = new ArrayList<>();
+
+        final Banner banner = impression.getBanner();
+        final Video video = impression.getVideo();
+        final Native xNative = impression.getXNative();
+        if (ObjectUtils.allNull(video, banner, xNative)) {
+            errors.add(BidderError
+                    .badInput("Invalid MediaType. Sharethrough only supports Banner, Video and Native."));
+            return Collections.emptyList();
+        }
+
+        if (video != null) {
+            splitImpressions.add(impression.toBuilder().banner(null).xNative(null).audio(null).build());
+        }
+        if (banner != null) {
+            splitImpressions.add(impression.toBuilder().video(null).xNative(null).audio(null).build());
+        }
+        if (xNative != null) {
+            splitImpressions.add(impression.toBuilder().banner(null).video(null).audio(null).build());
+        }
+
+        return splitImpressions;
     }
 
     private ExtImpSharethrough parseImpExt(Imp imp) {

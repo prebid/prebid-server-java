@@ -63,7 +63,7 @@ public class IntertechBidder implements Bidder<BidRequest> {
         final List<Imp> impList = request.getImp();
         for (Imp imp : impList) {
             try {
-                ExtImpIntertech extImpIntertech = parseAndValidateImpExt(imp.getExt(), imp.getId());
+                final ExtImpIntertech extImpIntertech = parseAndValidateImpExt(imp.getExt(), imp.getId());
                 final Imp modifiedImp = modifyImp(imp);
                 final String modifiedUrl = modifyUrl(extImpIntertech, referer, cur);
                 final BidRequest modifiedRequest =

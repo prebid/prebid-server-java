@@ -132,7 +132,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final List<Format> formatSkipFirst = originalFormat.subList(1, originalFormat.size());
             bannerBuilder.format(formatSkipFirst);
 
-            Format firstFormat = originalFormat.get(0);
+            final Format firstFormat = originalFormat.get(0);
             bannerBuilder.w(firstFormat.getW());
             bannerBuilder.h(firstFormat.getH());
 
