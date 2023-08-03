@@ -6,19 +6,19 @@ import org.prebid.server.activity.infrastructure.rule.TestRule;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ActivityConfigurationTest {
+public class ActivityControllerTest {
 
     @Test
     public void isAllowedShouldReturnExpectedResultIfNoRulesMatched() {
         // given
-        final ActivityConfiguration activityConfiguration = ActivityConfiguration.of(
+        final ActivityController activityController = ActivityController.of(
                 true,
                 asList(
                         TestRule.allowIfMatches(payload -> false),
                         TestRule.disallowIfMatches(payload -> false)));
 
         // when
-        final ActivityCallResult result = activityConfiguration.isAllowed(null);
+        final ActivityCallResult result = activityController.isAllowed(null);
 
         // then
         assertThat(result).isEqualTo(ActivityCallResult.of(true, 2));
@@ -27,7 +27,7 @@ public class ActivityConfigurationTest {
     @Test
     public void isAllowedShouldReturnExpectedResultIfSomeRuleMatched() {
         // given
-        final ActivityConfiguration activityConfiguration = ActivityConfiguration.of(
+        final ActivityController activityController = ActivityController.of(
                 true,
                 asList(
                         TestRule.allowIfMatches(payload -> false),
@@ -35,7 +35,7 @@ public class ActivityConfigurationTest {
                         TestRule.disallowIfMatches(payload -> false)));
 
         // when
-        final ActivityCallResult result = activityConfiguration.isAllowed(null);
+        final ActivityCallResult result = activityController.isAllowed(null);
 
         // then
         assertThat(result).isEqualTo(ActivityCallResult.of(false, 2));

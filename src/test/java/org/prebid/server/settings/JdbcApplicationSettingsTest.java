@@ -250,6 +250,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                                     .build(),
                             null,
+                            null,
                             null))
                     .analytics(AccountAnalyticsConfig.of(
                             expectedEventsConfig,

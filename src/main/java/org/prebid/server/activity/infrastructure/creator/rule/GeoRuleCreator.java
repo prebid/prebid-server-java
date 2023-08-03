@@ -3,9 +3,9 @@ package org.prebid.server.activity.infrastructure.creator.rule;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.rule.GeoRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
-import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 
 import java.util.Collection;
@@ -21,14 +21,16 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
     }
 
     @Override
-    protected Rule fromConfiguration(AccountActivityGeoRuleConfig ruleConfiguration, GppContext gppContext) {
+    protected Rule fromConfiguration(AccountActivityGeoRuleConfig ruleConfiguration,
+                                     ActivityControllerCreationContext creationContext) {
+
         final boolean allow = allowFromConfig(ruleConfiguration.getAllow());
         final AccountActivityGeoRuleConfig.Condition condition = ruleConfiguration.getCondition();
 
         return new GeoRule(
                 condition != null ? setOf(condition.getComponentTypes()) : null,
                 condition != null ? setOf(condition.getComponentNames()) : null,
-                sidsMatched(condition, gppContext.scope().getSectionsIds()),
+                sidsMatched(condition, creationContext.getGppContext().scope().getSectionsIds()),
                 condition != null ? geoCodes(condition.getGeoCodes()) : null,
                 condition != null ? condition.getGpc() : null,
                 allow);
