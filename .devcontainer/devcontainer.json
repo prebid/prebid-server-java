@@ -30,7 +30,8 @@
 				"ms-azuretools.vscode-docker",
 				"redhat.vscode-xml",
 				"redhat.vscode-yaml",
-				"eamodio.gitlens"
+				"eamodio.gitlens",
+				"vscjava.vscode-java-pack"
 			]
 		}
 	},
