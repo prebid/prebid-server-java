@@ -1,6 +1,6 @@
 # From https://github.com/microsoft/vscode-dev-containers/blob/master/containers/go/.devcontainer/Dockerfile
-ARG VARIANT=1
-FROM mcr.microsoft.com/vscode/devcontainers/go:${VARIANT}
+ARG VARIANT="17-jdk-bookworm"
+FROM mcr.microsoft.com/vscode/devcontainers/java:${VARIANT}
 
 # [Optional] Install a version of Node.js using nvm for front end dev
 ARG INSTALL_NODE="true"
