@@ -6,9 +6,6 @@
 		"args": {
 			// Update the VARIANT arg to pick a version of Go
 			"VARIANT": "17-jdk-bookworm",
-			// Options
-			"INSTALL_NODE": "false",
-			"NODE_VERSION": "lts/*"
 		}
 	},
 	"containerEnv": {
