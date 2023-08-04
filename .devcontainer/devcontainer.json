@@ -14,23 +14,27 @@
 	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
 
 	// Set *default* container specific settings.json values on container create.
-	"settings": {
-		"terminal.integrated.profiles.linux": {
-			"bash": {
-				"path": "/usr/bin/bash"
-			}
-		},
-		"terminal.integrated.defaultProfile.linux": "bash",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.profiles.linux": {
+					"bash": {
+						"path": "/usr/bin/bash"
+					}
+				},
+				"terminal.integrated.defaultProfile.linux": "bash",
+			},
+
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"redhat.vscode-xml",
+				"redhat.vscode-yaml",
+				"eamodio.gitlens"
+			]
+		}
 	},
-
-	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
-		"ms-azuretools.vscode-docker",
-		"redhat.vscode-xml",
-		"redhat.vscode-yaml",
-		"eamodio.gitlens",
-	],
-
+	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [8000,8001,6060],
 
