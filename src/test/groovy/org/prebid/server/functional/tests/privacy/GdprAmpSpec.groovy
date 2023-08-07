@@ -7,6 +7,8 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -292,8 +294,13 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
     def "PBS amp with proper consent.tcfPolicyVersion parameter should process request and cache correct vendorList file"() {
         given: "Test start time"
-        // 5000 sec due to container starts match more earlier that this test run
-        def startTime = Instant.now().minusSeconds(5000)
+        def startTime = Instant.now()
+
+        and: "Create new container"
+        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
+                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+        serverContainer.start()
+        def privacyPbsService = new PrebidServerService(serverContainer)
 
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
