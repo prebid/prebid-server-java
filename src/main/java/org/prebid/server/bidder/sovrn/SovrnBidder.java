@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sovrn;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -35,11 +36,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
+    private static final String AD_UNIT_CODE_PARAM = "adUnitCode";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -89,6 +93,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(resolveTagId(sovrnExt))
+                .ext(resolveImpExt(sovrnExt).orElse(null))
                 .build();
     }
 
@@ -112,6 +117,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missing required parameter 'tagid'");
         }
         return tagId;
+    }
+
+    private Optional<ObjectNode> resolveImpExt(ExtImpSovrn sovrnExt) {
+        return Optional.ofNullable(sovrnExt.getAdUnitCode())
+                .filter(StringUtils::isNotBlank)
+                .map(e -> mapper.mapper().valueToTree(Map.of(AD_UNIT_CODE_PARAM, e)));
     }
 
     private Result<List<HttpRequest<BidRequest>>> makeHttpRequest(BidRequest bidRequest,
