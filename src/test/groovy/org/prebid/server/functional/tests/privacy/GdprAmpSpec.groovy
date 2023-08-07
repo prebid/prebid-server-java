@@ -292,7 +292,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
     def "PBS amp with proper consent.tcfPolicyVersion parameter should process request and cache correct vendorList file"() {
         given: "Test start time"
-        def startTime = Instant.now()
+        // 5000 sec due to container starts match more earlier that this test run
+        def startTime = Instant.now().minusSeconds(5000)
 
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
