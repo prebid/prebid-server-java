@@ -964,7 +964,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
-                .isEqualTo("region");
+                .isEqualTo("REGION");
     }
 
     @Test
