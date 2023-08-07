@@ -127,7 +127,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     private BidderBid toBidderBid(Bid bid, String cur, List<BidderError> errors) {
         final BidType bidType;
         try {
-            bidType = getBidTypeFromMtype(bid.getMtype());
+            bidType = getBidType(bid.getMtype());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -136,21 +136,14 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         return BidderBid.of(bid, bidType, cur);
     }
 
-    private static BidType getBidTypeFromMtype(Integer mType) {
-        switch (mType) {
-            case 1 -> {
-                return BidType.banner;
-            }
-            case 2 -> {
-                return BidType.video;
-            }
-            case 3 -> {
-                return BidType.audio;
-            }
-            case 4 -> {
-                return BidType.xNative;
-            }
+    private static BidType getBidType(Integer mType) {
+        return switch(mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+
             default -> throw new PreBidException("Unsupported mType " + mType);
-        }
+        };
     }
 }
