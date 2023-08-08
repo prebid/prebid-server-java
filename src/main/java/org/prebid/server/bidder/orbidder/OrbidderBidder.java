@@ -137,7 +137,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Integer mType) {
-        return switch(mType) {
+        return switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
