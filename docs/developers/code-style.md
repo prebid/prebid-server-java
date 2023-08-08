@@ -90,6 +90,62 @@ Map<Imp, ExtImp> map = getData();
 // good
 Map<Imp, ExtImp> impToExt = getData();
 ```
+### Parenthesis placement
+
+Enclosing parenthesis should be placed on expression end.
+
+```
+// bad
+methodCall(
+    long list of arguments
+);
+
+// good
+methodCall(
+    long list of arguments);
+```
+
+### Separation of method signature definition and body
+
+Not strict, but methods with long parameters list, that cannot be placed on single line,
+should add empty line before body definition.
+
+```
+// bad
+public static void method(
+    parameters definitions) {
+    start of body definition
+    
+// good
+public static void method(
+    parameters definitions) {
+    
+    start of body definition
+```
+
+### Use special methods for short collections initializations
+
+Use collection literals where it is possible to define and initialize collections.
+
+```
+// bad 
+final List<String> foo = new ArrayList();
+foo.add("bar");
+
+// good 
+final List<String> foo = List.of("bar");
+```
+
+Also, use special methods of Collections class for one - line empty collection creation. This makes developer intention clear and code less error prone.
+
+```
+// bad 
+return List.of();
+
+// good
+return Collections.singletonList();
+```
+
 
 ### Make variables final
 
@@ -195,6 +251,12 @@ You can always add it later when it will be really desired.
 It is strictly prohibited to log any kind of private data about publisher, exchanges or similar sensitive information.
 The idea is to keep this open-source project safe as far as possible.
 
+### Bidder implementation
+
+Try to write new bidders in the same manner with existing adapters. Utilize sample bidder code or use `GenericBidder` as a reference.</br></br>
+This is needed because bidder adapters tend to be modified frequently. In world where each bidder is written using different coding styles and techniques, maintainers would need to spend long time to understand bidders code before adding any modifications.
+On the other hand, if each bidder adapter is written using common constructs, it is easy to review and modify bidders fast.
+
 ### Tests
 
 The code should be covered over 90%.
@@ -219,6 +281,89 @@ where:
 - `given` - initial state, data or conditions.
 - `when` - stimulus: some action against the system under test.
 - `then` - expectations/assertions.
+
+#### Tests granularity
+
+Unit tests should be as granular as possible.
+
+```
+// bad
+@Test
+public void testFooBar() {
+    // when
+    final String foo = service.getFoo();
+    final String bar = service.getBar();
+    
+    // then
+    assertThat(foo).isEqualTo("foo");
+    assertThat(bar).isEqualTo("bar");
+}
+
+// good
+@Test
+public void testFoo() {
+    // when
+    final String foo = service.getFoo();
+    
+    // then
+    assertThat(foo).isEqualTo("foo");
+}
+
+@Test
+public void testBar() {
+    // when
+    final String bar = service.getBar();
+    
+    // then
+    assertThat(bar).isEqualTo("bar");
+}
+```
+#### Unit tests naming
+
+Name unit tests meaningfully. Test names should give brief description of what unit test tries to check.
+It is also recommended to prefix test methods with the name of method that is being tested and word `should`.
+
+```
+// bad
+@Test
+public void doSomethingTest() {
+    // when and then
+    assertThat(service.processData()).isEqualTo("result");
+}
+
+// good
+@Test
+public void processDataShouldReturnResult() {
+    // when and then
+    assertThat(service.processData()).isEqualTo("result");
+}
+```
+
+#### Place test data as close as possible to test
+
+Place data used in test as close as possible to test code. This will make tests easier to read, review and understand.
+
+```
+// bad
+@Test
+public void testFoo() {
+    // given
+    final String fooData = getSpecificFooData();
+    
+    // when and then
+    assertThat(service.processFoo(fooData)).isEqualTo(getSpecificFooResult());
+}
+
+// good
+@Test
+public void testFoo() {
+    // given
+    final String fooData = "fooData";
+    
+    // when and then
+    assertThat(service.processFoo(fooData)).isEqualTo("fooResult");
+}
+```
 
 #### Real data in tests
 
