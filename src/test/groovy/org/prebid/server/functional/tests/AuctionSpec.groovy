@@ -3,6 +3,8 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
@@ -12,6 +14,7 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
@@ -309,5 +312,33 @@ class AuctionSpec extends BaseSpec {
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
+    }
+
+    def "PBS should move device.geo.region to uppercase when region in lowercase"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            device = new Device(geo: new Geo(region: "qc"))
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should contain device.geo.region in uppercase"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.device.geo.region == bidRequest.device.geo.region.toUpperCase()
+    }
+
+    def "PBS shouldn't move device.geo.region to uppercase when region value is invalid"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            device = new Device(geo: new Geo(region: null))
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest shouldn't contain device.geo.region in uppercase"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.device.geo.region
     }
 }
