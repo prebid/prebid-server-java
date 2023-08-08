@@ -161,8 +161,8 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .element(0)
-                .isNull();
+                .extracting(e -> e.get("adUnitCode"))
+                .containsOnlyNulls();
     }
 
     @Test
@@ -181,8 +181,8 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .element(0)
-                .isNull();
+                .extracting(e -> e.get("adUnitCode"))
+                .containsOnlyNulls();
     }
 
     @Test
