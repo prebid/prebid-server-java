@@ -336,6 +336,9 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def logs = privacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
 
+        cleanup: "Stop container with default request"
+        serverContainer.stop()
+
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
