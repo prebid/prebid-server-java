@@ -17,7 +17,7 @@ class GppSetUidSpec extends PrivacyBaseSpec {
         given: "Set uid request with invalid GPP"
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.gpp = "Invalid_GPP_Consent_String"
-            it.gppSid = gppSid
+            it.gppSid =  ["$GppSectionId.TCF_EU_V2.intValue, $GppSectionId.USP_V1.intValue"]
             it.uid = UUID.randomUUID().toString()
             it.gdpr = null
             it.gdprConsent = null
@@ -28,9 +28,6 @@ class GppSetUidSpec extends PrivacyBaseSpec {
 
         then: "Privacy for bidder should not be enforced"
         assert response.uidsCookie.tempUIDs[GENERIC]
-
-        where:
-        gppSid << ["$GppSectionId.TCF_EU_V2.intValue, $GppSectionId.USP_V1.intValue"]
     }
 
     def "PBS setUid should reject request when gppSid is invalid"() {
