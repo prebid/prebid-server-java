@@ -20,9 +20,7 @@
       "tagid": "tag_id",
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder": {
-          "tagid": "tag_id"
-        }
+        "adUnitCode": "sovrn_auc"
       }
     }
   ],
