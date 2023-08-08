@@ -15,14 +15,9 @@ public class ExtImpAlkimi {
     @JsonProperty("bidFloor")
     BigDecimal bidFloor;
 
-    Integer pos;
+    Integer instl;
 
-    Integer width;
-
-    Integer height;
-
-    @JsonProperty("impMediaType")
-    String impMediaType;
+    Integer exp;
 
     @JsonProperty("adUnitCode")
     String adUnitCode;
