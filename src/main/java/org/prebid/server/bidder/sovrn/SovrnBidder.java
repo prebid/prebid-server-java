@@ -121,7 +121,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private ObjectNode resolveImpExt(ExtImpSovrn sovrnExt, ObjectNode impExt) {
         ObjectNode node = impExt.remove(List.of(BIDDER_PARAM));
         if (StringUtils.isNotBlank(sovrnExt.getAdUnitCode())) {
-            node.put(AD_UNIT_CODE_PARAM, sovrnExt.getAdUnitCode());
+            node.putPOJO(AD_UNIT_CODE_PARAM, sovrnExt.getAdUnitCode());
         }
         return node;
     }
