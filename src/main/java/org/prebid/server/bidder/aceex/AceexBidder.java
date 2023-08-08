@@ -69,7 +69,7 @@ public class AceexBidder implements Bidder<BidRequest> {
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
-        MultiMap headers = HttpUtil.headers();
+        final MultiMap headers = HttpUtil.headers();
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER,

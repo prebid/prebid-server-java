@@ -18,8 +18,8 @@ adapters:
     usersync:
       cookie-family-name: ix
       redirect:
-        url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
         support-cors: false
       iframe:
-        url: https://ssum-sec.casalemedia.com/usermatch?s=184674&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        url: https://ssum-sec.casalemedia.com/usermatch?s=184674&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
         support-cors: false

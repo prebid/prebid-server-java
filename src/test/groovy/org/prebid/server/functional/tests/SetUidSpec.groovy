@@ -16,6 +16,7 @@ import java.time.ZonedDateTime
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
@@ -24,13 +25,16 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDO
 
 class SetUidSpec extends BaseSpec {
 
+    private static final Integer MAX_COOKIE_SIZE = 500
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> PBS_CONFIG =
-            ["host-cookie.max-cookie-size-bytes"                                      : "500",
+            ["host-cookie.max-cookie-size-bytes"                                      : MAX_COOKIE_SIZE as String,
              "adapters.${RUBICON.value}.enabled"                                      : "true",
              "adapters.${RUBICON.value}.usersync.cookie-family-name"                  : RUBICON.value,
+             "adapters.${OPENX.value}.enabled"                                        : "true",
+             "adapters.${OPENX.value}.usersync.cookie-family-name"                    : OPENX.value,
              "adapters.${APPNEXUS.value}.enabled"                                     : "true",
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
@@ -103,7 +107,7 @@ class SetUidSpec extends BaseSpec {
             it.bidder = genericBidder
             uid = UUID.randomUUID().toString()
         }
-        def rubiconBidder = BidderName.RUBICON
+        def rubiconBidder = RUBICON
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS)     : defaultUidWithExpiry,
                         (rubiconBidder): defaultUidWithExpiry]
@@ -151,7 +155,7 @@ class SetUidSpec extends BaseSpec {
                 ["cookie-sync.pri": APPNEXUS.value])
 
         and: "Setuid request"
-        def bidderName = BidderName.GENERIC
+        def bidderName = GENERIC
         def request = SetuidRequest.defaultSetuidRequest.tap {
             it.bidder = bidderName
             uid = UUID.randomUUID().toString()
@@ -218,9 +222,9 @@ class SetUidSpec extends BaseSpec {
             uid = UUID.randomUUID().toString()
         }
 
-        def bidderName = BidderName.RUBICON
+        def bidderName = RUBICON
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            def uidWithExpiry = UidWithExpiry.defaultUidWithExpiry.tap {
+            def uidWithExpiry = defaultUidWithExpiry.tap {
                 expires.plusDays(10)
             }
             tempUIDs = [(APPNEXUS)  : defaultUidWithExpiry,
@@ -237,5 +241,45 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[GENERIC]
+    }
+
+    def "PBS SetUid should remove oldest bidder from uids cookie in favor of prioritized bidder"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["cookie-sync.pri": "$OPENX.value, $GENERIC.value" as String])
+
+        and: "Set uid request"
+        def request = SetuidRequest.defaultSetuidRequest.tap {
+            it.uid = UUID.randomUUID().toString()
+            it.bidder = OPENX
+        }
+
+        and: "Set up set uid cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            it.tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
+                           (RUBICON) : defaultUidWithExpiry]
+        }
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        when: "PBS processes set uid request"
+        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+
+        then: "Response should contain pri bidder in uids cookies"
+        assert response.uidsCookie.tempUIDs[OPENX]
+
+        and: "Response set cookie header size should be lowest or the same as max cookie config size"
+        assert response.headers.get("Set-Cookie").value.split("Secure;")[0].length() <= MAX_COOKIE_SIZE
+
+        and: "Request bidder should contain uid from Set uid request"
+        assert response.uidsCookie.tempUIDs[OPENX].uid == request.uid
+
+        and: "usersync.FAMILY.sizedout metric should be updated"
+        def metricsRequest = prebidServerService.sendCollectedMetricsRequest()
+        assert metricsRequest["usersync.${APPNEXUS.value}.sizedout"] == 1
+
+        and: "usersync.FAMILY.sets metric should be updated"
+        assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
     }
 }

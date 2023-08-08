@@ -44,7 +44,7 @@ public class PrioritizedCoopSyncProviderTest {
         target = new PrioritizedCoopSyncProvider(Set.of("invalid1", "invalid2", "valid"), bidderCatalog);
 
         // when
-        Set<String> result = target.prioritizedBidders(Account.empty("1001"));
+        final Set<String> result = target.prioritizedBidders(Account.empty("1001"));
 
         // then
         assertThat(result).containsExactly("valid");

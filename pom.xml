@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.123.0-SNAPSHOT</version>
+        <version>1.127.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -68,7 +68,7 @@
         <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.51.v20230217</jetty.version>
         <restassured.version>4.4.0</restassured.version>
-        <h2.version>2.1.214</h2.version>
+        <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M1-groovy-3.0</spock.version>
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>

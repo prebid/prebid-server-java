@@ -1,9 +1,9 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.rule.ComponentRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
-import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 
 import java.util.Collection;
@@ -17,7 +17,9 @@ public class ComponentRuleCreator extends AbstractRuleCreator<AccountActivityCom
     }
 
     @Override
-    protected Rule fromConfiguration(AccountActivityComponentRuleConfig ruleConfiguration, GppContext gppContext) {
+    protected Rule fromConfiguration(AccountActivityComponentRuleConfig ruleConfiguration,
+                                     ActivityControllerCreationContext creationContext) {
+
         final boolean allow = allowFromConfig(ruleConfiguration.getAllow());
         final AccountActivityComponentRuleConfig.Condition condition = ruleConfiguration.getCondition();
 

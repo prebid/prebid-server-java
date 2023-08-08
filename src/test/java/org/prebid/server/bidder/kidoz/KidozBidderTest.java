@@ -116,7 +116,7 @@ public class KidozBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?, ExtImpKidoz> ext = ExtPrebid.of(null, ExtImpKidoz.of("token1", "publisherId"));
+        final ExtPrebid<?, ExtImpKidoz> ext = ExtPrebid.of(null, ExtImpKidoz.of("token1", "publisherId"));
         final Imp validImp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
