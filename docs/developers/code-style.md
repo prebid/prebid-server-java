@@ -218,7 +218,6 @@ return List.of();
 return Collections.emptyList();
 ```
 
-
 ### Make variables final
 
 It is recommended to declare variable as `final`- not strict but rather project convention to keep the code safe.
@@ -337,7 +336,7 @@ The idea is to keep this open-source project safe as far as possible.
 
 ### Bidder implementation
 
-Try to write new bidders in the same manner with existing adapters. Utilize sample bidder code or use `GenericBidder` as a reference.</br></br>
+Try to write new bidders in the same manner with existing adapters. Utilize [sample bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html#adapter-code) code or use `GenericBidder` as a reference.</br></br>
 This is needed because bidder adapters tend to be modified frequently. In world where each bidder is written using different coding styles and techniques, maintainers would need to spend long time to understand bidders code before adding any modifications.
 On the other hand, if each bidder adapter is written using common constructs, it is easy to review and modify bidders fast.
 
