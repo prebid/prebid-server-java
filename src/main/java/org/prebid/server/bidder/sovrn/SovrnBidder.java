@@ -41,8 +41,8 @@ import java.util.Objects;
 public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
-    private static final String AD_UNIT_CODE_PARAM = "adUnitCode";
-    private static final String BIDDER_PARAM = "bidder";
+    private static final String EXT_AD_UNIT_CODE_PARAM = "adUnitCode";
+    private static final String EXT_BIDDER_PARAM = "bidder";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -119,11 +119,11 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode resolveImpExt(ExtImpSovrn sovrnExt, ObjectNode impExt) {
-        ObjectNode node = impExt.remove(List.of(BIDDER_PARAM));
-        if (StringUtils.isNotBlank(sovrnExt.getAdUnitCode())) {
-            node.putPOJO(AD_UNIT_CODE_PARAM, sovrnExt.getAdUnitCode());
-        }
-        return node;
+        final ObjectNode sovrnImpExt = impExt.deepCopy();
+        sovrnImpExt.remove(EXT_BIDDER_PARAM);
+        return StringUtils.isNotBlank(sovrnExt.getAdUnitCode())
+                ? sovrnImpExt.putPOJO(EXT_AD_UNIT_CODE_PARAM, sovrnExt.getAdUnitCode())
+                : sovrnImpExt;
     }
 
     private Result<List<HttpRequest<BidRequest>>> makeHttpRequest(BidRequest bidRequest,
