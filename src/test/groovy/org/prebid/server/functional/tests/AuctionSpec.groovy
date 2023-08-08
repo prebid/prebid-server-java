@@ -22,6 +22,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.prebid.server.functional.util.privacy.model.State.QUEBEC
 
 class AuctionSpec extends BaseSpec {
 
@@ -316,7 +317,7 @@ class AuctionSpec extends BaseSpec {
     def "PBS should move device.geo.region to uppercase when region in lowercase"() {
         given: "Default bid request with device.geo.region"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            device = new Device(geo: new Geo(region: "qc"))
+            device = new Device(geo: new Geo(region: QUEBEC.abbreviation.toLowerCase()))
         }
 
         when: "Requesting PBS auction"
