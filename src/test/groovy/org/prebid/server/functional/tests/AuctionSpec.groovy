@@ -14,7 +14,6 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
@@ -315,7 +314,7 @@ class AuctionSpec extends BaseSpec {
     }
 
     def "PBS should move device.geo.region to uppercase when region in lowercase"() {
-        given: "Default bid request with aliases"
+        given: "Default bid request with device.geo.region"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(geo: new Geo(region: "qc"))
         }
@@ -329,7 +328,7 @@ class AuctionSpec extends BaseSpec {
     }
 
     def "PBS shouldn't move device.geo.region to uppercase when region value is invalid"() {
-        given: "Default bid request with aliases"
+        given: "Default bid request without device.geo.region"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(geo: new Geo(region: null))
         }
