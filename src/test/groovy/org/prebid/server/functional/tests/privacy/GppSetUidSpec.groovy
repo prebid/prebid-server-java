@@ -9,6 +9,7 @@ import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 class GppSetUidSpec extends PrivacyBaseSpec {
@@ -17,7 +18,7 @@ class GppSetUidSpec extends PrivacyBaseSpec {
         given: "Set uid request with invalid GPP"
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.gpp = "Invalid_GPP_Consent_String"
-            it.gppSid =  ["$GppSectionId.TCF_EU_V2.intValue, $GppSectionId.USP_V1.intValue"]
+            it.gppSid = USP_NAT_V1.value
             it.uid = UUID.randomUUID().toString()
             it.gdpr = null
             it.gdprConsent = null
