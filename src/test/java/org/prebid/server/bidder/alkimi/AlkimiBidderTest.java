@@ -268,7 +268,7 @@ public class AlkimiBidderTest extends VertxTest {
         ).build();
     }
 
-        private static Imp givenAudioImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenAudioImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id(DIV_AUDIO_ID)
                 .audio(Audio.builder()
