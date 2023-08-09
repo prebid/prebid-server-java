@@ -4,11 +4,8 @@ adapters:
     ortb-version: "2.6"
     aliases:
       yssp:
-        enabled: false
       yahoossp:
-        enabled: false
       yahooAdvertising:
-        enabled: false
     meta-info:
       maintainer-email: hb-fe-tech@yahooinc.com
       app-media-types:
