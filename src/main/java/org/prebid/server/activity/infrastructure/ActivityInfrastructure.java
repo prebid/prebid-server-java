@@ -15,31 +15,31 @@ public class ActivityInfrastructure {
     public static final boolean ALLOW_ACTIVITY_BY_DEFAULT = true;
 
     private final String accountId;
-    private final Map<Activity, ActivityConfiguration> activitiesConfigurations;
+    private final Map<Activity, ActivityController> activitiesControllers;
     private final TraceLevel traceLevel;
     private final Metrics metrics;
 
     public ActivityInfrastructure(String accountId,
-                                  Map<Activity, ActivityConfiguration> activitiesConfigurations,
+                                  Map<Activity, ActivityController> activitiesControllers,
                                   TraceLevel traceLevel,
                                   Metrics metrics) {
 
-        validate(activitiesConfigurations);
+        validate(activitiesControllers);
 
         this.accountId = accountId;
-        this.activitiesConfigurations = activitiesConfigurations;
+        this.activitiesControllers = activitiesControllers;
         this.traceLevel = Objects.requireNonNull(traceLevel);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    private static void validate(Map<Activity, ActivityConfiguration> activitiesConfigurations) {
-        if (activitiesConfigurations == null || activitiesConfigurations.size() != Activity.values().length) {
-            throw new AssertionError("Activities configuration must include all possible activities.");
+    private static void validate(Map<Activity, ActivityController> activitiesControllers) {
+        if (activitiesControllers == null || activitiesControllers.size() != Activity.values().length) {
+            throw new AssertionError("Activities controllers must include all possible activities.");
         }
     }
 
     public boolean isAllowed(Activity activity, ActivityCallPayload activityCallPayload) {
-        final ActivityCallResult result = activitiesConfigurations.get(activity).isAllowed(activityCallPayload);
+        final ActivityCallResult result = activitiesControllers.get(activity).isAllowed(activityCallPayload);
         updateMetrics(activity, activityCallPayload, result);
         return result.isAllowed();
     }
