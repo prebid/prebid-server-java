@@ -7,6 +7,8 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -294,6 +296,12 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Test start time"
         def startTime = Instant.now()
 
+        and: "Create new container"
+        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
+                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+        serverContainer.start()
+        def privacyPbsService = new PrebidServerService(serverContainer)
+
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
@@ -327,6 +335,9 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
+
+        cleanup: "Stop container with default request"
+        serverContainer.stop()
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
