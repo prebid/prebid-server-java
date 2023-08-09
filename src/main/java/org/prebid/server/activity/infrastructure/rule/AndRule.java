@@ -35,6 +35,9 @@ public class AndRule implements Rule, Loggable {
 
     @Override
     public Object asLogEntry() {
-        return ActivityDebugUtils.asLogEntry(rules);
+        return new AndRuleLogEntry(ActivityDebugUtils.asLogEntry(rules));
+    }
+
+    private record AndRuleLogEntry(Object and) {
     }
 }
