@@ -5,10 +5,10 @@ import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
+import org.prebid.server.activity.infrastructure.privacy.AndPrivacyModules;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatModule;
-import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
@@ -46,8 +46,7 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
                 .map(sectionId -> forSection(creationContext.getActivity(), sectionId, scope.getGppModel()))
                 .toList();
 
-        final AndRule andRule = new AndRule(innerPrivacyModules);
-        return andRule::proceed;
+        return new AndPrivacyModules(innerPrivacyModules);
     }
 
     private static AccountUSNatModuleConfig moduleConfig(PrivacyModuleCreationContext creationContext) {

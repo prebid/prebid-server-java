@@ -3,6 +3,7 @@ package org.prebid.server.activity.infrastructure.rule;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.GeoActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPayload;
@@ -10,9 +11,10 @@ import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPa
 import java.util.List;
 import java.util.Set;
 
-public final class GeoRule extends AbstractMatchRule {
+public final class GeoRule extends AbstractMatchRule implements Loggable {
 
-    private final ComponentRule componentRule;
+    private final Set<ComponentType> componentTypes;
+    private final Set<String> componentNames;
     private final boolean sidsMatched;
     private final List<GeoCode> geoCodes;
     private final String gpc;
@@ -25,7 +27,8 @@ public final class GeoRule extends AbstractMatchRule {
                    String gpc,
                    boolean allowed) {
 
-        this.componentRule = new ComponentRule(componentTypes, componentNames, allowed);
+        this.componentTypes = componentTypes;
+        this.componentNames = componentNames;
         this.sidsMatched = sidsMatched;
         this.geoCodes = geoCodes;
         this.gpc = gpc;
@@ -37,7 +40,8 @@ public final class GeoRule extends AbstractMatchRule {
         return sidsMatched
                 && (geoCodes == null || matchesOneOfGeoCodes(activityInvocationPayload))
                 && (gpc == null || matchesGpc(activityInvocationPayload))
-                && componentRule.matches(activityInvocationPayload);
+                && (componentTypes == null || componentTypes.contains(activityInvocationPayload.componentType()))
+                && (componentNames == null || componentNames.contains(activityInvocationPayload.componentName()));
     }
 
     private boolean matchesOneOfGeoCodes(ActivityInvocationPayload activityInvocationPayload) {
@@ -67,11 +71,24 @@ public final class GeoRule extends AbstractMatchRule {
         return allowed;
     }
 
+    @Override
+    public Object asLogEntry() {
+        return new GeoRuleLogEntry(componentTypes, componentNames, sidsMatched, geoCodes, gpc, allowed);
+    }
+
     @Value(staticConstructor = "of")
     public static class GeoCode {
 
         String country;
 
         String region;
+    }
+
+    private record GeoRuleLogEntry(Set<ComponentType> componentTypes,
+                                   Set<String> componentNames,
+                                   boolean gppSidsMatched,
+                                   List<GeoCode> geoCodes,
+                                   String gpc,
+                                   boolean allow) {
     }
 }

@@ -1,4 +1,4 @@
-package org.prebid.server.activity.infrastructure.rule;
+package org.prebid.server.activity.infrastructure.debug;
 
 public interface Loggable {
 

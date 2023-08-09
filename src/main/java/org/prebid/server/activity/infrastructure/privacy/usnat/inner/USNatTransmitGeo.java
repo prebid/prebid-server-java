@@ -1,8 +1,11 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
+import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
+import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleEntryLog;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Gpc;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.KnownChildSensitiveDataConsent;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.MspaServiceProviderMode;
@@ -15,11 +18,14 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.USNat
 import java.util.List;
 import java.util.Objects;
 
-public class USNatTransmitGeo implements PrivacyModule {
+public class USNatTransmitGeo implements PrivacyModule, Loggable {
 
+    private final USNatGppReader gppReader;
     private final Result result;
 
     public USNatTransmitGeo(USNatGppReader gppReader) {
+        this.gppReader = gppReader;
+
         result = disallow(gppReader) ? Result.DISALLOW : Result.ALLOW;
     }
 
@@ -63,5 +69,13 @@ public class USNatTransmitGeo implements PrivacyModule {
 
     private static <T> boolean equals(T providedValue, USNatField<T> expectedValue) {
         return Objects.equals(providedValue, expectedValue.value());
+    }
+
+    @Override
+    public Object asLogEntry() {
+        return USNatModuleEntryLog.of(
+                USNatTransmitGeo.class.getSimpleName(),
+                ActivityDebugUtils.asLogEntry(gppReader),
+                result);
     }
 }

@@ -1,11 +1,13 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Objects;
 
-public class AndRule implements Rule {
+public class AndRule implements Rule, Loggable {
 
     private final List<? extends Rule> rules;
 
@@ -29,5 +31,10 @@ public class AndRule implements Rule {
         }
 
         return result;
+    }
+
+    @Override
+    public Object asLogEntry() {
+        return ActivityDebugUtils.asLogEntry(rules);
     }
 }

@@ -48,9 +48,7 @@ public class ActivityInfrastructureDebug {
     public void emitProcessedRule(Rule rule, Rule.Result result) {
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityRule.of(
-                    atLeast(TraceLevel.verbose) && rule instanceof Loggable loggableRule
-                            ? loggableRule.asLogEntry()
-                            : null,
+                    atLeast(TraceLevel.verbose) ? ActivityDebugUtils.asLogEntry(rule) : null,
                     result));
         }
 

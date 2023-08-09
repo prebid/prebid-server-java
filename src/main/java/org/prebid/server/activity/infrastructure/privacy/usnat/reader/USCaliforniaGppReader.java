@@ -2,6 +2,7 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspCaV1;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
 
@@ -9,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class USCaliforniaGppReader implements USNatGppReader {
+public class USCaliforniaGppReader implements USNatGppReader, Loggable {
 
     private static final List<Integer> DEFAULT_SENSITIVE_DATA = Collections.nCopies(12, null);
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
@@ -107,5 +108,10 @@ public class USCaliforniaGppReader implements USNatGppReader {
     @Override
     public Integer getPersonalDataConsents() {
         return ObjectUtil.getIfNotNull(consent, UspCaV1::getPersonalDataConsents);
+    }
+
+    @Override
+    public Object asLogEntry() {
+        return this.getClass().getSimpleName();
     }
 }
