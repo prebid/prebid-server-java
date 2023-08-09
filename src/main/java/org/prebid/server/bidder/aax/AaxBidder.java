@@ -51,7 +51,7 @@ public class AaxBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            List<BidderBid> bidderBids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+            final List<BidderBid> bidderBids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
             return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));

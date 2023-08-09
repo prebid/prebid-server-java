@@ -49,7 +49,7 @@ There are two ways to configure application settings: database and file. This do
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `cookie-sync.default-timeout-ms` - overrides host level config
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
-- `cookie-sync.pri` - a comma-separated list of prioritized cookie families
+- `cookie-sync.pri` - a list of prioritized bidder codes 
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this

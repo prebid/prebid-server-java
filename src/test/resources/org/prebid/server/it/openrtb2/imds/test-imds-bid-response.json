@@ -1,0 +1,21 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 7.77,
+          "adid": "adid",
+          "crid": "crid",
+          "cid": "cid",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300
+        }
+      ],
+      "seat": "imds"
+    }
+  ]
+}

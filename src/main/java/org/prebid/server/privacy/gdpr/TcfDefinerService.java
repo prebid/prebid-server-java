@@ -329,6 +329,13 @@ public class TcfDefinerService {
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }
 
+        return toValidResult(consentString, TCStringParsingResult.of(tcString, warnings));
+    }
+
+    private TCStringParsingResult toValidResult(String consentString, TCStringParsingResult parsingResult) {
+        final List<String> warnings = parsingResult.getWarnings();
+        final TCString tcString = parsingResult.getResult();
+
         final int version = tcString.getVersion();
         metrics.updatePrivacyTcfRequestsMetric(version);
 
@@ -338,6 +345,15 @@ public class TcfDefinerService {
                     + "deprecated and treated as corrupted TCF version 2");
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }
+
+        final int tcfPolicyVersion = tcString.getTcfPolicyVersion();
+        // disable support for tcf policy version > 4
+        if (tcfPolicyVersion > 4) {
+            warnings.add("Parsing consent string: %s failed. TCF policy version %d is not supported".formatted(
+                    consentString, tcfPolicyVersion));
+            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+        }
+
         return TCStringParsingResult.of(tcString, warnings);
     }
 

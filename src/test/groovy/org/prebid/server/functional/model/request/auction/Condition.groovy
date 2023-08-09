@@ -11,10 +11,10 @@ class Condition {
     List<String> componentName
     List<Integer> gppSid
     List<String> geo
+    String gpc
 
     static Condition getBaseCondition(String componentName = BidderName.GENERIC.value) {
         new Condition().tap {
-            it.gppSid = [GppSectionId.TCF_EU_V2.getIntValue()]
             it.componentType = [ConditionType.BIDDER]
             it.componentName = [componentName]
         }

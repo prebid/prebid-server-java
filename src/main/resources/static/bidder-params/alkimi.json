@@ -14,11 +14,15 @@
       "description": "The minimum CPM price in USD",
       "minimum": 0
     },
-    "pos": {
+    "instl": {
       "type": "number",
-      "description": "Specify the position of the ad as a relative measure of visibility or prominence. Allowed values: Above the fold: `1`; Below the fold: `3`; Middle of the fold: `7`;"
+      "description": "Set to 1 if using interstitial (default: 0)"
+    },
+    "exp": {
+      "type": "number",
+      "description": "Advisory as to the number of seconds that may elapse between the auction and the actual impression"
     }
   },
 
-  "required": ["token", "bidFloor"]
+  "required": ["token"]
 }

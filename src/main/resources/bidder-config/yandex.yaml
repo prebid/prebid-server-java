@@ -1,6 +1,6 @@
 adapters:
   yandex:
-    endpoint: https://bs.yandex.ru/prebid/{{PageId}}?imp-id={{ImpId}}&ssp-id=10500
+    endpoint: https://bs-metadsp.yandex.ru/prebid/{{PageId}}?imp-id={{ImpId}}&ssp-id=10500
     endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@yandex-team.ru

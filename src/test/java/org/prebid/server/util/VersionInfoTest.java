@@ -16,7 +16,7 @@ public class VersionInfoTest extends VertxTest {
     @Test
     public void shouldCreateVersionWithUndefinedForAllFieldsIfFileWasNotFound() {
         // when
-        VersionInfo versionInfo = VersionInfo.create("not_found.json", jacksonMapper);
+        final VersionInfo versionInfo = VersionInfo.create("not_found.json", jacksonMapper);
 
         // then
         assertThat(versionInfo)
@@ -27,7 +27,7 @@ public class VersionInfoTest extends VertxTest {
     @Test
     public void shouldCreateVersionInfoWithAllProperties() {
         // when
-        VersionInfo versionInfo = VersionInfo.create(
+        final VersionInfo versionInfo = VersionInfo.create(
                 "org/prebid/server/util/resource/version/version.json", jacksonMapper);
 
         // then
@@ -39,7 +39,7 @@ public class VersionInfoTest extends VertxTest {
     @Test
     public void shouldCreateVersionWithUndefinedForEachMissingPropertyInFile() {
         // when
-        VersionInfo versionInfo = VersionInfo.create(
+        final VersionInfo versionInfo = VersionInfo.create(
                 "org/prebid/server/util/resource/version/empty.json", jacksonMapper);
 
         // then

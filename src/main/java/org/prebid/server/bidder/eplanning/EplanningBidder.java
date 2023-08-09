@@ -85,7 +85,7 @@ public class EplanningBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<String> requestsStrings = new ArrayList<>();
-        boolean isMobile = isMobile(request);
+        final boolean isMobile = isMobile(request);
 
         String clientId = null;
         for (final Imp imp : request.getImp()) {
@@ -296,7 +296,7 @@ public class EplanningBidder implements Bidder<Void> {
 
     private Result<List<BidderBid>> extractBids(HbResponse hbResponse, BidRequest bidRequest) {
         final Map<String, String> nameSpaceToImpId = new HashMap<>();
-        boolean isMobile = isMobile(bidRequest);
+        final boolean isMobile = isMobile(bidRequest);
         for (Imp imp : bidRequest.getImp()) {
             final ExtImpEplanning impExt;
             try {

@@ -201,7 +201,7 @@ public class ImplicitParametersExtractorTest {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.builder()
-                        .add(HttpUtil.SEC_GPC, "1")
+                        .add(HttpUtil.SEC_GPC_HEADER, "1")
                         .build())
                 .build();
 
@@ -217,7 +217,7 @@ public class ImplicitParametersExtractorTest {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.builder()
-                        .add(HttpUtil.SEC_GPC, "\"1\"")
+                        .add(HttpUtil.SEC_GPC_HEADER, "\"1\"")
                         .build())
                 .build();
 

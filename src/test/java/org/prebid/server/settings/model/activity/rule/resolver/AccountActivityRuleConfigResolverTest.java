@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityPrivacyModulesRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,10 +16,23 @@ public class AccountActivityRuleConfigResolverTest {
     private final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
     @Test
+    public void matchesShouldReturnPrivacyModulesRuleTypeForCertainConfig() {
+        //given
+        final ObjectNode config = mapper.createObjectNode();
+        config.put("privacyreg", 1);
+
+        // when
+        final Class<? extends AccountActivityRuleConfig> result = AccountActivityRuleConfigResolver.resolve(config);
+
+        // then
+        assertThat(result).isEqualTo(AccountActivityPrivacyModulesRuleConfig.class);
+    }
+
+    @Test
     public void matchesShouldReturnGeoRuleTypeForCertainConfig() {
         //given
         final ObjectNode config = mapper.createObjectNode();
-        config.put("gppSid", 1);
+        config.putObject("condition").put("gppSid", 1);
 
         // when
         final Class<? extends AccountActivityRuleConfig> result = AccountActivityRuleConfigResolver.resolve(config);

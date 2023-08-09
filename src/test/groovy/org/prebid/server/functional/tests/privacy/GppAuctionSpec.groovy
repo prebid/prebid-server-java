@@ -19,8 +19,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BAS
 
 class GppAuctionSpec extends PrivacyBaseSpec {
 
-    private static final String VALID_VALUE_FOR_GPC_HEADER = "1"
-
     def "PBS should populate gdpr to 1 when regs.gdpr is not specified and gppSid contains 2"() {
         given: "Default bid request with gppSid and without gdpr"
         def gppSidIds = [TCF_EU_V2.intValue]

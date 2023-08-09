@@ -27,5 +27,7 @@ public class AccountActivityGeoRuleConfig implements AccountActivityRuleConfig {
 
         @JsonProperty("geo")
         List<String> geoCodes;
+
+        String gpc;
     }
 }

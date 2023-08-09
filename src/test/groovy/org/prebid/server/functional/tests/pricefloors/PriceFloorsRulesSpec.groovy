@@ -880,7 +880,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS should populate seatNonBid when bid rejected due to floor"() {
         given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(floorsConfig)
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -927,7 +927,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS shouldn't populate seatNonBid when rejected due to floor and returnAllBidStatus is false"() {
         given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(floorsConfig)
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
