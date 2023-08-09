@@ -1,9 +1,8 @@
-package org.prebid.server.activity.infrastructure;
+package org.prebid.server.activity.infrastructure.debug;
 
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.rule.Loggable;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;

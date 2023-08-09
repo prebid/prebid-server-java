@@ -2,6 +2,7 @@
 package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
