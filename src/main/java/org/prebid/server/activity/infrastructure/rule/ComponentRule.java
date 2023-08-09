@@ -5,7 +5,7 @@ import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 
 import java.util.Set;
 
-public final class ComponentRule implements Rule {
+public final class ComponentRule extends AbstractMatchRule {
 
     private final Set<ComponentType> componentTypes;
     private final Set<String> componentNames;

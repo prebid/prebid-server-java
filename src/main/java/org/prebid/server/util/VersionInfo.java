@@ -26,7 +26,7 @@ public class VersionInfo {
     }
 
     public static VersionInfo create(String revisionFilePath, JacksonMapper jacksonMapper) {
-        Revision revision;
+        final Revision revision;
         try {
             revision = jacksonMapper.mapper().readValue(ResourceUtil.readFromClasspath(revisionFilePath),
                     Revision.class);

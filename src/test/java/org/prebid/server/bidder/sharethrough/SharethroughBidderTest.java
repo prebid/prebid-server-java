@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -234,11 +237,96 @@ public class SharethroughBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
                 .allSatisfy(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSplitImpressionsByMediaType() {
+        // given
+        final Banner banner = Banner.builder().w(1).h(1).build();
+        final Video video = Video.builder().w(2).h(2).build();
+        final Native xNative = Native.builder().request("some request").build();
+        final BidRequest multiformatBidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .banner(banner)
+                        .video(video)
+                        .xNative(xNative)
+                        .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(multiformatBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        assertThat(httpRequests).hasSize(3);
+
+        // Each split bid request has only 1 impression
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .allSatisfy(impressions -> assertThat(impressions).hasSize(1));
+
+        // All split bid requests share the same impression ID
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(impressions -> impressions.get(0))
+                .allSatisfy(impression -> assertThat(impression.getId()).isEqualTo("123"));
+
+        // The multiformat bid request is split into a bid request per media type
+        assertThat(httpRequests)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(impressions -> impressions.get(0))
+                // Ignore audio impressions because it is currently not supported
+                .satisfiesExactlyInAnyOrder(
+                        impression -> {
+                            assertThat(impression.getBanner()).isEqualTo(banner);
+                            assertThat(impression.getVideo()).isNull();
+                            assertThat(impression.getXNative()).isNull();
+                            assertThat(impression.getAudio()).isNull();
+                        },
+                        impression -> {
+                            assertThat(impression.getVideo()).isEqualTo(video);
+                            assertThat(impression.getBanner()).isNull();
+                            assertThat(impression.getXNative()).isNull();
+                            assertThat(impression.getAudio()).isNull();
+                        },
+                        impression -> {
+                            assertThat(impression.getXNative()).isEqualTo(xNative);
+                            assertThat(impression.getBanner()).isNull();
+                            assertThat(impression.getVideo()).isNull();
+                            assertThat(impression.getAudio()).isNull();
+                        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenCalledWithUnsupportedMediaType() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .banner(null)
+                        .video(null)
+                        .xNative(null)
+                        .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final List<BidderError> errors = result.getErrors();
+        assertThat(errors).hasSize(1);
+        assertThat(errors.get(0).getMessage())
+                .isEqualTo("Invalid MediaType. Sharethrough only supports Banner, Video and Native.");
     }
 
     @Test
@@ -366,7 +454,7 @@ public class SharethroughBidderTest extends VertxTest {
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
+                .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -376,19 +464,12 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
-                                "pkey",
-                                singletonList("imp.ext.badv"),
-                                singletonList("imp.ext.bcat"))))))
-                .build();
-    }
-
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
+                .id("123")
+                .banner(Banner.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                        "pkey",
+                        singletonList("imp.ext.badv"),
+                        singletonList("imp.ext.bcat"))))))
                 .build();
     }
 
@@ -412,8 +493,8 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static Bid givenBid(String impid, BidType bidType, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
-                        .impid(impid)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
+                .impid(impid)
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
                 .build();
     }
 

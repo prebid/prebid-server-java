@@ -1197,9 +1197,9 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNativeObjectVersionIsOneDotTwoAndRequestContextIsMissed() {
+    public void makeHttpRequestsShouldNotReturnErrorIfRequestContextIsMissed() {
         // given
-        final String nativeRequest = "{\"eventtrackers\":[],\"placement\":2}";
+        final String nativeRequest = "{\"eventtrackers\":[],\"plcmttype\":2}";
         final Imp nativeImp = givenImp(builder -> builder
                 .id("1")
                 .xNative(Native.builder()
@@ -1212,11 +1212,8 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(
-                        BidderError.of("Error in native object for imp with id 1: "
-                                + "Context is not present or not of int type", BidderError.Type.bad_input));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -1238,7 +1235,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(
                         BidderError.of("Error in native object for imp with id 1: "
-                                + "Context is not present or not of int type", BidderError.Type.bad_input));
+                                + "Context is not of int type", BidderError.Type.bad_input));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -1419,8 +1416,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .containsExactly(
                         User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
-                        .build());
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build());
     }
 
     @Test
@@ -1918,7 +1915,11 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFillRegsIfRegsAndGdprArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.regs(Regs.builder().gdpr(50).usPrivacy("us").build()),
+                builder -> builder.regs(Regs.builder()
+                        .gdpr(50)
+                        .usPrivacy("us")
+                        .ext(ExtRegs.of(null, null, "1"))
+                        .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -1930,7 +1931,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
-                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us")).build());
+                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us", "1")).build());
     }
 
     @Test

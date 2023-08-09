@@ -101,4 +101,9 @@ public class ImplicitParametersExtractor {
                 || StringUtils.equalsIgnoreCase(httpRequest.getScheme(), "https")
                 ? 1 : null;
     }
+
+    public String gpcFrom(HttpRequestContext httpRequest) {
+        final String gpcAsString = httpRequest.getHeaders().get(HttpUtil.SEC_GPC_HEADER);
+        return "1".equals(gpcAsString) || "\"1\"".equals(gpcAsString) ? "1" : null;
+    }
 }

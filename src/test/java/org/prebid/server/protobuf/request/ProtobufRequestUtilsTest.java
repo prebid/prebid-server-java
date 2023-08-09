@@ -883,7 +883,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     private static Regs givenRegs() {
-        final ExtRegs extRegs = ExtRegs.of(0, "");
+        final ExtRegs extRegs = ExtRegs.of(0, "", null);
         extRegs.addProperty("field", TextNode.valueOf("fieldValue"));
 
         return Regs.builder()

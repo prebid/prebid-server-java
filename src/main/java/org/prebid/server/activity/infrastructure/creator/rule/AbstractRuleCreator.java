@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
+import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.rule.Rule;
-import org.prebid.server.auction.gpp.model.GppContext;
 
 import java.util.Objects;
 
@@ -19,13 +19,15 @@ public abstract class AbstractRuleCreator<T> implements RuleCreator<T> {
     }
 
     @Override
-    public Rule from(Object ruleConfiguration, GppContext gppContext) {
+    public Rule from(Object ruleConfiguration, ActivityControllerCreationContext creationContext) {
         if (!relatedConfigurationClass.isInstance(ruleConfiguration)) {
             throw new AssertionError();
         }
 
-        return fromConfiguration(relatedConfigurationClass.cast(ruleConfiguration), gppContext);
+        return fromConfiguration(
+                relatedConfigurationClass.cast(ruleConfiguration),
+                creationContext);
     }
 
-    protected abstract Rule fromConfiguration(T ruleConfiguration, GppContext gppContext);
+    protected abstract Rule fromConfiguration(T ruleConfiguration, ActivityControllerCreationContext creationContext);
 }

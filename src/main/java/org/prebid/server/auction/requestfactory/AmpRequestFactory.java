@@ -39,6 +39,7 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -186,13 +187,14 @@ public class AmpRequestFactory {
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest);
+        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
                 .user(createUser(consentParam, addtlConsent))
-                .regs(createRegs(consentParam, gppSidExtraction, gdpr))
+                .regs(createRegs(consentParam, gppSidExtraction, gdpr, gpc))
                 .test(debug)
                 .tmax(timeout)
                 .ext(createExt(httpRequest, tagId, debug))
@@ -271,7 +273,9 @@ public class AmpRequestFactory {
 
     private static Regs createRegs(ConsentParam consentParam,
                                    GppSidExtraction gppSidExtraction,
-                                   Integer gdpr) {
+                                   Integer gdpr,
+                                   String gpc) {
+
         final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         final boolean isSuccessGppSidExtraction = gppSidExtraction.isSuccessExtraction();
@@ -280,12 +284,13 @@ public class AmpRequestFactory {
                 ? consentParam.getConsentString()
                 : null;
 
-        return gdpr != null || usPrivacy != null || gppSid != null || gpp != null
+        return gdpr != null || usPrivacy != null || gppSid != null || gpp != null || gpc != null
                 ? Regs.builder()
                 .gdpr(gdpr)
                 .usPrivacy(usPrivacy)
                 .gppSid(gppSid)
                 .gpp(gpp)
+                .ext(gpc != null ? ExtRegs.of(null, null, gpc) : null)
                 .build()
                 : null;
     }

@@ -1129,8 +1129,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         final JsonNode context = requestNode.get("context");
-        if (context == null || !context.isInt()) {
-            throw new PreBidException("Context is not present or not of int type");
+        if (context != null && !context.isInt()) {
+            throw new PreBidException("Context is not of int type");
         }
 
         final JsonNode placement = requestNode.get("plcmttype");
@@ -1549,7 +1549,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return regs;
         }
 
-        final ExtRegs extRegs = copyProperties(regs.getExt(), ExtRegs.of(gdpr, usPrivacy));
+        final ExtRegs originalExtRegs = regs.getExt();
+        final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
+        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc));
 
         return regs.toBuilder()
                 .gdpr(null)

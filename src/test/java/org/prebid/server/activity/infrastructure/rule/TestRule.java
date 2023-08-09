@@ -5,7 +5,7 @@ import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class TestRule implements Rule {
+public class TestRule extends AbstractMatchRule {
 
     private final Predicate<ActivityCallPayload> predicate;
     private final boolean allowed;

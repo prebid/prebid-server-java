@@ -35,9 +35,35 @@ public class AccountActivityGeoRuleConfigMatcherTest {
     }
 
     @Test
-    public void matchesShouldReturnFalseIfExpectedPropertyNotFound() {
+    public void matchesShouldReturnFalseIfConditionPropertyNotFound() {
         // when
         final boolean result = target.matches(mapper.createObjectNode());
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    public void matchesShouldReturnFalseOnWrongNodeTypeOfConditionProperty() {
+        // given
+        final ObjectNode config = mapper.createObjectNode();
+        config.put("condition", 1);
+
+        // when
+        final boolean result = target.matches(config);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    public void matchesShouldReturnFalseIfExpectedPropertyNotFound() {
+        // given
+        final ObjectNode config = mapper.createObjectNode();
+        config.putObject("condition");
+
+        // when
+        final boolean result = target.matches(config);
 
         // then
         assertThat(result).isFalse();
@@ -47,7 +73,7 @@ public class AccountActivityGeoRuleConfigMatcherTest {
     public void matchesShouldReturnTrueOnConfigWithGppSid() {
         // given
         final ObjectNode config = mapper.createObjectNode();
-        config.put("gppSid", 1);
+        config.putObject("condition").put("gppSid", 1);
 
         // when
         final boolean result = target.matches(config);
@@ -60,7 +86,20 @@ public class AccountActivityGeoRuleConfigMatcherTest {
     public void matchesShouldReturnTrueOnConfigWithGeo() {
         // given
         final ObjectNode config = mapper.createObjectNode();
-        config.put("geo", 1);
+        config.putObject("condition").put("geo", 1);
+
+        // when
+        final boolean result = target.matches(config);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void matchesShouldReturnTrueOnConfigWithGpc() {
+        // given
+        final ObjectNode config = mapper.createObjectNode();
+        config.putObject("condition").put("gpc", 1);
 
         // when
         final boolean result = target.matches(config);

@@ -931,6 +931,43 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldAddRegionFromPrivacy() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.builder()
+                        .geoInfo(GeoInfo.builder().vendor("v").region("region").build())
+                        .build(),
+                null);
+
+        final Account account = Account.empty("id");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("region");
+    }
+
+    @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldAddIpAddressV4FromPrivacy() {
         // given
         given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ignored", IpAddress.IP.v4));
