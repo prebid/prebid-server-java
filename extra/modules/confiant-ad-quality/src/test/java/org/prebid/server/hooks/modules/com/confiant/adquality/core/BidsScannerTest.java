@@ -20,26 +20,30 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsDat
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class RedisClientTest {
+public class BidsScannerTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private RedisVerticle redisVerticle;
+    private RedisClient writeRedisNode;
+
+    @Mock
+    private RedisClient readRedisNode;
 
     @Mock
     private RedisAPI redisAPI;
 
-    private RedisClient redisClientTest;
+    private BidsScanner bidsScannerTest;
 
     @Before
     public void setUp() {
-        redisClientTest = new RedisClient(redisVerticle, "api-key");
+        bidsScannerTest = new BidsScanner(writeRedisNode, readRedisNode, "api-key");
     }
 
     @Test()
@@ -48,19 +52,19 @@ public class RedisClientTest {
         final Promise<Void> startFuture = Promise.promise();
 
         // when
-        redisClientTest.start(startFuture);
+        bidsScannerTest.start(startFuture);
 
         // then
-        verify(redisVerticle, times(1)).start(startFuture);
+        verify(writeRedisNode, times(1)).start((Promise<Void>) any());
     }
 
     @Test()
     public void shouldReturnScanIsDisabledWhenApiIsNotInitialized() {
         // given
-        doReturn(null).when(redisVerticle).getRedisAPI();
+        doReturn(null).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<Boolean> isScanDisabled = redisClientTest.isScanDisabled();
+        final Future<Boolean> isScanDisabled = bidsScannerTest.isScanDisabledFlag();
 
         // then
         assertThat(isScanDisabled.succeeded()).isTrue();
@@ -71,10 +75,10 @@ public class RedisClientTest {
     public void shouldReturnScanIsDisabledWhenRedisFlagIsTrue() {
         // given
         final RedisAPI redisAPI = getRedisEmulationWithAnswer("true");
-        doReturn(redisAPI).when(redisVerticle).getRedisAPI();
+        doReturn(redisAPI).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<Boolean> isScanDisabled = redisClientTest.isScanDisabled();
+        final Future<Boolean> isScanDisabled = bidsScannerTest.isScanDisabledFlag();
 
         // then
         assertThat(isScanDisabled.succeeded()).isTrue();
@@ -85,10 +89,10 @@ public class RedisClientTest {
     public void shouldReturnScanIsNotDisabledWhenRedisFlagIsFalse() {
         // given
         final RedisAPI redisAPI = getRedisEmulationWithAnswer("false");
-        doReturn(redisAPI).when(redisVerticle).getRedisAPI();
+        doReturn(redisAPI).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<Boolean> isScanDisabled = redisClientTest.isScanDisabled();
+        final Future<Boolean> isScanDisabled = bidsScannerTest.isScanDisabledFlag();
 
         // then
         assertThat(isScanDisabled.succeeded()).isTrue();
@@ -98,10 +102,10 @@ public class RedisClientTest {
     @Test()
     public void shouldReturnEmptyScanResultWhenApiIsNotInitialized() {
         // given
-        doReturn(null).when(redisVerticle).getRedisAPI();
+        doReturn(null).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<BidsScanResult> scanResult = redisClientTest.submitBids(RedisBidsData.builder().build());
+        final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(RedisBidsData.builder().build());
 
         // then
         assertThat(scanResult.succeeded()).isTrue();
@@ -111,10 +115,10 @@ public class RedisClientTest {
     @Test()
     public void shouldReturnEmptyScanResultWhenThereIsNoBidderResponses() {
         // given
-        doReturn(redisAPI).when(redisVerticle).getRedisAPI();
+        doReturn(redisAPI).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<BidsScanResult> scanResult = redisClientTest
+        final Future<BidsScanResult> scanResult = bidsScannerTest
                 .submitBids(RedisBidsData.builder().bresps(List.of()).build());
 
         // then
@@ -123,7 +127,7 @@ public class RedisClientTest {
     }
 
     @Test()
-    public void shouldReturnRedisScanResultWhenThereIsSomeBidderResponse() {
+    public void shouldReturnEmptyScanResultWhenThereIsSomeBidderResponseAndScanIsDisabled() {
         // given
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
         final RedisAPI redisAPI = getRedisEmulationWithAnswer(redisResponse);
@@ -133,10 +137,60 @@ public class RedisClientTest {
                         .dspId("dsp_id")
                         .bidresponse(BidResponse.builder().build())
                         .build())).build();
-        doReturn(redisAPI).when(redisVerticle).getRedisAPI();
+        doReturn(redisAPI).when(readRedisNode).getRedisAPI();
 
         // when
-        final Future<BidsScanResult> scanResult = redisClientTest
+        final Future<BidsScanResult> scanResult = bidsScannerTest
+                .submitBids(bidsData);
+
+        // then
+        assertThat(scanResult.succeeded()).isTrue();
+        assertThat(scanResult.result().hasIssues()).isFalse();
+    }
+
+    @Test()
+    public void shouldReturnRedisScanResultFromReadNodeWhenThereIsSomeBidderResponseAndScanIsEnabled() {
+        // given
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final RedisAPI redisAPI = getRedisEmulationWithAnswer(redisResponse);
+        final RedisBidsData bidsData = RedisBidsData.builder()
+                .breq(BidRequest.builder().build())
+                .bresps(List.of(RedisBidResponseData.builder()
+                        .dspId("dsp_id")
+                        .bidresponse(BidResponse.builder().build())
+                        .build())).build();
+        bidsScannerTest.enableScan();
+        doReturn(redisAPI).when(readRedisNode).getRedisAPI();
+
+        // when
+        final Future<BidsScanResult> scanResult = bidsScannerTest
+                .submitBids(bidsData);
+
+        // then
+        assertThat(scanResult.succeeded()).isTrue();
+        assertThat(scanResult.result().hasIssues()).isTrue();
+    }
+
+    @Test()
+    public void shouldReturnRedisScanResultFromWriteNodeWhenReadNodeHasMissingResults() {
+        // given
+        final String readRedisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"ro_skipped\": \"true\"}]]]";
+        final RedisAPI readRedisAPI = getRedisEmulationWithAnswer(readRedisResponse);
+        final RedisBidsData bidsData = RedisBidsData.builder()
+                .breq(BidRequest.builder().build())
+                .bresps(List.of(RedisBidResponseData.builder()
+                        .dspId("dsp_id")
+                        .bidresponse(BidResponse.builder().build())
+                        .build())).build();
+        bidsScannerTest.enableScan();
+        doReturn(readRedisAPI).when(readRedisNode).getRedisAPI();
+
+        final String writeRedisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final RedisAPI writeRedisAPI = getRedisEmulationWithAnswer(writeRedisResponse);
+        doReturn(writeRedisAPI).when(writeRedisNode).getRedisAPI();
+
+        // when
+        final Future<BidsScanResult> scanResult = bidsScannerTest
                 .submitBids(bidsData);
 
         // then

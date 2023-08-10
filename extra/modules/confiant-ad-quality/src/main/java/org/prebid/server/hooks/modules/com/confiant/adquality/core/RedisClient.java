@@ -1,81 +1,107 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
-import io.vertx.core.Future;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.redis.client.Redis;
 import io.vertx.redis.client.RedisAPI;
-import io.vertx.redis.client.Response;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;
-
-import java.util.Collections;
-import java.util.List;
+import io.vertx.redis.client.RedisConnection;
+import io.vertx.redis.client.RedisOptions;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisRetryConfig;
 
 public class RedisClient {
 
-    private final RedisParser redisParser = new RedisParser();
+    private static final Logger logger = LoggerFactory.getLogger(RedisClient.class);
 
-    private final String apiKey;
+    private final RedisOptions options;
 
-    private final RedisVerticle redisVerticle;
+    private RedisConnection connection;
 
-    public RedisClient(RedisVerticle redisVerticle, String apiKey) {
-        this.apiKey = apiKey;
-        this.redisVerticle = redisVerticle;
+    private RedisAPI redisAPI;
+
+    private final RedisRetryConfig retryConfig;
+
+    private final Vertx vertx;
+
+    private final String type;
+
+    public RedisClient(
+            Vertx vertx,
+            String host,
+            int port,
+            String password,
+            RedisRetryConfig retryConfig,
+            String type) {
+        this.vertx = vertx;
+        this.retryConfig = retryConfig;
+        this.options = new RedisOptions().setConnectionString("redis://:" + password + "@" + host + ":" + port);
+        this.type = type;
     }
 
     public void start(Promise<Void> startFuture) {
-        redisVerticle.start(startFuture);
+        createRedisClient(onCreate -> {
+            if (onCreate.succeeded()) {
+                logger.info("Confiant Redis {0} connection is established", type);
+                startFuture.tryComplete();
+            }
+        }, false);
     }
 
-    public Future<BidsScanResult> submitBids(RedisBidsData bids) {
-        final Promise<BidsScanResult> scanResult = Promise.promise();
-        final RedisAPI redisAPI = this.redisVerticle.getRedisAPI();
-        if (redisAPI != null && bids.getBresps().size() > 0) {
-            redisAPI.get("function_submit_bids", submitHash -> {
-                if (submitHash.result() != null) {
-                    redisAPI
-                            .evalsha(List.of(submitHash.result().toString(), "0", bids.toJson(), apiKey), response -> {
-                                if (response.result() != null) {
-                                    final OperationResult<List<BidScanResult>> parserResult = redisParser
-                                            .parseBidsScanResult(response.result().toString());
+    public RedisAPI getRedisAPI() {
+        return redisAPI;
+    }
 
-                                    scanResult.complete(new BidsScanResult(parserResult));
-                                } else {
-                                    scanResult.complete(getEmptyScanResult());
-                                }
-                            });
-                } else {
-                    scanResult.complete(getEmptyScanResult());
+    /**
+     * Will create a redis client and setup a reconnect handler when there is
+     * an exception in the connection.
+     */
+    private void createRedisClient(Handler<AsyncResult<RedisConnection>> handler, boolean isReconnect) {
+        Redis.createClient(vertx, options)
+                .connect(onConnect -> {
+                    if (onConnect.succeeded()) {
+                        connection = onConnect.result();
+                        connection.exceptionHandler(e -> {
+                            if (connection != null) {
+                                connection.close();
+                                connection = null;
+                                attemptReconnect(0, handler);
+                            }
+                        });
+                        connection.endHandler(e -> {
+                            if (connection != null) {
+                                connection.close();
+                                connection = null;
+                                attemptReconnect(0, handler);
+                            }
+                        });
+                        redisAPI = RedisAPI.api(connection);
+                        handler.handle(onConnect);
+                    } else if (!isReconnect) {
+                        attemptReconnect(0, handler);
+                    } else {
+                        handler.handle(onConnect);
+                    }
+                });
+    }
+
+    private void attemptReconnect(int retry, Handler<AsyncResult<RedisConnection>> handler) {
+        if (retry > (retryConfig.getShortIntervalAttempts() + retryConfig.getLongIntervalAttempts())) {
+            logger.info("Confiant Redis connection is not established");
+        } else {
+            long backoff = retry < retryConfig.getShortIntervalAttempts()
+                    ? retryConfig.getShortInterval()
+                    : retryConfig.getLongInterval();
+
+            vertx.setTimer(backoff, timer -> createRedisClient(onReconnect -> {
+                if (onReconnect.failed()) {
+                    attemptReconnect(retry + 1, handler);
+                } else if (onReconnect.succeeded()) {
+                    handler.handle(onReconnect);
                 }
-            });
-
-            return scanResult.future();
+            }, true));
         }
-
-        return Future.succeededFuture(getEmptyScanResult());
-    }
-
-    public Future<Boolean> isScanDisabled() {
-        final RedisAPI redisAPI = this.redisVerticle.getRedisAPI();
-        final Promise<Boolean> isDisabled = Promise.promise();
-
-        if (redisAPI != null) {
-            redisAPI.get("scan-disabled", scanDisabledValue -> {
-                final Response scanDisabled = scanDisabledValue.result();
-                isDisabled.complete(scanDisabled != null && scanDisabled.toString().equals("true"));
-            });
-
-            return isDisabled.future();
-        }
-
-        return Future.succeededFuture(true);
-    }
-
-    private BidsScanResult getEmptyScanResult() {
-        return new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
-                .value(Collections.emptyList())
-                .debugMessages(Collections.emptyList())
-                .build());
     }
 }

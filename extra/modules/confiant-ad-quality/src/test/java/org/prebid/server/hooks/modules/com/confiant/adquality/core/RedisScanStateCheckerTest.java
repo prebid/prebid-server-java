@@ -9,8 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,77 +19,67 @@ public class RedisScanStateCheckerTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private RedisClient redisClient;
+    private BidsScanner bidsScanner;
 
     private RedisScanStateChecker scanStateChecker;
 
     @Before
     public void setUp() {
-        scanStateChecker = new RedisScanStateChecker(redisClient, 1000L, Vertx.vertx());
+        scanStateChecker = new RedisScanStateChecker(bidsScanner, 1000L, Vertx.vertx());
     }
 
     @Test
-    public void shouldHaveValidInitialScanDisabled() {
+    public void shouldDisableScanWhenRedisClientReturnsTrueFlag() {
         // given
-
-        // when
-
-        // then
-        assertTrue(scanStateChecker.isScanDisabled());
-    }
-
-    @Test
-    public void shouldHaveValidScanDisabledWhenRedisClientReturnsTrue() {
-        // given
-        doReturn(Future.succeededFuture(true)).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(true)).when(bidsScanner).isScanDisabledFlag();
 
         // when
         scanStateChecker.run();
 
         // then
-        assertTrue(scanStateChecker.isScanDisabled());
+        verify(bidsScanner, times(1)).disableScan();
     }
 
     @Test
-    public void shouldHaveValidScanDisabledWhenRedisClientReturnsFalse() throws InterruptedException {
+    public void shouldEnableScanWhenRedisClientReturnsFalseFlag() throws InterruptedException {
         // given
-        doReturn(Future.succeededFuture(false)).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(false)).when(bidsScanner).isScanDisabledFlag();
 
         // when
         scanStateChecker.run();
         Thread.sleep(1100L);
 
         // then
-        assertFalse(scanStateChecker.isScanDisabled());
+        verify(bidsScanner, times(2)).enableScan();
     }
 
     @Test
-    public void shouldProperlyInitCheckerTimerAndCallRedisClient() throws InterruptedException {
+    public void shouldProperlyInitCheckerTimerAndCallBidsScanner() throws InterruptedException {
         // given
-        doReturn(Future.succeededFuture(false)).when(redisClient).isScanDisabled();
+        doReturn(Future.succeededFuture(false)).when(bidsScanner).isScanDisabledFlag();
 
         // when
         scanStateChecker.run();
 
         // then
         Thread.sleep(1100L);
-        verify(redisClient, times(2)).isScanDisabled();
+        verify(bidsScanner, times(2)).isScanDisabledFlag();
         Thread.sleep(1100L);
-        verify(redisClient, times(3)).isScanDisabled();
+        verify(bidsScanner, times(3)).isScanDisabledFlag();
     }
 
     @Test
     public void shouldProperlyManageDisabledFlagByTimer() throws InterruptedException {
         // given
         doReturn(Future.succeededFuture(true), Future.succeededFuture(false))
-                .when(redisClient).isScanDisabled();
+                .when(bidsScanner).isScanDisabledFlag();
 
         // when
         scanStateChecker.run();
 
         // then
-        assertTrue(scanStateChecker.isScanDisabled());
+        verify(bidsScanner, times(1)).disableScan();
         Thread.sleep(1100L);
-        assertFalse(scanStateChecker.isScanDisabled());
+        verify(bidsScanner, times(1)).enableScan();
     }
 }

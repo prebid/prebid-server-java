@@ -5,6 +5,7 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResul
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 public class BidsScanResult {
@@ -16,8 +17,12 @@ public class BidsScanResult {
     }
 
     public boolean hasIssues() {
-        return result.getValue() != null && !result.getValue().isEmpty() && result.getValue().stream()
-                .anyMatch(result -> result.getIssues() != null && result.getIssues().size() > 0);
+        return Optional.ofNullable(result.getValue())
+                .map(scanResults -> scanResults.stream()
+                        .anyMatch(result -> Optional.ofNullable(result.getIssues())
+                                .map(issues -> !issues.isEmpty())
+                                .orElse(false)))
+                .orElse(false);
     }
 
     public List<BidderResponse> filterValidResponses(List<BidderResponse> responses) {
@@ -32,6 +37,7 @@ public class BidsScanResult {
                 .map(r -> r.getTagKey() + ": " + (r.getIssues() == null ? "no issues" : r.getIssues().toString()))
                 .toList();
     }
+
     public List<String> getDebugMessages() {
         return result.getDebugMessages();
     }

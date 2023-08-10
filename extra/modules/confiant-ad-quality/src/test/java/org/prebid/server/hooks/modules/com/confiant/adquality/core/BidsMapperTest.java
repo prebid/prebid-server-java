@@ -35,7 +35,7 @@ public class BidsMapperTest {
         final List<BidderResponse> bidderResponses = List.of(bidderResponse1, bidderResponse2);
 
         // when
-        final RedisBidsData result = BidsMapper.bidResponsesToRedisBids(bidRequest, bidderResponses);
+        final RedisBidsData result = BidsMapper.toRedisBidsFromBidResponses(bidRequest, bidderResponses);
 
         // then
         assertThat(result.getBreq()).isEqualTo(bidRequest);

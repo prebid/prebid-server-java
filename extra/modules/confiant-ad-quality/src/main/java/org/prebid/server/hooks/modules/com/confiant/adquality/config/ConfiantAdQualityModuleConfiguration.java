@@ -3,9 +3,11 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.config;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisVerticle;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisConfig;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisConnectionConfig;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisRetryConfig;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.ConfiantAdQualityBidResponsesScanHook;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.ConfiantAdQualityModule;
@@ -23,32 +25,40 @@ import java.util.List;
 @PropertySource(
         value = "classpath:/module-config/confiant-ad-quality.yaml",
         factory = YamlPropertySourceFactory.class)
-
 @Configuration
 public class ConfiantAdQualityModuleConfiguration {
 
     @Bean
     ConfiantAdQualityModule confiantAdQualityModule(
             @Value("${hooks.modules.confiant-ad-quality.api-key}") String apiKey,
-            @Value("${hooks.modules.confiant-ad-quality.redis-host}") String host,
-            @Value("${hooks.modules.confiant-ad-quality.redis-port}") int port,
-            @Value("${hooks.modules.confiant-ad-quality.redis-password}") String password,
-            @Value("${hooks.modules.confiant-ad-quality.scan-state-check-interval}") int checkInterval,
+            @Value("${hooks.modules.confiant-ad-quality.scan-state-check-interval}") int scanStateCheckInterval,
+            RedisConfig redisConfig,
             RedisRetryConfig retryConfig,
             Vertx vertx,
             PrivacyEnforcementService privacyEnforcementService) {
-        final RedisVerticle redisVerticle = new RedisVerticle(vertx, host, port, password, retryConfig);
-        final RedisClient redisClient = new RedisClient(redisVerticle, apiKey);
-        final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(redisClient, checkInterval, vertx);
+        final RedisConnectionConfig writeNodeConfig = redisConfig.getWriteNode();
+        final RedisClient writeRedisNode = new RedisClient(
+                vertx, writeNodeConfig.getHost(), writeNodeConfig.getPort(), writeNodeConfig.getPassword(), retryConfig, "write node");
+        final RedisConnectionConfig readNodeConfig = redisConfig.getReadNode();
+        final RedisClient readRedisNode = new RedisClient(
+                vertx, readNodeConfig.getHost(), readNodeConfig.getPort(), readNodeConfig.getPassword(), retryConfig, "read node");
 
-        // Initialize Redis connection and scan state check timer
-        final Promise<Void> startClient = Promise.promise();
-        startClient.future().onComplete(r -> redisScanStateChecker.run());
+        final BidsScanner bidsScanner = new BidsScanner(writeRedisNode, readRedisNode, apiKey);
+        final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(bidsScanner, scanStateCheckInterval, vertx);
 
-        redisClient.start(startClient);
+        final Promise<Void> scannerPromise = Promise.promise();
+        scannerPromise.future().onComplete(r -> redisScanStateChecker.run());
+
+        bidsScanner.start(scannerPromise);
 
         return new ConfiantAdQualityModule(List.of(
-                new ConfiantAdQualityBidResponsesScanHook(redisClient, redisScanStateChecker, privacyEnforcementService)));
+                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, privacyEnforcementService)));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "hooks.modules.confiant-ad-quality.redis-config")
+    RedisConfig redisConfig() {
+        return new RedisConfig();
     }
 
     @Bean

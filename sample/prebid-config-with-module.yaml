@@ -67,12 +67,18 @@ hooks:
   modules:
     confiant-ad-quality:
       api-key: "hgr876cerg7655"
-      redis-host: "127.0.0.1"
-      redis-port: 8467
-      redis-password: "password-master"
+      redis-config:
+        write-node:
+          host: "127.0.0.1"
+          port: 8467
+          password: "password-w"
+        read-node:
+          host: "127.0.0.1"
+          port: 8468
+          password: "password-r"
       redis-retry-config:
         short-interval-attempts: 60
         short-interval: 1000
         long-interval-attempts: 336
         long-interval: 1800000
-      scan-state-check-interval: 600000
+      scan-state-check-interval: 2900

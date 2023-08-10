@@ -23,6 +23,13 @@ public class BidScanResult {
     @JsonProperty("imp_id")
     String impId;
 
+    /**
+     * True if creative has not been previously recorded in Redis (or has expired).
+     * The bid response must be re-submitted to the corresponding Redis write node instance. Otherwise, false.
+     */
+    @JsonProperty("ro_skipped")
+    boolean roSkipped;
+
     /** An array of issue objects {@link Issue}. Only available if known_creative is true. */
     List<Issue> issues;
 }

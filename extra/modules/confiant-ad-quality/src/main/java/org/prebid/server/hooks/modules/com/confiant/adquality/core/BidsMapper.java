@@ -13,7 +13,7 @@ import java.util.List;
 
 public class BidsMapper {
 
-    public static RedisBidsData bidResponsesToRedisBids(
+    public static RedisBidsData toRedisBidsFromBidResponses(
             BidRequest bidRequest,
             List<BidderResponse> bidderResponses) {
 
@@ -21,18 +21,25 @@ public class BidsMapper {
                 .stream().map(bidResponse -> RedisBidResponseData
                         .builder()
                         .dspId(bidResponse.getBidder())
-                        .bidresponse(BidResponse.builder()
-                                .id(bidRequest.getId())
-                                .cur(bidRequest.getCur().get(0))
-                                .seatbid(Collections.singletonList(SeatBid.builder()
-                                        .bid(bidResponse.getSeatBid().getBids().stream().map(BidderBid::getBid).toList())
-                                        .build()))
-                                .build())
+                        .bidresponse(toBidResponseFromBidderResponse(bidRequest, bidResponse))
                         .build()).toList();
 
         return RedisBidsData.builder()
                 .breq(bidRequest)
                 .bresps(confiantBidResponses)
+                .build();
+    }
+
+    private static BidResponse toBidResponseFromBidderResponse(
+            BidRequest bidRequest,
+            BidderResponse bidderResponse) {
+
+        return BidResponse.builder()
+                .id(bidRequest.getId())
+                .cur(bidRequest.getCur().get(0))
+                .seatbid(Collections.singletonList(SeatBid.builder()
+                        .bid(bidderResponse.getSeatBid().getBids().stream().map(BidderBid::getBid).toList())
+                        .build()))
                 .build();
     }
 }

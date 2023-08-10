@@ -16,9 +16,8 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisParser;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -33,7 +32,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -43,10 +41,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private RedisClient redisClient;
-
-    @Mock
-    private RedisScanStateChecker redisScanStateChecker;
+    private BidsScanner bidsScanner;
 
     @Mock
     private AllProcessedBidResponsesPayload allProcessedBidResponsesPayload;
@@ -66,7 +61,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
     @Before
     public void setUp() {
-        hook = new ConfiantAdQualityBidResponsesScanHook(redisClient, redisScanStateChecker, privacyEnforcementService);
+        hook = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, privacyEnforcementService);
     }
 
     @Test
@@ -87,7 +82,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .debugMessages(Collections.emptyList())
                 .build());
 
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
         // when
@@ -112,7 +107,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"));
 
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
         // when
@@ -132,33 +127,19 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     }
 
     @Test
-    public void shouldSubmitBidsToRedisWhenScanIsNotDisabled() {
+    public void shouldSubmitBidsToScan() {
         // given
         final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]"));
 
-        doReturn(false).when(redisScanStateChecker).isScanDisabled();
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(redisClient, times(1)).submitBids(any());
-    }
-
-    @Test
-    public void shouldNotSubmitBidsToRedisWhenScanIsDisabled() {
-        // given
-        doReturn(true).when(redisScanStateChecker).isScanDisabled();
-        doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
-
-        // when
-        hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
-
-        // then
-        verify(redisClient, never()).submitBids(any());
+        verify(bidsScanner, times(1)).submitBids(any());
     }
 
     @Test
@@ -172,17 +153,17 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
                 getDevice(), true, !transmitGeoIsAllowed);
 
+        bidsScanner.enableScan();
         doReturn(transmitGeoIsAllowed).when(activityInfrastructure).isAllowed(any(), any());
-        doReturn(false).when(redisScanStateChecker).isScanDisabled();
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(redisClient, times(1)).submitBids(
-                BidsMapper.bidResponsesToRedisBids(BidRequest.builder()
+        verify(bidsScanner, times(1)).submitBids(
+                BidsMapper.toRedisBidsFromBidResponses(BidRequest.builder()
                         .user(user)
                         .device(device)
                         .build(), List.of())
@@ -200,17 +181,17 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
                 getDevice(), true, !transmitGeoIsAllowed);
 
+        bidsScanner.enableScan();
         doReturn(transmitGeoIsAllowed).when(activityInfrastructure).isAllowed(any(), any());
-        doReturn(false).when(redisScanStateChecker).isScanDisabled();
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
         // when
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(redisClient, times(1)).submitBids(
-                BidsMapper.bidResponsesToRedisBids(BidRequest.builder()
+        verify(bidsScanner, times(1)).submitBids(
+                BidsMapper.toRedisBidsFromBidResponses(BidRequest.builder()
                         .user(user)
                         .device(device)
                         .build(), List.of())
@@ -222,7 +203,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         // given
         final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult("[[[{\"t"));
 
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(true).when(auctionInvocationContext).debugEnabled();
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 
@@ -247,7 +228,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         // given
         final BidsScanResult bidsScanResult = new BidsScanResult(redisParser.parseBidsScanResult("[[[{\"t"));
 
-        doReturn(Future.succeededFuture(bidsScanResult)).when(redisClient).submitBids(any());
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(false).when(auctionInvocationContext).debugEnabled();
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
 

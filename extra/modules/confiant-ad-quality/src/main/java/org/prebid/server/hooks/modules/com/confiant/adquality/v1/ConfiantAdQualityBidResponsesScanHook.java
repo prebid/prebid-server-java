@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
@@ -16,9 +15,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -33,18 +30,14 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
 
     private static final String CODE = "confiant-ad-quality-bid-responses-scan-hook";
 
-    private final RedisClient redisClient;
-
-    private final RedisScanStateChecker redisScanStateChecker;
+    private final BidsScanner bidsScanner;
 
     private final PrivacyEnforcementService privacyEnforcementService;
 
     public ConfiantAdQualityBidResponsesScanHook(
-            RedisClient redisClient,
-            RedisScanStateChecker redisScanStateChecker,
+            BidsScanner bidsScanner,
             PrivacyEnforcementService privacyEnforcementService) {
-        this.redisClient = redisClient;
-        this.redisScanStateChecker = redisScanStateChecker;
+        this.bidsScanner = bidsScanner;
         this.privacyEnforcementService = privacyEnforcementService;
     }
 
@@ -54,19 +47,9 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             AuctionInvocationContext auctionInvocationContext) {
         final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
-        final boolean isScanDisabled = redisScanStateChecker.isScanDisabled();
 
-        if (isScanDisabled) {
-            return getResult(new BidsScanResult(OperationResult.empty()), auctionInvocationContext);
-        }
-
-        final Promise<InvocationResult<AllProcessedBidResponsesPayload>> processed = Promise.promise();
-
-        redisClient.submitBids(BidsMapper.bidResponsesToRedisBids(bidRequest, responses))
-                .onComplete(result -> processed
-                        .complete(getResult(result.result(), auctionInvocationContext).result()));
-
-        return processed.future();
+        return bidsScanner.submitBids(BidsMapper.toRedisBidsFromBidResponses(bidRequest, responses))
+                .map(scanResult -> toInvocationResult(scanResult, auctionInvocationContext));
     }
 
     private BidRequest getBidRequest(AuctionInvocationContext auctionInvocationContext) {
@@ -89,7 +72,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                 .build();
     }
 
-    private Future<InvocationResult<AllProcessedBidResponsesPayload>> getResult(
+    private InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(
             BidsScanResult bidsScanResult,
             AuctionInvocationContext auctionInvocationContext) {
         final boolean hasIssues = bidsScanResult.hasIssues();
@@ -111,7 +94,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                                 ? AllProcessedBidResponsesPayloadImpl.of(bidsScanResult.filterValidResponses(payload.bidResponses()))
                                 : AllProcessedBidResponsesPayloadImpl.of(payload.bidResponses()));
 
-        return Future.succeededFuture(resultBuilder.build());
+        return resultBuilder.build();
     }
 
     @Override

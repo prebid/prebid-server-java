@@ -1,6 +1,6 @@
 # Overview
 
-This module allows obtains all bid responses for any given auction, send the results to Confiant server and find possible security issues inside bid responses.
+This module obtains all bid responses for any given auction, sends the results to Confiant server and finds possible security issues inside bid responses.
 
 ## Configuration
 
@@ -37,9 +37,15 @@ And configure
 ## List of module configuration options
 
 - `api-key` - Confiant's API key.
-- `redis-host` - Host value of the Confiant's Redis server.
-- `redis-port` - Port value of the Confiant's Redis server.
-- `redis-password` - User password value of the Confiant's Redis server.
+- `redis-config`
+  - `write-node`
+    - `host` - Host value of the Confiant's Write Redis Node.
+    - `port` - Port value of the Confiant's Write Redis Node.
+    - `password` - User password value of the Confiant's Write Redis Node.
+  - `read-node`
+      - `host` - Host value of the Confiant's Read Redis Node.
+      - `port` - Port value of the Confiant's Read Redis Node.
+      - `password` - User password value of the Confiant's Read Redis Node.
 - `redis-retry-config`
   - `short-interval-attempts` - Maximum attempts with short interval value to try to reconnect to Confiant's Redis server in case any connection error happens.
   - `short-interval` - Short time interval in milliseconds after which another one attempt to connect to Redis will be executed.
@@ -52,9 +58,15 @@ hooks:
   modules:
     confiant-ad-quality:
       api-key: "hgr876cerg7655"
-      redis-host: "127.0.0.1"
-      redis-port: 8000
-      redis-password: "JhgYYttq76"
+      redis-config:
+      write-node:
+          host: "127.0.0.1"
+          port: 8000
+          password: "password-w"
+      read-node:
+          host: "127.0.0.1"
+          port: 8001
+          password: "password-r"
       redis-retry-config:
         short-interval-attempts: 60
         short-interval: 1000

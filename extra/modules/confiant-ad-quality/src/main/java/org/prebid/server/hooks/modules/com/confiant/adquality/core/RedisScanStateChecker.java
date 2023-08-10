@@ -4,35 +4,34 @@ import io.vertx.core.Vertx;
 
 public class RedisScanStateChecker {
 
-    private volatile Boolean isScanDisabled = true;
+    private final BidsScanner bidsScanner;
 
-    private final RedisClient redisClient;
-
-    private final long checkInterval;
+    private final long scanStateCheckInterval;
 
     private final Vertx vertx;
 
     public RedisScanStateChecker(
-            RedisClient redisClient,
-            long checkInterval,
+            BidsScanner bidsScanner,
+            long scanStateCheckInterval,
             Vertx vertx) {
-        this.redisClient = redisClient;
-        this.checkInterval = checkInterval;
+        this.bidsScanner = bidsScanner;
+        this.scanStateCheckInterval = scanStateCheckInterval;
         this.vertx = vertx;
     }
 
     public void run() {
         verifyScanFlag();
-        vertx.setPeriodic(checkInterval, ignored -> verifyScanFlag());
-    }
-
-    public boolean isScanDisabled() {
-        return isScanDisabled;
+        vertx.setPeriodic(scanStateCheckInterval, ignored -> verifyScanFlag());
     }
 
     private void verifyScanFlag() {
-        redisClient.isScanDisabled().onComplete(result -> {
-            isScanDisabled = result.result();
+        bidsScanner.isScanDisabledFlag().onComplete(result -> {
+            final boolean isScanDisabled = result.result();
+            if (isScanDisabled) {
+                bidsScanner.disableScan();
+            } else {
+                bidsScanner.enableScan();
+            }
         });
     }
 }
