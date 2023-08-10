@@ -1,9 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidWithExpiry
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService

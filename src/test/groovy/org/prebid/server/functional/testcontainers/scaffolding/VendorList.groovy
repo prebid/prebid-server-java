@@ -11,6 +11,7 @@ import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 class VendorList extends NetworkScaffolding {
 
@@ -30,10 +31,7 @@ class VendorList extends NetworkScaffolding {
         request().withPath(VENDOR_LIST_ENDPOINT)
     }
 
-    @Override
-    void setResponse(){}
-
-    void setResponse(TcfPolicyVersion tcfPolicyVersion) {
+    void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2) {
         def prepareEndpoint = endpoint.replace("{TCF_POLICY}", "v" + tcfPolicyVersion.vendorListVersion)
         def prepareEncodeResponseBody = encode(VendorListResponse.defaultVendorListResponse.tap {
             it.vendorListVersion = tcfPolicyVersion.vendorListVersion

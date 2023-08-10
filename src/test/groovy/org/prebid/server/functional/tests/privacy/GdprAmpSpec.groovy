@@ -34,7 +34,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "AmpRequest with consent string"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def ampRequest = getGdprAmpRequest(validConsentString)
@@ -231,7 +231,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Default AmpRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(validConsentString)
 
@@ -262,7 +262,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Default AmpRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(validConsentString)
 
@@ -300,7 +300,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"

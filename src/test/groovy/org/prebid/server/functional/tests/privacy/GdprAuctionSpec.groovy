@@ -29,7 +29,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default gdpr BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def bidRequest = getGdprBidRequest(validConsentString)
@@ -100,7 +100,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -123,7 +123,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -146,7 +146,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -170,7 +170,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -194,7 +194,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "BidRequest with channel: #requestChannel, gdpr"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
             ext.prebid.channel = new Channel().tap {
@@ -255,7 +255,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Bid request"
