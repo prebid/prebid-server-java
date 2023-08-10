@@ -4,11 +4,11 @@ adapters:
     ortb-version: "2.6"
     aliases:
       yssp:
-        enabled: true
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
       yahoossp:
-        enabled: true
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
       yahooAdvertising:
-        enabled: true
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
     meta-info:
       maintainer-email: hb-fe-tech@yahooinc.com
       app-media-types:
