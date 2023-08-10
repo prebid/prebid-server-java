@@ -1,11 +1,10 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleEntryLog;
+import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleLogEntry;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Gpc;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.KnownChildSensitiveDataConsent;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.MspaServiceProviderMode;
@@ -73,9 +72,6 @@ public class USNatTransmitGeo implements PrivacyModule, Loggable {
 
     @Override
     public Object asLogEntry() {
-        return USNatModuleEntryLog.of(
-                USNatTransmitGeo.class.getSimpleName(),
-                ActivityDebugUtils.asLogEntry(gppReader),
-                result);
+        return USNatModuleLogEntry.from(this, gppReader, result);
     }
 }

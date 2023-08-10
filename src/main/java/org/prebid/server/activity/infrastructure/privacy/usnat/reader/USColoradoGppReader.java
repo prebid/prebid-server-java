@@ -2,13 +2,12 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspCoV1;
-import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 
-public class USColoradoGppReader implements USNatGppReader, Loggable {
+public class USColoradoGppReader implements USNatGppReader {
 
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
     private static final List<Integer> NON_CHILD_SENSITIVE_DATA = List.of(0, 0);
@@ -94,10 +93,5 @@ public class USColoradoGppReader implements USNatGppReader, Loggable {
     @Override
     public Integer getPersonalDataConsents() {
         return null;
-    }
-
-    @Override
-    public Object asLogEntry() {
-        return this.getClass().getSimpleName();
     }
 }

@@ -2,13 +2,12 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspNatV1;
-import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 
-public class USNationalGppReader implements USNatGppReader, Loggable {
+public class USNationalGppReader implements USNatGppReader {
 
     private final UspNatV1 consent;
 
@@ -84,10 +83,5 @@ public class USNationalGppReader implements USNatGppReader, Loggable {
     @Override
     public Integer getPersonalDataConsents() {
         return ObjectUtil.getIfNotNull(consent, UspNatV1::getPersonalDataConsents);
-    }
-
-    @Override
-    public Object asLogEntry() {
-        return this.getClass().getSimpleName();
     }
 }

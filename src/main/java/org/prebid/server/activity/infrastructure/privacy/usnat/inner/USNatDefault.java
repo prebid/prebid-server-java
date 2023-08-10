@@ -3,7 +3,7 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
-import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleEntryLog;
+import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleLogEntry;
 
 public class USNatDefault implements PrivacyModule, Loggable {
 
@@ -20,6 +20,6 @@ public class USNatDefault implements PrivacyModule, Loggable {
 
     @Override
     public Object asLogEntry() {
-        return USNatModuleEntryLog.of(USNatDefault.class.getSimpleName(), "None", Result.ABSTAIN);
+        return USNatModuleLogEntry.from(this, Result.ABSTAIN);
     }
 }
