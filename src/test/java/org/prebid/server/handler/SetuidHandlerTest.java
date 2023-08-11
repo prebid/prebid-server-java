@@ -370,7 +370,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);

@@ -1129,8 +1129,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         final JsonNode context = requestNode.get("context");
-        if (context == null || !context.isInt()) {
-            throw new PreBidException("Context is not present or not of int type");
+        if (context != null && !context.isInt()) {
+            throw new PreBidException("Context is not of int type");
         }
 
         final JsonNode placement = requestNode.get("plcmttype");

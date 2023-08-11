@@ -5,38 +5,35 @@ import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
-public class ActivityConfiguration {
+public class ActivityController {
 
     private final boolean allowByDefault;
     private final List<Rule> rules;
 
-    private ActivityConfiguration(boolean allowByDefault, List<Rule> rules) {
+    private ActivityController(boolean allowByDefault, List<Rule> rules) {
         this.allowByDefault = allowByDefault;
         this.rules = Objects.requireNonNull(rules);
     }
 
-    public static ActivityConfiguration of(boolean allowByDefault, List<Rule> rules) {
-        return new ActivityConfiguration(allowByDefault, rules);
+    public static ActivityController of(boolean allowByDefault, List<Rule> rules) {
+        return new ActivityController(allowByDefault, rules);
     }
 
     public ActivityCallResult isAllowed(ActivityCallPayload activityCallPayload) {
         int processedRulesCount = 0;
-        Rule matchedRule = null;
+        boolean result = allowByDefault;
 
         for (Rule rule : rules) {
             processedRulesCount++;
-            if (rule.matches(activityCallPayload)) {
-                matchedRule = rule;
+
+            final Rule.Result ruleResult = rule.proceed(activityCallPayload);
+            if (ruleResult != Rule.Result.ABSTAIN) {
+                result = ruleResult == Rule.Result.ALLOW;
                 break;
             }
         }
 
-        return ActivityCallResult.of(
-                Optional.ofNullable(matchedRule)
-                        .map(Rule::allowed)
-                        .orElse(allowByDefault),
-                processedRulesCount);
+        return ActivityCallResult.of(result, processedRulesCount);
     }
 }
