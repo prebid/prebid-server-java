@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.yahooadvertising;
+package org.prebid.server.bidder.yahooads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -34,7 +34,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.yahooadvertising.ExtImpYahooAdvertising;
+import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -45,9 +45,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class YahooAdvertisingBidder implements Bidder<BidRequest> {
+public class YahooAdsBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpYahooAdvertising>> YAHOO_ADVERTISING_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpYahooAds>> YAHOO_ADVERTISING_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -55,9 +55,9 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
     private final BidRequestOrtbVersionConversionManager conversionManager;
     private final JacksonMapper mapper;
 
-    public YahooAdvertisingBidder(String endpointUrl,
-                                  BidRequestOrtbVersionConversionManager conversionManager,
-                                  JacksonMapper mapper) {
+    public YahooAdsBidder(String endpointUrl,
+                          BidRequestOrtbVersionConversionManager conversionManager,
+                          JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.conversionManager = Objects.requireNonNull(conversionManager);
@@ -76,8 +76,8 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
-                final ExtImpYahooAdvertising extImpYahooAdvertising = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequestOpenRtb25, imp, extImpYahooAdvertising,
+                final ExtImpYahooAds extImpYahooAds = parseAndValidateImpExt(imp.getExt(), i);
+                final BidRequest modifiedRequest = modifyRequest(bidRequestOpenRtb25, imp, extImpYahooAds,
                         regs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
@@ -88,29 +88,29 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private ExtImpYahooAdvertising parseAndValidateImpExt(ObjectNode impExtNode, int index) {
-        final ExtImpYahooAdvertising extImpYahooAdvertising;
+    private ExtImpYahooAds parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+        final ExtImpYahooAds extImpYahooAds;
         try {
-            extImpYahooAdvertising = mapper.mapper().convertValue(impExtNode,
+            extImpYahooAds = mapper.mapper().convertValue(impExtNode,
                     YAHOO_ADVERTISING_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("imp #%s: %s".formatted(index, e.getMessage()));
         }
 
-        final String dcn = extImpYahooAdvertising.getDcn();
+        final String dcn = extImpYahooAds.getDcn();
         if (StringUtils.isBlank(dcn)) {
             throw new PreBidException("imp #%s: missing param dcn".formatted(index));
         }
 
-        final String pos = extImpYahooAdvertising.getPos();
+        final String pos = extImpYahooAds.getPos();
         if (StringUtils.isBlank(pos)) {
             throw new PreBidException("imp #%s: missing param pos".formatted(index));
         }
 
-        return extImpYahooAdvertising;
+        return extImpYahooAds;
     }
 
-    private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAdvertising extImpYahooAdvertising,
+    private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAds extImpYahooAds,
                                      Regs regs) {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
@@ -118,9 +118,9 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         final App app = request.getApp();
 
         if (site != null) {
-            requestBuilder.site(site.toBuilder().id(extImpYahooAdvertising.getDcn()).build());
+            requestBuilder.site(site.toBuilder().id(extImpYahooAds.getDcn()).build());
         } else if (app != null) {
-            requestBuilder.app(app.toBuilder().id(extImpYahooAdvertising.getDcn()).build());
+            requestBuilder.app(app.toBuilder().id(extImpYahooAds.getDcn()).build());
         }
 
         if (regs != null) {
@@ -128,14 +128,14 @@ public class YahooAdvertisingBidder implements Bidder<BidRequest> {
         }
 
         return requestBuilder
-                .imp(Collections.singletonList(modifyImp(imp, extImpYahooAdvertising)))
+                .imp(Collections.singletonList(modifyImp(imp, extImpYahooAds)))
                 .build();
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpYahooAdvertising extImpYahooAdvertising) {
+    private static Imp modifyImp(Imp imp, ExtImpYahooAds extImpYahooAds) {
         final Banner banner = imp.getBanner();
         return imp.toBuilder()
-                .tagid(extImpYahooAdvertising.getPos())
+                .tagid(extImpYahooAds.getPos())
                 .banner(banner != null ? modifyBanner(imp.getBanner()) : null)
                 .build();
     }
