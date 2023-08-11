@@ -1,5 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
@@ -19,7 +21,7 @@ public class USNatDefault implements PrivacyModule, Loggable {
     }
 
     @Override
-    public Object asLogEntry() {
+    public JsonNode asLogEntry(ObjectMapper mapper) {
         return USNatModuleLogEntry.from(this, Result.ABSTAIN);
     }
 }

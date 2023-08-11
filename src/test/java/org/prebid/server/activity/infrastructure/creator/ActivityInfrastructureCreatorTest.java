@@ -13,6 +13,7 @@ import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDeb
 import org.prebid.server.activity.infrastructure.rule.TestRule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
@@ -45,13 +46,16 @@ public class ActivityInfrastructureCreatorTest {
     private Metrics metrics;
 
     @Mock
+    private JacksonMapper jacksonMapper;
+
+    @Mock
     private ActivityInfrastructureDebug debug;
 
     private ActivityInfrastructureCreator creator;
 
     @Before
     public void setUp() {
-        creator = new ActivityInfrastructureCreator(activityRuleFactory, metrics);
+        creator = new ActivityInfrastructureCreator(activityRuleFactory, metrics, jacksonMapper);
     }
 
     @Test

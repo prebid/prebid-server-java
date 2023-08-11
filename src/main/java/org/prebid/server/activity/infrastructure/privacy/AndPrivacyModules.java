@@ -1,5 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
@@ -20,9 +22,8 @@ public class AndPrivacyModules implements PrivacyModule, Loggable {
         return and.proceed(activityInvocationPayload);
     }
 
-
     @Override
-    public Object asLogEntry() {
-        return ActivityDebugUtils.asLogEntry(and);
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return ActivityDebugUtils.asLogEntry(and, mapper);
     }
 }

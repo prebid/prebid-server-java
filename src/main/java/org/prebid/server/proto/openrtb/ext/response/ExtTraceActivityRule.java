@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Value;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
@@ -8,7 +9,7 @@ public class ExtTraceActivityRule implements ExtTraceActivityInfrastructure {
 
     String description = "Processing rule.";
 
-    Object ruleConfiguration;
+    JsonNode ruleConfiguration;
 
     Rule.Result result;
 }

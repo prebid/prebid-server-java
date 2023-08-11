@@ -1,5 +1,7 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
@@ -33,8 +35,8 @@ public final class ComponentRule extends AbstractMatchRule implements Loggable {
     }
 
     @Override
-    public Object asLogEntry() {
-        return new ComponentRuleLogEntry(componentTypes, componentNames, allowed);
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return mapper.valueToTree(new ComponentRuleLogEntry(componentTypes, componentNames, allowed));
     }
 
     private record ComponentRuleLogEntry(Set<ComponentType> componentTypes,

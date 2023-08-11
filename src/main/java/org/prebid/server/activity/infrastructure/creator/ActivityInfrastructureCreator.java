@@ -10,6 +10,7 @@ import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDeb
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -36,10 +37,15 @@ public class ActivityInfrastructureCreator {
 
     private final ActivityRuleFactory activityRuleFactory;
     private final Metrics metrics;
+    private final JacksonMapper jacksonMapper;
 
-    public ActivityInfrastructureCreator(ActivityRuleFactory activityRuleFactory, Metrics metrics) {
+    public ActivityInfrastructureCreator(ActivityRuleFactory activityRuleFactory,
+                                         Metrics metrics,
+                                         JacksonMapper jacksonMapper) {
+
         this.activityRuleFactory = Objects.requireNonNull(activityRuleFactory);
         this.metrics = Objects.requireNonNull(metrics);
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
     public ActivityInfrastructure create(Account account, GppContext gppContext, TraceLevel traceLevel) {
@@ -48,7 +54,7 @@ public class ActivityInfrastructureCreator {
     }
 
     private ActivityInfrastructureDebug debugWheel(Account account, TraceLevel traceLevel) {
-        return new ActivityInfrastructureDebug(account.getId(), traceLevel, metrics);
+        return new ActivityInfrastructureDebug(account.getId(), traceLevel, metrics, jacksonMapper);
     }
 
     Map<Activity, ActivityController> parse(Account account, GppContext gppContext, ActivityInfrastructureDebug debug) {

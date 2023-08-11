@@ -1,5 +1,7 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
@@ -72,8 +74,14 @@ public final class GeoRule extends AbstractMatchRule implements Loggable {
     }
 
     @Override
-    public Object asLogEntry() {
-        return new GeoRuleLogEntry(componentTypes, componentNames, sidsMatched, geoCodes, gpc, allowed);
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return mapper.valueToTree(new GeoRuleLogEntry(
+                componentTypes,
+                componentNames,
+                sidsMatched,
+                geoCodes,
+                gpc,
+                allowed));
     }
 
     @Value(staticConstructor = "of")

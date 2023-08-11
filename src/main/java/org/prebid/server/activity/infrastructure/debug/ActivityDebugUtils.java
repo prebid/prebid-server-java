@@ -1,18 +1,29 @@
 package org.prebid.server.activity.infrastructure.debug;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
 import java.util.List;
 
 public class ActivityDebugUtils {
 
-    public static Object asLogEntry(Object object) {
-        return object instanceof Loggable loggable
-                ? loggable.asLogEntry()
-                : object.toString();
+    private ActivityDebugUtils() {
     }
 
-    public static Object asLogEntry(List<?> objects) {
-        return objects.stream()
-                .map(ActivityDebugUtils::asLogEntry)
-                .toList();
+    public static JsonNode asLogEntry(Object object, ObjectMapper mapper) {
+        return object instanceof Loggable loggable
+                ? loggable.asLogEntry(mapper)
+                : TextNode.valueOf(object.toString());
+    }
+
+    public static JsonNode asLogEntry(List<?> objects, ObjectMapper mapper) {
+        final ArrayNode arrayNode = mapper.createArrayNode();
+        objects.stream()
+                .map(object -> asLogEntry(object, mapper))
+                .forEach(arrayNode::add);
+
+        return arrayNode;
     }
 }

@@ -4,6 +4,7 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.Rule;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
@@ -23,12 +24,18 @@ public class ActivityInfrastructureDebug {
     private final TraceLevel traceLevel;
     private final List<ExtTraceActivityInfrastructure> traceLog;
     private final Metrics metrics;
+    private final JacksonMapper jacksonMapper;
 
-    public ActivityInfrastructureDebug(String accountId, TraceLevel traceLevel, Metrics metrics) {
+    public ActivityInfrastructureDebug(String accountId,
+                                       TraceLevel traceLevel,
+                                       Metrics metrics,
+                                       JacksonMapper jacksonMapper) {
+
         this.accountId = accountId;
         this.traceLevel = traceLevel;
         this.traceLog = new ArrayList<>();
         this.metrics = Objects.requireNonNull(metrics);
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
     public void emitActivityInvocation(Activity activity, ActivityInvocationPayload activityInvocationPayload) {
@@ -48,7 +55,7 @@ public class ActivityInfrastructureDebug {
     public void emitProcessedRule(Rule rule, Rule.Result result) {
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityRule.of(
-                    atLeast(TraceLevel.verbose) ? ActivityDebugUtils.asLogEntry(rule) : null,
+                    atLeast(TraceLevel.verbose) ? ActivityDebugUtils.asLogEntry(rule, jacksonMapper.mapper()) : null,
                     result));
         }
 
