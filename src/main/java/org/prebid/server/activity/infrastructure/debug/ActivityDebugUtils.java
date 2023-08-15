@@ -18,7 +18,7 @@ public class ActivityDebugUtils {
                 : TextNode.valueOf(object.toString());
     }
 
-    public static JsonNode asLogEntry(List<?> objects, ObjectMapper mapper) {
+    public static ArrayNode asLogEntry(List<?> objects, ObjectMapper mapper) {
         final ArrayNode arrayNode = mapper.createArrayNode();
         objects.stream()
                 .map(object -> asLogEntry(object, mapper))

@@ -11,7 +11,10 @@ public class USNatDefault implements PrivacyModule, Loggable {
 
     private static final USNatDefault INSTANCE = new USNatDefault();
 
-    public static PrivacyModule instance() {
+    private USNatDefault() {
+    }
+
+    public static USNatDefault instance() {
         return INSTANCE;
     }
 

@@ -11,8 +11,11 @@ import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -97,6 +100,20 @@ public class ActivityInfrastructureTest {
         final boolean result = infrastructure.isAllowed(Activity.CALL_BIDDER, payload);
 
         // then
+        verify(debug).emitActivityInvocation(eq(Activity.CALL_BIDDER), same(payload));
         verify(debug).emitActivityInvocationResult(eq(Activity.CALL_BIDDER), same(payload), same(result));
+    }
+
+    @Test
+    public void debugTraceShouldReturnSameTraceLog() {
+        // given
+        final List<ExtTraceActivityInfrastructure> trace = Collections.emptyList();
+        given(debug.trace()).willReturn(trace);
+
+        // when
+        final List<ExtTraceActivityInfrastructure> debugTrace = infrastructure.debugTrace();
+
+        // then
+        assertThat(debugTrace).isSameAs(trace);
     }
 }

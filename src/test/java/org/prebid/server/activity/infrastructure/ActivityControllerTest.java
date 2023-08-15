@@ -36,6 +36,7 @@ public class ActivityControllerTest {
 
         // then
         assertThat(result).isTrue();
+        verify(debug).emitActivityInvocationDefaultResult(true);
         verify(debug).emitProcessedRule(same(rule), eq(Rule.Result.ABSTAIN));
     }
 
@@ -55,6 +56,7 @@ public class ActivityControllerTest {
 
         // then
         assertThat(result).isFalse();
+        verify(debug).emitActivityInvocationDefaultResult(true);
         verify(debug, times(2)).emitProcessedRule(any(), any());
     }
 
@@ -62,7 +64,7 @@ public class ActivityControllerTest {
     public void isAllowedShouldReturnTrue() {
         // given
         final ActivityController activityController = ActivityController.of(
-                true,
+                false,
                 asList(
                         TestRule.allowIfMatches(payload -> false),
                         TestRule.allowIfMatches(payload -> true),
@@ -74,6 +76,7 @@ public class ActivityControllerTest {
 
         // then
         assertThat(result).isTrue();
+        verify(debug).emitActivityInvocationDefaultResult(false);
         verify(debug, times(2)).emitProcessedRule(any(), any());
     }
 }

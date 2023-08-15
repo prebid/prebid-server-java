@@ -1,11 +1,15 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class TestRule extends AbstractMatchRule {
+public class TestRule extends AbstractMatchRule implements Loggable {
 
     private final Predicate<ActivityInvocationPayload> predicate;
     private final boolean allowed;
@@ -31,5 +35,10 @@ public class TestRule extends AbstractMatchRule {
     @Override
     public boolean allowed() {
         return allowed;
+    }
+
+    @Override
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return TextNode.valueOf(TestRule.class.getSimpleName());
     }
 }

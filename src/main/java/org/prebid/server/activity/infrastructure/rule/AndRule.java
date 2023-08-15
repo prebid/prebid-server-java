@@ -2,6 +2,7 @@ package org.prebid.server.activity.infrastructure.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
@@ -39,7 +40,8 @@ public class AndRule implements Rule, Loggable {
     @Override
     public JsonNode asLogEntry(ObjectMapper mapper) {
         final ObjectNode andNode = mapper.createObjectNode();
-        andNode.putPOJO("and", ActivityDebugUtils.asLogEntry(rules, mapper));
+        final ArrayNode arrayNode = andNode.putArray("and");
+        arrayNode.addAll(ActivityDebugUtils.asLogEntry(rules, mapper));
 
         return andNode;
     }

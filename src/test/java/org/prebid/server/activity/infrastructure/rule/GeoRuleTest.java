@@ -1,10 +1,14 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
@@ -16,7 +20,7 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GeoRuleTest {
+public class GeoRuleTest extends VertxTest {
 
     @Test
     public void allowedShouldReturnExpectedResult() {
@@ -244,5 +248,31 @@ public class GeoRuleTest {
 
         // then
         assertThat(matches).isEqualTo(true);
+    }
+
+    @Test
+    public void asLogEntryShouldReturnExpectedObjectNode() {
+        // given
+        final GeoRule rule = new GeoRule(
+                singleton(ComponentType.BIDDER),
+                singleton("bidder"),
+                false,
+                singletonList(GeoRule.GeoCode.of("Country", "Region")),
+                "2",
+                true);
+
+        // when
+        final JsonNode result = rule.asLogEntry(mapper);
+
+        // then
+        assertThat(result.get("component_types")).containsExactly(TextNode.valueOf("BIDDER"));
+        assertThat(result.get("component_names")).containsExactly(TextNode.valueOf("bidder"));
+        assertThat(result.get("gpp_sids_matched")).isEqualTo(BooleanNode.getFalse());
+        assertThat(result.get("geo_codes")).hasSize(1).allSatisfy(geoCode -> {
+            assertThat(geoCode.get("country")).isEqualTo(TextNode.valueOf("Country"));
+            assertThat(geoCode.get("region")).isEqualTo(TextNode.valueOf("Region"));
+        });
+        assertThat(result.get("gpc")).isEqualTo(TextNode.valueOf("2"));
+        assertThat(result.get("allow")).isEqualTo(BooleanNode.getTrue());
     }
 }

@@ -1,6 +1,10 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
@@ -8,7 +12,7 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ComponentRuleTest {
+public class ComponentRuleTest extends VertxTest {
 
     @Test
     public void allowedShouldReturnExpectedResult() {
@@ -84,5 +88,19 @@ public class ComponentRuleTest {
 
         // then
         assertThat(matches).isEqualTo(true);
+    }
+
+    @Test
+    public void asLogEntryShouldReturnExpectedObjectNode() {
+        // given
+        final ComponentRule rule = new ComponentRule(singleton(ComponentType.BIDDER), singleton("bidder"), true);
+
+        // when
+        final JsonNode result = rule.asLogEntry(mapper);
+
+        // then
+        assertThat(result.get("component_types")).containsExactly(TextNode.valueOf("BIDDER"));
+        assertThat(result.get("component_names")).containsExactly(TextNode.valueOf("bidder"));
+        assertThat(result.get("allow")).isEqualTo(BooleanNode.getTrue());
     }
 }
