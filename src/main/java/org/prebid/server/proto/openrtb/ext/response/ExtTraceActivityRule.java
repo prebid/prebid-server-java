@@ -7,7 +7,7 @@ import org.prebid.server.activity.infrastructure.rule.Rule;
 @Value(staticConstructor = "of")
 public class ExtTraceActivityRule implements ExtTraceActivityInfrastructure {
 
-    String description = "Processing rule.";
+    String description;
 
     JsonNode ruleConfiguration;
 

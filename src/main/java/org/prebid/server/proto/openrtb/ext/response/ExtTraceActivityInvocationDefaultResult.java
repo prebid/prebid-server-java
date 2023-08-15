@@ -5,7 +5,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtTraceActivityInvocationDefaultResult implements ExtTraceActivityInfrastructure {
 
-    String description = "Setting the default invocation result.";
+    String description;
 
     boolean allowByDefault;
 }

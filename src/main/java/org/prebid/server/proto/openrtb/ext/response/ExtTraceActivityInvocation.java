@@ -7,7 +7,7 @@ import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPaylo
 @Value(staticConstructor = "of")
 public class ExtTraceActivityInvocation implements ExtTraceActivityInfrastructure {
 
-    String description = "Invocation of Activity Infrastructure.";
+    String description;
 
     Activity activity;
 

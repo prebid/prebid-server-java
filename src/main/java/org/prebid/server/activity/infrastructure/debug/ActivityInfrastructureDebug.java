@@ -41,6 +41,7 @@ public class ActivityInfrastructureDebug {
     public void emitActivityInvocation(Activity activity, ActivityInvocationPayload activityInvocationPayload) {
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityInvocation.of(
+                    "Invocation of Activity Infrastructure.",
                     activity,
                     atLeast(TraceLevel.verbose) ? activityInvocationPayload : null));
         }
@@ -48,13 +49,16 @@ public class ActivityInfrastructureDebug {
 
     public void emitActivityInvocationDefaultResult(boolean defaultResult) {
         if (atLeast(TraceLevel.basic)) {
-            traceLog.add(ExtTraceActivityInvocationDefaultResult.of(defaultResult));
+            traceLog.add(ExtTraceActivityInvocationDefaultResult.of(
+                    "Setting the default invocation result.",
+                    defaultResult));
         }
     }
 
     public void emitProcessedRule(Rule rule, Rule.Result result) {
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityRule.of(
+                    "Processing rule.",
                     atLeast(TraceLevel.verbose) ? ActivityDebugUtils.asLogEntry(rule, jacksonMapper.mapper()) : null,
                     result));
         }
@@ -70,7 +74,10 @@ public class ActivityInfrastructureDebug {
                                              boolean result) {
 
         if (atLeast(TraceLevel.basic)) {
-            traceLog.add(ExtTraceActivityInvocationResult.of(activity, result));
+            traceLog.add(ExtTraceActivityInvocationResult.of(
+                    "Activity Infrastructure invocation result.",
+                    activity,
+                    result));
         }
 
         if (!result) {

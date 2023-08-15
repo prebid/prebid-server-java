@@ -6,7 +6,7 @@ import org.prebid.server.activity.Activity;
 @Value(staticConstructor = "of")
 public class ExtTraceActivityInvocationResult implements ExtTraceActivityInfrastructure {
 
-    String description = "Activity Infrastructure invocation result.";
+    String description;
 
     Activity activity;
 
