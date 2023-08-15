@@ -177,6 +177,73 @@ methodCall(
         long list of arguments));
 ```
 
+### Method placement
+
+Please, place methods inside a class in call order.
+
+```
+// bad
+public interface Test {
+
+    void a();
+    
+    void b();
+}
+
+public class TestImpl implements Test {
+
+    @Override
+    public void a() {
+        c();
+    }
+    
+    @Override
+    public void b() {
+        d();
+    }
+   
+    private void d() {
+    ...
+    }
+     
+    private void c() {
+    ...
+    }
+}
+
+// good 
+public interface Test {
+
+    void a();
+    
+    void b();
+}
+
+public class TestImpl implements Test {
+
+    @Override
+    public void a() {
+        c();
+    }
+    
+    private void c() {
+    ...
+    }
+    
+    @Override
+    public void b() {
+        d();
+    }
+   
+    private void d() {
+    ...
+    }
+}
+
+Explanation of an example: 
+Define interface first method, then all methods that it is calling, then second method of an interface and all methods that it is calling, and so on.
+```
+
 ### Separation of method signature definition and body
 
 Not strict, but methods with long parameters list, that cannot be placed on single line,
@@ -318,6 +385,10 @@ final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : n
 
 For convenience, the `org.prebid.server.util.ObjectUtil` helper can be used for such kind of operations.
 
+### Optional usages
+
+We are trying to get rid of long chains of null checks, which are described in suggestion above, in favor of Java `Optional` usage.
+
 ### Garbage code
 
 Don't leave commented code (don't think about the future).
@@ -441,21 +512,23 @@ public void testFooSecond() {
 #### Unit tests naming
 
 Name unit tests meaningfully. Test names should give brief description of what unit test tries to check.
-It is also recommended to prefix test methods with the name of method that is being tested and word `should`.
+It is also recommended to structure test method names with this scheme:
+name of method that is being tested, word `should`, what a method should return.
+If a method should return something based on a certain condition, add word `when` and description of a condition.
 
 ```
 // bad
 @Test
 public void doSomethingTest() {
     // when and then
-    assertThat(service.processData()).isEqualTo("result");
+    assertThat(service.processData("data")).isEqualTo("result");
 }
 
 // good
 @Test
-public void processDataShouldReturnResult() {
+public void processDataShouldReturnResultWhenInputIsData() {
     // when and then
-    assertThat(service.processData()).isEqualTo("result");
+    assertThat(service.processData("data")).isEqualTo("result");
 }
 ```
 
