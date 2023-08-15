@@ -12,7 +12,6 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatDefaul
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 public class USNatModuleTest extends VertxTest {
 
     @Rule

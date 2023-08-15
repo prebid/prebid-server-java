@@ -15,7 +15,6 @@ import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 public class USNatModuleLogEntryTest {
 
     @org.junit.Rule
