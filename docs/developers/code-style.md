@@ -436,6 +436,10 @@ where:
 - `when` - stimulus: some action against the system under test.
 - `then` - expectations/assertions.
 
+#### Testing instance naming
+
+The team decided to use name `target` for class instance under test.
+
 #### Tests granularity
 
 Unit tests should be as granular as possible. Try to split unit tests into smaller ones until this is impossible to do.
