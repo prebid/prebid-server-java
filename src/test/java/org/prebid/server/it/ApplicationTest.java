@@ -62,6 +62,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.prebid.server.util.HttpUtil.X_OPENRTB_VERSION_HEADER;
 
 @RunWith(SpringRunner.class)
 public class ApplicationTest extends IntegrationTest {
@@ -70,6 +71,7 @@ public class ApplicationTest extends IntegrationTest {
     private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
     private static final String RUBICON = "rubicon";
     private static final String GENERIC = "generic";
+    private static final String GENERIC_2_6 = "generic26";
     private static final String GENERIC_ALIAS = "genericAlias";
 
     private static final int ADMIN_PORT = 8060;
@@ -161,6 +163,35 @@ public class ApplicationTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/multi_bid/test-auction-generic-genericAlias-response.json",
                 response, asList(GENERIC, GENERIC_ALIAS));
+    }
+
+    @Test
+    public void openrtb2AuctionWithDoohShouldRespondWithBidsFromTheGenericBidder() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/generic_dooh_functionality/test-dooh-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/generic_dooh_functionality/test-dooh-bid-response.json"))));
+
+        // pre-bid cache
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/generic_core_functionality/test-cache-generic-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/generic_core_functionality/test-cache-generic-response.json"))));
+
+        // when
+        final Response response = given(SPEC)
+                .header(X_OPENRTB_VERSION_HEADER.toString(), "2.6")
+                .body(jsonFrom("openrtb2/generic_dooh_functionality/test-auction-dooh-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        assertJsonEquals(
+                "openrtb2/generic_dooh_functionality/test-auction-dooh-response.json",
+                response,
+                singletonList(GENERIC_2_6));
     }
 
     @Test
@@ -555,7 +586,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void loggingChangeLevekShouldRespondWithOk() {
+    public void loggingChangeLevelShouldRespondWithOk() {
         given(ADMIN_SPEC)
                 .get("/logging/changelevel?level=info&duration=1")
                 .then()

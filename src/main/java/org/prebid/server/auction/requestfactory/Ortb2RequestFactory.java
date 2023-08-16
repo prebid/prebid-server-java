@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -371,8 +372,10 @@ public class Ortb2RequestFactory {
         final Publisher appPublisher = app != null ? app.getPublisher() : null;
         final Site site = bidRequest.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+        final Dooh dooh = bidRequest.getDooh();
+        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher, doohPublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }

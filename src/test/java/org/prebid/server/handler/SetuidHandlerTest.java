@@ -367,7 +367,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("account")).willReturn("accId");
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))

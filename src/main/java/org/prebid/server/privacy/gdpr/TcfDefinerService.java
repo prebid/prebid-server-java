@@ -380,6 +380,8 @@ public class TcfDefinerService {
                     logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
             case openrtb2app -> APP_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+            case openrtb2dooh -> APP_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, MetricName.openrtb2dooh.toString(), requestLogInfo, message), 100);
             case openrtb2web -> SITE_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
             default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(

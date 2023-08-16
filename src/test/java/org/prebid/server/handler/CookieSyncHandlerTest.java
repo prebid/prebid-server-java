@@ -290,7 +290,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).account("account").build()));
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true)).build();
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
                 .build();

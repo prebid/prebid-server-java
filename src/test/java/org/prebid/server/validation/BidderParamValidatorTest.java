@@ -393,6 +393,7 @@ public class BidderParamValidatorTest extends VertxTest {
                 null,
                 null,
                 null,
+                null,
                 0,
                 true,
                 false,

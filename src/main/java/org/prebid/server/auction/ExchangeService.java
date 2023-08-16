@@ -9,6 +9,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -58,6 +59,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -79,6 +81,7 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
@@ -88,6 +91,7 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -143,12 +147,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+//todo: 2000 lines of codes checkstyle issue is coming
 /**
- * Executes an OpenRTB v2.5 Auction.
+ * Executes an OpenRTB v2.5-2.6 Auction.
  */
 public class ExchangeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
+
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -586,8 +593,8 @@ public class ExchangeService {
      * <p>
      * - bidrequest.ext.prebid.bidders will be staying in corresponding bidder only.
      * <p>
-     * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
-     * that don't have first party data allowed.
+     * - bidrequest.user.ext.data, bidrequest.app.ext.data, bidrequest.dooh.ext.data and bidrequest.site.ext.data
+     * will be removed for bidders that don't have first party data allowed.
      */
     private Future<List<AuctionParticipation>> makeAuctionParticipation(
             List<String> bidders,
@@ -781,7 +788,7 @@ public class ExchangeService {
         final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
-                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
+                // Also, check whether to pass user.ext.data, app.ext.data, dooh.ext.data and site.ext.data or not.
                 .map(bidderPrivacyResult -> createAuctionParticipation(
                         bidderPrivacyResult,
                         impBidderToStoredBidResponse,
@@ -895,17 +902,30 @@ public class ExchangeService {
 
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
                 biddersToConfigs.get(bidder),
-                biddersToConfigs.get(ALL_BIDDERS_CONFIG));
+                biddersToConfigs.get(ALL_BIDDERS_CONFIG)
+        );
 
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
+        final Dooh dooh = bidRequest.getDooh();
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
-
+        final ObjectNode fpdDooh = fpdConfig != null ? fpdConfig.getDooh() : null;
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
-        if (preparedApp != null && preparedSite != null) {
-            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
+        final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
+
+        final long distributionChannelsCount = Stream.of(preparedSite, preparedDooh, preparedApp)
+                .filter(Objects::nonNull)
+                .count();
+
+        if (distributionChannelsCount > 1) {
+            metrics.updateAlertsMetrics(MetricName.general);
+            //todo: do we need more info in the log?
+            conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
+            throw new InvalidRequestException(
+                    "No more than one of request.site or request.app or request.dooh can be defined"
+            );
         }
 
         return bidRequest.toBuilder()
@@ -913,8 +933,7 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, context.getAccount()))
-                .app(preparedApp)
-                .site(preparedApp == null ? preparedSite : null)
+                .app(preparedApp).dooh(preparedDooh).site(preparedSite)
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
@@ -1041,7 +1060,7 @@ public class ExchangeService {
                 : maskedApp;
     }
 
-    private ExtApp maskExtApp(ExtApp appExt) {
+    private static ExtApp maskExtApp(ExtApp appExt) {
         final ExtApp maskedExtApp = ExtApp.of(appExt.getPrebid(), null);
         return maskedExtApp.isEmpty() ? null : maskedExtApp;
     }
@@ -1064,22 +1083,39 @@ public class ExchangeService {
                 .build()
                 : site;
 
-        return useFirstPartyData
-                ? fpdResolver.resolveSite(maskedSite, fpdSite)
-                : maskedSite;
+        return useFirstPartyData ? fpdResolver.resolveSite(maskedSite, fpdSite) : maskedSite;
     }
 
-    private Content prepareContent(Content content) {
-        final Content updatedContent = content.toBuilder()
-                .data(null)
-                .build();
-
-        return updatedContent.isEmpty() ? null : updatedContent;
-    }
-
-    private ExtSite maskExtSite(ExtSite siteExt) {
+    private static ExtSite maskExtSite(ExtSite siteExt) {
         final ExtSite maskedExtSite = ExtSite.of(siteExt.getAmp(), null);
         return maskedExtSite.isEmpty() ? null : maskedExtSite;
+    }
+
+    /**
+     * Checks whether to pass the dooh.ext.data and dooh.content.data depending on request having a first party data
+     * allowed for given bidder or not. And merge masked dooh with fpd config.
+     */
+    private Dooh prepareDooh(Dooh dooh, ObjectNode fpdDooh, boolean useFirstPartyData) {
+        final ExtDooh doohExt = dooh != null ? dooh.getExt() : null;
+        final Content content = dooh != null ? dooh.getContent() : null;
+
+        final boolean shouldCleanExtData = doohExt != null && doohExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final Dooh maskedDooh = shouldCleanExtData || shouldCleanContentData
+                ? dooh.toBuilder()
+                .ext(shouldCleanExtData ? null : doohExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
+                : dooh;
+
+        return useFirstPartyData ? fpdResolver.resolveDooh(maskedDooh, fpdDooh) : maskedDooh;
+    }
+
+    private static Content prepareContent(Content content) {
+        final Content updatedContent = content.toBuilder().data(null).build();
+
+        return updatedContent.isEmpty() ? null : updatedContent;
     }
 
     /**

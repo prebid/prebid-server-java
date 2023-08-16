@@ -8,6 +8,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -55,6 +56,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
@@ -2203,17 +2205,44 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetRequestPrebidChannelWhenMissingInRequestAndSiteIsPresentAndEndpointIsNotAmp() {
+    public void resolveShouldSetAppRequestPrebidChannelWhenEndpointIsNotAmpAndOnlyAppIsPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().build())
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.app(App.builder().build()));
 
-        // when
-        final BidRequest result = target.resolve(
-                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
+    public void resolveShouldSetDoohRequestPrebidChannelWhenEndpointIsNotAmpAndOnlyDoohIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.dooh(Dooh.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("dooh"));
+    }
+
+    @Test
+    public void resolveShouldSetWebRequestPrebidChannelWhenEndpointIsNotAmpAndOnlySiteIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2224,12 +2253,91 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndAppIsPresentAndEndpointIsNotAmp() {
+    public void resolveShouldSetAppRequestPrebidChannelWhenEndpointIsNotAmpAndSiteAndAppArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .site(Site.builder().build())
+                .app(App.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
+    public void resolveShouldSetWebRequestPrebidChannelWhenEndpointIsNotAmpAndSiteAndDoohArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .site(Site.builder().build())
+                .dooh(Dooh.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("web"));
+    }
+
+    @Test
+    public void resolveShouldSetAppRequestPrebidChannelWhenEndpointIsNotAmpAndAppAndDoohArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .app(App.builder().build())
+                .dooh(Dooh.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
+    public void resolveShouldSetAppRequestPrebidChannelWhenEndpointIsNotAmpAndAppDoohAndSiteArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .dooh(Dooh.builder().build()));
+
+        //when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+        ).build();
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotSiteOrAppOrAmp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
-                .app(App.builder().build())
                 .build();
 
         // when
@@ -2241,7 +2349,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getChannel)
-                .containsOnly(ExtRequestPrebidChannel.of("app"));
+                .containsOnly((ExtRequestPrebidChannel) null);
     }
 
     @Test
@@ -2280,26 +2388,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotSiteOrAppOrAmp() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
-                .build();
-
-        // when
-        final BidRequest result = target.resolve(
-                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
-
-        // then
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getChannel)
-                .containsOnly((ExtRequestPrebidChannel) null);
-    }
-
-    @Test
     public void shouldNotSetRequestPrebidChannelWhenPresentInRequestAndApp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -2319,28 +2407,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getChannel)
                 .containsOnly(ExtRequestPrebidChannel.of("custom"));
-    }
-
-    @Test
-    public void shouldSetRequestPrebidChannelToAppWhenMissingInRequestAndBothAppAndSitePresentAndEndpointIsNotAmp() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .site(Site.builder().build())
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
-                .build();
-
-        // when
-        final BidRequest request = target.resolve(
-                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getChannel)
-                .containsOnly(ExtRequestPrebidChannel.of("app"));
     }
 
     @Test

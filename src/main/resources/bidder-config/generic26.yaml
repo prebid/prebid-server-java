@@ -1,0 +1,23 @@
+adapters:
+  generic26:
+    endpoint: https://
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: maintainer@example.com
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      dooh-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 0

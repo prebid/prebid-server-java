@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
@@ -31,6 +32,7 @@ import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -555,6 +557,23 @@ public class RequestContextTest extends VertxTest {
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "hockey")));
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.ext(extApp)))),
+                imp(identity()),
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromDoohExt() {
+        // given
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData,
+                "section.sport");
+        final ExtDooh extDooh = ExtDooh.of(obj("section", obj("sport", "hockey")));
+        final RequestContext context = new RequestContext(
+                request(r -> r.dooh(dooh(d -> d.ext(extDooh)))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -1214,6 +1233,10 @@ public class RequestContextTest extends VertxTest {
 
     private static App app(Function<App.AppBuilder, App.AppBuilder> customizer) {
         return customizer.apply(App.builder()).build();
+    }
+
+    private static Dooh dooh(Function<Dooh.DoohBuilder, Dooh.DoohBuilder> customizer) {
+        return customizer.apply(Dooh.builder()).build();
     }
 
     private static Device device(Function<Device.DeviceBuilder, Device.DeviceBuilder> customizer) {

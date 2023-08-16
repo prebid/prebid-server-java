@@ -28,10 +28,12 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -156,23 +158,34 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
         final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
         final MetaInfo aliasMetaInfo = aliasConfiguration.getMetaInfo();
-        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
-        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
-        final List<MediaType> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
-        final List<MediaType> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
+
+        final Set<MediaType> coreAppMediaTypes = new HashSet<>(coreMetaInfo.getAppMediaTypes());
+        final Set<MediaType> coreSiteMediaTypes = new HashSet<>(coreMetaInfo.getSiteMediaTypes());
+        //it's a workaround in order not to update all the bidder config files at once
+        final Set<MediaType> coreDoohMediaTypes = new HashSet<>(
+                Optional.ofNullable(coreMetaInfo.getDoohMediaTypes()).orElse(List.of()));
+
+        final Set<MediaType> aliasAppMediaTypes = new HashSet<>(aliasMetaInfo.getAppMediaTypes());
+        final Set<MediaType> aliasSiteMediaTypes = new HashSet<>(aliasMetaInfo.getSiteMediaTypes());
+        final Set<MediaType> aliasDoohMediaTypes = new HashSet<>(
+                Optional.ofNullable(aliasMetaInfo.getDoohMediaTypes()).orElse(List.of()));
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
-                || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {
+                || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)
+                || !coreDoohMediaTypes.containsAll(aliasDoohMediaTypes)) {
 
             throw new IllegalArgumentException("""
-                    Alias %s supports more capabilities (app: %s, site: %s) \
-                    than the core bidder %s (app: %s, site: %s)""".formatted(
-                    alias,
-                    aliasAppMediaTypes,
-                    aliasSiteMediaTypes,
-                    coreBidder,
-                    coreAppMediaTypes,
-                    coreSiteMediaTypes));
+                    Alias %s supports more capabilities (app: %s, site: %s, dooh: %s) \
+                    than the core bidder %s (app: %s, site: %s, dooh: %s)"""
+                    .formatted(
+                            alias,
+                            aliasAppMediaTypes,
+                            aliasSiteMediaTypes,
+                            aliasDoohMediaTypes,
+                            coreBidder,
+                            coreAppMediaTypes,
+                            coreSiteMediaTypes,
+                            coreDoohMediaTypes));
         }
     }
 
