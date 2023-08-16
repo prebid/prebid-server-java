@@ -2,20 +2,20 @@ package org.prebid.server.auction.mediatypeprocessor;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.spring.config.bidder.model.MediaType;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,21 +48,23 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
     }
 
     private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String supportedBidderName) {
-        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog
-                .bidderInfoByName(supportedBidderName).getCapabilities();
+        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog.bidderInfoByName(supportedBidderName)
+                .getCapabilities();
 
-        final List<MediaType> supportedMediaTypes;
+        final Supplier<BidderInfo.PlatformInfo> fetchSupportedMediaTypes;
         if (bidRequest.getSite() != null) {
-            supportedMediaTypes = ObjectUtil.getIfNotNull(
-                    capabilitiesInfo.getSite(), BidderInfo.PlatformInfo::getMediaTypes);
+            fetchSupportedMediaTypes = capabilitiesInfo::getSite;
+        } else if (bidRequest.getApp() != null) {
+            fetchSupportedMediaTypes = capabilitiesInfo::getApp;
         } else {
-            supportedMediaTypes = ObjectUtil.getIfNotNull(
-                    capabilitiesInfo.getApp(), BidderInfo.PlatformInfo::getMediaTypes);
+            fetchSupportedMediaTypes = capabilitiesInfo::getDooh;
         }
 
-        return CollectionUtils.isNotEmpty(supportedMediaTypes)
-                ? EnumSet.copyOf(supportedMediaTypes)
-                : EnumSet.noneOf(MediaType.class);
+        return Optional.ofNullable(fetchSupportedMediaTypes.get())
+                .map(BidderInfo.PlatformInfo::getMediaTypes)
+                .filter(mediaTypes -> !mediaTypes.isEmpty())
+                .map(EnumSet::copyOf)
+                .orElseGet(() -> EnumSet.noneOf(MediaType.class));
     }
 
     private BidRequest processBidRequest(BidRequest bidRequest,

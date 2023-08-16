@@ -1,0 +1,91 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "secure": 1,
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "accountId": 2001,
+          "siteId": 3001,
+          "zoneId": 4001
+        }
+      }
+    }
+  ],
+  "dooh": {
+    "content": {},
+    "id": "15790",
+    "keywords": "Keyword, keyword",
+    "name": "This",
+    "publisher": {
+      "id": "E1",
+      "name": "Example"
+    },
+    "domain": "example.com",
+    "venuetype": [
+      "30101"
+    ],
+    "venuetypetax": 1
+  },
+  "device": {
+    "ua": "testUa",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "gdpr": 0
+  },
+  "ext": {
+    "prebid": {
+      "bidadjustmentfactors": {
+        "mediatypes": {
+          "video": {
+            "generic26": 0.9
+          }
+        }
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {}
+      },
+      "channel": {
+        "name": "dooh"
+      },
+      "auctiontimestamp": 0,
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}

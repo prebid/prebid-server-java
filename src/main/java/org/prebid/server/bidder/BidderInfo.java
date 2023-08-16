@@ -44,6 +44,7 @@ public class BidderInfo {
                                     String maintainerEmail,
                                     List<MediaType> appMediaTypes,
                                     List<MediaType> siteMediaTypes,
+                                    List<MediaType> doohMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
                                     boolean ccpaEnforced,
@@ -57,7 +58,10 @@ public class BidderInfo {
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
-                new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
+                new CapabilitiesInfo(
+                        platformInfo(appMediaTypes),
+                        platformInfo(siteMediaTypes),
+                        platformInfo(doohMediaTypes)),
                 supportedVendors,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
@@ -81,6 +85,8 @@ public class BidderInfo {
         PlatformInfo app;
 
         PlatformInfo site;
+
+        PlatformInfo dooh;
     }
 
     @Value

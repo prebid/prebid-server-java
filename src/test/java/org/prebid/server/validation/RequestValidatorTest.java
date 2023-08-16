@@ -13,6 +13,7 @@ import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Deal.DealBuilder;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
@@ -989,8 +990,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdAndPageIsNull() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id(null)).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id(null).build()).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1003,8 +1003,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdIsEmptyStringAndPageIsNull() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("")).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("").build()).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1017,8 +1016,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenPageIdIsNullAndSiteIdIsPresent() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("1").page(null)).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("1").page(null).build()).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1030,8 +1028,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldEmptyValidationMessagesWhenSitePageIsEmptyString() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("1").page("")).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("1").page("").build()).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1043,8 +1040,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdAndPageBothEmpty() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("").page("")).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("").page("").build()).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1057,9 +1053,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenSiteExtAmpIsNegative() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("id").page("page")
-                        .ext(ExtSite.of(-1, null))).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .site(Site.builder().id("id").page("page").ext(ExtSite.of(-1, null)).build())
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1072,9 +1068,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenSiteExtAmpIsGreaterThanOne() {
         // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("id").page("page")
-                        .ext(ExtSite.of(2, null))).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .site(Site.builder().id("id").page("page").ext(ExtSite.of(2, null)).build())
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1085,18 +1081,88 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotValidateSiteIfAppPresent() {
+    public void validateShouldFailWhenDoohIdAndVenuetypeAreNulls() {
         // given
-        final BidRequest bidRequest = requestWithBothSiteAndApp(
-                validBidRequestBuilder(),
-                identity(),
-                identity()).build();
+        final Dooh invalidDooh = Dooh.builder().id(null).venuetype(null).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(null).dooh(invalidDooh).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.dooh should include at least one of request.dooh.id or request.dooh.venuetype.");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohIdIsNullAndVenuetypeIsEmpty() {
+        // given
+        final Dooh invalidDooh = Dooh.builder().id(null).venuetype(Collections.emptyList()).build();
+        final BidRequest bidRequest = validBidRequestBuilder().site(null).dooh(invalidDooh).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.dooh should include at least one of request.dooh.id or request.dooh.venuetype.");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohSiteAndAppArePresentInRequest() {
+        // when
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = requestValidator.validate(invalidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenSiteAndAppArePresentInRequest() {
+        // when
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = requestValidator.validate(invalidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndSiteArePresentInRequest() {
+        // when
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = requestValidator.validate(invalidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndAppArePresentInRequest() {
+        // when
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .build();
+        final ValidationResult result = requestValidator.validate(invalidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
@@ -1105,13 +1171,15 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .site(null)
                 .app(null)
+                .dooh(null)
                 .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.site or request.app must be defined");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("One of request.site or request.app or request.dooh must be defined");
     }
 
     @Test
@@ -3165,11 +3233,6 @@ public class RequestValidatorTest extends VertxTest {
                 .deals(singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().pmp(pmp).build())).build();
-    }
-
-    private static BidRequest.BidRequestBuilder overwriteSite(
-            BidRequest.BidRequestBuilder builder, UnaryOperator<SiteBuilder> siteModifier) {
-        return builder.site(siteModifier.apply(Site.builder()).build());
     }
 
     private static BidRequest.BidRequestBuilder requestWithBothSiteAndApp(

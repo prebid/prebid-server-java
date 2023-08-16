@@ -32,6 +32,10 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.prebid.server.spring.config.bidder.model.MediaType.AUDIO;
+import static org.prebid.server.spring.config.bidder.model.MediaType.BANNER;
+import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
+import static org.prebid.server.spring.config.bidder.model.MediaType.VIDEO;
 
 public class BidderMediaTypeProcessorTest extends VertxTest {
 
@@ -43,22 +47,22 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private BidderMediaTypeProcessor bidderMediaTypeProcessor;
+    private BidderMediaTypeProcessor target;
 
     @Before
     public void setUp() {
-        bidderMediaTypeProcessor = new BidderMediaTypeProcessor(bidderCatalog);
+        target = new BidderMediaTypeProcessor(bidderCatalog);
     }
 
     @Test
     public void processShouldReturnRejectedResultAndErrorIfBidderNotSupportAnyMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(emptyList(), emptyList()));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(MediaType.BANNER));
+                .willReturn(givenBidderInfo(emptyList(), emptyList(), emptyList()));
+        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -69,31 +73,12 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     @Test
     public void processShouldUseAppMediaTypesIfAppPresent() {
         // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.app(App.builder().build()), givenImp(BANNER));
         given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(singletonList(MediaType.BANNER), singletonList(MediaType.AUDIO)));
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.app(App.builder().build()),
-                givenImp(MediaType.BANNER));
+                .willReturn(givenBidderInfo(singletonList(BANNER), singletonList(AUDIO), singletonList(NATIVE)));
 
         // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
-
-        // then
-        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void processShouldUseSiteMediaTypesIfSitePresent() {
-        // given
-        given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(singletonList(MediaType.BANNER), singletonList(MediaType.AUDIO)));
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.site(Site.builder().build()),
-                givenImp(MediaType.AUDIO));
-
-        // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
@@ -104,20 +89,20 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     public void processShouldRemoveUnsupportedMediaTypes() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(emptyList(), asList(MediaType.BANNER, MediaType.AUDIO)));
+                .willReturn(givenBidderInfo(emptyList(), List.of(BANNER, AUDIO), emptyList()));
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().build()),
-                givenImp(MediaType.AUDIO, MediaType.NATIVE),
-                givenImp(MediaType.BANNER, MediaType.VIDEO));
+                givenImp(AUDIO, NATIVE),
+                givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
 
         // then
         assertThat(result.getBidRequest())
                 .extracting(BidRequest::getImp)
                 .asList()
-                .containsExactly(givenImp(MediaType.AUDIO), givenImp(MediaType.BANNER));
+                .containsExactly(givenImp(AUDIO), givenImp(BANNER));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -125,20 +110,20 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     public void processShouldRemoveImpWithOnlyUnsupportedMediaTypes() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(emptyList(), asList(MediaType.BANNER, MediaType.AUDIO)));
+                .willReturn(givenBidderInfo(emptyList(), asList(BANNER, AUDIO), emptyList()));
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().build()),
-                givenImp(MediaType.VIDEO, MediaType.NATIVE),
-                givenImp(MediaType.BANNER, MediaType.AUDIO));
+                givenImp(VIDEO, NATIVE),
+                givenImp(BANNER, AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
 
         // then
         assertThat(result.getBidRequest())
                 .extracting(BidRequest::getImp)
                 .asList()
-                .containsExactly(givenImp(MediaType.BANNER, MediaType.AUDIO));
+                .containsExactly(givenImp(BANNER, AUDIO));
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badInput("Imp " + null + " does not have a supported media type "
                         + "and has been removed from the request for this bidder."));
@@ -148,14 +133,14 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     public void processShouldReturnRejectedResultIfRequestDoesNotContainsAnyImpWithSupportedMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
-                .willReturn(givenBidderInfo(emptyList(), asList(MediaType.BANNER, MediaType.AUDIO)));
+                .willReturn(givenBidderInfo(emptyList(), asList(BANNER, AUDIO), emptyList()));
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().build()),
-                givenImp(MediaType.VIDEO),
-                givenImp(MediaType.NATIVE));
+                givenImp(VIDEO),
+                givenImp(NATIVE));
 
         // when
-        final MediaTypeProcessingResult result = bidderMediaTypeProcessor.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -167,7 +152,9 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 BidderError.badInput("Bid request contains 0 impressions after filtering."));
     }
 
-    private static BidderInfo givenBidderInfo(List<MediaType> appMediaTypes, List<MediaType> siteMediaType) {
+    private static BidderInfo givenBidderInfo(List<MediaType> appMediaTypes,
+                                              List<MediaType> siteMediaType,
+                                              List<MediaType> doohMediaType) {
         return BidderInfo.create(
                 true,
                 OrtbVersion.ORTB_2_6,
@@ -177,11 +164,13 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 "maintainerEmail",
                 appMediaTypes,
                 siteMediaType,
+                doohMediaType,
                 emptyList(),
                 0,
                 false,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE
+        );
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
@@ -194,16 +183,16 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         final Set<MediaType> setOfMediaTypes = Set.of(mediaTypes);
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
-        if (setOfMediaTypes.contains(MediaType.BANNER)) {
+        if (setOfMediaTypes.contains(BANNER)) {
             impBuilder.banner(Banner.builder().build());
         }
-        if (setOfMediaTypes.contains(MediaType.VIDEO)) {
+        if (setOfMediaTypes.contains(VIDEO)) {
             impBuilder.video(Video.builder().build());
         }
-        if (setOfMediaTypes.contains(MediaType.AUDIO)) {
+        if (setOfMediaTypes.contains(AUDIO)) {
             impBuilder.audio(Audio.builder().build());
         }
-        if (setOfMediaTypes.contains(MediaType.NATIVE)) {
+        if (setOfMediaTypes.contains(NATIVE)) {
             impBuilder.xNative(Native.builder().build());
         }
 

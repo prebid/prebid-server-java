@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -27,6 +26,7 @@ import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,6 +66,7 @@ public class RequestContext {
     private final AttributeReader<User> userReader;
     private final AttributeReader<Site> siteReader;
     private final AttributeReader<App> appReader;
+    private final AttributeReader<Dooh> doohReader;
 
     public RequestContext(BidRequest bidRequest,
                           Imp imp,
@@ -78,12 +80,14 @@ public class RequestContext {
         impReader = AttributeReader.forImp();
         geoReader = AttributeReader.forGeo(getExtNode(
                 bidRequest.getDevice(),
-                device -> getIfNotNull(getIfNotNull(device, Device::getGeo), Geo::getExt),
-                mapper));
+                device -> Optional.ofNullable(device).map(Device::getGeo).map(Geo::getExt).orElse(null),
+                mapper
+        ));
         deviceReader = AttributeReader.forDevice(getExtNode(bidRequest.getDevice(), Device::getExt, mapper));
         userReader = AttributeReader.forUser();
         siteReader = AttributeReader.forSite();
         appReader = AttributeReader.forApp();
+        doohReader = AttributeReader.forDooh();
     }
 
     private static <T> ObjectNode getExtNode(T target,
@@ -98,50 +102,77 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
+        final Site site = bidRequest.getSite();
         return switch (type) {
             case domain -> lookupResult(
-                    getIfNotNull(bidRequest.getSite(), Site::getDomain),
-                    getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
-            case publisherDomain -> lookupResult(getIfNotNull(
-                    getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
-            case referrer -> lookupResult(getIfNotNull(bidRequest.getSite(), Site::getPage));
-            case appBundle -> lookupResult(getIfNotNull(bidRequest.getApp(), App::getBundle));
+                    Optional.ofNullable(site).map(Site::getDomain).orElse(null),
+                    Optional.ofNullable(site).map(Site::getPublisher).map(Publisher::getDomain).orElse(null)
+            );
+            case publisherDomain -> lookupResult(
+                    Optional.ofNullable(site).map(Site::getPublisher).map(Publisher::getDomain).orElse(null)
+            );
+            case referrer -> lookupResult(
+                    Optional.ofNullable(site).map(Site::getPage).orElse(null)
+            );
+            case appBundle -> lookupResult(
+                    Optional.ofNullable(bidRequest.getApp()).map(App::getBundle).orElse(null)
+            );
             case adslot -> lookupResult(
                     imp.getTagid(),
                     impReader.readFromExt(imp, "gpid", RequestContext::nodeToString),
                     impReader.readFromExt(imp, "data.pbadslot", RequestContext::nodeToString),
-                    impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString));
+                    impReader.readFromExt(imp, "data.adserver.adslot", RequestContext::nodeToString)
+            );
             case deviceGeoExt -> lookupResult(geoReader.readFromExt(
-                    getIfNotNull(bidRequest.getDevice(), Device::getGeo), path, RequestContext::nodeToString));
-            case deviceExt -> lookupResult(
-                    deviceReader.readFromExt(bidRequest.getDevice(), path, RequestContext::nodeToString));
-            case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToString));
-            case userFirstPartyData ->
-                    userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class);
+                    Optional.ofNullable(bidRequest.getDevice()).map(Device::getGeo).orElse(null),
+                    path,
+                    RequestContext::nodeToString
+            ));
+            case deviceExt -> lookupResult(deviceReader.readFromExt(
+                    bidRequest.getDevice(),
+                    path,
+                    RequestContext::nodeToString
+            ));
+            case bidderParam -> lookupResult(impReader.readFromExt(
+                    imp,
+                    EXT_BIDDER + path,
+                    RequestContext::nodeToString
+            ));
+            case userFirstPartyData -> userReader.read(
+                    bidRequest.getUser(),
+                    path,
+                    RequestContext::nodeToString,
+                    String.class
+            );
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToString);
             default -> LookupResult.empty();
         };
     }
 
+    //todo: LookupResult is an Optional duplicate at some point
     public LookupResult<Integer> lookupInteger(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         final String path = category.path();
 
+        final User user = bidRequest.getUser();
         return switch (type) {
-            case pagePosition -> lookupResult(getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getPos));
-            case dow -> lookupResult(getIfNotNull(
-                    getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
-                    ExtUserTime::getUserdow));
-            case hour -> lookupResult(getIfNotNull(
-                    getIfNotNull(getIfNotNull(bidRequest.getUser(), User::getExt), ExtUser::getTime),
-                    ExtUserTime::getUserhour));
+            case pagePosition -> lookupResult(
+                    Optional.ofNullable(imp).map(Imp::getBanner).map(Banner::getPos).orElse(null));
+            case dow -> lookupResult(
+                    Optional.ofNullable(user).map(User::getExt).map(ExtUser::getTime).map(ExtUserTime::getUserdow)
+                            .orElse(null));
+            case hour -> lookupResult(
+                    Optional.ofNullable(user).map(User::getExt).map(ExtUser::getTime).map(ExtUserTime::getUserhour)
+                            .orElse(null));
             case deviceGeoExt -> lookupResult(geoReader.readFromExt(
-                    getIfNotNull(bidRequest.getDevice(), Device::getGeo), path, RequestContext::nodeToInteger));
-            case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToInteger));
-            case userFirstPartyData ->
-                    userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class);
+                    Optional.ofNullable(bidRequest.getDevice()).map(Device::getGeo).orElse(null),
+                    path,
+                    RequestContext::nodeToInteger));
+            case bidderParam -> lookupResult(impReader.readFromExt(
+                    imp,
+                    EXT_BIDDER + path,
+                    RequestContext::nodeToInteger));
+            case userFirstPartyData -> userReader.read(user, path, RequestContext::nodeToInteger, Integer.class);
             case siteFirstPartyData -> getSiteFirstPartyData(path, RequestContext::nodeToInteger);
             default -> LookupResult.empty();
         };
@@ -154,8 +185,10 @@ public class RequestContext {
 
         return switch (type) {
             case mediaType -> lookupResult(getMediaTypes());
-            case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToListOfStrings));
+            case bidderParam -> lookupResult(impReader.readFromExt(
+                    imp,
+                    EXT_BIDDER + path,
+                    RequestContext::nodeToListOfStrings));
             case userSegment -> lookupResult(getSegments(category));
             case userFirstPartyData -> lookupResult(
                     listOfNonNulls(userReader.readFromObject(user, path, String.class)),
@@ -171,8 +204,10 @@ public class RequestContext {
         final User user = bidRequest.getUser();
 
         return switch (type) {
-            case bidderParam -> lookupResult(
-                    impReader.readFromExt(imp, EXT_BIDDER + path, RequestContext::nodeToListOfIntegers));
+            case bidderParam -> lookupResult(impReader.readFromExt(
+                    imp,
+                    EXT_BIDDER + path,
+                    RequestContext::nodeToListOfIntegers));
             case userFirstPartyData -> lookupResult(
                     listOfNonNulls(userReader.readFromObject(user, path, Integer.class)),
                     userReader.readFromExt(user, path, RequestContext::nodeToListOfIntegers));
@@ -193,8 +228,10 @@ public class RequestContext {
     }
 
     private static List<Size> sizesFromBanner(Imp imp) {
-        final List<Format> formats = getIfNotNull(imp.getBanner(), Banner::getFormat);
-        return ListUtils.emptyIfNull(formats).stream()
+        return Optional.ofNullable(imp.getBanner())
+                .map(Banner::getFormat)
+                .orElse(Collections.emptyList())
+                .stream()
                 .map(format -> Size.of(format.getW(), format.getH()))
                 .toList();
     }
@@ -215,11 +252,12 @@ public class RequestContext {
             throw new TargetingSyntaxException("Unexpected category for fetching geo location for: " + type);
         }
 
-        final Geo geo = getIfNotNull(getIfNotNull(bidRequest, BidRequest::getDevice), Device::getGeo);
-        final Float lat = getIfNotNull(geo, Geo::getLat);
-        final Float lon = getIfNotNull(geo, Geo::getLon);
-
-        return lat != null && lon != null ? GeoLocation.of(lat, lon) : null;
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getDevice)
+                .map(Device::getGeo)
+                .filter(geo -> geo.getLat() != null && geo.getLon() != null)
+                .map(geo -> GeoLocation.of(geo.getLat(), geo.getLon()))
+                .orElse(null);
     }
 
     public TxnLog txnLog() {
@@ -236,10 +274,6 @@ public class RequestContext {
         return Stream.of(candidates)
                 .filter(Objects::nonNull)
                 .toList();
-    }
-
-    private static <S, T> T getIfNotNull(S source, Function<S, T> getter) {
-        return source != null ? getter.apply(source) : null;
     }
 
     private List<String> getMediaTypes() {
@@ -261,13 +295,12 @@ public class RequestContext {
                 impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
                 impReader.readFromExt(imp, EXT_DATA + path, valueExtractor),
                 siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
+                doohReader.readFromExt(bidRequest.getDooh(), path, valueExtractor),
                 appReader.readFromExt(bidRequest.getApp(), path, valueExtractor));
     }
 
     private List<String> getSegments(TargetingCategory category) {
-        final List<Data> userData = getIfNotNull(bidRequest.getUser(), User::getData);
-
-        final List<String> segments = ListUtils.emptyIfNull(userData)
+        final List<String> segments = Optional.ofNullable(bidRequest.getUser()).map(User::getData).orElse(List.of())
                 .stream()
                 .filter(Objects::nonNull)
                 .filter(data -> Objects.equals(data.getId(), category.path()))
@@ -276,7 +309,7 @@ public class RequestContext {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return !segments.isEmpty() ? segments : null;
+        return segments.isEmpty() ? null : segments;
     }
 
     private static String toJsonPointer(String path) {
@@ -332,37 +365,39 @@ public class RequestContext {
         public static AttributeReader<Imp> forImp() {
             return new AttributeReader<>(
                     Imp.class,
-                    imp -> getIfNotNull(imp, Imp::getExt));
+                    imp -> Optional.ofNullable(imp).map(Imp::getExt).orElse(null));
         }
 
         public static AttributeReader<Geo> forGeo(ObjectNode geoExt) {
-            return new AttributeReader<>(
-                    Geo.class,
-                    ignored -> geoExt);
+            return new AttributeReader<>(Geo.class, ignored -> geoExt);
         }
 
         public static AttributeReader<Device> forDevice(ObjectNode deviceExt) {
-            return new AttributeReader<>(
-                    Device.class,
-                    ignored -> deviceExt);
+            return new AttributeReader<>(Device.class, ignored -> deviceExt);
         }
 
         public static AttributeReader<User> forUser() {
             return new AttributeReader<>(
                     User.class,
-                    user -> getIfNotNull(getIfNotNull(user, User::getExt), ExtUser::getData));
+                    user -> Optional.ofNullable(user).map(User::getExt).map(ExtUser::getData).orElse(null));
         }
 
         public static AttributeReader<Site> forSite() {
             return new AttributeReader<>(
                     Site.class,
-                    site -> getIfNotNull(getIfNotNull(site, Site::getExt), ExtSite::getData));
+                    site -> Optional.ofNullable(site).map(Site::getExt).map(ExtSite::getData).orElse(null));
         }
 
         public static AttributeReader<App> forApp() {
             return new AttributeReader<>(
                     App.class,
-                    app -> getIfNotNull(getIfNotNull(app, App::getExt), ExtApp::getData));
+                    app -> Optional.ofNullable(app).map(App::getExt).map(ExtApp::getData).orElse(null));
+        }
+
+        public static AttributeReader<Dooh> forDooh() {
+            return new AttributeReader<>(
+                    Dooh.class,
+                    dooh -> Optional.ofNullable(dooh).map(Dooh::getExt).map(ExtDooh::getData).orElse(null));
         }
 
         public <A> LookupResult<A> read(T target,
@@ -379,14 +414,16 @@ public class RequestContext {
 
         public <A> A readFromObject(T target, String path, Class<A> attributeType) {
             return isTopLevelAttribute(path)
-                    ? getIfNotNull(target, user -> readProperty(user, path, attributeType))
+                    ? Optional.ofNullable(target).map(user -> readProperty(user, path, attributeType)).orElse(null)
                     : null;
         }
 
         public <A> A readFromExt(T target, String path, Function<JsonNode, A> valueExtractor) {
-            final JsonNode extPath = getIfNotNull(target, extPathExtractor);
-            final JsonNode value = getIfNotNull(extPath, node -> node.at(toJsonPointer(path)));
-            return getIfNotNull(value, valueExtractor);
+            return Optional.ofNullable(target)
+                    .map(extPathExtractor)
+                    .map(node -> node.at(toJsonPointer(path)))
+                    .map(valueExtractor)
+                    .orElse(null);
         }
 
         private boolean isTopLevelAttribute(String path) {

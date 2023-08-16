@@ -41,6 +41,7 @@ public enum MetricName {
     // request types,
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
+    openrtb2dooh("openrtb2-dooh"),
     amp,
     video,
     cookiesync,
