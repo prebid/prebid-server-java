@@ -26,9 +26,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.bidder.model.BidderError.Type;
@@ -177,14 +177,14 @@ public class GothamAdsBidderTest extends VertxTest {
                 .containsExactly(badServerResponse("Unable to fetch mediaType 3 in multi-format: 3"));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         return BidRequest.builder()
                 .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build())
                 .imp(Arrays.stream(impCustomizers).map(GothamAdsBidderTest::givenImp).toList())
                 .build();
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder().id("imp_id").ext(givenImpExt())).build();
     }
 

@@ -8,6 +8,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -92,18 +93,15 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 headers,
                 HttpUtil.USER_AGENT_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getUa)
-        );
+                ObjectUtil.getIfNotNull(device, Device::getUa));
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 headers,
                 HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getIpv6)
-        );
+                ObjectUtil.getIfNotNull(device, Device::getIpv6));
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 headers,
                 HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getIp)
-        );
+                ObjectUtil.getIfNotNull(device, Device::getIp));
 
         return headers;
     }
@@ -112,11 +110,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final boolean hasNoSeatBids = Optional.ofNullable(bidResponse.getSeatbid()).map(List::isEmpty).orElse(true);
-            return hasNoSeatBids
-                    ? Result.withError(BidderError.badServerResponse("Empty SeatBid array"))
-                    : Result.withValues(extractBids(bidResponse));
-
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse("Bad Server Response"));
         } catch (PreBidException e) {
@@ -125,6 +119,10 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            throw new PreBidException("Empty SeatBid array");
+        }
+
         return bidResponse.getSeatbid()
                 .stream()
                 .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
@@ -143,8 +141,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid()
-            );
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
         };
     }
 
