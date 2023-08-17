@@ -1,0 +1,15 @@
+adapters:
+  gothamads:
+    endpoint: http://us-e-node1.gothamads.com/?pass={{AccountID}}
+    meta-info:
+      maintainer-email: support@gothamads.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
