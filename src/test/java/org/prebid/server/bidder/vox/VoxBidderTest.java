@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import lombok.Value;
 import org.junit.Before;
@@ -14,6 +13,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -25,7 +25,6 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -33,7 +32,6 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
 import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
-import static org.prebid.server.util.HttpUtil.headers;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class VoxBidderTest extends VertxTest {
@@ -53,7 +51,7 @@ public class VoxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMakeCorrectRequest() {
+    public void makeHttpRequestsShouldReturnExpectedUrl() {
         // given
         final BidRequest bidRequest = givenBidRequest();
 
@@ -61,19 +59,70 @@ public class VoxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final MultiMap expectedHeaders = headers()
-                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
-                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE);
-        final Result<List<HttpRequest<BidRequest>>> expectedResult = Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(ENDPOINT_URL)
-                .headers(expectedHeaders)
-                .impIds(Set.of("imp_id"))
-                .body(jacksonMapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build());
-        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
+        assertThat(result.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getUri()).isEqualTo(ENDPOINT_URL));
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedBody() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest)))
+                .satisfies(request -> assertThat(request.getPayload()).isEqualTo(bidRequest));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedRequestMethod() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getMethod()).isEqualTo(HttpMethod.POST));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedImpIds() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getImpIds()).isEqualTo(Set.of("imp_id")));
+        assertThat(results.getErrors()).isEmpty();
     }
 
     @Test
@@ -86,11 +135,11 @@ public class VoxBidderTest extends VertxTest {
 
         // then
         assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors()).containsExactly(badServerResponse("Bad Server Response"));
+        assertThat(actual.getErrors()).containsExactly(BidderError.badServerResponse("Bad Server Response"));
     }
 
     @Test
-    public void makeBidsShouldReturnBidsSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnAllFourBidTypesSuccessfully() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
         final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
@@ -114,6 +163,68 @@ public class VoxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(),
+                givenBidResponse(bannerBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
+
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid audioBid = Bid.builder().impid("3").mtype(3).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(audioBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(audioBid, audio, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(videoBid));
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(videoBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid nativeBid = Bid.builder().impid("4").mtype(4).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(nativeBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(nativeBid, xNative, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorWhenImpTypeIsNotSupported() throws JsonProcessingException {
         // given
         final Bid audioBid = Bid.builder().impid("id").mtype(5).build();
@@ -125,7 +236,7 @@ public class VoxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
         assertThat(result.getErrors())
-                .containsExactly(badServerResponse("Unable to fetch mediaType 5 in multi-format: id"));
+                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType 5 in multi-format: id"));
     }
 
     @Test
@@ -138,7 +249,7 @@ public class VoxBidderTest extends VertxTest {
 
         // then
         assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors()).containsExactly(badServerResponse("Empty SeatBid array"));
+        assertThat(actual.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
     }
 
     private static BidRequest givenBidRequest() {
@@ -146,7 +257,7 @@ public class VoxBidderTest extends VertxTest {
                 .id("imp_id")
                 .ext(mapper.valueToTree(ExtPrebid.of(
                         null,
-                        new VoxImpExt("placementId", "http://some.image.url", List.of("1920x1080")))))
+                        VoxImpExt.of("placementId", "http://some.image.url", Set.of("1920x1080")))))
                 .build();
         return BidRequest.builder().imp(List.of(imp)).build();
     }
@@ -168,11 +279,11 @@ public class VoxBidderTest extends VertxTest {
                 null);
     }
 
-    @Value
+    @Value(staticConstructor = "of")
     private static class VoxImpExt {
         String placementId;
         String imageUrl;
-        List<String> displaySizes;
+        Set<String> displaySizes;
     }
 
 }
