@@ -8,7 +8,7 @@ public class ScreencoreImpExt {
 
     @JsonProperty("accountId")
     String accountId;
+
     @JsonProperty("placementId")
     String placementId;
-
 }

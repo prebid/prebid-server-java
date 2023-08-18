@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +39,6 @@ import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 import static org.prebid.server.util.HttpUtil.USER_AGENT_HEADER;
 import static org.prebid.server.util.HttpUtil.X_FORWARDED_FOR_HEADER;
 import static org.prebid.server.util.HttpUtil.X_OPENRTB_VERSION_HEADER;
-import static org.prebid.server.util.HttpUtil.headers;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class ScreencoreBidderTest extends VertxTest {
@@ -77,36 +75,112 @@ public class ScreencoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMakeCorrectRequest() {
+    public void makeHttpRequestsShouldReturnExpectedUrl() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getUri())
+                        .isEqualTo("http://h1.screencore.io/?kp=accountId&kn=placementId"));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE))
+                .satisfies(headers -> assertThat(headers.get(X_OPENRTB_VERSION_HEADER))
+                        .isEqualTo("2.5"))
+                .satisfies(headers -> assertThat(headers.get(USER_AGENT_HEADER))
+                        .isEqualTo("ua"))
+                .satisfies(headers -> assertThat(headers.getAll(X_FORWARDED_FOR_HEADER))
+                        .isEqualTo(List.of("ipv6", "ip")));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedBody() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        final BidRequest expectedBidRequest = givenBidRequest(impBuilder -> impBuilder.ext(null));
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getBody())
+                        .isEqualTo(jacksonMapper.encodeToBytes(expectedBidRequest)))
+                .satisfies(request -> assertThat(request.getPayload())
+                        .isEqualTo(expectedBidRequest));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedRequestMethod() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getMethod()).isEqualTo(HttpMethod.POST));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedImpIds() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getImpIds()).isEqualTo(Set.of("imp_id")));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnImpIdsWithCleanedUpFirstImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 impBuilder -> impBuilder.id("imp_id2").ext(givenImpExt()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
         final BidRequest expectedBidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(null),
                 impBuilder -> impBuilder.id("imp_id2").ext(givenImpExt()));
-        final MultiMap expectedHeaders = headers()
-                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
-                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE)
-                .set(X_OPENRTB_VERSION_HEADER, "2.5")
-                .set(USER_AGENT_HEADER, "ua")
-                .set(X_FORWARDED_FOR_HEADER, List.of("ipv6", "ip"));
-        final Result<List<HttpRequest<BidRequest>>> expectedResult = Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri("http://h1.screencore.io/?kp=accountId&kn=placementId")
-                .headers(expectedHeaders)
-                .impIds(Set.of("imp_id", "imp_id2"))
-                .body(jacksonMapper.encodeToBytes(expectedBidRequest))
-                .payload(expectedBidRequest)
-                .build()
-        );
-        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getImpIds())
+                        .isEqualTo(Set.of("imp_id", "imp_id2")))
+                .satisfies(request -> assertThat(request.getBody())
+                        .isEqualTo(jacksonMapper.encodeToBytes(expectedBidRequest)))
+                .satisfies(request -> assertThat(request.getPayload())
+                        .isEqualTo(expectedBidRequest));
+        assertThat(results.getErrors()).isEmpty();
     }
 
     @Test
@@ -136,7 +210,7 @@ public class ScreencoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnAllThreeBidsTypesSuccessfully() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
         final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
@@ -155,6 +229,52 @@ public class ScreencoreBidderTest extends VertxTest {
                 BidderBid.of(bannerBid, banner, null),
                 BidderBid.of(videoBid, video, null),
                 BidderBid.of(nativeBid, xNative, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(bannerBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bannerBid, banner, null));
+
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(videoBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(videoBid, video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid nativeBid = Bid.builder().impid("3").mtype(4).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(nativeBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(nativeBid, xNative, null));
     }
 
     @Test

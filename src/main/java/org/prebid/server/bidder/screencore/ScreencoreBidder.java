@@ -56,7 +56,15 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest bidRequest = cleanUpFirstImpExt(request);
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+        final HttpRequest<BidRequest> httpRequest = makeHttpRequest(request, impExt, bidRequest);
+        return Result.withValue(httpRequest);
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request,
+                                                    ScreencoreImpExt impExt,
+                                                    BidRequest bidRequest) {
+
+        return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(resolveEndpoint(impExt))
                 .headers(makeHeaders(request))
@@ -64,7 +72,6 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
-        return Result.withValue(httpRequest);
     }
 
     private ScreencoreImpExt parseImpExt(Imp imp) {
