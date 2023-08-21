@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.Map.Entry;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,9 +122,8 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(HttpRequest::getBody)
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getTagid, Imp::getExt)
-                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree(
-                        singletonMap("adUnitCode", "sovrn_auc"))));
+                .extracting(Imp::getBidfloor, Imp::getTagid, e -> e.getExt().get("adunitcode"))
+                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree("sovrn_auc")));
     }
 
     @Test
@@ -142,7 +140,8 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(singletonMap("adUnitCode", "sovrn_auc")));
+                .extracting(e -> e.get("adunitcode"))
+                .containsExactly(mapper.valueToTree("sovrn_auc"));
     }
 
     @Test
@@ -161,7 +160,7 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .extracting(e -> e.get("adUnitCode"))
+                .extracting(e -> e.get("adunitcode"))
                 .containsOnlyNulls();
     }
 
@@ -181,7 +180,7 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .extracting(e -> e.get("adUnitCode"))
+                .extracting(e -> e.get("adunitcode"))
                 .containsOnlyNulls();
     }
 

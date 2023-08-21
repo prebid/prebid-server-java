@@ -18,6 +18,5 @@ public class ExtImpSovrn {
 
     BigDecimal bidfloor;
 
-    @JsonProperty("adUnitCode")
-    String adUnitCode;
+    String adunitcode;
 }
