@@ -83,7 +83,9 @@ public class WebConfiguration {
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
             @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
             @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
-            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
+            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword,
+            @Value("#{'${http.enable-quickack:${server.enable-quickack}}'}") boolean enableQuickAck,
+            @Value("#{'${http.enable-reuseport:${server.enable-reuseport}}'}") boolean enableReusePort) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
@@ -91,8 +93,9 @@ public class WebConfiguration {
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
-                .setIdleTimeout(10); // kick off long processing requests
-
+                .setIdleTimeout(10) // kick off long processing requests
+                .setTcpQuickAck(enableQuickAck)
+                .setReusePort(enableReusePort);
         if (ssl) {
             final JksOptions jksOptions = new JksOptions()
                     .setPath(jksPath)
