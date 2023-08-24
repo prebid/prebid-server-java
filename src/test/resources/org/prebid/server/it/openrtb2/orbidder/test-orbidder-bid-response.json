@@ -12,7 +12,8 @@
           "price": 0.01,
           "ext": {
             "format": "BANNER"
-          }
+          },
+          "mtype": 1
         }
       ]
     }
