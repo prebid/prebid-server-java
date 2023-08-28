@@ -1,0 +1,21 @@
+adapters:
+  vox:
+    endpoint: https://ssp.hybrid.ai/prebid/server/v1/auction
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: prebid@hybrid.ai
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 206
+    usersync:
+      cookie-family-name: vox
+      iframe:
+        url: https://ssp.hybrid.ai/prebid/server/v1/userSync?consent={{gdpr_consent}}&redirect={{redirect_url}}
+        userMacro: $UID
+        support-cors: false

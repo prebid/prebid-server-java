@@ -30,6 +30,7 @@ public class BidderUtil {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
+                .impIds(impIds(bidRequest))
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();

@@ -1,0 +1,26 @@
+adapters:
+  yahooAds:
+    endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+    ortb-version: "2.6"
+    aliases:
+      yssp:
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+      yahoossp:
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+      yahooAdvertising:
+        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+    meta-info:
+      maintainer-email: hb-fe-tech@yahooinc.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 25
+    usersync:
+      cookie-family-name: yahooAds
+      redirect:
+        url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+        support-cors: false
