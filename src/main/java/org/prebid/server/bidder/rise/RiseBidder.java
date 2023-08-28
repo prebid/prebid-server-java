@@ -44,26 +44,30 @@ public class RiseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final String publisherId;
+        final String impExt;
         try {
-            publisherId = resolvePublisherId(bidRequest);
+            impExt = resolveImpExt(bidRequest);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.withValue(BidderUtil.defaultRequest(bidRequest, resolveUrl(publisherId), mapper));
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, resolveUrl(impExt), mapper));
     }
 
-    private String resolvePublisherId(BidRequest request) {
+    private String resolveImpExt(BidRequest request) {
         for (Imp imp : request.getImp()) {
             final ExtImpRise extImpRise = parseImpExt(imp);
+            final String org = extImpRise.getOrg();
+            if (StringUtils.isNotBlank(org)) {
+                return org.replaceAll("\\s","");
+            }
             final String publisherId = extImpRise.getPublisherId();
             if (StringUtils.isNotBlank(publisherId)) {
-                return publisherId;
+                return publisherId.replaceAll("\\s","");
             }
         }
 
-        throw new PreBidException("No publisherID supplied");
+        throw new PreBidException("No org or publisher_id supplied");
     }
 
     private ExtImpRise parseImpExt(Imp imp) throws PreBidException {

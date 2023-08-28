@@ -80,9 +80,39 @@ public class RiseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyEndpointURL() {
+    public void makeHttpRequestsShouldThrowErrorWhenExtImpOrgAndPublisherAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("No org or publisher_id supplied");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPasteValueFromExtImpOrgToURLEndpointWhenPublisherIdPresentAndOrgAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("test Publisher Id", null))))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -93,6 +123,29 @@ public class RiseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com?publisher_id=testPublisherId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPasteValueFromExtImpOrgToURLEndpointWhenOrgPresentAndPublisherIdAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, "test O r g"))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com?publisher_id=testOrg");
     }
 
     @Test
@@ -218,7 +271,7 @@ public class RiseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("testPublisherId"))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("testPublisherId", null))))
                 .build();
     }
 
