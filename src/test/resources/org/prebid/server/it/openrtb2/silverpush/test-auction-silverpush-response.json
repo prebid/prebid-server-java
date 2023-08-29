@@ -1,0 +1,34 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId",
+          "mtype": 1,
+          "ext": {
+            "origbidcpm": 3.33,
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "silverpush",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "silverpush": "{{ silverpush.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
