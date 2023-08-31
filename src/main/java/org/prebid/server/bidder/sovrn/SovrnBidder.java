@@ -86,18 +86,19 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp) {
-        final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
+        final ObjectNode impExt = imp.getExt();
+        final ExtImpSovrn sovrnExt = parseExtImpSovrn(impExt);
 
         return imp.toBuilder()
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(resolveTagId(sovrnExt))
-                .ext(resolveImpExt(sovrnExt, imp.getExt()))
+                .ext(resolveImpExt(sovrnExt, impExt))
                 .build();
     }
 
-    private ExtImpSovrn parseExtImpSovrn(Imp imp) {
+    private ExtImpSovrn parseExtImpSovrn(ObjectNode ext) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(ext, SOVRN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
