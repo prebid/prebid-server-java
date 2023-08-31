@@ -19,8 +19,8 @@ public class DatabaseHealthChecker extends PeriodicHealthChecker {
 
     private StatusResponse status;
 
-    public DatabaseHealthChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod) {
-        super(vertx, refreshPeriod);
+    public DatabaseHealthChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod, long jitter) {
+        super(vertx, refreshPeriod, jitter);
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
     }
 
