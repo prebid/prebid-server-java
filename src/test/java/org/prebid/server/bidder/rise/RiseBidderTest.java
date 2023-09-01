@@ -110,7 +110,7 @@ public class RiseBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("test Publisher Id", null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("  testPublisherId  ", null))))
                         .build()))
                 .build();
 
@@ -133,7 +133,7 @@ public class RiseBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, "test O r g"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, " testOrg  "))))
                         .build()))
                 .build();
 

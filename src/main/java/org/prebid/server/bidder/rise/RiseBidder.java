@@ -59,11 +59,11 @@ public class RiseBidder implements Bidder<BidRequest> {
             final ExtImpRise extImpRise = parseImpExt(imp);
             final String org = extImpRise.getOrg();
             if (StringUtils.isNotBlank(org)) {
-                return org.replaceAll("\\s", "");
+                return StringUtils.trim(org);
             }
             final String publisherId = extImpRise.getPublisherId();
             if (StringUtils.isNotBlank(publisherId)) {
-                return publisherId.replaceAll("\\s", "");
+                return StringUtils.trim(publisherId);
             }
         }
 

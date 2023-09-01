@@ -17,7 +17,15 @@
     "publisher_id"
   ],
   "oneOf": [
-    { "required": ["org"] },
-    { "required": ["publisher_id"] }
+    {
+      "required": [
+        "org"
+      ]
+    },
+    {
+      "required": [
+        "publisher_id"
+      ]
+    }
   ]
 }
