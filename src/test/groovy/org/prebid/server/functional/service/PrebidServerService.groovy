@@ -165,7 +165,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def setuidResponse = new SetuidResponse()
         setuidResponse.uidsCookie = getDecodedUidsCookie(response)
         setuidResponse.responseBody = response.asByteArray()
-        setuidResponse.headers = response.headers()
+        setuidResponse.headers = getHeaders(response)
         setuidResponse
     }
 

@@ -270,7 +270,7 @@ class SetUidSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[OPENX]
 
         and: "Response set cookie header size should be lowest or the same as max cookie config size"
-        assert response.headers.get("Set-Cookie").value.split("Secure;")[0].length() <= MAX_COOKIE_SIZE
+        assert response.headers.get("Set-Cookie").split("Secure;")[0].length() <= MAX_COOKIE_SIZE
 
         and: "Request bidder should contain uid from Set uid request"
         assert response.uidsCookie.tempUIDs[OPENX].uid == request.uid
