@@ -46,7 +46,7 @@ public class RiseBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final String impExt;
         try {
-            impExt = resolveImpExt(bidRequest);
+            impExt = findImpExtValidValue(bidRequest.getImp());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -54,8 +54,8 @@ public class RiseBidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(bidRequest, resolveUrl(impExt), mapper));
     }
 
-    private String resolveImpExt(BidRequest request) {
-        for (Imp imp : request.getImp()) {
+    private String findImpExtValidValue(List<Imp> imps) {
+        for (Imp imp : imps) {
             final ExtImpRise extImpRise = parseImpExt(imp);
             final String org = extImpRise.getOrg();
             if (StringUtils.isNotBlank(org)) {
