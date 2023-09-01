@@ -6,4 +6,6 @@ import lombok.Value;
 public class ExtImpRise {
 
     String publisherId;
+
+    String org;
 }
