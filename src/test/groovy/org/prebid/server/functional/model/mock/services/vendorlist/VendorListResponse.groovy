@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Clock
 import java.time.ZonedDateTime
 
-import static org.prebid.server.functional.util.privacy.TcfConsent.*
+import static org.prebid.server.functional.util.privacy.TcfConsent.VENDOR_LIST_VERSION
 
 class VendorListResponse {
 
@@ -20,7 +20,6 @@ class VendorListResponse {
             it.gvlSpecificationVersion = 2
             it.vendorListVersion = VENDOR_LIST_VERSION
             it.lastUpdated = ZonedDateTime.now(Clock.systemUTC()).minusWeeks(2)
-            it.vendors = [(GENERIC_VENDOR_ID): Vendor.defaultVendor]
         }
     }
 
@@ -42,9 +41,9 @@ class VendorListResponse {
         Boolean usesNonCookieAccess
         Boolean deviceStorageDisclosureUrl
 
-        static Vendor getDefaultVendor() {
+        static Vendor getDefaultVendor(Integer id) {
             new Vendor().tap {
-                it.id = GENERIC_VENDOR_ID
+                it.id = id
                 it.name = PBSUtils.randomString
                 it.purposes = [1, 3, 4, 5]
                 it.legIntPurposes = [2, 7, 10]
