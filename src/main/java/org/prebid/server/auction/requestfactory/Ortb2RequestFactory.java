@@ -518,13 +518,17 @@ public class Ortb2RequestFactory {
 
     private static UpdateResult<String> resolveRegion(Geo geo, PrivacyContext privacyContext) {
         final String regionInRequest = geo != null ? geo.getRegion() : null;
+        final String upperCasedRegionInRequest = StringUtils.upperCase(regionInRequest);
 
         final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
         final String region = geoInfo != null ? geoInfo.getRegion() : null;
+        final String upperCasedRegion = StringUtils.upperCase(region);
 
-        return region != null && !region.equals(regionInRequest)
-                ? UpdateResult.updated(region)
-                : UpdateResult.unaltered(regionInRequest);
+        return upperCasedRegion != null && !upperCasedRegion.equals(upperCasedRegionInRequest)
+                ? UpdateResult.updated(upperCasedRegion)
+                : Objects.equals(regionInRequest, upperCasedRegionInRequest)
+                    ? UpdateResult.unaltered(regionInRequest)
+                    : UpdateResult.updated(upperCasedRegionInRequest);
     }
 
     private static String accountDefaultIntegration(Account account) {

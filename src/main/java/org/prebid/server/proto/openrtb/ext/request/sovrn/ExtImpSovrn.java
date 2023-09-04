@@ -17,4 +17,6 @@ public class ExtImpSovrn {
     String legacyTagId;
 
     BigDecimal bidfloor;
+
+    String adunitcode;
 }
