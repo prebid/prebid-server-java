@@ -330,7 +330,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
+        assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)

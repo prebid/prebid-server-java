@@ -4,12 +4,13 @@ import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
-import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
 import org.testcontainers.containers.MockServerContainer
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
+import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.*
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion
 
 class VendorList extends NetworkScaffolding {
@@ -30,18 +31,19 @@ class VendorList extends NetworkScaffolding {
         request().withPath(VENDOR_LIST_ENDPOINT)
     }
 
-    @Override
-    void setResponse(){}
-
-    void setResponse(TcfPolicyVersion tcfPolicyVersion) {
+    void setResponse(TcfPolicyVersion tcfPolicyVersion = TcfPolicyVersion.TCF_POLICY_V2,
+                     Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.defaultVendor]) {
         def prepareEndpoint = endpoint.replace("{TCF_POLICY}", "v" + tcfPolicyVersion.vendorListVersion)
-        def prepareEncodeResponseBody = encode(VendorListResponse.defaultVendorListResponse.tap {
-            it.vendorListVersion = tcfPolicyVersion.vendorListVersion
+        def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
+            it.tcfPolicyVersion = tcfPolicyVersion.vendorListVersion
+            it.vendors = vendors
         })
 
         mockServerClient.when(request().withPath(prepareEndpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond {request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(prepareEncodeResponseBody)
-                                : HttpResponse.notFoundResponse()}
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(prepareEncodeResponseBody)
+                            : HttpResponse.notFoundResponse()
+                }
     }
 }

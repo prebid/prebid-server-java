@@ -1,12 +1,11 @@
 package org.prebid.server.functional.model.mock.services.vendorlist
 
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.TcfConsent
 
 import java.time.Clock
 import java.time.ZonedDateTime
 
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.*
 
 class VendorListResponse {
 
@@ -19,7 +18,7 @@ class VendorListResponse {
     static VendorListResponse getDefaultVendorListResponse() {
         new VendorListResponse().tap {
             it.gvlSpecificationVersion = 2
-            it.tcfPolicyVersion = 2
+            it.vendorListVersion = VENDOR_LIST_VERSION
             it.lastUpdated = ZonedDateTime.now(Clock.systemUTC()).minusWeeks(2)
             it.vendors = [(GENERIC_VENDOR_ID): Vendor.defaultVendor]
         }
