@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,11 +12,11 @@ public class AlertsConfigMetrics extends UpdatableMetrics {
     private final Function<String, AlertsAccountConfigMetric> alertsAccountConfigMetricsCreator;
     private final Map<String, AlertsAccountConfigMetric> alertsAccountConfigMetrics;
 
-    AlertsConfigMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType), nameCreator());
+    AlertsConfigMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType), nameCreator());
 
         alertsAccountConfigMetricsCreator = account -> new AlertsAccountConfigMetric(
-                metricRegistry, counterType, prefix(), account);
+                meterRegistry, counterType, prefix(), account);
         alertsAccountConfigMetrics = new HashMap<>();
     }
 

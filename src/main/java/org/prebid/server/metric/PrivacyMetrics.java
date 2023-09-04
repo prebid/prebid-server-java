@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -13,11 +13,11 @@ class PrivacyMetrics extends UpdatableMetrics {
     private final USPrivacyMetrics usPrivacyMetrics;
     private final TcfMetrics tcfMetrics;
 
-    PrivacyMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    PrivacyMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                 metricName -> "privacy." + metricName);
-        usPrivacyMetrics = new USPrivacyMetrics(metricRegistry, counterType, "privacy");
-        tcfMetrics = new TcfMetrics(metricRegistry, counterType, "privacy");
+        usPrivacyMetrics = new USPrivacyMetrics(meterRegistry, counterType, "privacy");
+        tcfMetrics = new TcfMetrics(meterRegistry, counterType, "privacy");
     }
 
     USPrivacyMetrics usp() {
@@ -30,8 +30,8 @@ class PrivacyMetrics extends UpdatableMetrics {
 
     static class USPrivacyMetrics extends UpdatableMetrics {
 
-        USPrivacyMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+        USPrivacyMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix) {
+            super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                     nameCreator(Objects.requireNonNull(prefix)));
         }
 

@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.prebid.server.hooks.execution.model.Stage;
 
 import java.util.HashMap;
@@ -18,17 +18,17 @@ class ModuleMetrics extends UpdatableMetrics {
 
     private final HookSuccessMetrics successMetrics;
 
-    ModuleMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String moduleCode) {
+    ModuleMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix, String moduleCode) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(moduleCode))));
 
         stageMetricsCreator = stage ->
-                new StageMetrics(metricRegistry, counterType, createPrefix(prefix, moduleCode), stage);
+                new StageMetrics(meterRegistry, counterType, createPrefix(prefix, moduleCode), stage);
         stageMetrics = new HashMap<>();
 
-        successMetrics = new HookSuccessMetrics(metricRegistry, counterType, createPrefix(prefix, moduleCode));
+        successMetrics = new HookSuccessMetrics(meterRegistry, counterType, createPrefix(prefix, moduleCode));
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {

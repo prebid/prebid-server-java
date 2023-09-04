@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.util.internal.StringUtil;
 import org.prebid.server.activity.Activity;
 
@@ -14,11 +14,11 @@ public class ActivitiesMetrics extends UpdatableMetrics {
 
     private final Map<Activity, UpdatableMetrics> disallowedActivityMetrics;
 
-    ActivitiesMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-        super(metricRegistry, counterType, nameCreator(prefix, StringUtil.EMPTY_STRING));
+    ActivitiesMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix) {
+        super(meterRegistry, counterType, nameCreator(prefix, StringUtil.EMPTY_STRING));
 
         disallowedActivityMetricCreator = activity -> new UpdatableMetrics(
-                metricRegistry,
+                meterRegistry,
                 counterType,
                 nameCreator(prefix, suffixFromActivity(activity)));
 

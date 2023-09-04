@@ -1,6 +1,16 @@
 metrics:
-  metricType: flushingCounter
+  graphite:
+    enabled: true
+    protocol: pickled
+    step: 1s
+    host: localhost # Graphite host
+    port: 2004 # Graphite port
+  prometheus:
+    enabled: false
+    path: /metrics # URL path to use for scrapper
+    port: 9000
+  jmx:
+    enabled: true
+  metricType: counter
   accounts:
     default-verbosity: none
-  jmx:
-    enabled: false

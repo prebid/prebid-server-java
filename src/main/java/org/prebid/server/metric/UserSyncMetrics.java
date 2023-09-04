@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,10 +18,10 @@ class UserSyncMetrics extends UpdatableMetrics {
     // thread-safe
     private final Map<String, BidderUserSyncMetrics> bidderUserSyncMetrics;
 
-    UserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+    UserSyncMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                 metricName -> "usersync." + metricName);
-        bidderUserSyncMetricsCreator = bidder -> new BidderUserSyncMetrics(metricRegistry, counterType, bidder);
+        bidderUserSyncMetricsCreator = bidder -> new BidderUserSyncMetrics(meterRegistry, counterType, bidder);
         bidderUserSyncMetrics = new HashMap<>();
     }
 
@@ -33,10 +33,10 @@ class UserSyncMetrics extends UpdatableMetrics {
 
         private final TcfMetrics tcfMetrics;
 
-        BidderUserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
-            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+        BidderUserSyncMetrics(MeterRegistry meterRegistry, CounterType counterType, String bidder) {
+            super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType),
                     nameCreator(Objects.requireNonNull(createUserSyncPrefix(bidder))));
-            tcfMetrics = new TcfMetrics(metricRegistry, counterType, createUserSyncPrefix(bidder));
+            tcfMetrics = new TcfMetrics(meterRegistry, counterType, createUserSyncPrefix(bidder));
         }
 
         TcfMetrics tcf() {

@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.prebid.server.hooks.execution.model.Stage;
 
 import java.util.EnumMap;
@@ -31,14 +31,14 @@ class StageMetrics extends UpdatableMetrics {
     private final Function<String, HookImplMetrics> hookImplMetricsCreator;
     private final Map<String, HookImplMetrics> hookImplMetrics;
 
-    StageMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, Stage stage) {
+    StageMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix, Stage stage) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(stage))));
 
         hookImplMetricsCreator = hookImplCode ->
-                new HookImplMetrics(metricRegistry, counterType, createPrefix(prefix, stage), hookImplCode);
+                new HookImplMetrics(meterRegistry, counterType, createPrefix(prefix, stage), hookImplCode);
         hookImplMetrics = new HashMap<>();
     }
 

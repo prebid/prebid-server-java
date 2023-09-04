@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -12,8 +12,8 @@ class CurrencyRatesMetrics extends UpdatableMetrics {
 
     private static final String SUFFIX = ".count";
 
-    CurrencyRatesMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType), nameCreator());
+    CurrencyRatesMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(Objects.requireNonNull(meterRegistry), Objects.requireNonNull(counterType), nameCreator());
     }
 
     private static Function<MetricName, String> nameCreator() {

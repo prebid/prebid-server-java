@@ -1,6 +1,6 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,14 +17,14 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
     private final Function<String, NamedCircuitBreakerMetrics> namedCircuitBreakerMetricsCreator;
     private final Map<String, NamedCircuitBreakerMetrics> namedCircuitBreakerMetrics;
 
-    CircuitBreakerMetrics(MetricRegistry metricRegistry, CounterType counterType, MetricName type) {
+    CircuitBreakerMetrics(MeterRegistry meterRegistry, CounterType counterType, MetricName type) {
         super(
-                Objects.requireNonNull(metricRegistry),
+                Objects.requireNonNull(meterRegistry),
                 Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(type))));
 
         namedCircuitBreakerMetricsCreator =
-                name -> new NamedCircuitBreakerMetrics(metricRegistry, counterType, createPrefix(type), name);
+                name -> new NamedCircuitBreakerMetrics(meterRegistry, counterType, createPrefix(type), name);
         namedCircuitBreakerMetrics = new HashMap<>();
     }
 
@@ -62,9 +62,9 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
 
     static class NamedCircuitBreakerMetrics extends UpdatableMetrics {
 
-        NamedCircuitBreakerMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String name) {
+        NamedCircuitBreakerMetrics(MeterRegistry meterRegistry, CounterType counterType, String prefix, String name) {
             super(
-                    Objects.requireNonNull(metricRegistry),
+                    Objects.requireNonNull(meterRegistry),
                     Objects.requireNonNull(counterType),
                     nameCreator(Objects.requireNonNull(prefix), Objects.requireNonNull(name)));
         }

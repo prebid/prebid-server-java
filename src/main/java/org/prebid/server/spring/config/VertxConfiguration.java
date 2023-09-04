@@ -1,16 +1,15 @@
 package org.prebid.server.spring.config;
 
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
-import io.vertx.ext.dropwizard.Match;
-import io.vertx.ext.dropwizard.MatchType;
+import io.vertx.core.metrics.MetricsOptions;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.prebid.server.spring.config.metrics.MetricsConfiguration;
+import io.vertx.micrometer.MicrometerMetricsOptions;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.LocalMessageCodec;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,22 +22,21 @@ public class VertxConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(VertxConfiguration.class);
 
     @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
-                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics,
-                @Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
-        final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
-                .setEnabled(true)
-                .setJmxEnabled(jmxEnabled)
-                .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
-        if (enablePerClientEndpointMetrics) {
-            metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
-        }
+    VertxOptions vertxOptions(@Value("${vertx.worker-pool-size}") int workerPoolSize,
+                              CompositeMeterRegistry meterRegistry) {
 
-        final VertxOptions vertxOptions = new VertxOptions()
+        final MetricsOptions metricsOptions = new MicrometerMetricsOptions()
+                .setMicrometerRegistry(meterRegistry)
+                .setEnabled(true);
+
+        return new VertxOptions()
                 .setPreferNativeTransport(true)
                 .setWorkerPoolSize(workerPoolSize)
                 .setMetricsOptions(metricsOptions);
+    }
 
+    @Bean
+    Vertx vertx(VertxOptions vertxOptions) {
         final Vertx vertx = Vertx.vertx(vertxOptions);
         logger.info("Native transport enabled: {0}", vertx.isNativeTransportEnabled());
         return vertx;

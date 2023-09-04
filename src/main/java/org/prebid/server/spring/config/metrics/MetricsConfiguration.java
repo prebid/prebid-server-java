@@ -1,123 +1,71 @@
 package org.prebid.server.spring.config.metrics;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.ScheduledReporter;
-import com.codahale.metrics.SharedMetricRegistries;
-import com.codahale.metrics.graphite.Graphite;
-import com.codahale.metrics.graphite.GraphiteReporter;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.izettle.metrics.influxdb.InfluxDbHttpSender;
-import com.izettle.metrics.influxdb.InfluxDbReporter;
-import com.izettle.metrics.influxdb.InfluxDbSender;
-import io.vertx.core.Vertx;
+import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.config.NamingConvention;
+import io.micrometer.graphite.GraphiteMeterRegistry;
+import io.micrometer.jmx.JmxMeterRegistry;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.vertx.CloseableAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 @PropertySource(value = "classpath:/metrics-config/metrics.yaml", factory = YamlPropertySourceFactory.class)
 public class MetricsConfiguration {
 
-    public static final String METRIC_REGISTRY_NAME = "metric-registry";
-
-    @Autowired(required = false)
-    private List<ScheduledReporter> reporters = Collections.emptyList();
-
     @Autowired
-    private Vertx vertx;
+    Environment environment;
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.graphite", name = "enabled", havingValue = "true")
-    ScheduledReporter graphiteReporter(GraphiteProperties graphiteProperties, MetricRegistry metricRegistry) {
-        final Graphite graphite = new Graphite(graphiteProperties.getHost(), graphiteProperties.getPort());
-        final ScheduledReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
-                .prefixedWith(graphiteProperties.getPrefix())
-                .build(graphite);
-        reporter.start(graphiteProperties.getInterval(), TimeUnit.SECONDS);
+    CompositeMeterRegistry compositeMeterRegistry(List<MeterRegistry> meterRegistries) {
+        CompositeMeterRegistry registry = new CompositeMeterRegistry();
+        meterRegistries.forEach(registry::add);
 
-        return reporter;
+        return registry;
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "enabled", havingValue = "true")
-    ScheduledReporter influxdbReporter(InfluxdbProperties influxdbProperties, MetricRegistry metricRegistry)
-            throws Exception {
-        final InfluxDbSender influxDbSender = new InfluxDbHttpSender(
-                influxdbProperties.getProtocol(),
-                influxdbProperties.getHost(),
-                influxdbProperties.getPort(),
-                influxdbProperties.getDatabase(),
-                influxdbProperties.getAuth(),
-                TimeUnit.SECONDS,
-                influxdbProperties.getConnectTimeout(),
-                influxdbProperties.getReadTimeout(),
-                influxdbProperties.getPrefix());
-        final Map<String, String> tags = ObjectUtils.defaultIfNull(
-                influxdbProperties.getTags(),
-                Collections.emptyMap()
-        );
-        final ScheduledReporter reporter = InfluxDbReporter
-                .forRegistry(metricRegistry)
-                .withTags(tags)
-                .build(influxDbSender);
-        reporter.start(influxdbProperties.getInterval(), TimeUnit.SECONDS);
-
-        return reporter;
+    MeterRegistry graphiteMeterRegistry() {
+        GraphiteMeterRegistry test = new GraphiteMeterRegistry(this::extractProperty, Clock.SYSTEM);
+        test.config().namingConvention(NamingConvention.identity);
+        return test;
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.console", name = "enabled", havingValue = "true")
-    ScheduledReporter consoleReporter(ConsoleProperties consoleProperties, MetricRegistry metricRegistry) {
-        final ScheduledReporter reporter = ConsoleReporter.forRegistry(metricRegistry).build();
-        reporter.start(consoleProperties.getInterval(), TimeUnit.SECONDS);
-
-        return reporter;
+    MeterRegistry prometheusMeterRegistry() {
+        return new PrometheusMeterRegistry(this::extractProperty);
     }
 
     @Bean
-    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
+    MeterRegistry jmxMeterRegistry() {
+        return new JmxMeterRegistry(this::extractProperty, Clock.SYSTEM);
+    }
+
+    @Bean
+    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType,
+                    CompositeMeterRegistry meterRegistry,
                     AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
-        return new Metrics(metricRegistry, counterType, accountMetricsVerbosityResolver);
-    }
 
-    @Bean
-    MetricRegistry metricRegistry(@Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
-        final boolean alreadyExists = SharedMetricRegistries.names().contains(METRIC_REGISTRY_NAME);
-        final MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
-
-        if (!alreadyExists && jmxEnabled) {
-            metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
-            metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
-        }
-
-        return metricRegistry;
+        return new Metrics(meterRegistry, counterType, accountMetricsVerbosityResolver);
     }
 
     @Bean
@@ -128,75 +76,8 @@ public class MetricsConfiguration {
                 accountsProperties.getDetailedVerbosity());
     }
 
-    @PostConstruct
-    void registerReporterCloseHooks() {
-        reporters.stream()
-                .map(CloseableAdapter::new)
-                .forEach(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "metrics.graphite")
-    @ConditionalOnProperty(prefix = "metrics.graphite", name = "enabled", havingValue = "true")
-    @Validated
-    @Data
-    @NoArgsConstructor
-    private static class GraphiteProperties {
-
-        @NotBlank
-        private String prefix;
-        @NotBlank
-        private String host;
-        @NotNull
-        private Integer port;
-        @NotNull
-        @Min(1)
-        private Integer interval;
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "metrics.influxdb")
-    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "enabled", havingValue = "true")
-    @Validated
-    @Data
-    @NoArgsConstructor
-    private static class InfluxdbProperties {
-
-        @NotBlank
-        private String prefix;
-        @NotBlank
-        private String protocol;
-        @NotBlank
-        private String host;
-        @NotNull
-        private Integer port;
-        @NotBlank
-        private String database;
-        @NotBlank
-        private String auth;
-        @NotNull
-        @Min(1)
-        private Integer connectTimeout;
-        @NotNull
-        @Min(1)
-        private Integer readTimeout;
-        @NotNull
-        @Min(1)
-        private Integer interval;
-        private Map<String, String> tags;
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "metrics.console")
-    @ConditionalOnProperty(prefix = "metrics.console", name = "enabled", havingValue = "true")
-    @Validated
-    @Data
-    @NoArgsConstructor
-    private static class ConsoleProperties {
-
-        @NotNull
-        @Min(1)
-        private Integer interval;
+    private String extractProperty(String key) {
+        return environment.getProperty("metrics." + key);
     }
 
     @Component

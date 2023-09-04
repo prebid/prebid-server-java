@@ -1,10 +1,10 @@
 package org.prebid.server.metric;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 public class PgMetrics extends UpdatableMetrics {
 
-    PgMetrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(metricRegistry, counterType, metricName -> "pg." + metricName);
+    PgMetrics(MeterRegistry meterRegistry, CounterType counterType) {
+        super(meterRegistry, counterType, metricName -> "pg." + metricName);
     }
 }
