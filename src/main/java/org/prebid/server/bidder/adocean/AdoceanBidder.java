@@ -54,7 +54,7 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String VERSION = "1.2.0";
+    private static final String VERSION = "1.3.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String MEASUREMENT_CODE_TEMPLATE = """
              <script> +function() {
@@ -83,6 +83,8 @@ public class AdoceanBidder implements Bidder<Void> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdocean extImpAdocean = parseImpExt(imp);
+                validateImpExt(extImpAdocean);
+
                 final Map<String, String> slaveSizes = new HashMap<>();
                 slaveSizes.put(extImpAdocean.getSlaveId(), getImpSizes(imp));
                 if (addRequestAndCheckIfDuplicates(httpRequests, extImpAdocean, imp.getId(), slaveSizes,
@@ -104,6 +106,12 @@ public class AdoceanBidder implements Bidder<Void> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     "Error parsing adOceanExt parameters, in imp with id : " + imp.getId());
+        }
+    }
+
+    private static void validateImpExt(ExtImpAdocean impExt) {
+        if (StringUtils.isEmpty(impExt.getEmitterPrefix())) {
+            throw new PreBidException("No emitterPrefix param");
         }
     }
 
@@ -254,7 +262,7 @@ public class AdoceanBidder implements Bidder<Void> {
     }
 
     private String resolveEndpointUrl(ExtImpAdocean extImpAdocean, Integer test) {
-        final String url = endpointUrl.replace("{{Host}}", Objects.toString(extImpAdocean.getEmitterDomain(), ""));
+        final String url = endpointUrl.replace("{{Host}}", extImpAdocean.getEmitterPrefix());
         final int randomizedPart = Objects.equals(test, 1) ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
         return "%s/_%s/ad.json".formatted(url, randomizedPart);
     }
