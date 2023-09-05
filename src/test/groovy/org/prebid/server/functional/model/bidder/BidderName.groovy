@@ -5,7 +5,7 @@ import net.minidev.json.annotate.JsonIgnore
 
 enum BidderName {
 
-    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS, OPENX
+    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS, OPENX, ACEEX, ACUITYADS, GRID, AAX, ADKERNEL, MEDIANET
 
     @JsonValue
     String getValue() {

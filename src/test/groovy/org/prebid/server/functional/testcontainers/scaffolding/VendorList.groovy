@@ -13,6 +13,7 @@ import static org.prebid.server.functional.model.mock.services.vendorlist.Vendor
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.Vendor
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 class VendorList extends NetworkScaffolding {
 
@@ -32,7 +33,7 @@ class VendorList extends NetworkScaffolding {
         request().withPath(VENDOR_LIST_ENDPOINT)
     }
 
-    void setResponse(TcfPolicyVersion tcfPolicyVersion = TcfPolicyVersion.TCF_POLICY_V2,
+    void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
                      Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
         def prepareEndpoint = endpoint.replace("{TCF_POLICY}", "v" + tcfPolicyVersion.vendorListVersion)
         def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
