@@ -51,6 +51,8 @@ public class HuaweiAdmBuilder {
     private static final int APP_PROMOTION_INTERACTION_TYPE = 3;
     private static final String DEFAULT_NATIVE_VERSION = "1.1";
     private static final String DEFAULT_VIDEO_MIME_TYPE = "video/mp4";
+    private static final int EVENT_TRACKING_IMAGE_METHOD = 1;
+    private static final int IMPRESSION_EVENT_TYPE = 1;
 
     private final JacksonMapper mapper;
 
@@ -373,7 +375,12 @@ public class HuaweiAdmBuilder {
                     switch (eventType) {
                         case IMP -> {
                             eventTrackers.addAll(monitor.getUrlList().stream()
-                                    .map(url -> EventTracker.builder().event(1).method(1).url(url).build()).toList());
+                                    .map(url -> EventTracker.builder()
+                                            .event(IMPRESSION_EVENT_TYPE)
+                                            .method(EVENT_TRACKING_IMAGE_METHOD)
+                                            .url(url)
+                                            .build())
+                                    .toList());
                         }
                         case CLICK -> clickTrackers.addAll(monitor.getUrlList());
                     }
@@ -390,7 +397,7 @@ public class HuaweiAdmBuilder {
 
         try {
             final String adm = mapper.mapper().writeValueAsString(response).replace("\n", "");
-            //todo: returns nullable width and height if no video or image present or no assets
+            //todo: returns nullable width and height if no video or image present
             return HuaweiAdm.of(adm, adWidth, adHeight);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
